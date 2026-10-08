@@ -11,30 +11,38 @@ datasource db {
 
 /// Una carta "lógica" de Scryfall (bulk oracle_cards). Todas las ediciones comparten oracleId.
 model OracleCard {
-  oracleId       String   @id
+  oracleId       String     @id
   name           String
-  /// Nombre de la primera cara, para emparejar "A // B" escrito como "A".
+  /// nameKey(name): minúsculas, sin tildes, `//` normalizado. Para buscar por nombre.
+  nameKey        String
+  /// Nombre de la primera cara en cartas `A // B`.
   frontFaceName  String?
+  /// nameKey(frontFaceName)
+  frontFaceKey   String?
+  layout         String
   manaCost       String?
   cmc            Float
   typeLine       String
   oracleText     String?
+  /// Array JSON de keywords, p. ej. ["Flying","Partner"].
+  keywords       String     @default("[]")
   /// Letras WUBRG concatenadas, p. ej. "UB". Vacío = incolora.
   colorIdentity  String
   legalCommander Boolean
-  isBasicLand    Boolean  @default(false)
+  isBasicLand    Boolean    @default(false)
   edhrecRank     Int?
+  imageUrl       String?
   printings      Printing[]
 
-  @@index([name])
-  @@index([frontFaceName])
+  @@index([nameKey])
+  @@index([frontFaceKey])
 }
 
 /// Una impresión concreta (bulk default_cards).
 model Printing {
   scryfallId      String     @id
   oracleId        String
-  oracle          OracleCard @relation(fields: [oracleId], references: [oracleId])
+  oracle          OracleCard @relation(fields: [oracleId], references: [oracleId], onDelete: Cascade)
   setCode         String
   collectorNumber String
   lang            String
@@ -45,29 +53,33 @@ model Printing {
 }
 
 model CollectionEntry {
-  id         Int      @id @default(autoincrement())
-  scryfallId String?
-  oracleId   String?
-  name       String
-  setCode    String?
+  id              Int      @id @default(autoincrement())
+  scryfallId      String?
+  oracleId        String?
+  name            String
+  setCode         String?
   collectorNumber String?
-  quantity   Int
-  foil       Boolean  @default(false)
+  quantity        Int
+  foil            Boolean  @default(false)
   /// "matched" | "unmatched"
-  status     String
+  status          String
+  /// Cómo se emparejó: "scryfallId" | "setNumber" | "name"; null si no se emparejó.
+  matchMethod     String?
+  /// Línea del CSV original.
+  line            Int
   /// Fila original del CSV en JSON, para depurar emparejados fallidos.
-  raw        String
-  importedAt DateTime @default(now())
+  raw             String
+  importedAt      DateTime @default(now())
 
   @@index([oracleId])
 }
 
 model Deck {
-  id        Int        @id @default(autoincrement())
+  id        Int            @id @default(autoincrement())
   name      String
   theme     String?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
   cards     DeckCard[]
   decisions SwapDecision[]
 }

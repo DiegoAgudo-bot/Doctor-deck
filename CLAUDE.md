@@ -7,17 +7,20 @@ recomendaciones de EDHREC, priorizando cartas de la colección del usuario (expo
 
 ## Comandos
 
-| Comando                                                     | Qué hace                                                               |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `npm install`                                               | Instala dependencias y genera el cliente Prisma (`postinstall`)        |
-| `cp .env.example .env`                                      | Configuración local (nunca se sube `.env`)                             |
-| `npm run db:migrate`                                        | Aplica/crea migraciones de Prisma sobre SQLite (`data/deck-doctor.db`) |
-| `npm run dev`                                               | Servidor de desarrollo                                                 |
-| `npm test` / `npm run test:watch` / `npm run test:coverage` | Vitest                                                                 |
-| `npm run typecheck`                                         | `next typegen` + `tsc --noEmit`                                        |
-| `npm run lint`                                              | ESLint (incluye la regla de capas)                                     |
-| `npm run format` / `format:check`                           | Prettier                                                               |
-| `npm run build`                                             | Build de producción                                                    |
+| Comando                                                     | Qué hace                                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `npm install`                                               | Instala dependencias y genera el cliente Prisma (`postinstall`)           |
+| `cp .env.example .env`                                      | Configuración local (nunca se sube `.env`)                                |
+| `npm run db:migrate`                                        | Aplica/crea migraciones de Prisma sobre SQLite (`data/deck-doctor.db`)    |
+| `npm run dev`                                               | Servidor de desarrollo                                                    |
+| `npm test` / `npm run test:watch` / `npm run test:coverage` | Vitest                                                                    |
+| `npm run typecheck`                                         | `next typegen` + `tsc --noEmit`                                           |
+| `npm run lint`                                              | ESLint (incluye la regla de capas)                                        |
+| `npm run format` / `format:check`                           | Prettier                                                                  |
+| `npm run build`                                             | Build de producción                                                       |
+| `npm run scryfall:sync [-- --force \| --skip-download]`     | Descarga los bulk de Scryfall (si hay versión nueva) y los vuelca a la BD |
+| `npm run collection:import -- "export.csv"`                 | Importa un CSV de ManaBox y muestra el resumen                            |
+| `npm run deck:check -- "lista.txt"`                         | Parsea y resuelve una lista de mazo contra el catálogo                    |
 
 Antes de cada commit: `npm run typecheck && npm run lint && npm run format:check && npm test`.
 
@@ -41,19 +44,36 @@ src/
     ports/       Interfaces que implementan los adaptadores: CardRepository, CollectionRepository,
                  RecommendationSource, DeckSource, RoleClassifier, Cache.
   application/   Casos de uso (importCollection, analyzeDeck…). Unen puertos + dominio. Sin UI.
-  adapters/      I/O. scryfall/ edhrec/ deck-sources/ csv/ http/ db/
+  adapters/      I/O. scryfall/ (bulk + mapeo) edhrec/ deck-sources/ http/ (UA + rate limit) db/ (Prisma)
   config/        Carga de .env con zod (env.ts) y parámetros por defecto (pesos, mínimos por rol).
   app/           Next App Router: páginas y Route Handlers /api/* (la UI y la futura app móvil
                  consumen la misma API JSON; no se usan Server Actions para la lógica).
   components/    Componentes React.
+  server/        Raíz de composición (container.ts): env + adaptadores concretos. Solo servidor/scripts.
   generated/     Cliente Prisma (gitignored).
 scripts/         Tareas CLI (p. ej. sincronizar bulk de Scryfall).
-tests/           setup.ts (bloquea la red) y fixtures/ (JSON de EDHREC, recortes de Scryfall, CSV, listas).
+tests/           setup.ts (bloquea la red), helpers/ (makeCard, fixtures de Scryfall, BD temporal)
+                 y fixtures/ (ver fixtures/README.md).
 data/            (gitignored) SQLite, bulk de Scryfall.
 ```
 
 Tests unitarios junto al código (`*.test.ts`). **Los tests nunca llaman a la red**:
 `tests/setup.ts` sustituye `fetch` por uno que lanza error; inyecta clientes falsos o usa fixtures.
+Los tests de repositorios y casos de uso usan una SQLite temporal con las migraciones aplicadas
+(`tests/helpers/test-db.ts`).
+
+### Flujo de datos
+
+- **Catálogo**: `ensureBulkFile` (descarga) → `readJsonArray` (streaming) → `safeMappers` (zod →
+  `Card`/`Printing`) → `syncScryfallCatalog` → `PrismaCardRepository`. Las búsquedas por nombre usan
+  las columnas `nameKey`/`frontFaceKey` (ver `domain/cards/names.ts`).
+- **Resolver cosas contra el catálogo**: `application/card-index-loader.ts` carga del repositorio solo
+  las cartas necesarias en un `InMemoryCardIndex` (dominio, síncrono); el dominio trabaja contra la
+  interfaz `CardIndex`. El índice prefiere cartas jugables frente a tokens/art series homónimos.
+- **Colección**: `parseManaboxCsv` → `matchCollection` (id → set+nº → nombre) → `replaceCollection`.
+- **Mazo**: `DeckSource.load` → `parseDecklist` → `resolveDecklist` (agrupa por oracleId, detecta
+  comandante: marcado → único candidato o pareja válida → si no, `commanderCandidates` para que
+  elija el usuario con `chooseCommanders`) → `validateDeck`.
 
 ## Decisiones
 
@@ -78,9 +98,12 @@ Tests unitarios junto al código (`*.test.ts`). **Los tests nunca llaman a la re
   configurables en `src/config`.
 - **Nunca se propone cortar**: comandante(s), tierras básicas, cartas bloqueadas.
 - **Idioma**: textos de la UI en español; código e identificadores en inglés.
+- **Formatos de lista admitidos**: `1 X`, `1x X`, `X`, `1 X (SET) 123`, `*F*`/`*E*`, `*CMDR*`,
+  `SB:`, secciones Commander/Deck/Sideboard/Maybeboard/Companion/About, categorías y etiquetas de
+  Archidekt (`[Commander{top}]`, `{noDeck}`, `^…^`) y etiquetas de Moxfield (`#!Ramp`).
 - **Secretos**: solo en `.env` (gitignored). `.env.example` documenta las variables.
 
-## Formato del CSV de ManaBox (observado en `jj one.csv`)
+## Formato del CSV de ManaBox (observado en el export del usuario)
 
 Columnas: `Name, Set code, Set name, Collector number, Foil, Rarity, Quantity, ManaBox ID,
 Scryfall ID, Purchase price, Misprint, Altered, Signed, Condition, Language, Proxy,
@@ -94,7 +117,7 @@ Purchase price currency, Added`.
 ## Fases
 
 0. Arquitectura y setup ✅
-1. Datos de Scryfall + import CSV ManaBox + parser de listas, con tests.
+1. Datos de Scryfall + import CSV ManaBox + parser de listas, con tests ✅
 2. `EdhrecClient` con caché + tests con fixtures.
 3. Motor de sugerencias + clasificador de roles, con tests de casos concretos.
 4. UI (import, mazo con curva/roles, swaps aceptar/descartar, bloqueos, exportar texto).

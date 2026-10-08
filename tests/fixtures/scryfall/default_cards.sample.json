@@ -1,0 +1,640 @@
+[
+  {
+    "object": "card",
+    "id": "9cf3af94-b7c8-415c-a5a1-d89967fd0bba",
+    "oracle_id": "00000000-0000-4000-8000-000000000001",
+    "name": "Thundertrap Trainer",
+    "lang": "en",
+    "layout": "normal",
+    "set": "blb",
+    "collector_number": "78",
+    "cmc": 2.0,
+    "type_line": "Creature — Otter Wizard",
+    "keywords": ["Offspring"],
+    "color_identity": ["U"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/9/c/9cf3af94-b7c8-415c-a5a1-d89967fd0bba.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 3000,
+    "mana_cost": "{1}{U}",
+    "oracle_text": "Offspring {4}\nWhen this creature enters, look at the top four cards of your library. You may reveal a noncreature, nonland card from among them and put it into your hand. Put the rest on the bottom of your library in a random order."
+  },
+  {
+    "object": "card",
+    "id": "0edb2d01-9a94-410c-8ab7-ca1b404ab5f0",
+    "oracle_id": "00000000-0000-4000-8000-000000000002",
+    "name": "Tamiyo's Logbook",
+    "lang": "en",
+    "layout": "normal",
+    "set": "one",
+    "collector_number": "70",
+    "cmc": 5.0,
+    "type_line": "Artifact",
+    "keywords": [],
+    "color_identity": [],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/0/e/0edb2d01-9a94-410c-8ab7-ca1b404ab5f0.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 9000,
+    "mana_cost": "{5}",
+    "oracle_text": "This spell costs {1} less to cast for each card type among cards in your graveyard... \n{T}: Draw a card."
+  },
+  {
+    "object": "card",
+    "id": "7f516ee6-8f7b-40b2-82e5-9c4ea3e0a355",
+    "oracle_id": "00000000-0000-4000-8000-000000000003",
+    "name": "Ichor Synthesizer",
+    "lang": "en",
+    "layout": "normal",
+    "set": "one",
+    "collector_number": "55",
+    "cmc": 2.0,
+    "type_line": "Creature — Phyrexian Wizard",
+    "keywords": [],
+    "color_identity": ["U"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/7/f/7f516ee6-8f7b-40b2-82e5-9c4ea3e0a355.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 15000,
+    "mana_cost": "{1}{U}",
+    "oracle_text": "Whenever you cast a noncreature spell, put an oil counter on Ichor Synthesizer."
+  },
+  {
+    "object": "card",
+    "id": "eb26e2dd-a81b-46a5-9208-c6b3d2548fbb",
+    "oracle_id": "00000000-0000-4000-8000-000000000004",
+    "name": "Cackling Counterpart",
+    "lang": "en",
+    "layout": "normal",
+    "set": "dsc",
+    "collector_number": "72",
+    "cmc": 3.0,
+    "type_line": "Instant",
+    "keywords": ["Flashback"],
+    "color_identity": ["U"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/e/b/eb26e2dd-a81b-46a5-9208-c6b3d2548fbb.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 2500,
+    "mana_cost": "{1}{U}{U}",
+    "oracle_text": "Create a token that's a copy of target creature you control.\nFlashback {5}{U}{U}"
+  },
+  {
+    "object": "card",
+    "id": "572b3180-9822-4885-b81c-b1bf8aca5a5e",
+    "oracle_id": "00000000-0000-4000-8000-000000000005",
+    "name": "Dig Through Time",
+    "lang": "en",
+    "layout": "normal",
+    "set": "dsc",
+    "collector_number": "115",
+    "cmc": 8.0,
+    "type_line": "Instant",
+    "keywords": ["Delve"],
+    "color_identity": ["U"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/5/7/572b3180-9822-4885-b81c-b1bf8aca5a5e.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 1800,
+    "mana_cost": "{6}{U}{U}",
+    "oracle_text": "Delve\nLook at the top seven cards of your library. Put two of them into your hand and the rest on the bottom of your library in any order."
+  },
+  {
+    "object": "card",
+    "id": "185b2e8f-ab37-42e4-b3a1-f38b19a2e05a",
+    "oracle_id": "00000000-0000-4000-8000-000000000006",
+    "name": "Body of Knowledge",
+    "lang": "en",
+    "layout": "normal",
+    "set": "dsc",
+    "collector_number": "112",
+    "cmc": 5.0,
+    "type_line": "Creature — Avatar",
+    "keywords": [],
+    "color_identity": ["U"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/1/8/185b2e8f-ab37-42e4-b3a1-f38b19a2e05a.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 4000,
+    "mana_cost": "{3}{U}{U}",
+    "oracle_text": "Body of Knowledge's power and toughness are each equal to the number of cards in your hand.\nYou have no maximum hand size.\nWhenever Body of Knowledge is dealt damage, draw that many cards."
+  },
+  {
+    "object": "card",
+    "id": "ad98e518-4ec9-403e-a978-217244262c8f",
+    "oracle_id": "00000000-0000-4000-8000-000000000007",
+    "name": "Nyx-Fleece Ram",
+    "lang": "en",
+    "layout": "normal",
+    "set": "a25",
+    "collector_number": "26",
+    "cmc": 2.0,
+    "type_line": "Enchantment Creature — Sheep",
+    "keywords": [],
+    "color_identity": ["W"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/a/d/ad98e518-4ec9-403e-a978-217244262c8f.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 8000,
+    "mana_cost": "{1}{W}",
+    "oracle_text": "At the beginning of your upkeep, you gain 1 life."
+  },
+  {
+    "object": "card",
+    "id": "ada2b522-219a-44be-98c1-83a02efdd709",
+    "oracle_id": "00000000-0000-4000-8000-000000000008",
+    "name": "Zimone's Hypothesis",
+    "lang": "en",
+    "layout": "normal",
+    "set": "dsc",
+    "collector_number": "15",
+    "cmc": 5.0,
+    "type_line": "Instant",
+    "keywords": [],
+    "color_identity": ["U"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/a/d/ada2b522-219a-44be-98c1-83a02efdd709.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 12000,
+    "mana_cost": "{3}{U}{U}",
+    "oracle_text": "You may put a +1/+1 counter on a creature. Then choose odd or even. Return each creature with power of the chosen quality to its owner's hand."
+  },
+  {
+    "object": "card",
+    "id": "a0dd5813-8c6e-4fa3-b11d-e13f14ce8c4e",
+    "oracle_id": "00000000-0000-4000-8000-000000000009",
+    "name": "Satsuki, the Living Lore",
+    "lang": "en",
+    "layout": "normal",
+    "set": "neo",
+    "collector_number": "399",
+    "cmc": 2.0,
+    "type_line": "Legendary Creature — Human Peasant",
+    "keywords": [],
+    "color_identity": ["G", "W"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/a/0/a0dd5813-8c6e-4fa3-b11d-e13f14ce8c4e.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 11000,
+    "mana_cost": "{G}{W}",
+    "oracle_text": "{T}, Sacrifice Satsuki, the Living Lore: Choose one or more —\n• Untap target Saga you control.\n• Put a lore counter on target Saga you control."
+  },
+  {
+    "object": "card",
+    "id": "bf20ea7b-e480-4b0e-b080-888f24d3c08d",
+    "oracle_id": "00000000-0000-4000-8000-000000000010",
+    "name": "Sorin, Vampire Lord",
+    "lang": "en",
+    "layout": "normal",
+    "set": "m20",
+    "collector_number": "290",
+    "cmc": 6.0,
+    "type_line": "Legendary Planeswalker — Sorin",
+    "keywords": [],
+    "color_identity": ["B"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/b/f/bf20ea7b-e480-4b0e-b080-888f24d3c08d.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 14000,
+    "mana_cost": "{4}{B}{B}",
+    "oracle_text": "+1: Up to one target creature gets -2/-0 until end of turn.\n−2: Sorin deals 4 damage to any target. You gain 4 life."
+  },
+  {
+    "object": "card",
+    "id": "f890bdc7-32e6-4492-bac7-7cabf54a8bfd",
+    "oracle_id": "00000000-0000-4000-8000-000000000011",
+    "name": "Marang River Regent // Coil and Catch",
+    "lang": "en",
+    "layout": "split",
+    "set": "tdm",
+    "collector_number": "51",
+    "cmc": 6.0,
+    "type_line": "Creature — Dragon // Instant — Omen",
+    "keywords": ["Flying"],
+    "color_identity": ["U"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 1500,
+    "card_faces": [
+      {
+        "name": "Marang River Regent",
+        "mana_cost": "{4}{U}{U}",
+        "type_line": "Creature — Dragon",
+        "oracle_text": "Flying\nWhen this creature enters, return up to two other target nonland permanents to their owners' hands.",
+        "image_uris": {
+          "normal": "https://cards.scryfall.io/normal/front/f/8/f890bdc7-32e6-4492-bac7-7cabf54a8bfd.jpg"
+        }
+      },
+      {
+        "name": "Coil and Catch",
+        "mana_cost": "{3}{U}",
+        "type_line": "Instant — Omen",
+        "oracle_text": "Draw three cards, then discard a card. Shuffle this card into its owner's library.",
+        "image_uris": {
+          "normal": "https://cards.scryfall.io/normal/front/f/8/f890bdc7-32e6-4492-bac7-7cabf54a8bfd.jpg"
+        }
+      }
+    ]
+  },
+  {
+    "object": "card",
+    "id": "16c0bb08-36b3-41e2-a5a9-2fcd6bb49beb",
+    "oracle_id": "00000000-0000-4000-8000-000000000012",
+    "name": "Grizzled Angler // Grisly Anglerfish",
+    "lang": "en",
+    "layout": "transform",
+    "set": "inr",
+    "collector_number": "67",
+    "cmc": 3.0,
+    "type_line": "Creature — Human // Creature — Eldrazi Fish",
+    "keywords": [],
+    "color_identity": ["U"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 20000,
+    "card_faces": [
+      {
+        "name": "Grizzled Angler",
+        "mana_cost": "{2}{U}",
+        "type_line": "Creature — Human",
+        "oracle_text": "{T}: Mill two cards. Then if there is a colorless creature card in your graveyard, transform Grizzled Angler.",
+        "image_uris": {
+          "normal": "https://cards.scryfall.io/normal/front/1/6/16c0bb08-36b3-41e2-a5a9-2fcd6bb49beb.jpg"
+        }
+      },
+      {
+        "name": "Grisly Anglerfish",
+        "mana_cost": "",
+        "type_line": "Creature — Eldrazi Fish",
+        "oracle_text": "{6}: Creatures your opponents control attack this turn if able.",
+        "image_uris": {
+          "normal": "https://cards.scryfall.io/normal/front/1/6/16c0bb08-36b3-41e2-a5a9-2fcd6bb49beb.jpg"
+        }
+      }
+    ]
+  },
+  {
+    "object": "card",
+    "id": "14379198-9a0a-4853-9d51-fb074a24b1c0",
+    "oracle_id": "00000000-0000-4000-8000-000000000013",
+    "name": "Ultros, Obnoxious Octopus",
+    "lang": "en",
+    "layout": "normal",
+    "set": "fin",
+    "collector_number": "83",
+    "cmc": 5.0,
+    "type_line": "Legendary Creature — Octopus",
+    "keywords": [],
+    "color_identity": ["U"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/1/4/14379198-9a0a-4853-9d51-fb074a24b1c0.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 16000,
+    "mana_cost": "{4}{U}",
+    "oracle_text": "Whenever you cast a noncreature spell, ..."
+  },
+  {
+    "object": "card",
+    "id": "721cd840-5f2e-40b7-8b33-ea2d6343d390",
+    "oracle_id": "00000000-0000-4000-8000-000000000014",
+    "name": "Aron, Benalia's Ruin",
+    "lang": "en",
+    "layout": "normal",
+    "set": "tdc",
+    "collector_number": "280",
+    "cmc": 3.0,
+    "type_line": "Legendary Creature — Human Knight",
+    "keywords": [],
+    "color_identity": ["W", "B"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/7/2/721cd840-5f2e-40b7-8b33-ea2d6343d390.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 17000,
+    "mana_cost": "{1}{W}{B}",
+    "oracle_text": "..."
+  },
+  {
+    "object": "card",
+    "id": "11111111-0000-4000-8000-000000000023",
+    "oracle_id": "00000000-0000-4000-8000-000000000015",
+    "name": "Lantern Flare",
+    "lang": "en",
+    "layout": "normal",
+    "set": "vow",
+    "collector_number": "23",
+    "cmc": 2.0,
+    "type_line": "Instant",
+    "keywords": ["Cleave"],
+    "color_identity": ["R", "W"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/1/1/11111111-0000-4000-8000-000000000023.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 13000,
+    "mana_cost": "{1}{W}",
+    "oracle_text": "Cleave {X}{R}{W}\nLantern Flare deals X damage to target creature or planeswalker and you gain X life. [X is the number of creatures you control.]"
+  },
+  {
+    "object": "card",
+    "id": "33333333-0000-4000-8000-000000000263",
+    "oracle_id": "00000000-0000-4000-8000-000000000017",
+    "name": "Sol Ring",
+    "lang": "en",
+    "layout": "normal",
+    "set": "c21",
+    "collector_number": "263",
+    "cmc": 1.0,
+    "type_line": "Artifact",
+    "keywords": [],
+    "color_identity": [],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/3/3/33333333-0000-4000-8000-000000000263.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 1,
+    "mana_cost": "{1}",
+    "oracle_text": "{T}: Add {C}{C}."
+  },
+  {
+    "object": "card",
+    "id": "33333333-0000-4000-8000-000000000270",
+    "oracle_id": "00000000-0000-4000-8000-000000000017",
+    "name": "Sol Ring",
+    "lang": "en",
+    "layout": "normal",
+    "set": "lea",
+    "collector_number": "270",
+    "cmc": 1.0,
+    "type_line": "Artifact",
+    "keywords": [],
+    "color_identity": [],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/3/3/33333333-0000-4000-8000-000000000263.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 1,
+    "mana_cost": "{1}",
+    "oracle_text": "{T}: Add {C}{C}."
+  },
+  {
+    "object": "card",
+    "id": "44444444-0000-4000-8000-000000000278",
+    "oracle_id": "00000000-0000-4000-8000-000000000018",
+    "name": "Island",
+    "lang": "en",
+    "layout": "normal",
+    "set": "dsk",
+    "collector_number": "278",
+    "cmc": 0.0,
+    "type_line": "Basic Land — Island",
+    "keywords": [],
+    "color_identity": ["U"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/4/4/44444444-0000-4000-8000-000000000278.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "mana_cost": "",
+    "oracle_text": "({T}: Add {U}.)"
+  },
+  {
+    "object": "card",
+    "id": "44444444-0000-4000-8000-000000000281",
+    "oracle_id": "00000000-0000-4000-8000-000000000019",
+    "name": "Snow-Covered Island",
+    "lang": "en",
+    "layout": "normal",
+    "set": "khm",
+    "collector_number": "281",
+    "cmc": 0.0,
+    "type_line": "Basic Snow Land — Island",
+    "keywords": [],
+    "color_identity": ["U"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/4/4/44444444-0000-4000-8000-000000000281.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "mana_cost": "",
+    "oracle_text": "({T}: Add {U}.)"
+  },
+  {
+    "object": "card",
+    "id": "55555555-0000-4000-8000-000000000270",
+    "oracle_id": "00000000-0000-4000-8000-000000000020",
+    "name": "Mana Crypt",
+    "lang": "en",
+    "layout": "normal",
+    "set": "2xm",
+    "collector_number": "270",
+    "cmc": 0.0,
+    "type_line": "Artifact",
+    "keywords": [],
+    "color_identity": [],
+    "legalities": {
+      "commander": "banned"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/5/5/55555555-0000-4000-8000-000000000270.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 50,
+    "mana_cost": "{0}",
+    "oracle_text": "At the beginning of your upkeep, flip a coin...\n{T}: Add {C}{C}."
+  },
+  {
+    "object": "card",
+    "id": "66666666-0000-4000-8000-000000000012",
+    "oracle_id": "00000000-0000-4000-8000-000000000021",
+    "name": "Teferi, Temporal Archmage",
+    "lang": "en",
+    "layout": "normal",
+    "set": "c14",
+    "collector_number": "12",
+    "cmc": 6.0,
+    "type_line": "Legendary Planeswalker — Teferi",
+    "keywords": [],
+    "color_identity": ["U"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/6/6/66666666-0000-4000-8000-000000000012.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "edhrec_rank": 9000,
+    "mana_cost": "{4}{U}{U}",
+    "oracle_text": "+1: Look at the top two cards of your library...\nTeferi, Temporal Archmage can be your commander."
+  },
+  {
+    "object": "card",
+    "id": "77777777-0000-4000-8000-000000000379",
+    "name": "Zndrsplt, Eye of Wisdom // Zndrsplt, Eye of Wisdom",
+    "lang": "en",
+    "layout": "reversible_card",
+    "set": "sld",
+    "collector_number": "379",
+    "keywords": [],
+    "color_identity": ["U"],
+    "legalities": {
+      "commander": "legal"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "card_faces": [
+      {
+        "name": "Zndrsplt, Eye of Wisdom",
+        "mana_cost": "{4}{U}",
+        "type_line": "Legendary Creature — Homunculus",
+        "oracle_text": "Partner with Okaun, Eye of Chaos",
+        "image_uris": {
+          "normal": "https://cards.scryfall.io/normal/front/7/7/77777777-0000-4000-8000-000000000379.jpg"
+        },
+        "oracle_id": "00000000-0000-4000-8000-000000000022"
+      },
+      {
+        "name": "Zndrsplt, Eye of Wisdom",
+        "mana_cost": "{4}{U}",
+        "type_line": "Legendary Creature — Homunculus",
+        "oracle_text": "Partner with Okaun, Eye of Chaos",
+        "image_uris": {
+          "normal": "https://cards.scryfall.io/normal/front/7/7/77777777-0000-4000-8000-000000000379.jpg"
+        },
+        "oracle_id": "00000000-0000-4000-8000-000000000022"
+      }
+    ]
+  },
+  {
+    "object": "card",
+    "id": "88888888-0000-4000-8000-000000000001",
+    "oracle_id": "00000000-0000-4000-8000-000000000023",
+    "name": "Sol Ring",
+    "lang": "en",
+    "layout": "token",
+    "set": "tc21",
+    "collector_number": "1",
+    "cmc": 0.0,
+    "type_line": "Token Artifact",
+    "keywords": [],
+    "color_identity": [],
+    "legalities": {
+      "commander": "not_legal"
+    },
+    "image_uris": {
+      "normal": "https://cards.scryfall.io/normal/front/8/8/88888888-0000-4000-8000-000000000001.jpg"
+    },
+    "prices": {
+      "eur": "0.10"
+    },
+    "mana_cost": "",
+    "oracle_text": ""
+  }
+]
