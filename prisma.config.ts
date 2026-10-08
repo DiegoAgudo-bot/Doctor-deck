@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -7,6 +7,7 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    // Mismo valor por defecto que .env.example, para que `prisma generate` funcione sin .env (CI).
+    url: process.env["DATABASE_URL"] ?? "file:./data/deck-doctor.db",
   },
 });
