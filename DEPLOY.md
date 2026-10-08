@@ -75,7 +75,9 @@ GitHub → Settings → Secrets and variables → Actions → _New repository se
 | `VPS_APP_DIR`          | (opcional) carpeta de la app; por defecto `/doctor-deck`                |
 | `VPS_PORT`             | (opcional) puerto SSH si no es 22                                       |
 
-Huella del host (en el VPS): `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`.
+Huella del host (en el VPS): `ssh-keygen -lf /etc/ssh/ssh_host_ecdsa_key.pub`. Tiene que ser la
+**ECDSA**: es la que negocia `appleboy/ssh-action`; con la ED25519 falla con _host key fingerprint
+mismatch_.
 
 ## Desplegar a mano
 
