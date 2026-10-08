@@ -1,0 +1,85 @@
+{
+  "header": "Teferi, Temporal Archmage (Commander) - Control",
+  "description": "Fixture escrito a mano con la forma de json.edhrec.com",
+  "container": {
+    "title": "Teferi, Temporal Archmage (Commander) - Control",
+    "breadcrumb": [
+      {
+        "/commanders": "Commanders"
+      }
+    ],
+    "json_dict": {
+      "card": {
+        "name": "Teferi, Temporal Archmage",
+        "sanitized": "teferi-temporal-archmage",
+        "color_identity": ["U"],
+        "num_decks": 812,
+        "cmc": 6
+      },
+      "cardlists": [
+        {
+          "header": "High Synergy Cards",
+          "tag": "highsynergycards",
+          "cardviews": [
+            {
+              "name": "Zimone's Hypothesis",
+              "sanitized": "zimones-hypothesis",
+              "url": "/cards/zimone's-hypothesis",
+              "synergy": 0.4,
+              "num_decks": 300,
+              "inclusion": 300,
+              "potential_decks": 812,
+              "label": "37% of 812 decks\n+40% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            },
+            {
+              "name": "Dig Through Time",
+              "sanitized": "dig-through-time",
+              "url": "/cards/dig-through-time",
+              "synergy": 0.35,
+              "num_decks": 500,
+              "inclusion": 500,
+              "potential_decks": 812,
+              "label": "62% of 812 decks\n+35% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            }
+          ]
+        },
+        {
+          "header": "Top Cards",
+          "tag": "topcards",
+          "cardviews": [
+            {
+              "name": "Sol Ring",
+              "sanitized": "sol-ring",
+              "url": "/cards/sol-ring",
+              "synergy": 0.01,
+              "num_decks": 800,
+              "inclusion": 800,
+              "potential_decks": 812,
+              "label": "99% of 812 decks\n+1% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            }
+          ]
+        }
+      ]
+    },
+    "keywords": "teferi"
+  },
+  "panels": {
+    "taglinks": [],
+    "links": [],
+    "mana_curve": {
+      "1": 8
+    }
+  },
+  "similar": [],
+  "related_info": {},
+  "archidekt": []
+}

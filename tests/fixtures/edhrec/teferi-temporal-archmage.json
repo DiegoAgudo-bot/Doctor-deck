@@ -1,0 +1,290 @@
+{
+  "header": "Teferi, Temporal Archmage (Commander)",
+  "description": "Fixture escrito a mano con la forma de json.edhrec.com",
+  "container": {
+    "title": "Teferi, Temporal Archmage (Commander)",
+    "breadcrumb": [
+      {
+        "/commanders": "Commanders"
+      }
+    ],
+    "json_dict": {
+      "card": {
+        "name": "Teferi, Temporal Archmage",
+        "sanitized": "teferi-temporal-archmage",
+        "color_identity": ["U"],
+        "num_decks": 4000,
+        "cmc": 6
+      },
+      "cardlists": [
+        {
+          "header": "High Synergy Cards",
+          "tag": "highsynergycards",
+          "cardviews": [
+            {
+              "name": "Dig Through Time",
+              "sanitized": "dig-through-time",
+              "url": "/cards/dig-through-time",
+              "synergy": 0.31,
+              "num_decks": 1520,
+              "inclusion": 1520,
+              "potential_decks": 4000,
+              "label": "38% of 4000 decks\n+31% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            },
+            {
+              "name": "Body of Knowledge",
+              "sanitized": "body-of-knowledge",
+              "url": "/cards/body-of-knowledge",
+              "synergy": 0.18,
+              "num_decks": 900,
+              "inclusion": 900,
+              "potential_decks": 4000,
+              "label": "22% of 4000 decks\n+18% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            },
+            {
+              "name": "Thundertrap Trainer",
+              "sanitized": "thundertrap-trainer",
+              "url": "/cards/thundertrap-trainer",
+              "synergy": 0.12,
+              "num_decks": 400,
+              "inclusion": 400,
+              "potential_decks": 4000,
+              "label": "10% of 4000 decks\n+12% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            }
+          ]
+        },
+        {
+          "header": "Top Cards",
+          "tag": "topcards",
+          "cardviews": [
+            {
+              "name": "Sol Ring",
+              "sanitized": "sol-ring",
+              "url": "/cards/sol-ring",
+              "synergy": 0.02,
+              "num_decks": 3900,
+              "inclusion": 3900,
+              "potential_decks": 4000,
+              "label": "98% of 4000 decks\n+2% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            },
+            {
+              "name": "Dig Through Time",
+              "sanitized": "dig-through-time",
+              "url": "/cards/dig-through-time",
+              "synergy": 0.31,
+              "num_decks": 1520,
+              "inclusion": 1520,
+              "potential_decks": 4000,
+              "label": "38% of 4000 decks\n+31% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            },
+            {
+              "name": "Cackling Counterpart",
+              "sanitized": "cackling-counterpart",
+              "url": "/cards/cackling-counterpart",
+              "synergy": 0.09,
+              "num_decks": 1200,
+              "inclusion": 1200,
+              "potential_decks": 4000,
+              "label": "30% of 4000 decks\n+9% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            }
+          ]
+        },
+        {
+          "header": "Creatures",
+          "tag": "creatures",
+          "cardviews": [
+            {
+              "name": "Body of Knowledge",
+              "sanitized": "body-of-knowledge",
+              "url": "/cards/body-of-knowledge",
+              "synergy": 0.18,
+              "num_decks": 900,
+              "inclusion": 900,
+              "potential_decks": 4000,
+              "label": "22% of 4000 decks\n+18% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            },
+            {
+              "name": "Thundertrap Trainer",
+              "sanitized": "thundertrap-trainer",
+              "url": "/cards/thundertrap-trainer",
+              "synergy": 0.12,
+              "num_decks": 400,
+              "inclusion": 400,
+              "potential_decks": 4000,
+              "label": "10% of 4000 decks\n+12% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            },
+            {
+              "name": "Ichor Synthesizer",
+              "sanitized": "ichor-synthesizer",
+              "url": "/cards/ichor-synthesizer",
+              "synergy": -0.01,
+              "num_decks": 120,
+              "inclusion": 120,
+              "potential_decks": 4000,
+              "label": "3% of 4000 decks\n-1% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            },
+            {
+              "name": "Grizzled Angler // Grisly Anglerfish",
+              "sanitized": "grizzled-angler-//-grisly-anglerfish",
+              "url": "/cards/grizzled-angler-//-grisly-anglerfish",
+              "synergy": 0.0,
+              "num_decks": 60,
+              "inclusion": 60,
+              "potential_decks": 4000,
+              "label": "2% of 4000 decks\n+0% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            }
+          ]
+        },
+        {
+          "header": "Instants",
+          "tag": "instants",
+          "cardviews": [
+            {
+              "name": "Cackling Counterpart",
+              "sanitized": "cackling-counterpart",
+              "url": "/cards/cackling-counterpart",
+              "synergy": 0.09,
+              "num_decks": 1200,
+              "inclusion": 1200,
+              "potential_decks": 4000,
+              "label": "30% of 4000 decks\n+9% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            },
+            {
+              "name": "Zimone's Hypothesis",
+              "sanitized": "zimones-hypothesis",
+              "url": "/cards/zimone's-hypothesis",
+              "synergy": 0.05,
+              "num_decks": 300,
+              "inclusion": 300,
+              "potential_decks": 4000,
+              "label": "8% of 4000 decks\n+5% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            },
+            {
+              "name": "Marang River Regent // Coil and Catch",
+              "sanitized": "marang-river-regent-//-coil-and-catch",
+              "url": "/cards/marang-river-regent-//-coil-and-catch",
+              "synergy": 0.14,
+              "label": "16% of 4000 decks\n+14% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            }
+          ]
+        },
+        {
+          "header": "Mana Artifacts",
+          "tag": "manaartifacts",
+          "cardviews": [
+            {
+              "name": "Sol Ring",
+              "sanitized": "sol-ring",
+              "url": "/cards/sol-ring",
+              "synergy": 0.02,
+              "num_decks": 3900,
+              "inclusion": 3900,
+              "potential_decks": 4000,
+              "label": "98% of 4000 decks\n+2% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            },
+            {
+              "name": "Tamiyo's Logbook",
+              "sanitized": "tamiyos-logbook",
+              "url": "/cards/tamiyo's-logbook",
+              "synergy": 0.01,
+              "num_decks": 80,
+              "inclusion": 80,
+              "potential_decks": 4000,
+              "label": "2% of 4000 decks\n+1% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            }
+          ]
+        },
+        {
+          "header": "Utility Lands",
+          "tag": "utilitylands",
+          "cardviews": [
+            {
+              "name": "Reliquary Tower",
+              "sanitized": "reliquary-tower",
+              "url": "/cards/reliquary-tower",
+              "num_decks": 2000,
+              "inclusion": 2000,
+              "potential_decks": 4000,
+              "label": "50% of 4000 decks\n+0% synergy",
+              "is_partner": false,
+              "trend_zscore": 0.1,
+              "image_uris": []
+            }
+          ]
+        }
+      ]
+    },
+    "keywords": "teferi"
+  },
+  "panels": {
+    "taglinks": [
+      {
+        "value": "Control",
+        "slug": "control",
+        "count": 812
+      },
+      {
+        "value": "Spellslinger",
+        "slug": "spellslinger",
+        "count": 401
+      },
+      {
+        "value": "Planeswalkers",
+        "slug": "superfriends",
+        "count": 150
+      }
+    ],
+    "links": [],
+    "mana_curve": {
+      "1": 8
+    }
+  },
+  "similar": [],
+  "related_info": {},
+  "archidekt": []
+}

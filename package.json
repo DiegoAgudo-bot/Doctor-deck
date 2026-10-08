@@ -18,7 +18,8 @@
     "postinstall": "prisma generate",
     "scryfall:sync": "tsx scripts/scryfall-sync.ts",
     "collection:import": "tsx scripts/import-collection.ts",
-    "deck:check": "tsx scripts/check-deck.ts"
+    "deck:check": "tsx scripts/check-deck.ts",
+    "edhrec:fetch": "tsx scripts/edhrec-fetch.ts"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.10.0",

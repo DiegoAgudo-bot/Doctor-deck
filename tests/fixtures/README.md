@@ -11,3 +11,10 @@
   - _Zndrsplt_: `reversible_card` sin `oracle_id` en la raíz (está en las caras).
   - Token llamado _Sol Ring_: no debe ganar a la carta jugable al buscar por nombre.
   - _Mana Crypt_: prohibida en Commander.
+- `edhrec/*.json`: páginas con la forma de `json.edhrec.com/pages/commanders/{slug}.json`,
+  **escritas a mano** (sin acceso a EDHREC desde el entorno de desarrollo). Comandante: _Teferi,
+  Temporal Archmage_ (está en el catálogo de prueba). Incluyen cartas repetidas en varias listas,
+  una sin contadores (inclusión desde la etiqueta), una sin synergy, una de dos caras y una que no
+  está en el catálogo (_Reliquary Tower_). `redirect.json` y `changed-format.json` cubren la
+  redirección y un cambio de estructura. Para sustituirlas por datos reales:
+  `npm run edhrec:fetch -- "Teferi, Temporal Archmage" --save tests/fixtures/edhrec/real.json`.
