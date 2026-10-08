@@ -28,8 +28,10 @@ recomendaciones de EDHREC, priorizando cartas de la colección del usuario (expo
 Antes de cada commit: `npm run typecheck && npm run lint && npm run format:check && npm test`.
 
 **CI/CD**: `.github/workflows/ci.yml` ejecuta esos checks + build en cada push/PR; en push a `main`
-despliega en el VPS por SSH (`scripts/deploy.sh`: pull, `npm ci`, `prisma migrate deploy`, build,
-`pm2 reload`). Configuración del VPS y secretos en `DEPLOY.md`.
+despliega en el VPS (`root@37.27.32.222:/doctor-deck`) por SSH (`scripts/deploy.sh`: pull +
+`docker compose up -d --build`; el contenedor aplica `prisma migrate deploy` al arrancar). La app va
+detrás del Traefik de pulsestack con basic auth en `https://deckdoctor.37.27.32.222.nip.io`.
+Configuración del VPS y secretos en `DEPLOY.md`.
 
 ## Stack
 
@@ -144,7 +146,8 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
 - **Identidad de carta = `oracle_id` de Scryfall.** Todas las impresiones cuentan como la misma carta.
   Cartas de dos caras / split: emparejar por nombre completo (`A // B`) y por nombre de la primera cara.
 - **Scryfall**: fuente de verdad. Bulk `oracle_cards` + `default_cards` descargados a
-  `SCRYFALL_DATA_DIR`, leídos en _streaming_ y volcados a SQLite solo con los campos necesarios.
+  `SCRYFALL_DATA_DIR` (Scryfall los sirve como JSON Lines con gzip, `jsonl_download_uri`; se
+  guardan como `.jsonl.gz`; `readBulkFile` también lee el formato antiguo de array JSON), leídos en _streaming_ y volcados a SQLite solo con los campos necesarios.
   API solo cuando haga falta: User-Agent propio (`HTTP_USER_AGENT`) y ≥ 100 ms entre peticiones.
 - **EDHREC**: sin API oficial. Solo `json.edhrec.com/pages/commanders/{slug}.json` y
   `/{slug}/{tema}.json`, todo detrás de `EdhrecClient` (adapters/edhrec): caché en BD (`HttpCache`,
