@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { applySwaps, exportDecklist, type ExportableDeck } from "@/domain/deck/export";
-import type { AnalyzeResponse, CardDTO } from "@/server/dto";
+import type { AnalyzeResponse, CardDTO, SavedDeckDTO } from "@/server/dto";
 import { api, ApiError, storage } from "./api-client";
 import { CardImage } from "./card-image";
 import { DeckCardList } from "./deck-card-list";
+import { BuyPanel, SaveDeckBar, UnavailableList, type BuyOptions } from "./deck-extras";
 import { ExportPanel } from "./export-panel";
 import { ManaCurve } from "./mana-curve";
 import { RoleSummary } from "./role-summary";
@@ -17,11 +18,24 @@ interface Saved {
   theme: string;
   locked: string[];
   excluded: string[];
+  /** Mazo guardado abierto (null = sin guardar). */
+  deckId: number | null;
+  name: string;
+  /** Descontar copias usadas en mis otros mazos guardados. */
+  useOtherDecks: boolean;
 }
 
 const KEY = "deck-doctor:mazo";
 const SOURCE_LABEL: Record<string, string> = { archidekt: "Archidekt", moxfield: "Moxfield" };
-const EMPTY: Saved = { input: "", theme: "", locked: [], excluded: [] };
+const EMPTY: Saved = {
+  input: "",
+  theme: "",
+  locked: [],
+  excluded: [],
+  deckId: null,
+  name: "",
+  useOtherDecks: true,
+};
 
 type Ok = Extract<AnalyzeResponse, { status: "ok" }>;
 
@@ -34,12 +48,39 @@ export function DeckDoctor() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [buy, setBuy] = useState<BuyOptions | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
-  // Restaurar lo último que se analizó (solo en el navegador)
+  // Restaurar lo último que se analizó, o abrir el mazo guardado de ?id= (solo en el navegador)
   useEffect(() => {
+    const id = Number(new URLSearchParams(window.location.search).get("id"));
+    if (Number.isInteger(id) && id > 0) {
+      api<SavedDeckDTO>(`/api/decks/${id}`)
+        .then((d) => {
+          const next: Saved = {
+            ...EMPTY,
+            input: d.input,
+            theme: d.theme ?? "",
+            locked: d.locked,
+            excluded: d.excluded,
+            deckId: d.id,
+            name: d.name,
+          };
+          setSaved(next);
+          setHydrated(true);
+          setChosen(d.commanders);
+          void analyze(next, d.commanders);
+        })
+        .catch((e: unknown) => {
+          setError(e instanceof ApiError ? e.message : "No se pudo abrir el mazo");
+          setHydrated(true);
+        });
+      return;
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única de localStorage tras montar
     setSaved({ ...EMPTY, ...storage.get<Partial<Saved>>(KEY, {}) });
     setHydrated(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
   }, []);
   useEffect(() => {
     if (hydrated) storage.set(KEY, saved);
@@ -48,7 +89,11 @@ export function DeckDoctor() {
   const update = (patch: Partial<Saved>) => setSaved((s) => ({ ...s, ...patch }));
   const locked = useMemo(() => new Set(saved.locked), [saved.locked]);
 
-  async function analyze(next: Partial<Saved> = {}, commanders: string[] = chosen) {
+  async function analyze(
+    next: Partial<Saved> = {},
+    commanders: string[] = chosen,
+    buyOptions: BuyOptions | null = buy,
+  ) {
     const req = { ...saved, ...next };
     if (!req.input.trim()) return;
     setBusy(true);
@@ -63,6 +108,9 @@ export function DeckDoctor() {
           ...(commanders.length > 0 ? { commanders } : {}),
           locked: req.locked,
           excluded: req.excluded,
+          useOtherDecks: req.useOtherDecks,
+          ...(req.deckId !== null ? { deckId: req.deckId } : {}),
+          ...(buyOptions ? { buy: buyOptions } : {}),
         }),
       });
       setResult(res);
@@ -107,6 +155,37 @@ export function DeckDoctor() {
     });
   }
 
+  async function saveDeck(asNew: boolean) {
+    if (!ok) return;
+    setBusy(true);
+    setError(null);
+    setSaveMessage(null);
+    try {
+      // Si hay cambios aceptados, se guarda el mazo ya con ellos aplicados.
+      const input = accepted.length > 0 ? exportText : saved.input;
+      const res = await api<{ id: number; name: string }>("/api/decks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(saved.deckId !== null && !asNew ? { id: saved.deckId } : {}),
+          ...(saved.name.trim() ? { name: saved.name.trim() } : {}),
+          input,
+          ...(saved.theme ? { theme: saved.theme } : {}),
+          commanders: ok.commanders.map((c) => c.oracleId),
+          locked: saved.locked,
+          excluded: saved.excluded,
+        }),
+      });
+      update({ deckId: res.id, name: res.name, input });
+      window.history.replaceState(null, "", `/mazo?id=${res.id}`);
+      setSaveMessage(`Guardado como «${res.name}»`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo guardar el mazo");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function toggleLock(oracleId: string) {
     const next = new Set(saved.locked);
     if (next.has(oracleId)) next.delete(oracleId);
@@ -145,6 +224,29 @@ export function DeckDoctor() {
           >
             {busy ? "Analizando…" : "Analizar"}
           </button>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={saved.useOtherDecks}
+              onChange={(e) => {
+                update({ useOtherDecks: e.target.checked });
+                setDirty(true);
+              }}
+            />
+            Descontar copias usadas en mis otros mazos
+          </label>
+          {saved.deckId !== null && (
+            <button
+              type="button"
+              className={buttonClass.secondary}
+              onClick={() => {
+                setSaved({ ...EMPTY, input: saved.input });
+                window.history.replaceState(null, "", "/mazo");
+              }}
+            >
+              Cerrar «{saved.name}»
+            </button>
+          )}
           {(saved.locked.length > 0 || saved.excluded.length > 0) && (
             <button
               type="button"
@@ -228,11 +330,33 @@ export function DeckDoctor() {
             )}
           </Section>
 
+          <UnavailableList cards={ok.unavailableCandidates} />
+
+          <BuyPanel
+            purchases={ok.purchases}
+            busy={busy}
+            onSearch={(opts) => {
+              setBuy(opts);
+              void analyze({}, chosen, opts);
+            }}
+          />
+
           <Section
             title="Cartas del mazo"
             aside={<span className="text-xs text-zinc-500">🔒 = no cortar</span>}
           >
             <DeckCardList cards={ok.cards} locked={locked} onToggleLock={toggleLock} />
+          </Section>
+
+          <Section title="Guardar">
+            <SaveDeckBar
+              deckId={saved.deckId}
+              name={saved.name}
+              onName={(name) => update({ name })}
+              onSave={(asNew) => void saveDeck(asNew)}
+              busy={busy}
+              message={saveMessage}
+            />
           </Section>
 
           <Section title="Exportar">

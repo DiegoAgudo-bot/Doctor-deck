@@ -5,7 +5,7 @@ import type { ResolvedDeck } from "../deck/resolve";
 import type { ResolvedRecommendation } from "../recommendations/types";
 import type { Role, RoleClassifier } from "../roles/types";
 import { DEFAULT_ENGINE_CONFIG, mergeEngineConfig, type EngineConfig } from "./config";
-import { suggestSwaps, type EngineInput } from "./engine";
+import { suggestPurchases, suggestSwaps, type EngineInput } from "./engine";
 
 // ---------- helpers ----------
 
@@ -462,5 +462,120 @@ describe("suggestSwaps: identidad de color y legalidad", () => {
 
   it("el mínimo de tierras por defecto es 36", () => {
     expect(DEFAULT_ENGINE_CONFIG.minimums.land).toBe(36);
+  });
+});
+
+describe("suggestSwaps: copias usadas en otros mazos", () => {
+  const filler = card("Filler");
+  const shared = card("Shared Staple");
+  const spare = card("Spare Copy");
+  const recs = [rec(filler, 0, 0), rec(shared, 0.3, 0.6), rec(spare, 0.2, 0.5)];
+
+  it("no propone cartas cuyas copias están todas en otros mazos y las lista aparte", () => {
+    const result = run({
+      deck: deckOf([filler]),
+      recommendations: recs,
+      owned: owns(shared, spare),
+      usage: new Map([[shared.oracleId, { quantity: 1, decks: ["Atraxa"] }]]),
+    });
+    expect(result.addCandidates.map((c) => c.card.name)).toEqual(["Spare Copy"]);
+    expect(result.unavailableCandidates.map((c) => [c.card.name, c.usedIn])).toEqual([
+      ["Shared Staple", ["Atraxa"]],
+    ]);
+    expect(result.swaps[0]?.in.card.name).toBe("Spare Copy");
+  });
+
+  it("si quedan copias libres la propone y lo explica", () => {
+    const result = run({
+      deck: deckOf([filler]),
+      recommendations: recs,
+      owned: new Map([[shared.oracleId, 3]]),
+      usage: new Map([[shared.oracleId, { quantity: 2, decks: ["Atraxa", "Krenko"] }]]),
+    });
+    expect(result.swaps[0]?.in).toMatchObject({
+      owned: 3,
+      available: 1,
+      usedIn: ["Atraxa", "Krenko"],
+    });
+    expect(result.swaps[0]?.reason).toContain(
+      "La tienes en tu colección (3 copias, 1 libre; también en Atraxa, Krenko).",
+    );
+  });
+
+  it("sin información de uso, todas las copias están libres", () => {
+    const result = run({ deck: deckOf([filler]), recommendations: recs, owned: owns(shared) });
+    expect(result.addCandidates[0]).toMatchObject({ owned: 1, available: 1, usedIn: [] });
+  });
+});
+
+describe("suggestPurchases: modo compra", () => {
+  const weak = card("Weak");
+  const weaker = card("Weaker");
+  const ok = card("Ok");
+  const cheapGood = card("Cheap Good");
+  const pricey = card("Pricey Bomb");
+  const midPrice = card("Mid Price");
+  const ownedCard = card("Owned One");
+  const noPrice = card("No Price");
+  const offColor = card("Off Color", { colorIdentity: ["R"] });
+
+  const base = {
+    deck: deckOf([weak, weaker, ok]),
+    recommendations: [
+      rec(weak, 0, 0.02),
+      rec(weaker, -0.05, 0.01),
+      rec(ok, 0.2, 0.5),
+      rec(cheapGood, 0.2, 0.5),
+      rec(pricey, 0.5, 0.8),
+      rec(midPrice, 0.3, 0.45),
+      rec(ownedCard, 0.4, 0.6),
+      rec(noPrice, 0.4, 0.6),
+      rec(offColor, 0.9, 0.9),
+    ],
+    owned: owns(ownedCard),
+    locked: new Set<string>(),
+    classifier: fakeClassifier({}),
+    config: noMinimums,
+    prices: new Map([
+      [cheapGood.oracleId, 0.25],
+      [pricey.oracleId, 30],
+      [midPrice.oracleId, 1.5],
+      [ownedCard.oracleId, 0.1],
+      [offColor.oracleId, 0.1],
+    ]),
+  };
+
+  it("solo compra cartas que no tengo libres, con precio, en identidad y bajo el precio máximo", () => {
+    const r = suggestPurchases({ ...base, options: { maxCards: 5, maxPrice: 2 } });
+    expect(r.candidates.map((c) => c.card.name)).toEqual(["Mid Price", "Cheap Good"]);
+    expect(r.purchases.map((p) => `${p.out.card.name}→${p.in.card.name}`)).toEqual([
+      "Weaker→Mid Price",
+      "Weak→Cheap Good",
+    ]);
+    expect(r.totalCost).toBe(1.75);
+    expect(r.purchases[1]?.reason).toContain(
+      "No la tienes: cuesta unos 0,25 € (precio de referencia de Cardmarket).",
+    );
+  });
+
+  it("respeta el número máximo de cartas", () => {
+    const r = suggestPurchases({ ...base, options: { maxCards: 1 } });
+    expect(r.purchases.map((p) => p.in.card.name)).toEqual(["Pricey Bomb"]);
+  });
+
+  it("respeta el presupuesto total", () => {
+    const r = suggestPurchases({ ...base, options: { maxCards: 5, budget: 1 } });
+    expect(r.purchases.map((p) => p.in.card.name)).toEqual(["Cheap Good"]);
+    expect(r.totalCost).toBe(0.25);
+  });
+
+  it("una carta con todas sus copias en otros mazos sí se puede comprar", () => {
+    const r = suggestPurchases({
+      ...base,
+      usage: new Map([[ownedCard.oracleId, { quantity: 1, decks: ["Otro"] }]]),
+      options: { maxCards: 5, maxPrice: 0.2 },
+    });
+    expect(r.candidates.map((c) => c.card.name)).toEqual(["Owned One"]);
+    expect(r.purchases[0]?.reason).toContain("La tienes, pero ocupada en Otro: cuesta unos 0,10 €");
   });
 });

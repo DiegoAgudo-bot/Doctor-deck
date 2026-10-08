@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaCardRepository } from "@/adapters/db/card-repository";
 import { PrismaCollectionRepository } from "@/adapters/db/collection-repository";
+import { PrismaDeckRepository } from "@/adapters/db/deck-repository";
 import { textDeckSource } from "@/adapters/deck-sources/text-deck-source";
 import { EdhrecClient } from "@/adapters/edhrec/edhrec-client";
 import { HttpClient } from "@/adapters/http/http-client";
@@ -11,6 +12,7 @@ import { fixtureCards, fixturePrintings, readFixture } from "../../tests/helpers
 import { createTestDb } from "../../tests/helpers/test-db";
 import { analyzeDeck, type AnalyzeDeckDeps } from "./analyze-deck";
 import { importCollection } from "./import-collection";
+import { DeckWithoutCommanderError, saveDeck } from "./save-deck";
 
 let cleanup: () => Promise<void>;
 let deps: AnalyzeDeckDeps;
@@ -54,6 +56,7 @@ beforeAll(async () => {
     cards,
     collection,
     recommendations,
+    decks: new PrismaDeckRepository(t.db),
     classifier: new HeuristicRoleClassifier(),
     // Sin mínimos para que el mazo de prueba (pequeño) no bloquee cambios
     config: mergeEngineConfig({ minimums: { land: 0, ramp: 0, draw: 0, removal: 0, wipe: 0 } }),
@@ -152,5 +155,81 @@ describe("analyzeDeck (de extremo a extremo con fixtures)", () => {
       deps,
     );
     expect(chosen.status).toBe("ok");
+  });
+});
+
+describe("analyzeDeck: mazos guardados y modo compra", () => {
+  const DECK_WITHOUT_SOL_RING = DECK.replace("1 Sol Ring\n", "");
+  const OTHER = "Commander\n1 Teferi, Temporal Archmage\nDeck\n1 Dig Through Time\n10 Island";
+
+  async function cleanDecks() {
+    for (const d of await deps.decks.list()) await deps.decks.delete(d.id);
+  }
+
+  it("guarda un mazo con su comandante y las cartas resueltas", async () => {
+    await cleanDecks();
+    const saved = await saveDeck({ input: OTHER }, deps);
+    expect(saved.name).toBe("Teferi, Temporal Archmage");
+    const stored = await deps.decks.get(saved.id);
+    expect(stored).toMatchObject({
+      source: "text",
+      cardCount: 12,
+      commanderNames: ["Teferi, Temporal Archmage"],
+    });
+    await expect(saveDeck({ input: "1 Sol Ring" }, deps)).rejects.toBeInstanceOf(
+      DeckWithoutCommanderError,
+    );
+  });
+
+  it("descuenta las copias que usan otros mazos guardados", async () => {
+    await cleanDecks();
+    await saveDeck({ input: OTHER, name: "Otro Teferi" }, deps);
+
+    const result = await analyzeDeck({ input: DECK }, deps);
+    if (result.status !== "ok") throw new Error();
+    const { addCandidates, unavailableCandidates, swaps } = result.suggestions;
+    expect(addCandidates.map((c) => c.card.name)).not.toContain("Dig Through Time");
+    expect(unavailableCandidates.map((c) => [c.card.name, c.usedIn])).toEqual([
+      ["Dig Through Time", ["Otro Teferi"]],
+    ]);
+    expect(swaps.map((s) => s.in.card.name)).not.toContain("Dig Through Time");
+
+    const ignoring = await analyzeDeck({ input: DECK, useOtherDecks: false }, deps);
+    if (ignoring.status !== "ok") throw new Error();
+    expect(ignoring.suggestions.swaps[0]?.in.card.name).toBe("Dig Through Time");
+  });
+
+  it("las copias del propio mazo guardado no cuentan como usadas", async () => {
+    await cleanDecks();
+    const { id } = await saveDeck({ input: OTHER, name: "Este" }, deps);
+    const result = await analyzeDeck({ input: DECK, deckId: id }, deps);
+    if (result.status !== "ok") throw new Error();
+    expect(result.suggestions.addCandidates.map((c) => c.card.name)).toContain("Dig Through Time");
+  });
+
+  it("modo compra: propone cartas que no tengo, con su precio de referencia", async () => {
+    await cleanDecks();
+    const result = await analyzeDeck(
+      { input: DECK_WITHOUT_SOL_RING, buy: { maxCards: 3, maxPrice: 2 } },
+      deps,
+    );
+    if (result.status !== "ok") throw new Error();
+    const purchases = result.purchases;
+    expect(purchases?.purchases.map((p) => [p.in.card.name, p.in.price])).toEqual([
+      ["Sol Ring", 0.8],
+    ]);
+    expect(purchases?.totalCost).toBe(0.8);
+    expect(purchases?.purchases[0]?.reason).toContain("cuesta unos 0,80 €");
+
+    const none = await analyzeDeck(
+      { input: DECK_WITHOUT_SOL_RING, buy: { maxCards: 3, maxPrice: 0.5 } },
+      deps,
+    );
+    if (none.status !== "ok") throw new Error();
+    expect(none.purchases?.purchases).toEqual([]);
+
+    const noBuy = await analyzeDeck({ input: DECK }, deps);
+    if (noBuy.status !== "ok") throw new Error();
+    expect(noBuy.purchases).toBeNull();
   });
 });

@@ -9,6 +9,8 @@ export interface CardRepository {
   findPrintingsBySetNumbers(
     pairs: readonly { setCode: string; collectorNumber: string }[],
   ): Promise<Printing[]>;
+  /** Precio más barato (EUR) entre las impresiones de cada carta; las que no tienen precio no salen. */
+  findMinPrices(oracleIds: readonly string[]): Promise<Map<string, number>>;
   counts(): Promise<{ cards: number; printings: number }>;
 }
 

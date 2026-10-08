@@ -1,6 +1,7 @@
 /**
  * Analiza un mazo y muestra los cambios sugeridos usando tu colección y EDHREC.
  * Uso: npm run deck:suggest -- "lista.txt" [--theme control] [--lock "Carta"]... [--commander "Nombre"]...
+ *        [--deck-id N] [--ignore-other-decks] [--buy N [--max-price 1] [--budget 10]]
  */
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
@@ -8,7 +9,13 @@ import { EdhrecError } from "@/adapters/edhrec/errors";
 import { analyzeDeck } from "@/application/analyze-deck";
 import { nameKey } from "@/domain/cards/names";
 import { ROLE_LABELS, ROLES } from "@/domain/roles/types";
+import { formatEuros } from "@/domain/suggestions/format";
 import { createContainer } from "@/server/container";
+
+function num(flag: string): number | undefined {
+  const v = Number(args(flag)[0]);
+  return Number.isFinite(v) && v > 0 ? v : undefined;
+}
 
 function args(flag: string): string[] {
   return process.argv.flatMap((a, i) =>
@@ -27,6 +34,7 @@ async function main() {
     cards: c.cards,
     collection: c.collection,
     recommendations: c.edhrec,
+    decks: c.decks,
     classifier: c.classifier,
     config: c.engineConfig,
   };
@@ -41,6 +49,11 @@ async function main() {
     {
       input,
       theme: args("--theme")[0],
+      deckId: num("--deck-id"),
+      useOtherDecks: !process.argv.includes("--ignore-other-decks"),
+      buy: num("--buy")
+        ? { maxCards: num("--buy") ?? 5, maxPrice: num("--max-price"), budget: num("--budget") }
+        : undefined,
       locked: await toIds(args("--lock")),
       commanders: await toIds(args("--commander")),
     },
@@ -73,6 +86,20 @@ async function main() {
       `${String(i + 1).padStart(2)}. − ${sw.out.card.name}  + ${sw.in.card.name}\n    ${sw.reason}`,
     ),
   );
+  if (result.purchases) {
+    const p = result.purchases;
+    console.log(`\nCompras sugeridas (${p.purchases.length}, total ~${formatEuros(p.totalCost)}):`);
+    p.purchases.forEach((pu, i) =>
+      console.log(
+        `${String(i + 1).padStart(2)}. − ${pu.out.card.name}  + ${pu.in.card.name} (${formatEuros(pu.in.price)})\n    ${pu.reason}`,
+      ),
+    );
+  }
+  if (s.unavailableCandidates.length > 0) {
+    console.log(
+      `\nRecomendadas que tienes pero usas en otros mazos: ${s.unavailableCandidates.map((x) => `${x.card.name} (${x.usedIn.join(", ")})`).join("; ")}`,
+    );
+  }
   if (s.swaps.length === 0)
     console.log(
       "  Ninguno: no hay cartas de tu colección que mejoren el mazo con la configuración actual.",

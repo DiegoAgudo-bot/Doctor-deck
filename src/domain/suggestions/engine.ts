@@ -4,7 +4,15 @@ import type { ResolvedDeck } from "../deck/resolve";
 import type { ResolvedRecommendation } from "../recommendations/types";
 import { ROLES, type Role, type RoleClassifier, type RoleSet } from "../roles/types";
 import type { EngineConfig } from "./config";
+import { formatEuros } from "./format";
 import { swapReason } from "./reason";
+
+/** Copias de una carta usadas en otros mazos guardados. */
+export interface CardUsage {
+  quantity: number;
+  /** Nombres de esos mazos. */
+  decks: string[];
+}
 
 export interface EngineInput {
   deck: ResolvedDeck;
@@ -15,6 +23,8 @@ export interface EngineInput {
   locked: ReadonlySet<string>;
   /** oracleIds que el usuario ha descartado meter. */
   excluded?: ReadonlySet<string> | undefined;
+  /** Copias ya usadas en OTROS mazos guardados (sin contar este). Si falta, todas están libres. */
+  usage?: ReadonlyMap<string, CardUsage> | undefined;
   classifier: RoleClassifier;
   config: EngineConfig;
 }
@@ -35,13 +45,27 @@ export interface ScoredCard {
   score: number;
 }
 
+/** Candidata a entrar sacada de mi colección. */
 export interface AddCandidate extends ScoredCard {
   owned: number;
+  /** Copias libres = owned − copias usadas en otros mazos. */
+  available: number;
+  /** Otros mazos donde ya está. */
+  usedIn: string[];
 }
 
-export interface SwapSuggestion {
+/** Candidata a entrar comprándola. */
+export interface PurchaseCandidate extends ScoredCard {
+  /** Precio de referencia en EUR (la impresión más barata). */
+  price: number;
+  /** Copias que tengo (todas ocupadas en otros mazos si es > 0). */
+  owned: number;
+  usedIn: string[];
+}
+
+interface Pair<C extends ScoredCard> {
   out: ScoredCard;
-  in: AddCandidate;
+  in: C;
   /** score(in) − score(out). */
   improvement: number;
   /** Bonus de rol (0..1.5) antes de multiplicar por el peso c. */
@@ -53,6 +77,9 @@ export interface SwapSuggestion {
   fillsDeficit: Role[];
   reason: string;
 }
+
+export type SwapSuggestion = Pair<AddCandidate>;
+export type PurchaseSuggestion = Pair<PurchaseCandidate>;
 
 export interface RoleDeficit {
   role: Role;
@@ -67,17 +94,34 @@ export interface SuggestionResult {
   swaps: SwapSuggestion[];
   /** Cartas del mazo que se podrían cortar, de peor a mejor. */
   cutCandidates: ScoredCard[];
-  /** Cartas de mi colección recomendadas que no están en el mazo, de mejor a peor. */
+  /** Cartas de mi colección recomendadas, con copias libres, que no están en el mazo. */
   addCandidates: AddCandidate[];
+  /** Recomendadas que tengo pero con todas las copias usadas en otros mazos. */
+  unavailableCandidates: AddCandidate[];
+}
+
+export interface PurchaseOptions {
+  /** Nº máximo de cartas a comprar. */
+  maxCards: number;
+  /** Precio máximo por carta (EUR). */
+  maxPrice?: number | undefined;
+  /** Presupuesto total (EUR). */
+  budget?: number | undefined;
+}
+
+export interface PurchaseResult {
+  purchases: PurchaseSuggestion[];
+  totalCost: number;
+  /** Cartas comprables que cumplen los filtros, de mejor a peor. */
+  candidates: PurchaseCandidate[];
 }
 
 const emptyCounts = (): Record<Role, number> =>
   Object.fromEntries(ROLES.map((r) => [r, 0])) as Record<Role, number>;
 
-/** Motor de sugerencias: propone cambios 1×1 usando solo cartas de la colección. */
-export function suggestSwaps(input: EngineInput): SuggestionResult {
-  const { deck, recommendations, owned, locked, classifier, config } = input;
-  const excluded = input.excluded ?? new Set<string>();
+/** Lo común a cambios con colección y compras: puntuación, cortes, recuentos y filtros. */
+function prepare(input: EngineInput) {
+  const { deck, recommendations, locked, classifier, config } = input;
   const { weights } = config;
   const score = (syn: number | null, incl: number | null) =>
     weights.synergy * (syn ?? 0) + weights.inclusion * (incl ?? 0);
@@ -86,6 +130,7 @@ export function suggestSwaps(input: EngineInput): SuggestionResult {
   const commanderIds = new Set(deck.commanders.map((c) => c.oracleId));
   const deckIds = new Set([...commanderIds, ...deck.cards.map((c) => c.card.oracleId)]);
   const identity = combinedColorIdentity(deck.commanders);
+  const excluded = input.excluded ?? new Set<string>();
 
   // Las cartas con problema puntúan por debajo de cualquier otra para que salgan primero.
   const PROBLEM_SCORE = -(Math.abs(weights.synergy) + Math.abs(weights.inclusion)) - 1;
@@ -113,11 +158,6 @@ export function suggestSwaps(input: EngineInput): SuggestionResult {
     for (const r of classifier.classify(card).roles) roleCounts[r] += 1;
   for (const { card, quantity } of deck.cards)
     for (const r of classifier.classify(card).roles) roleCounts[r] += quantity;
-  const deficitsOf = (counts: Record<Role, number>): RoleDeficit[] =>
-    ROLES.flatMap((role) => {
-      const min = config.minimums[role] ?? 0;
-      return counts[role] < min ? [{ role, count: counts[role], min }] : [];
-    });
 
   // 4. Candidatos a salir: ni comandantes, ni básicas, ni bloqueadas. Primero las que están fuera
   //    de color o prohibidas; después las que no aparecen en EDHREC; después de peor a mejor score.
@@ -135,32 +175,128 @@ export function suggestSwaps(input: EngineInput): SuggestionResult {
         a.card.name.localeCompare(b.card.name),
     );
 
-  // 3. Candidatos a entrar: recomendadas ∩ colección, fuera del mazo, legales y en identidad de color.
-  const addCandidates: AddCandidate[] = recommendations
-    .filter(
-      (r) =>
-        (owned.get(r.card.oracleId) ?? 0) > 0 &&
-        !deckIds.has(r.card.oracleId) &&
-        !excluded.has(r.card.oracleId) &&
-        r.card.legalCommander &&
-        !r.card.isBasicLand &&
-        // Nunca fuera de la identidad de color del comandante (sin comandante, nada que proponer).
-        deck.commanders.length > 0 &&
-        fitsColorIdentity(r.card, identity),
-    )
-    .map((r) => ({ ...scored(r.card), owned: owned.get(r.card.oracleId) ?? 0 }))
-    .sort((a, b) => b.score - a.score || a.card.name.localeCompare(b.card.name));
+  /** Recomendada que podría entrar: fuera del mazo, no descartada, legal, no básica y en identidad. */
+  const canEnter = (card: Card) =>
+    !deckIds.has(card.oracleId) &&
+    !excluded.has(card.oracleId) &&
+    card.legalCommander &&
+    !card.isBasicLand &&
+    // Nunca fuera de la identidad de color del comandante (sin comandante, nada que proponer).
+    deck.commanders.length > 0 &&
+    fitsColorIdentity(card, identity);
 
-  // 6. Emparejado voraz: en cada paso, el mejor par válido según los recuentos actuales.
+  return { scored, roleCounts, cutCandidates, canEnter };
+}
+
+/** Copias libres de una carta teniendo en cuenta los otros mazos. */
+function availability(input: EngineInput, oracleId: string) {
+  const owned = input.owned.get(oracleId) ?? 0;
+  const usage = input.usage?.get(oracleId);
+  return {
+    owned,
+    available: Math.max(0, owned - (usage?.quantity ?? 0)),
+    usedIn: usage?.decks ?? [],
+  };
+}
+
+const byScore = <C extends ScoredCard>(a: C, b: C) =>
+  b.score - a.score || a.card.name.localeCompare(b.card.name);
+
+/** Motor de sugerencias: propone cambios 1×1 usando solo cartas libres de la colección. */
+export function suggestSwaps(input: EngineInput): SuggestionResult {
+  const { config } = input;
+  const { scored, roleCounts, cutCandidates, canEnter } = prepare(input);
+
+  // 3. Candidatos a entrar: recomendadas ∩ colección (con copias libres) que pueden entrar.
+  const owned: AddCandidate[] = input.recommendations
+    .filter((r) => (input.owned.get(r.card.oracleId) ?? 0) > 0 && canEnter(r.card))
+    .map((r) => ({ ...scored(r.card), ...availability(input, r.card.oracleId) }))
+    .sort(byScore);
+  const addCandidates = owned.filter((c) => c.available > 0);
+  const unavailableCandidates = owned.filter((c) => c.available === 0);
+
+  const swaps = pairGreedy(cutCandidates, addCandidates, roleCounts, config, {
+    maxSwaps: config.maxSuggestions,
+    reason: (pair, counts) =>
+      swapReason(pair, { counts, minimums: config.minimums }, ownedSentence(pair.in)),
+  });
+
+  return {
+    roleCounts,
+    deficits: deficitsOf(roleCounts, config),
+    swaps,
+    cutCandidates,
+    addCandidates,
+    unavailableCandidates,
+  };
+}
+
+/**
+ * Modo compra: "si compro N cartas baratas, ¿cuáles mejoran más el mazo?". Solo considera cartas
+ * recomendadas que no tengo libres, con precio conocido y dentro de los límites de precio.
+ */
+export function suggestPurchases(
+  input: EngineInput & {
+    /** Precio de referencia (EUR) por oracleId. */
+    prices: ReadonlyMap<string, number>;
+    options: PurchaseOptions;
+  },
+): PurchaseResult {
+  const { config, prices, options } = input;
+  const { scored, roleCounts, cutCandidates, canEnter } = prepare(input);
+
+  const candidates: PurchaseCandidate[] = input.recommendations
+    .filter((r) => canEnter(r.card) && availability(input, r.card.oracleId).available === 0)
+    .flatMap((r) => {
+      const price = prices.get(r.card.oracleId);
+      if (price === undefined || (options.maxPrice !== undefined && price > options.maxPrice)) {
+        return [];
+      }
+      const { owned, usedIn } = availability(input, r.card.oracleId);
+      return [{ ...scored(r.card), price, owned, usedIn }];
+    })
+    .sort(byScore);
+
+  const purchases = pairGreedy(cutCandidates, candidates, roleCounts, config, {
+    maxSwaps: Math.max(0, Math.floor(options.maxCards)),
+    budget: options.budget,
+    reason: (pair, counts) =>
+      swapReason(pair, { counts, minimums: config.minimums }, purchaseSentence(pair.in)),
+  });
+
+  return {
+    purchases,
+    totalCost: Math.round(purchases.reduce((n, p) => n + p.in.price, 0) * 100) / 100,
+    candidates,
+  };
+}
+
+/**
+ * 6. Emparejado voraz: en cada paso, el mejor par válido según los recuentos actuales. Un par es
+ * válido si mejora lo suficiente, respeta los mínimos por rol y (con presupuesto) cabe en él.
+ */
+function pairGreedy<C extends ScoredCard & { price?: number }>(
+  cutCandidates: readonly ScoredCard[],
+  addCandidates: readonly C[],
+  roleCounts: Record<Role, number>,
+  config: EngineConfig,
+  opts: {
+    maxSwaps: number;
+    budget?: number | undefined;
+    reason: (pair: Omit<Pair<C>, "reason">, countsAfter: Record<Role, number>) => string;
+  },
+): Pair<C>[] {
   const counts = { ...roleCounts };
   const outs = [...cutCandidates];
   const ins = [...addCandidates];
-  const swaps: SwapSuggestion[] = [];
+  const result: Pair<C>[] = [];
+  let remaining = opts.budget ?? Infinity;
 
-  while (swaps.length < config.maxSuggestions) {
-    let best: Omit<SwapSuggestion, "reason"> | null = null;
+  while (result.length < opts.maxSwaps) {
+    let best: Omit<Pair<C>, "reason"> | null = null;
     for (const out of outs) {
       for (const inn of ins) {
+        if ((inn.price ?? 0) > remaining + 1e-9) continue;
         const improvement = inn.score - out.score;
         if (improvement <= config.minImprovement) continue;
         // Una carta fuera de color o prohibida sale aunque deje un rol bajo mínimo.
@@ -172,7 +308,7 @@ export function suggestSwaps(input: EngineInput): SuggestionResult {
         );
         const roleBonus =
           (sameRole ? 1 : sharesRole ? 0.5 : 0) + (fillsDeficit.length > 0 ? 0.5 : 0);
-        const total = improvement + weights.roleBonus * roleBonus;
+        const total = improvement + config.weights.roleBonus * roleBonus;
         if (!best || total > best.score + 1e-9) {
           best = { out, in: inn, improvement, roleBonus, score: total, sameRole, fillsDeficit };
         }
@@ -181,12 +317,19 @@ export function suggestSwaps(input: EngineInput): SuggestionResult {
     if (!best) break;
     for (const r of best.out.roles.roles) counts[r] -= 1;
     for (const r of best.in.roles.roles) counts[r] += 1;
+    remaining -= best.in.price ?? 0;
     outs.splice(outs.indexOf(best.out), 1);
     ins.splice(ins.indexOf(best.in), 1);
-    swaps.push({ ...best, reason: swapReason(best, { counts, minimums: config.minimums }) });
+    result.push({ ...best, reason: opts.reason(best, counts) });
   }
+  return result;
+}
 
-  return { roleCounts, deficits: deficitsOf(roleCounts), swaps, cutCandidates, addCandidates };
+function deficitsOf(counts: Record<Role, number>, config: EngineConfig): RoleDeficit[] {
+  return ROLES.flatMap((role) => {
+    const min = config.minimums[role] ?? 0;
+    return counts[role] < min ? [{ role, count: counts[role], min }] : [];
+  });
 }
 
 /**
@@ -202,4 +345,20 @@ function keepsMinimums(
   return out.roles.every(
     (r) => inn.roles.includes(r) || counts[r] - 1 >= (config.minimums[r] ?? 0),
   );
+}
+
+function ownedSentence(c: AddCandidate): string {
+  if (c.usedIn.length === 0) {
+    return c.owned > 1
+      ? `La tienes en tu colección (${c.owned} copias).`
+      : "La tienes en tu colección.";
+  }
+  return `La tienes en tu colección (${c.owned} copias, ${c.available} libre${c.available === 1 ? "" : "s"}; también en ${c.usedIn.join(", ")}).`;
+}
+
+function purchaseSentence(c: PurchaseCandidate): string {
+  const price = `cuesta unos ${formatEuros(c.price)} (precio de referencia de Cardmarket)`;
+  return c.owned > 0
+    ? `La tienes, pero ocupada en ${c.usedIn.join(", ")}: ${price}.`
+    : `No la tienes: ${price}.`;
 }

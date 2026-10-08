@@ -15,6 +15,15 @@ const analyzeRequestSchema = z.object({
   commanders: z.array(z.string().min(1).max(64)).max(2).optional(),
   locked: ids,
   excluded: ids,
+  deckId: z.number().int().positive().optional(),
+  useOtherDecks: z.boolean().optional(),
+  buy: z
+    .object({
+      maxCards: z.number().int().min(1).max(30),
+      maxPrice: z.number().positive().max(10_000).optional(),
+      budget: z.number().positive().max(100_000).optional(),
+    })
+    .optional(),
 });
 
 export async function POST(request: Request) {
@@ -26,6 +35,7 @@ export async function POST(request: Request) {
       cards: c.cards,
       collection: c.collection,
       recommendations: c.edhrec,
+      decks: c.decks,
       classifier: c.classifier,
       config: c.engineConfig,
     });

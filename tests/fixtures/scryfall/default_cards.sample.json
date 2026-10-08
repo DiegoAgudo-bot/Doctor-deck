@@ -123,7 +123,7 @@
       "normal": "https://cards.scryfall.io/normal/front/5/7/572b3180-9822-4885-b81c-b1bf8aca5a5e.jpg"
     },
     "prices": {
-      "eur": "0.10"
+      "eur": "0.29"
     },
     "edhrec_rank": 1800,
     "mana_cost": "{6}{U}{U}",
@@ -149,7 +149,7 @@
       "normal": "https://cards.scryfall.io/normal/front/1/8/185b2e8f-ab37-42e4-b3a1-f38b19a2e05a.jpg"
     },
     "prices": {
-      "eur": "0.10"
+      "eur": "0.26"
     },
     "edhrec_rank": 4000,
     "mana_cost": "{3}{U}{U}",
@@ -439,7 +439,7 @@
       "normal": "https://cards.scryfall.io/normal/front/3/3/33333333-0000-4000-8000-000000000263.jpg"
     },
     "prices": {
-      "eur": "0.10"
+      "eur": "1.20"
     },
     "edhrec_rank": 1,
     "mana_cost": "{1}",
@@ -465,7 +465,7 @@
       "normal": "https://cards.scryfall.io/normal/front/3/3/33333333-0000-4000-8000-000000000263.jpg"
     },
     "prices": {
-      "eur": "0.10"
+      "eur": "0.80"
     },
     "edhrec_rank": 1,
     "mana_cost": "{1}",
@@ -491,7 +491,7 @@
       "normal": "https://cards.scryfall.io/normal/front/4/4/44444444-0000-4000-8000-000000000278.jpg"
     },
     "prices": {
-      "eur": "0.10"
+      "eur": "0.05"
     },
     "mana_cost": "",
     "oracle_text": "({T}: Add {U}.)"
@@ -541,7 +541,7 @@
       "normal": "https://cards.scryfall.io/normal/front/5/5/55555555-0000-4000-8000-000000000270.jpg"
     },
     "prices": {
-      "eur": "0.10"
+      "eur": "150.00"
     },
     "edhrec_rank": 50,
     "mana_cost": "{0}",
@@ -567,7 +567,7 @@
       "normal": "https://cards.scryfall.io/normal/front/6/6/66666666-0000-4000-8000-000000000012.jpg"
     },
     "prices": {
-      "eur": "0.10"
+      "eur": "3.50"
     },
     "edhrec_rank": 9000,
     "mana_cost": "{4}{U}{U}",
@@ -632,7 +632,7 @@
       "normal": "https://cards.scryfall.io/normal/front/8/8/88888888-0000-4000-8000-000000000001.jpg"
     },
     "prices": {
-      "eur": "0.10"
+      "eur": null
     },
     "mana_cost": "",
     "oracle_text": ""

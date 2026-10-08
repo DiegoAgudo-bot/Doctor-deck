@@ -28,4 +28,6 @@ export interface Printing {
   collectorNumber: string;
   lang: string;
   imageUrl: string | null;
+  /** Precio de referencia en EUR (Cardmarket vía Scryfall); null si no hay. */
+  priceEur?: number | null;
 }

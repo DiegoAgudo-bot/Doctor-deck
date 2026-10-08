@@ -47,6 +47,8 @@ model Printing {
   collectorNumber String
   lang            String
   imageUrl        String?
+  /// Precio de referencia en EUR (Cardmarket, vía Scryfall `prices.eur`); null si no hay.
+  priceEur        Float?
 
   @@index([oracleId])
   @@index([setCode, collectorNumber])
@@ -75,13 +77,21 @@ model CollectionEntry {
 }
 
 model Deck {
-  id        Int            @id @default(autoincrement())
-  name      String
-  theme     String?
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  cards     DeckCard[]
-  decisions SwapDecision[]
+  id             Int            @id @default(autoincrement())
+  name           String
+  theme          String?
+  /// Lo que pegó el usuario (lista o link), para volver a analizarlo.
+  input          String         @default("")
+  /// "text" | "archidekt" | "moxfield"
+  source         String         @default("text")
+  /// Nombres de los comandantes, para listar sin consultar el catálogo.
+  commanderNames String         @default("")
+  /// Array JSON de oracleIds descartados para entrar.
+  excluded       String         @default("[]")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  cards          DeckCard[]
+  decisions      SwapDecision[]
 }
 
 model DeckCard {

@@ -3,6 +3,7 @@ import { moxfieldDeckSource } from "@/adapters/deck-sources/moxfield";
 import { textDeckSource } from "@/adapters/deck-sources/text-deck-source";
 import { PrismaCardRepository } from "@/adapters/db/card-repository";
 import { PrismaCollectionRepository } from "@/adapters/db/collection-repository";
+import { PrismaDeckRepository } from "@/adapters/db/deck-repository";
 import { PrismaResponseCache } from "@/adapters/db/response-cache";
 import { EdhrecClient } from "@/adapters/edhrec/edhrec-client";
 import { createDb } from "@/adapters/db/prisma";
@@ -35,6 +36,7 @@ export function createContainer() {
     db,
     cards: new PrismaCardRepository(db),
     collection: new PrismaCollectionRepository(db),
+    decks: new PrismaDeckRepository(db),
     deckSources: [
       archidektDeckSource(deckSourcesHttp),
       moxfieldDeckSource(deckSourcesHttp),

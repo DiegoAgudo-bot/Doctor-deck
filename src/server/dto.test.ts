@@ -55,6 +55,7 @@ describe("analyzeResponse", () => {
         warning: null,
         unresolved: [],
       },
+      purchases: null,
       suggestions: suggestSwaps({
         deck,
         recommendations: [],

@@ -10,9 +10,13 @@ import type { EngineConfig } from "@/domain/suggestions/config";
 import type {
   AddCandidate,
   CardProblem,
+  PurchaseCandidate,
+  PurchaseResult,
+  PurchaseSuggestion,
   ScoredCard,
   SwapSuggestion,
 } from "@/domain/suggestions/engine";
+import type { SavedDeck, SavedDeckSummary } from "@/domain/ports/deck-repository";
 
 /*
  * Formas JSON de la API (/api/*). Las consumen la UI web y, en el futuro, la app móvil.
@@ -38,6 +42,12 @@ export interface ScoredCardDTO {
   inEdhrec: boolean;
   problem: CardProblem | null;
   owned?: number;
+  /** Copias libres (descontando otros mazos). */
+  available?: number;
+  /** Otros mazos guardados donde ya está. */
+  usedIn?: string[];
+  /** Precio de referencia en EUR (modo compra). */
+  price?: number;
 }
 
 export interface SwapDTO {
@@ -104,8 +114,26 @@ export type AnalyzeResponse =
       };
       swaps: SwapDTO[];
       addCandidates: ScoredCardDTO[];
+      /** Recomendadas que tengo pero con todas las copias en otros mazos. */
+      unavailableCandidates: ScoredCardDTO[];
+      purchases: PurchasesDTO | null;
       cutCandidates: ScoredCardDTO[];
     };
+
+export interface PurchasesDTO {
+  items: SwapDTO[];
+  totalCost: number;
+  /** Nº de cartas comprables que cumplían los filtros. */
+  candidateCount: number;
+}
+
+export interface SavedDeckSummaryDTO extends Omit<SavedDeckSummary, "updatedAt"> {
+  updatedAt: string;
+}
+
+export interface SavedDeckDTO extends Omit<SavedDeck, "updatedAt"> {
+  updatedAt: string;
+}
 
 export interface StatusResponse {
   catalog: { cards: number; printings: number };
@@ -138,7 +166,7 @@ export const cardDTO = (c: Card): CardDTO => ({
   colorIdentity: c.colorIdentity,
 });
 
-const scoredDTO = (s: ScoredCard | AddCandidate): ScoredCardDTO => ({
+const scoredDTO = (s: ScoredCard | AddCandidate | PurchaseCandidate): ScoredCardDTO => ({
   card: cardDTO(s.card),
   roles: s.roles.roles,
   primaryRole: s.roles.primary,
@@ -146,10 +174,11 @@ const scoredDTO = (s: ScoredCard | AddCandidate): ScoredCardDTO => ({
   inclusion: s.inclusion,
   inEdhrec: s.inEdhrec,
   problem: s.problem,
-  ...("owned" in s ? { owned: s.owned } : {}),
+  ...("available" in s ? { owned: s.owned, available: s.available, usedIn: s.usedIn } : {}),
+  ...("price" in s ? { price: s.price, owned: s.owned, usedIn: s.usedIn } : {}),
 });
 
-const swapDTO = (s: SwapSuggestion): SwapDTO => ({
+const swapDTO = (s: SwapSuggestion | PurchaseSuggestion): SwapDTO => ({
   id: `${s.out.card.oracleId}>${s.in.card.oracleId}`,
   out: scoredDTO(s.out),
   in: scoredDTO(s.in),
@@ -220,6 +249,8 @@ export function analyzeResponse(
     edhrec: { ...result.edhrec, fetchedAt: result.edhrec.fetchedAt.toISOString() },
     swaps: s.swaps.map(swapDTO),
     addCandidates: s.addCandidates.slice(0, 40).map(scoredDTO),
+    unavailableCandidates: s.unavailableCandidates.slice(0, 40).map(scoredDTO),
+    purchases: result.purchases ? purchasesDTO(result.purchases) : null,
     cutCandidates: s.cutCandidates.slice(0, 40).map(scoredDTO),
   };
 }
@@ -236,3 +267,21 @@ export function collectionImportResponse(s: CollectionImportSummary): Collection
     errors: s.errors.map((e) => ({ line: e.line, reason: e.reason })),
   };
 }
+
+function purchasesDTO(p: PurchaseResult): PurchasesDTO {
+  return {
+    items: p.purchases.map(swapDTO),
+    totalCost: p.totalCost,
+    candidateCount: p.candidates.length,
+  };
+}
+
+export const savedDeckSummaryDTO = (d: SavedDeckSummary): SavedDeckSummaryDTO => ({
+  ...d,
+  updatedAt: d.updatedAt.toISOString(),
+});
+
+export const savedDeckDTO = (d: SavedDeck): SavedDeckDTO => ({
+  ...d,
+  updatedAt: d.updatedAt.toISOString(),
+});

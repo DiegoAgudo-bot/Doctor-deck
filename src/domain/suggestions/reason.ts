@@ -1,5 +1,5 @@
 import { ROLE_LABELS, type Role } from "../roles/types";
-import type { AddCandidate, ScoredCard } from "./engine";
+import type { ScoredCard } from "./engine";
 
 const pct = (x: number) => `${Math.round(x * 100)} %`;
 const signed = (x: number) => {
@@ -17,7 +17,7 @@ function describeOut(c: ScoredCard): string {
   return parts.join(", ");
 }
 
-function describeIn(c: AddCandidate): string {
+function describeIn(c: ScoredCard): string {
   const parts = [ROLE_LABELS[c.roles.primary], `${pct(c.inclusion ?? 0)} inclusión`];
   if (c.synergy !== null) parts.push(`${signed(c.synergy)} synergy`);
   return parts.join(", ");
@@ -25,15 +25,15 @@ function describeIn(c: AddCandidate): string {
 
 /** Motivo legible de un cambio, en español. */
 export function swapReason(
-  swap: { out: ScoredCard; in: AddCandidate; sameRole: boolean; fillsDeficit: Role[] },
+  swap: { out: ScoredCard; in: ScoredCard; sameRole: boolean; fillsDeficit: Role[] },
   ctx: { counts: Record<Role, number>; minimums: Partial<Record<Role, number>> },
+  /** Frase sobre cómo conseguir la carta ("La tienes en tu colección." / precio). */
+  acquisition: string,
 ): string {
   const { out, in: inn } = swap;
   const sentences = [
     `Sustituye a ${out.card.name} (${describeOut(out)}) por ${inn.card.name} (${describeIn(inn)}).`,
-    inn.owned > 1
-      ? `La tienes en tu colección (${inn.owned} copias).`
-      : "La tienes en tu colección.",
+    acquisition,
   ];
   if (!swap.sameRole) {
     sentences.push(

@@ -56,6 +56,7 @@ const printingFromRow = (r: PrintingRow): Printing => ({
   collectorNumber: r.collectorNumber,
   lang: r.lang,
   imageUrl: r.imageUrl,
+  priceEur: r.priceEur,
 });
 
 export class PrismaCardRepository implements CardRepository, CardCatalogWriter {
@@ -104,6 +105,19 @@ export class PrismaCardRepository implements CardRepository, CardCatalogWriter {
       out.push(...rows.map(printingFromRow));
     }
     return out;
+  }
+
+  async findMinPrices(oracleIds: readonly string[]) {
+    const prices = new Map<string, number>();
+    for (const ids of chunks([...new Set(oracleIds)])) {
+      const rows = await this.db.printing.groupBy({
+        by: ["oracleId"],
+        where: { oracleId: { in: ids }, priceEur: { not: null } },
+        _min: { priceEur: true },
+      });
+      for (const r of rows) if (r._min.priceEur !== null) prices.set(r.oracleId, r._min.priceEur);
+    }
+    return prices;
   }
 
   async counts() {

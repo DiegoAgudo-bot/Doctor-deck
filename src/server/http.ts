@@ -2,6 +2,7 @@ import { z } from "zod";
 import { DeckSourceError } from "@/adapters/deck-sources/errors";
 import { EdhrecError } from "@/adapters/edhrec/errors";
 import { UnsupportedDeckInputError } from "@/application/load-deck";
+import { DeckWithoutCommanderError } from "@/application/save-deck";
 import { EmptyCatalogError } from "@/application/import-collection";
 import { CsvParseError } from "@/domain/collection/csv";
 import { ManaboxFormatError } from "@/domain/collection/manabox";
@@ -26,6 +27,9 @@ export function errorResponse(err: unknown): Response {
   if (err instanceof DeckSourceError) {
     const status = { not_found: 404, blocked: 503, unavailable: 503, format: 502 }[err.code];
     return Response.json(body(`${err.source}_${err.code}`, err.message), { status });
+  }
+  if (err instanceof DeckWithoutCommanderError) {
+    return Response.json(body("no_commander", err.message), { status: 400 });
   }
   if (err instanceof UnsupportedDeckInputError) {
     return Response.json(body("unsupported_input", err.message), { status: 400 });

@@ -29,6 +29,7 @@ export const scryfallCardSchema = z.object({
   color_identity: z.array(z.string()).default([]),
   legalities: z.record(z.string(), z.string()).default({}),
   edhrec_rank: z.number().optional(),
+  prices: z.looseObject({ eur: z.string().nullish() }).nullish(),
   image_uris: imageUris,
   card_faces: z.array(face).optional(),
 });
@@ -77,6 +78,12 @@ export function toCard(c: ScryfallCard): Card | null {
   };
 }
 
+function parsePrice(v: string | null | undefined): number | null {
+  if (!v) return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 export function toPrinting(c: ScryfallCard): Printing | null {
   const oracleId = oracleIdOf(c);
   if (!oracleId) return null;
@@ -87,6 +94,7 @@ export function toPrinting(c: ScryfallCard): Printing | null {
     collectorNumber: c.collector_number,
     lang: c.lang,
     imageUrl: imageOf(c),
+    priceEur: parsePrice(c.prices?.eur),
   };
 }
 
