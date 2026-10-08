@@ -3,6 +3,10 @@
 # (también se puede lanzar a mano desde la carpeta de la app).
 set -euo pipefail
 
+# Todo dentro de { …; exit; }: bash lo lee entero antes de ejecutarlo, así el `git pull` puede
+# reescribir este mismo fichero sin que se ejecute a medias.
+{
+
 cd "$(dirname "$0")/.."
 BRANCH="${DEPLOY_BRANCH:-main}"
 
@@ -16,3 +20,5 @@ docker compose up -d --build --remove-orphans
 docker image prune -f >/dev/null
 
 echo "✓ Desplegado $(git rev-parse --short HEAD)"
+exit
+}
