@@ -7,21 +7,22 @@ recomendaciones de EDHREC, priorizando cartas de la colección del usuario (expo
 
 ## Comandos
 
-| Comando                                                                            | Qué hace                                                                  |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `npm install`                                                                      | Instala dependencias y genera el cliente Prisma (`postinstall`)           |
-| `cp .env.example .env`                                                             | Configuración local (nunca se sube `.env`)                                |
-| `npm run db:migrate`                                                               | Aplica/crea migraciones de Prisma sobre SQLite (`data/deck-doctor.db`)    |
-| `npm run dev`                                                                      | Servidor de desarrollo                                                    |
-| `npm test` / `npm run test:watch` / `npm run test:coverage`                        | Vitest                                                                    |
-| `npm run typecheck`                                                                | `next typegen` + `tsc --noEmit`                                           |
-| `npm run lint`                                                                     | ESLint (incluye la regla de capas)                                        |
-| `npm run format` / `format:check`                                                  | Prettier                                                                  |
-| `npm run build`                                                                    | Build de producción                                                       |
-| `npm run scryfall:sync [-- --force \| --skip-download]`                            | Descarga los bulk de Scryfall (si hay versión nueva) y los vuelca a la BD |
-| `npm run collection:import -- "export.csv"`                                        | Importa un CSV de ManaBox y muestra el resumen                            |
-| `npm run deck:check -- "lista.txt"`                                                | Parsea y resuelve una lista de mazo contra el catálogo                    |
-| `npm run edhrec:fetch -- "Comandante" [--theme x] [--partner "B"] [--save f.json]` | Pide recomendaciones a EDHREC (con caché) y muestra un resumen            |
+| Comando                                                                              | Qué hace                                                                  |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `npm install`                                                                        | Instala dependencias y genera el cliente Prisma (`postinstall`)           |
+| `cp .env.example .env`                                                               | Configuración local (nunca se sube `.env`)                                |
+| `npm run db:migrate`                                                                 | Aplica/crea migraciones de Prisma sobre SQLite (`data/deck-doctor.db`)    |
+| `npm run dev`                                                                        | Servidor de desarrollo                                                    |
+| `npm test` / `npm run test:watch` / `npm run test:coverage`                          | Vitest                                                                    |
+| `npm run typecheck`                                                                  | `next typegen` + `tsc --noEmit`                                           |
+| `npm run lint`                                                                       | ESLint (incluye la regla de capas)                                        |
+| `npm run format` / `format:check`                                                    | Prettier                                                                  |
+| `npm run build`                                                                      | Build de producción                                                       |
+| `npm run scryfall:sync [-- --force \| --skip-download]`                              | Descarga los bulk de Scryfall (si hay versión nueva) y los vuelca a la BD |
+| `npm run collection:import -- "export.csv"`                                          | Importa un CSV de ManaBox y muestra el resumen                            |
+| `npm run deck:check -- "lista.txt"`                                                  | Parsea y resuelve una lista de mazo contra el catálogo                    |
+| `npm run edhrec:fetch -- "Comandante" [--theme x] [--partner "B"] [--save f.json]`   | Pide recomendaciones a EDHREC (con caché) y muestra un resumen            |
+| `npm run deck:suggest -- "lista.txt" [--theme x] [--lock "Carta"] [--commander "C"]` | Analiza un mazo y muestra los cambios sugeridos                           |
 
 Antes de cada commit: `npm run typecheck && npm run lint && npm run format:check && npm test`.
 
@@ -82,6 +83,24 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   `stale: true` y un `warning` para mostrar al usuario. Las respuestas con formato inesperado no se
   cachean. Slugs: nombre sin tildes/apóstrofos, cara frontal, parejas en orden alfabético unidas
   con `-` (pendiente de verificar contra EDHREC real).
+- **Sugerencias** (`application/analyze-deck.ts`): `loadDeck` → (`chooseCommanders` si el usuario
+  eligió; si no hay comandante → `status: "needs_commander"`) → `loadRecommendations` →
+  `ownedQuantities` → `suggestSwaps` (dominio) + `manaCurve` + `validateDeck`.
+- **Motor** (`domain/suggestions/engine.ts`):
+  - Candidatos a entrar: recomendadas ∩ colección, fuera del mazo, legales, en identidad de color, no
+    básicas. Candidatos a salir: las 99 sin básicas ni bloqueadas; las que no están en EDHREC primero.
+  - `score(carta) = a·synergy + b·inclusion` (lo que falta = 0).
+    `score(cambio) = score(entra) − score(sale) + c·bonus_rol`, con bonus_rol = 1 si comparten rol
+    principal, 0.5 si comparten algún rol, +0.5 si la que entra cubre un rol bajo mínimo.
+  - Solo se propone si `score(entra) − score(sale) > minImprovement`. Emparejado voraz: en cada paso
+    el mejor par válido; un par es inválido si deja algún rol por debajo de su mínimo.
+  - Pesos, mínimos, umbral y nº máximo en `src/config/engine.ts` (defaults en
+    `domain/suggestions/config.ts`). Motivos en español en `domain/suggestions/reason.ts`.
+- **Roles** (`domain/roles`): `HeuristicRoleClassifier` con regex sobre el oracle text (sin
+  reminder text, nombre propio → "this") y el tipo de la cara frontal. Roles: land, ramp, draw,
+  removal, wipe, counterspell, tutor, protection, synergy (= lo que no es nada de lo anterior).
+  Una carta cuenta en todos sus roles; el principal sale de un orden de prioridad. Limitaciones
+  conocidas: overload/escalate no cuentan como wipe; "protection" exige conceder a otros.
 - **Mazo**: `DeckSource.load` → `parseDecklist` → `resolveDecklist` (agrupa por oracleId, detecta
   comandante: marcado → único candidato o pareja válida → si no, `commanderCandidates` para que
   elija el usuario con `chooseCommanders`) → `validateDeck`.
@@ -131,7 +150,7 @@ Purchase price currency, Added`.
 1. Datos de Scryfall + import CSV ManaBox + parser de listas, con tests ✅
 2. `EdhrecClient` con caché + tests con fixtures ✅ (fixtures escritos a mano: verificar con
    `edhrec:fetch` contra EDHREC real)
-3. Motor de sugerencias + clasificador de roles, con tests de casos concretos.
+3. Motor de sugerencias + clasificador de roles, con tests de casos concretos ✅
 4. UI (import, mazo con curva/roles, swaps aceptar/descartar, bloqueos, exportar texto).
 5. Después: Archidekt/Moxfield, copias usadas en otros mazos, modo "comprar N cartas baratas"
    (Cardmarket), app móvil.

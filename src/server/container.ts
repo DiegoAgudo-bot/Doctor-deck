@@ -5,7 +5,9 @@ import { PrismaResponseCache } from "@/adapters/db/response-cache";
 import { EdhrecClient } from "@/adapters/edhrec/edhrec-client";
 import { createDb } from "@/adapters/db/prisma";
 import { HttpClient } from "@/adapters/http/http-client";
+import { engineConfig } from "@/config/engine";
 import { loadEnv } from "@/config/env";
+import { HeuristicRoleClassifier } from "@/domain/roles/heuristic-classifier";
 
 /** Raíz de composición: une configuración + adaptadores concretos. Solo para servidor y scripts. */
 export function createContainer() {
@@ -26,6 +28,8 @@ export function createContainer() {
     cards: new PrismaCardRepository(db),
     collection: new PrismaCollectionRepository(db),
     deckSources: [textDeckSource],
+    classifier: new HeuristicRoleClassifier(),
+    engineConfig,
     scryfallHttp: new HttpClient({
       userAgent: env.HTTP_USER_AGENT,
       minIntervalMs: env.SCRYFALL_MIN_INTERVAL_MS,

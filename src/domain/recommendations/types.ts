@@ -1,3 +1,5 @@
+import type { Card } from "../cards/types";
+
 /** Recomendación de una carta para un comandante (y tema), según una fuente externa (EDHREC). */
 export interface CardRecommendation {
   /** Nombre tal como lo da la fuente; se resuelve a oracleId con el CardIndex. */
@@ -37,4 +39,9 @@ export interface CommanderRecommendations {
   stale: boolean;
   /** Motivo legible cuando `stale` es true (para avisar al usuario). */
   warning: string | null;
+}
+
+/** Recomendación ya resuelta a una carta del catálogo. */
+export interface ResolvedRecommendation extends CardRecommendation {
+  card: Card;
 }

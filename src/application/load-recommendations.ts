@@ -1,15 +1,15 @@
-import type { Card } from "@/domain/cards/types";
 import type { CardRepository } from "@/domain/ports/card-repository";
 import type {
   RecommendationQuery,
   RecommendationSource,
 } from "@/domain/ports/recommendation-source";
-import type { CardRecommendation, CommanderRecommendations } from "@/domain/recommendations/types";
+import type {
+  CommanderRecommendations,
+  ResolvedRecommendation,
+} from "@/domain/recommendations/types";
 import { loadIndexFor } from "./card-index-loader";
 
-export interface ResolvedRecommendation extends CardRecommendation {
-  card: Card;
-}
+export type { ResolvedRecommendation };
 
 export interface ResolvedRecommendations extends Omit<CommanderRecommendations, "cards"> {
   cards: ResolvedRecommendation[];
