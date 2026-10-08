@@ -27,6 +27,10 @@ recomendaciones de EDHREC, priorizando cartas de la colección del usuario (expo
 
 Antes de cada commit: `npm run typecheck && npm run lint && npm run format:check && npm test`.
 
+**CI/CD**: `.github/workflows/ci.yml` ejecuta esos checks + build en cada push/PR; en push a `main`
+despliega en el VPS por SSH (`scripts/deploy.sh`: pull, `npm ci`, `prisma migrate deploy`, build,
+`pm2 reload`). Configuración del VPS y secretos en `DEPLOY.md`.
+
 ## Stack
 
 Next.js 16 (App Router) · TypeScript estricto (`strict`, `noUncheckedIndexedAccess`,
