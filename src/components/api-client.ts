@@ -14,7 +14,9 @@ export class ApiError extends Error {
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(path, init);
+    // Contra el origin y no la ruta relativa: si la página se abrió con credenciales en la URL
+    // (https://usuario:clave@…, basic auth del VPS), fetch rechaza las URLs relativas que las heredan.
+    res = await fetch(new URL(path, window.location.origin), init);
   } catch {
     throw new ApiError("network", "No se pudo contactar con el servidor", 0);
   }
