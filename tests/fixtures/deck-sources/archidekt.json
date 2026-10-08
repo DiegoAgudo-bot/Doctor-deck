@@ -1,0 +1,111 @@
+{
+  "id": 123456,
+  "name": "Teferi control",
+  "deckFormat": 3,
+  "owner": { "username": "someone" },
+  "categories": [
+    {
+      "id": 1,
+      "name": "Commander",
+      "isPremier": true,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 2,
+      "name": "Ramp",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 3,
+      "name": "Maybeboard",
+      "isPremier": false,
+      "includedInDeck": false,
+      "includedInPrice": false
+    },
+    {
+      "id": 4,
+      "name": "Sideboard",
+      "isPremier": false,
+      "includedInDeck": false,
+      "includedInPrice": false
+    }
+  ],
+  "cards": [
+    {
+      "id": 1,
+      "quantity": 1,
+      "modifier": "Normal",
+      "categories": ["Commander"],
+      "card": {
+        "id": 9,
+        "uid": "66666666-0000-4000-8000-000000000012",
+        "collectorNumber": "12",
+        "edition": { "editioncode": "c14", "editionname": "Commander 2014" },
+        "oracleCard": { "id": 1, "name": "Teferi, Temporal Archmage", "colorIdentity": ["Blue"] }
+      }
+    },
+    {
+      "id": 2,
+      "quantity": 1,
+      "modifier": "Foil",
+      "categories": ["Ramp", "Artifact"],
+      "card": {
+        "id": 10,
+        "uid": "33333333-0000-4000-8000-000000000270",
+        "collectorNumber": "270",
+        "edition": { "editioncode": "lea" },
+        "oracleCard": { "id": 2, "name": "Sol Ring" }
+      }
+    },
+    {
+      "id": 3,
+      "quantity": 1,
+      "categories": ["Draw"],
+      "card": {
+        "id": 11,
+        "uid": null,
+        "collectorNumber": "115",
+        "edition": { "editioncode": "DSC" },
+        "oracleCard": { "id": 3, "name": "Dig Through Time" }
+      }
+    },
+    {
+      "id": 4,
+      "quantity": 30,
+      "categories": ["Land"],
+      "card": {
+        "id": 12,
+        "uid": "44444444-0000-4000-8000-000000000278",
+        "collectorNumber": "278",
+        "edition": { "editioncode": "dsk" },
+        "oracleCard": { "id": 4, "name": "Island" }
+      }
+    },
+    {
+      "id": 5,
+      "quantity": 1,
+      "categories": ["Maybeboard"],
+      "card": {
+        "id": 13,
+        "uid": "185b2e8f-ab37-42e4-b3a1-f38b19a2e05a",
+        "collectorNumber": "112",
+        "edition": { "editioncode": "dsc" },
+        "oracleCard": { "id": 5, "name": "Body of Knowledge" }
+      }
+    },
+    {
+      "id": 6,
+      "quantity": 1,
+      "categories": [],
+      "card": {
+        "id": 14,
+        "collectorNumber": "1",
+        "edition": { "editioncode": "xxx" },
+        "oracleCard": { "id": 6, "name": "Grizzled Angler // Grisly Anglerfish" }
+      }
+    }
+  ]
+}

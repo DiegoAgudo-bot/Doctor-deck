@@ -39,6 +39,8 @@ describe("analyzeResponse", () => {
     const classifier = new HeuristicRoleClassifier();
     const result: AnalyzeDeckResult = {
       status: "ok",
+      source: "text",
+      deckName: null,
       deck,
       issues: [{ kind: "colorIdentity", card: bolt, identity: ["U"] }],
       skipped: [],

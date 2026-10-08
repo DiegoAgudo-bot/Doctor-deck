@@ -7,6 +7,8 @@ const envSchema = z.object({
   SCRYFALL_MIN_INTERVAL_MS: z.coerce.number().int().min(100).default(100),
   EDHREC_MIN_INTERVAL_MS: z.coerce.number().int().min(0).default(1000),
   EDHREC_CACHE_TTL_HOURS: z.coerce.number().positive().default(24),
+  /** Intervalo mínimo entre peticiones a Archidekt / Moxfield. */
+  DECK_SOURCES_MIN_INTERVAL_MS: z.coerce.number().int().min(0).default(1000),
 });
 
 export type Env = z.infer<typeof envSchema>;

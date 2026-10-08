@@ -1,6 +1,7 @@
 /**
- * Parsea y resuelve una lista de mazo (fichero de texto) contra el catálogo local.
- * Uso: npm run deck:check -- "ruta/a/lista.txt"
+ * Parsea y resuelve una lista de mazo (fichero de texto o link de Archidekt/Moxfield) contra el
+ * catálogo local.
+ * Uso: npm run deck:check -- "ruta/a/lista.txt"   |   npm run deck:check -- "https://archidekt.com/decks/123"
  */
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
@@ -11,10 +12,12 @@ async function main() {
   const file = process.argv[2];
   if (!file) throw new Error('Uso: npm run deck:check -- "ruta/a/lista.txt"');
   const c = createContainer();
-  const { deck, skipped, issues } = await loadDeck(await readFile(file, "utf8"), {
+  const input = /^https?:\/\//i.test(file) ? file : await readFile(file, "utf8");
+  const { deck, skipped, issues, source, deckName } = await loadDeck(input, {
     sources: c.deckSources,
     cards: c.cards,
   });
+  console.log(`Fuente: ${source}${deckName ? ` · ${deckName}` : ""}`);
   const count = deck.commanders.length + deck.cards.reduce((n, x) => n + x.quantity, 0);
   console.log(
     `Comandante (${deck.commanderSource}): ${deck.commanders.map((x) => x.name).join(" + ") || "—"}`,

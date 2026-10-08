@@ -126,6 +126,11 @@ export function chooseCommanders(deck: ResolvedDeck, oracleIds: readonly string[
 }
 
 function lookup(entry: DecklistEntry, index: CardIndex): Card | undefined {
+  if (entry.scryfallId) {
+    const p = index.printingById(entry.scryfallId);
+    const card = p && index.card(p.oracleId);
+    if (card) return card;
+  }
   if (entry.setCode && entry.collectorNumber) {
     const p = index.printingBySetNumber(entry.setCode, entry.collectorNumber);
     const card = p && index.card(p.oracleId);

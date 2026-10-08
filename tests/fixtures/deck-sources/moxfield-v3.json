@@ -1,0 +1,70 @@
+{
+  "id": "abc",
+  "publicId": "AbC123_-x",
+  "name": "Teferi (Moxfield)",
+  "format": "commander",
+  "boards": {
+    "mainboard": {
+      "count": 32,
+      "cards": {
+        "k1": {
+          "quantity": 1,
+          "boardType": "mainboard",
+          "finish": "nonFoil",
+          "card": {
+            "id": "x1",
+            "scryfall_id": "33333333-0000-4000-8000-000000000263",
+            "name": "Sol Ring",
+            "set": "c21",
+            "cn": "263"
+          }
+        },
+        "k2": {
+          "quantity": 1,
+          "boardType": "mainboard",
+          "finish": "foil",
+          "card": {
+            "id": "x2",
+            "scryfall_id": "572b3180-9822-4885-b81c-b1bf8aca5a5e",
+            "name": "Dig Through Time",
+            "set": "dsc",
+            "cn": "115"
+          }
+        },
+        "k3": {
+          "quantity": 30,
+          "boardType": "mainboard",
+          "card": { "id": "x3", "name": "Island", "set": "dsk", "cn": "278" }
+        }
+      }
+    },
+    "commanders": {
+      "count": 1,
+      "cards": {
+        "k4": {
+          "quantity": 1,
+          "boardType": "commanders",
+          "card": {
+            "id": "x4",
+            "scryfall_id": "66666666-0000-4000-8000-000000000012",
+            "name": "Teferi, Temporal Archmage",
+            "set": "c14",
+            "cn": "12"
+          }
+        }
+      }
+    },
+    "sideboard": {
+      "count": 1,
+      "cards": {
+        "k5": {
+          "quantity": 1,
+          "card": { "id": "x5", "name": "Body of Knowledge", "set": "dsc", "cn": "112" }
+        }
+      }
+    },
+    "maybeboard": { "count": 0, "cards": {} },
+    "companions": { "count": 0, "cards": {} },
+    "tokens": { "count": 0, "cards": {} }
+  }
+}

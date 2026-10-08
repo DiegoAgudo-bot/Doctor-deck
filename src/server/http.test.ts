@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { DeckSourceError } from "@/adapters/deck-sources/errors";
 import { EdhrecError } from "@/adapters/edhrec/errors";
+import { UnsupportedDeckInputError } from "@/application/load-deck";
 import { EmptyCatalogError } from "@/application/import-collection";
 import { ManaboxFormatError } from "@/domain/collection/manabox";
 import { errorResponse } from "./http";
@@ -14,6 +16,9 @@ describe("errorResponse", () => {
     [new EdhrecError("blocked", "x"), 503, "edhrec_blocked"],
     [new EdhrecError("format", "x"), 502, "edhrec_format"],
     [new EmptyCatalogError(), 409, "empty_catalog"],
+    [new DeckSourceError("blocked", "moxfield", "x"), 503, "moxfield_blocked"],
+    [new DeckSourceError("not_found", "archidekt", "x"), 404, "archidekt_not_found"],
+    [new UnsupportedDeckInputError(), 400, "unsupported_input"],
     [new ManaboxFormatError("x"), 400, "invalid_csv"],
     [z.string().safeParse(1).error, 400, "invalid_request"],
     [new Error("Esa combinación de comandantes no es válida"), 400, "invalid_commanders"],

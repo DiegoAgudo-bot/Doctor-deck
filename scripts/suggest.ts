@@ -21,7 +21,7 @@ async function main() {
   if (!file || file.startsWith("--"))
     throw new Error('Uso: npm run deck:suggest -- "lista.txt" [--theme x] [--lock "Carta"]');
   const c = createContainer();
-  const input = await readFile(file, "utf8");
+  const input = /^https?:\/\//i.test(file) ? file : await readFile(file, "utf8");
   const deps = {
     sources: c.deckSources,
     cards: c.cards,

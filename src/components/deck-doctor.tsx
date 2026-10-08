@@ -20,6 +20,7 @@ interface Saved {
 }
 
 const KEY = "deck-doctor:mazo";
+const SOURCE_LABEL: Record<string, string> = { archidekt: "Archidekt", moxfield: "Moxfield" };
 const EMPTY: Saved = { input: "", theme: "", locked: [], excluded: [] };
 
 type Ok = Extract<AnalyzeResponse, { status: "ok" }>;
@@ -125,13 +126,13 @@ export function DeckDoctor() {
         }}
       >
         <label className="flex flex-col gap-1 text-sm">
-          <span>Lista del mazo</span>
+          <span>Lista del mazo o link de Archidekt / Moxfield</span>
           <textarea
             value={saved.input}
             onChange={(e) => update({ input: e.target.value })}
             rows={8}
             placeholder={
-              "Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n1x Arcane Signet (C21) 263\n…"
+              "https://archidekt.com/decks/123456\n\no bien:\n\nCommander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n1x Arcane Signet (C21) 263\n…"
             }
             className="w-full rounded-lg border border-zinc-300 p-2 font-mono text-sm dark:border-zinc-700 dark:bg-zinc-900"
           />
@@ -320,6 +321,18 @@ function Overview({
         </div>
         <div className="flex min-w-0 flex-col gap-2 text-sm">
           <h2 className="text-lg font-semibold">{ok.commanders.map((c) => c.name).join(" + ")}</h2>
+          {(ok.deckName || ok.source !== "text") && (
+            <p className="text-xs text-zinc-500">
+              {[
+                ok.deckName,
+                ok.source !== "text"
+                  ? `cargado desde ${SOURCE_LABEL[ok.source] ?? ok.source}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
           <p>
             {ok.totalCards} cartas · EDHREC: {ok.edhrec.totalDecks?.toLocaleString("es") ?? "?"}{" "}
             mazos

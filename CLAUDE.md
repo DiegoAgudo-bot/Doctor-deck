@@ -20,7 +20,7 @@ recomendaciones de EDHREC, priorizando cartas de la colección del usuario (expo
 | `npm run build`                                                                      | Build de producción                                                       |
 | `npm run scryfall:sync [-- --force \| --skip-download]`                              | Descarga los bulk de Scryfall (si hay versión nueva) y los vuelca a la BD |
 | `npm run collection:import -- "export.csv"`                                          | Importa un CSV de ManaBox y muestra el resumen                            |
-| `npm run deck:check -- "lista.txt"`                                                  | Parsea y resuelve una lista de mazo contra el catálogo                    |
+| `npm run deck:check -- "lista.txt" \| "https://…"`                                   | Parsea y resuelve una lista de mazo contra el catálogo                    |
 | `npm run edhrec:fetch -- "Comandante" [--theme x] [--partner "B"] [--save f.json]`   | Pide recomendaciones a EDHREC (con caché) y muestra un resumen            |
 | `npm run deck:suggest -- "lista.txt" [--theme x] [--lock "Carta"] [--commander "C"]` | Analiza un mazo y muestra los cambios sugeridos                           |
 
@@ -135,8 +135,17 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   buscar formas de saltárselo.**
 - **Colección ManaBox**: CSV con cabecera (ver abajo). Emparejar por `Scryfall ID`; si falta, por
   set + número de coleccionista; si no, por nombre. Lo no emparejado queda como `unmatched`.
-- **Mazos**: interfaz `DeckSource`. MVP = texto pegado (`1 Sol Ring`, `1x Sol Ring (C21) 263`,
-  secciones de comandante). Archidekt/Moxfield = adaptadores posteriores.
+- **Mazos**: interfaz `DeckSource`, se usa la primera que acepte la entrada (Archidekt → Moxfield →
+  texto). Texto pegado (`1 Sol Ring`, `1x Sol Ring (C21) 263`, secciones de comandante) o links:
+  - Archidekt: endpoint JSON público `archidekt.com/api/decks/{id}/`. La categoría "Commander" marca
+    el comandante; las cartas cuya categoría principal no se incluye en el mazo se ignoran.
+  - Moxfield: **sin API oficial**, `api2.moxfield.com/v3/decks/all/{id}` (también se acepta la
+    forma v2). Solo cuentan `mainboard` y `commanders`.
+  - Errores: `DeckSourceError` (`not_found`, `blocked` [401/403/429, sin reintentos], `unavailable`,
+    `format`), siempre sugiriendo exportar la lista como texto. Rate limit
+    `DECK_SOURCES_MIN_INTERVAL_MS`. Sin caché (los mazos cambian). Esquemas zod tolerantes; los
+    fixtures están escritos a mano (verificar con `deck:check -- <link>`).
+  - Las entradas de mazo pueden traer `scryfallId`; al resolver se prueba id → set+nº → nombre.
 - **Clasificador de roles** intercambiable (`RoleClassifier`): primero heurísticas sobre oracle text
   y tipo; más adelante `otag:` de Scryfall. Una carta puede tener varios roles.
 - **Scoring**: `score = a·synergy + b·inclusion + c·bonus_rol`; pesos y mínimos por rol
@@ -169,7 +178,14 @@ Purchase price currency, Added`.
    `edhrec:fetch` contra EDHREC real)
 3. Motor de sugerencias + clasificador de roles, con tests de casos concretos ✅
 4. UI (import, mazo con curva/roles, swaps aceptar/descartar, bloqueos, exportar texto) ✅
-5. Después: Archidekt/Moxfield, copias usadas en otros mazos, modo "comprar N cartas baratas"
-   (Cardmarket), app móvil.
+5. Importar mazos desde links de Archidekt y Moxfield (+ lista del mazo agrupada por rol) ✅
+6. Copias de cada carta ya usadas en otros mazos (requiere guardar mazos en BD).
+7. Modo "si compro N cartas baratas, ¿cuáles mejoran más el mazo?" con precio de Cardmarket.
+
+### Futuro (no empezar hasta que el usuario lo pida)
+
+- **App móvil**. Requisito ya fijado: debe aparecer como destino al **compartir desde ManaBox**
+  (share sheet de Android/iOS) y aceptar tanto el **CSV** como el **texto** compartido, importándolo
+  directamente como colección (o como mazo si es una lista). Reutilizará la API JSON (`/api/*`).
 
 Al terminar cada fase: parar y esperar el OK del usuario.

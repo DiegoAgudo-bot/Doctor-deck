@@ -5,6 +5,8 @@ export interface DecklistEntry {
   name: string;
   setCode: string | null;
   collectorNumber: string | null;
+  /** Scryfall ID de la impresión, si la fuente lo da (Archidekt, Moxfield). */
+  scryfallId?: string | null;
   foil: boolean;
   /** Marcada explícitamente como comandante (sección, `*CMDR*` o categoría de Archidekt). */
   commander: boolean;
@@ -17,6 +19,8 @@ export interface SkippedLine {
 }
 
 export interface ParsedDecklist {
+  /** Nombre del mazo, si la fuente lo da. */
+  name?: string | null;
   entries: DecklistEntry[];
   /** Líneas que no son cartas del mazo (banquillo, maybeboard, basura…), para informar al usuario. */
   skipped: SkippedLine[];

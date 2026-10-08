@@ -3,13 +3,16 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaCardRepository } from "@/adapters/db/card-repository";
 import { PrismaCollectionRepository } from "@/adapters/db/collection-repository";
 import type { Db } from "@/adapters/db/prisma";
+import { archidektDeckSource } from "@/adapters/deck-sources/archidekt";
+import { moxfieldDeckSource } from "@/adapters/deck-sources/moxfield";
 import { textDeckSource } from "@/adapters/deck-sources/text-deck-source";
+import { HttpClient } from "@/adapters/http/http-client";
 import { readJsonArray } from "@/adapters/scryfall/bulk";
 import { safeMappers } from "@/adapters/scryfall/mapping";
 import { FIXTURES, readFixture } from "../../tests/helpers/scryfall-fixtures";
 import { createTestDb } from "../../tests/helpers/test-db";
 import { EmptyCatalogError, importCollection } from "./import-collection";
-import { loadDeck } from "./load-deck";
+import { loadDeck, UnsupportedDeckInputError } from "./load-deck";
 import { syncScryfallCatalog } from "./sync-scryfall";
 
 let db: Db;
@@ -127,7 +130,40 @@ describe("loadDeck", () => {
   it("falla si ninguna fuente acepta la entrada", async () => {
     await expect(
       loadDeck("https://archidekt.com/decks/1", { sources: [textDeckSource], cards }),
-    ).rejects.toThrow(/fuente/);
+    ).rejects.toBeInstanceOf(UnsupportedDeckInputError);
+  });
+
+  it.each([
+    [
+      "https://archidekt.com/decks/123456/teferi",
+      "deck-sources/archidekt.json",
+      "archidekt",
+      "Teferi control",
+    ],
+    [
+      "https://moxfield.com/decks/AbC123_-x",
+      "deck-sources/moxfield-v3.json",
+      "moxfield",
+      "Teferi (Moxfield)",
+    ],
+  ])("carga un mazo desde %s", async (link, fixture, source, name) => {
+    const http = new HttpClient({
+      userAgent: "test",
+      minIntervalMs: 0,
+      clock: { now: () => 0, sleep: async () => undefined },
+      fetchFn: async () => new Response(readFixture(fixture)),
+    });
+    const loaded = await loadDeck(link, {
+      sources: [archidektDeckSource(http), moxfieldDeckSource(http), textDeckSource],
+      cards,
+    });
+    expect(loaded.source).toBe(source);
+    expect(loaded.deckName).toBe(name);
+    expect(loaded.deck.commanderSource).toBe("marked");
+    expect(loaded.deck.commanders.map((c) => c.name)).toEqual(["Teferi, Temporal Archmage"]);
+    const names = loaded.deck.cards.map((c) => c.card.name);
+    expect(names).toEqual(expect.arrayContaining(["Sol Ring", "Dig Through Time", "Island"]));
+    expect(names).not.toContain("Body of Knowledge"); // maybeboard / sideboard
   });
 });
 

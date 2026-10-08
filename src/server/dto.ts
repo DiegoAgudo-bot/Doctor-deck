@@ -73,12 +73,17 @@ export interface RoleStatDTO {
 export type AnalyzeResponse =
   | {
       status: "needs_commander";
+      source: string;
+      deckName: string | null;
       candidates: CardDTO[];
       skipped: SkippedLine[];
       unresolved: string[];
     }
   | {
       status: "ok";
+      /** "text" | "archidekt" | "moxfield" */
+      source: string;
+      deckName: string | null;
       commanders: CardDTO[];
       cards: DeckCardDTO[];
       totalCards: number;
@@ -178,6 +183,8 @@ export function analyzeResponse(
   if (result.status === "needs_commander") {
     return {
       status: "needs_commander",
+      source: result.source,
+      deckName: result.deckName,
       candidates: result.candidates.map(cardDTO),
       skipped: result.skipped,
       unresolved,
@@ -186,6 +193,8 @@ export function analyzeResponse(
   const { deck, suggestions: s } = result;
   return {
     status: "ok",
+    source: result.source,
+    deckName: result.deckName,
     commanders: deck.commanders.map(cardDTO),
     cards: deck.cards.map(({ card, quantity }) => {
       const roles = classifier.classify(card);

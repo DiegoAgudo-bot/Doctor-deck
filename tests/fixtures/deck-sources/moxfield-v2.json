@@ -1,0 +1,22 @@
+{
+  "name": "Teferi (Moxfield v2)",
+  "commanders": {
+    "Teferi, Temporal Archmage": {
+      "quantity": 1,
+      "card": {
+        "name": "Teferi, Temporal Archmage",
+        "scryfall_id": "66666666-0000-4000-8000-000000000012",
+        "set": "c14",
+        "cn": "12"
+      }
+    }
+  },
+  "mainboard": {
+    "Sol Ring": { "quantity": 1, "card": { "name": "Sol Ring", "set": "c21", "cn": "263" } },
+    "Island": { "quantity": 30, "card": { "name": "Island" } }
+  },
+  "sideboard": {},
+  "maybeboard": {
+    "Body of Knowledge": { "quantity": 1, "card": { "name": "Body of Knowledge" } }
+  }
+}

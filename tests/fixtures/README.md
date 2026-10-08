@@ -18,3 +18,6 @@
   está en el catálogo (_Reliquary Tower_). `redirect.json` y `changed-format.json` cubren la
   redirección y un cambio de estructura. Para sustituirlas por datos reales:
   `npm run edhrec:fetch -- "Teferi, Temporal Archmage" --save tests/fixtures/edhrec/real.json`.
+- `deck-sources/*.json`: respuestas de Archidekt (`/api/decks/{id}/`) y Moxfield (v3 y v2),
+  **escritas a mano** con cartas del catálogo de prueba (Teferi + Sol Ring, Dig Through Time,
+  Island; Body of Knowledge en maybeboard/sideboard).

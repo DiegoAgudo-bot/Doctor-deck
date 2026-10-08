@@ -42,12 +42,16 @@ export interface AnalyzeDeckDeps {
 export type AnalyzeDeckResult =
   | {
       status: "needs_commander";
+      source: string;
+      deckName: string | null;
       deck: ResolvedDeck;
       candidates: Card[];
       skipped: SkippedLine[];
     }
   | {
       status: "ok";
+      source: string;
+      deckName: string | null;
       deck: ResolvedDeck;
       issues: DeckIssue[];
       skipped: SkippedLine[];
@@ -76,6 +80,8 @@ export async function analyzeDeck(
   if (deck.commanders.length === 0) {
     return {
       status: "needs_commander",
+      source: loaded.source,
+      deckName: loaded.deckName,
       deck,
       candidates: deck.commanderCandidates,
       skipped: loaded.skipped,
@@ -99,6 +105,8 @@ export async function analyzeDeck(
 
   return {
     status: "ok",
+    source: loaded.source,
+    deckName: loaded.deckName,
     deck,
     issues: validateDeck(deck),
     skipped: loaded.skipped,

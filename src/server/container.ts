@@ -1,3 +1,5 @@
+import { archidektDeckSource } from "@/adapters/deck-sources/archidekt";
+import { moxfieldDeckSource } from "@/adapters/deck-sources/moxfield";
 import { textDeckSource } from "@/adapters/deck-sources/text-deck-source";
 import { PrismaCardRepository } from "@/adapters/db/card-repository";
 import { PrismaCollectionRepository } from "@/adapters/db/collection-repository";
@@ -23,13 +25,21 @@ export function createContainer() {
     cache: new PrismaResponseCache(db),
     ttlMs: env.EDHREC_CACHE_TTL_HOURS * 3_600_000,
   });
+  const deckSourcesHttp = new HttpClient({
+    userAgent: env.HTTP_USER_AGENT,
+    minIntervalMs: env.DECK_SOURCES_MIN_INTERVAL_MS,
+  });
   return {
     env,
     edhrec,
     db,
     cards: new PrismaCardRepository(db),
     collection: new PrismaCollectionRepository(db),
-    deckSources: [textDeckSource],
+    deckSources: [
+      archidektDeckSource(deckSourcesHttp),
+      moxfieldDeckSource(deckSourcesHttp),
+      textDeckSource,
+    ],
     classifier: new HeuristicRoleClassifier(),
     engineConfig,
     scryfallHttp: new HttpClient({
