@@ -4,9 +4,9 @@ La app corre en el VPS (`37.27.32.222`, carpeta `/doctor-deck`) como contenedor 
 (`docker-compose.yml`), detrás del **Traefik** que ya existe allí (proyecto pulsestack: red
 `pulsestack_proxy`, certificados de Let's Encrypt con el resolver `le`).
 
-- URL: **https://deckdoctor.37.27.32.222.nip.io** (protegida con usuario/contraseña de Traefik,
-  porque la app no tiene login: sin eso cualquiera podría ver o reemplazar tu colección).
-- Credenciales en el VPS: `/root/deck-doctor-credentials.txt`.
+- URL: **https://deckdoctor.37.27.32.222.nip.io**, protegida con la pantalla `/login` de la app
+  (contraseña `APP_PASSWORD`; sin ella cualquiera podría ver o reemplazar tu colección).
+- Contraseña en el VPS: `/root/deck-doctor-credentials.txt`. Cambiarla cierra todas las sesiones.
 - Datos (SQLite + bulk de Scryfall) en `/doctor-deck/data`, montado en el contenedor; los
   despliegues no lo tocan.
 
@@ -34,12 +34,10 @@ Variables de despliegue en `.env` (además de las de `.env.example`):
 
 ```bash
 DECK_DOCTOR_HOST=deckdoctor.37.27.32.222.nip.io
-# usuario:hash. Genera el hash con: openssl passwd -apr1 'tu-contraseña'
-# Entre comillas simples: el hash lleva `$`.
-BASIC_AUTH_USERS='deck:$apr1$...'
+APP_PASSWORD=una-contraseña-larga
 ```
 
-Tras cambiar `.env`: `docker compose up -d` (recrea el contenedor con las nuevas etiquetas).
+Tras cambiar `.env`: `docker compose up -d` (recrea el contenedor).
 
 Catálogo de Scryfall actualizado cada noche (crontab de root):
 

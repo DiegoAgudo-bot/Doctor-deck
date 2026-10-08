@@ -30,7 +30,7 @@ Antes de cada commit: `npm run typecheck && npm run lint && npm run format:check
 **CI/CD**: `.github/workflows/ci.yml` ejecuta esos checks + build en cada push/PR; en push a `main`
 despliega en el VPS (`root@37.27.32.222:/doctor-deck`) por SSH (`scripts/deploy.sh`: pull +
 `docker compose up -d --build`; el contenedor aplica `prisma migrate deploy` al arrancar). La app va
-detrás del Traefik de pulsestack con basic auth en `https://deckdoctor.37.27.32.222.nip.io`.
+detrás del Traefik de pulsestack en `https://deckdoctor.37.27.32.222.nip.io`.
 Configuración del VPS y secretos en `DEPLOY.md`.
 
 ## Stack
@@ -130,6 +130,10 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
     (`{input, theme?, commanders?, locked?, excluded?, deckId?, useOtherDecks?, buy?: {maxCards,
 maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /api/decks/[id]`.
   - Páginas: `/mazos` (lista, abrir → `/mazo?id=N`, borrar).
+  - **Acceso**: si existe `APP_PASSWORD`, `src/proxy.ts` (el middleware de Next 16) exige la cookie
+    `dd_session` (HMAC de la contraseña, `src/server/auth.ts`) en todo salvo `/login` y
+    `POST /api/login`; las páginas redirigen a `/login?next=…` y la API responde 401
+    `unauthorized` (el cliente redirige al login). Sin `APP_PASSWORD` no hay login (desarrollo).
   - Tipos y mapeadores de la API en `src/server/dto.ts` (los componentes solo hacen `import type`);
     errores → JSON `{error: {code, message}}` en `src/server/http.ts`.
   - Las rutas GET llaman a `await connection()` (better-sqlite3 es síncrono y si no, Next las

@@ -15,7 +15,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
     // Contra el origin y no la ruta relativa: si la página se abrió con credenciales en la URL
-    // (https://usuario:clave@…, basic auth del VPS), fetch rechaza las URLs relativas que las heredan.
+    // (https://usuario:clave@…), fetch rechaza las URLs relativas que las heredan.
     res = await fetch(new URL(path, window.location.origin), init);
   } catch {
     throw new ApiError("network", "No se pudo contactar con el servidor", 0);
@@ -23,6 +23,12 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const body: unknown = await res.json().catch(() => null);
   if (!res.ok) {
     const err = (body as ApiErrorBody | null)?.error;
+    if (err?.code === "unauthorized") {
+      const here = window.location.pathname + window.location.search;
+      // Recarga completa a propósito: sesión caducada, se descarta el estado del cliente.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign(`/login?next=${encodeURIComponent(here)}`);
+    }
     throw new ApiError(err?.code ?? "http", err?.message ?? `Error HTTP ${res.status}`, res.status);
   }
   return body as T;
