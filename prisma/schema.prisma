@@ -1,0 +1,106 @@
+// Esquema inicial (Fase 0). Se ampliará en las fases 1-3.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// Una carta "lógica" de Scryfall (bulk oracle_cards). Todas las ediciones comparten oracleId.
+model OracleCard {
+  oracleId       String   @id
+  name           String
+  /// Nombre de la primera cara, para emparejar "A // B" escrito como "A".
+  frontFaceName  String?
+  manaCost       String?
+  cmc            Float
+  typeLine       String
+  oracleText     String?
+  /// Letras WUBRG concatenadas, p. ej. "UB". Vacío = incolora.
+  colorIdentity  String
+  legalCommander Boolean
+  isBasicLand    Boolean  @default(false)
+  edhrecRank     Int?
+  printings      Printing[]
+
+  @@index([name])
+  @@index([frontFaceName])
+}
+
+/// Una impresión concreta (bulk default_cards).
+model Printing {
+  scryfallId      String     @id
+  oracleId        String
+  oracle          OracleCard @relation(fields: [oracleId], references: [oracleId])
+  setCode         String
+  collectorNumber String
+  lang            String
+  imageUrl        String?
+
+  @@index([oracleId])
+  @@index([setCode, collectorNumber])
+}
+
+model CollectionEntry {
+  id         Int      @id @default(autoincrement())
+  scryfallId String?
+  oracleId   String?
+  name       String
+  setCode    String?
+  collectorNumber String?
+  quantity   Int
+  foil       Boolean  @default(false)
+  /// "matched" | "unmatched"
+  status     String
+  /// Fila original del CSV en JSON, para depurar emparejados fallidos.
+  raw        String
+  importedAt DateTime @default(now())
+
+  @@index([oracleId])
+}
+
+model Deck {
+  id        Int        @id @default(autoincrement())
+  name      String
+  theme     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  cards     DeckCard[]
+  decisions SwapDecision[]
+}
+
+model DeckCard {
+  id          Int     @id @default(autoincrement())
+  deckId      Int
+  deck        Deck    @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  oracleId    String
+  quantity    Int     @default(1)
+  isCommander Boolean @default(false)
+  locked      Boolean @default(false)
+
+  @@unique([deckId, oracleId])
+}
+
+model SwapDecision {
+  id          Int      @id @default(autoincrement())
+  deckId      Int
+  deck        Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  outOracleId String
+  inOracleId  String
+  /// "accepted" | "rejected"
+  status      String
+  createdAt   DateTime @default(now())
+
+  @@unique([deckId, outOracleId, inOracleId])
+}
+
+/// Caché HTTP genérica (EDHREC, API de Scryfall). El TTL se aplica al leer.
+model HttpCache {
+  url       String   @id
+  status    Int
+  body      String
+  fetchedAt DateTime
+}

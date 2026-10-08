@@ -1,0 +1,7 @@
+.next
+node_modules
+src/generated
+data
+coverage
+package-lock.json
+*.csv
