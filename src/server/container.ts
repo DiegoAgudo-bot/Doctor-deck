@@ -9,6 +9,8 @@ import { engineConfig } from "@/config/engine";
 import { loadEnv } from "@/config/env";
 import { HeuristicRoleClassifier } from "@/domain/roles/heuristic-classifier";
 
+export type Container = ReturnType<typeof createContainer>;
+
 /** Raíz de composición: une configuración + adaptadores concretos. Solo para servidor y scripts. */
 export function createContainer() {
   const env = loadEnv();
@@ -35,4 +37,12 @@ export function createContainer() {
       minIntervalMs: env.SCRYFALL_MIN_INTERVAL_MS,
     }),
   };
+}
+
+const globalForContainer = globalThis as unknown as { deckDoctorContainer?: Container };
+
+/** Instancia única para el servidor web (sobrevive al recargado en caliente de `next dev`). */
+export function getContainer(): Container {
+  globalForContainer.deckDoctorContainer ??= createContainer();
+  return globalForContainer.deckDoctorContainer;
 }

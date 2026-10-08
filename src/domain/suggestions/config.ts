@@ -19,7 +19,7 @@ export interface EngineConfig {
 
 export const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   weights: { synergy: 1, inclusion: 1, roleBonus: 0.2 },
-  minimums: { land: 35, ramp: 10, draw: 10, removal: 8, wipe: 2 },
+  minimums: { land: 36, ramp: 10, draw: 10, removal: 8, wipe: 2 },
   minImprovement: 0.02,
   maxSuggestions: 15,
 };

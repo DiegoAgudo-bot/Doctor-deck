@@ -7,7 +7,7 @@ import { DEFAULT_ENGINE_CONFIG, mergeEngineConfig } from "@/domain/suggestions/c
  */
 export const engineConfig = mergeEngineConfig({
   // weights: { synergy: 1, inclusion: 1, roleBonus: 0.2 },
-  // minimums: { land: 35, ramp: 10, draw: 10, removal: 8, wipe: 2 },
+  // minimums: { land: 36, ramp: 10, draw: 10, removal: 8, wipe: 2 },
 });
 
 export { DEFAULT_ENGINE_CONFIG };

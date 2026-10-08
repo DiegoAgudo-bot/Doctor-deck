@@ -9,6 +9,8 @@ const signed = (x: number) => {
 
 function describeOut(c: ScoredCard): string {
   const role = ROLE_LABELS[c.roles.primary];
+  if (c.problem === "offColor") return `${role}, fuera de la identidad de color del comandante`;
+  if (c.problem === "notLegal") return `${role}, prohibida en Commander`;
   if (!c.inEdhrec) return `${role}, no aparece en EDHREC para este comandante`;
   const parts = [role, `${pct(c.inclusion ?? 0)} inclusión`];
   if (c.synergy !== null && c.synergy < 0) parts.push(`${signed(c.synergy)} synergy`);

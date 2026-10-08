@@ -90,9 +90,16 @@ describe("PrismaCollectionRepository", () => {
       unmatched: [row("Carta Inventada", 1, 4)],
     });
     expect(await repo.ownedQuantities()).toEqual(new Map([[sol?.oracleId, 3]]));
+    expect(await repo.summary()).toMatchObject({
+      rows: 3,
+      totalCards: 4,
+      uniqueCards: 1,
+      unmatchedRows: 1,
+    });
 
     await repo.replaceCollection({ matched: [], unmatched: [] });
     expect((await repo.ownedQuantities()).size).toBe(0);
     expect(await db.collectionEntry.count()).toBe(0);
+    expect(await repo.summary()).toMatchObject({ rows: 0, totalCards: 0, importedAt: null });
   });
 });

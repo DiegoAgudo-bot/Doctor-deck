@@ -13,12 +13,19 @@ export interface EngineInput {
   owned: ReadonlyMap<string, number>;
   /** oracleIds que el usuario no quiere cortar. */
   locked: ReadonlySet<string>;
+  /** oracleIds que el usuario ha descartado meter. */
+  excluded?: ReadonlySet<string> | undefined;
   classifier: RoleClassifier;
   config: EngineConfig;
 }
 
+/** Motivo por el que una carta del mazo debe salir sí o sí. */
+export type CardProblem = "offColor" | "notLegal";
+
 export interface ScoredCard {
   card: Card;
+  /** Solo en cartas del mazo: está fuera de la identidad de color o prohibida. */
+  problem: CardProblem | null;
   roles: RoleSet;
   synergy: number | null;
   inclusion: number | null;
@@ -70,6 +77,7 @@ const emptyCounts = (): Record<Role, number> =>
 /** Motor de sugerencias: propone cambios 1×1 usando solo cartas de la colección. */
 export function suggestSwaps(input: EngineInput): SuggestionResult {
   const { deck, recommendations, owned, locked, classifier, config } = input;
+  const excluded = input.excluded ?? new Set<string>();
   const { weights } = config;
   const score = (syn: number | null, incl: number | null) =>
     weights.synergy * (syn ?? 0) + weights.inclusion * (incl ?? 0);
@@ -79,17 +87,23 @@ export function suggestSwaps(input: EngineInput): SuggestionResult {
   const deckIds = new Set([...commanderIds, ...deck.cards.map((c) => c.card.oracleId)]);
   const identity = combinedColorIdentity(deck.commanders);
 
-  const scored = (card: Card): ScoredCard => {
+  // Las cartas con problema puntúan por debajo de cualquier otra para que salgan primero.
+  const PROBLEM_SCORE = -(Math.abs(weights.synergy) + Math.abs(weights.inclusion)) - 1;
+  const problemOf = (card: Card): CardProblem | null =>
+    !fitsColorIdentity(card, identity) ? "offColor" : !card.legalCommander ? "notLegal" : null;
+
+  const scored = (card: Card, problem: CardProblem | null = null): ScoredCard => {
     const rec = recByOracle.get(card.oracleId);
     const synergy = rec?.synergy ?? null;
     const inclusion = rec?.inclusion ?? null;
     return {
       card,
+      problem,
       roles: classifier.classify(card),
       synergy,
       inclusion,
       inEdhrec: !!rec,
-      score: score(synergy, inclusion),
+      score: problem ? PROBLEM_SCORE : score(synergy, inclusion),
     };
   };
 
@@ -105,15 +119,17 @@ export function suggestSwaps(input: EngineInput): SuggestionResult {
       return counts[role] < min ? [{ role, count: counts[role], min }] : [];
     });
 
-  // 4. Candidatos a salir: ni comandantes, ni básicas, ni bloqueadas. Los que no están en EDHREC, primero.
+  // 4. Candidatos a salir: ni comandantes, ni básicas, ni bloqueadas. Primero las que están fuera
+  //    de color o prohibidas; después las que no aparecen en EDHREC; después de peor a mejor score.
   const cutCandidates = deck.cards
     .filter(
       ({ card }) =>
         !commanderIds.has(card.oracleId) && !card.isBasicLand && !locked.has(card.oracleId),
     )
-    .map(({ card }) => scored(card))
+    .map(({ card }) => scored(card, problemOf(card)))
     .sort(
       (a, b) =>
+        Number(!a.problem) - Number(!b.problem) ||
         Number(a.inEdhrec) - Number(b.inEdhrec) ||
         a.score - b.score ||
         a.card.name.localeCompare(b.card.name),
@@ -125,9 +141,12 @@ export function suggestSwaps(input: EngineInput): SuggestionResult {
       (r) =>
         (owned.get(r.card.oracleId) ?? 0) > 0 &&
         !deckIds.has(r.card.oracleId) &&
+        !excluded.has(r.card.oracleId) &&
         r.card.legalCommander &&
         !r.card.isBasicLand &&
-        (deck.commanders.length === 0 || fitsColorIdentity(r.card, identity)),
+        // Nunca fuera de la identidad de color del comandante (sin comandante, nada que proponer).
+        deck.commanders.length > 0 &&
+        fitsColorIdentity(r.card, identity),
     )
     .map((r) => ({ ...scored(r.card), owned: owned.get(r.card.oracleId) ?? 0 }))
     .sort((a, b) => b.score - a.score || a.card.name.localeCompare(b.card.name));
@@ -144,7 +163,8 @@ export function suggestSwaps(input: EngineInput): SuggestionResult {
       for (const inn of ins) {
         const improvement = inn.score - out.score;
         if (improvement <= config.minImprovement) continue;
-        if (!keepsMinimums(out.roles, inn.roles, counts, config)) continue;
+        // Una carta fuera de color o prohibida sale aunque deje un rol bajo mínimo.
+        if (!out.problem && !keepsMinimums(out.roles, inn.roles, counts, config)) continue;
         const sameRole = out.roles.primary === inn.roles.primary;
         const sharesRole = out.roles.roles.some((r) => inn.roles.roles.includes(r));
         const fillsDeficit = inn.roles.roles.filter(

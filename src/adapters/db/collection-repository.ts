@@ -39,6 +39,30 @@ export class PrismaCollectionRepository implements CollectionRepository {
     });
   }
 
+  async summary() {
+    const [rows, total, unique, unmatched, last] = await Promise.all([
+      this.db.collectionEntry.count(),
+      this.db.collectionEntry.aggregate({ _sum: { quantity: true } }),
+      this.db.collectionEntry.findMany({
+        where: { status: "matched" },
+        distinct: ["oracleId"],
+        select: { oracleId: true },
+      }),
+      this.db.collectionEntry.count({ where: { status: "unmatched" } }),
+      this.db.collectionEntry.findFirst({
+        orderBy: { importedAt: "desc" },
+        select: { importedAt: true },
+      }),
+    ]);
+    return {
+      rows,
+      totalCards: total._sum.quantity ?? 0,
+      uniqueCards: unique.length,
+      unmatchedRows: unmatched,
+      importedAt: last?.importedAt ?? null,
+    };
+  }
+
   async ownedQuantities() {
     const groups = await this.db.collectionEntry.groupBy({
       by: ["oracleId"],

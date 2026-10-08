@@ -26,6 +26,8 @@ export interface AnalyzeDeckInput {
   commanders?: readonly string[] | undefined;
   /** oracleIds que no se deben cortar. */
   locked?: readonly string[] | undefined;
+  /** oracleIds que el usuario ha descartado meter. */
+  excluded?: readonly string[] | undefined;
 }
 
 export interface AnalyzeDeckDeps {
@@ -90,6 +92,7 @@ export async function analyzeDeck(
     recommendations: recs.cards,
     owned,
     locked: new Set(req.locked ?? []),
+    excluded: new Set(req.excluded ?? []),
     classifier: deps.classifier,
     config: deps.config,
   });

@@ -87,8 +87,11 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   eligió; si no hay comandante → `status: "needs_commander"`) → `loadRecommendations` →
   `ownedQuantities` → `suggestSwaps` (dominio) + `manaCurve` + `validateDeck`.
 - **Motor** (`domain/suggestions/engine.ts`):
-  - Candidatos a entrar: recomendadas ∩ colección, fuera del mazo, legales, en identidad de color, no
-    básicas. Candidatos a salir: las 99 sin básicas ni bloqueadas; las que no están en EDHREC primero.
+  - Candidatos a entrar: recomendadas ∩ colección, fuera del mazo, legales, no básicas, no
+    descartadas por el usuario y **siempre dentro de la identidad de color del comandante** (sin
+    comandante no se propone nada). Candidatos a salir: las 99 sin básicas ni bloqueadas. Orden: primero
+    las que tienen problema (`offColor` fuera de identidad, `notLegal` prohibida; salen aunque dejen un
+    rol bajo mínimo), luego las que no están en EDHREC, luego de peor a mejor score.
   - `score(carta) = a·synergy + b·inclusion` (lo que falta = 0).
     `score(cambio) = score(entra) − score(sale) + c·bonus_rol`, con bonus_rol = 1 si comparten rol
     principal, 0.5 si comparten algún rol, +0.5 si la que entra cubre un rol bajo mínimo.
@@ -101,6 +104,18 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   removal, wipe, counterspell, tutor, protection, synergy (= lo que no es nada de lo anterior).
   Una carta cuenta en todos sus roles; el principal sale de un orden de prioridad. Limitaciones
   conocidas: overload/escalate no cuentan como wipe; "protection" exige conceder a otros.
+- **UI** (`src/app`, `src/components`): páginas `/` (estado), `/coleccion` (subir CSV) y `/mazo`
+  (pegar lista → curva, roles, cambios con aceptar/descartar, candados, exportar). Son componentes de
+  cliente que solo hablan con la API JSON:
+  - `GET /api/status`, `POST /api/collection` (cuerpo = texto del CSV), `POST /api/analyze`
+    (`{input, theme?, commanders?, locked?, excluded?}`, validado con zod).
+  - Tipos y mapeadores de la API en `src/server/dto.ts` (los componentes solo hacen `import type`);
+    errores → JSON `{error: {code, message}}` en `src/server/http.ts`.
+  - Las rutas GET llaman a `await connection()` (better-sqlite3 es síncrono y si no, Next las
+    prerenderiza). El container es un singleton (`getContainer`).
+  - Estado del mazo (lista, tema, bloqueadas, descartadas) en `localStorage` del navegador.
+    "Aplicar cambios y recalcular" reescribe la lista con `applySwaps` + `exportDecklist`
+    (`domain/deck/export.ts`) y vuelve a analizar excluyendo las cartas descartadas.
 - **Mazo**: `DeckSource.load` → `parseDecklist` → `resolveDecklist` (agrupa por oracleId, detecta
   comandante: marcado → único candidato o pareja válida → si no, `commanderCandidates` para que
   elija el usuario con `chooseCommanders`) → `validateDeck`.
@@ -127,6 +142,8 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
 - **Scoring**: `score = a·synergy + b·inclusion + c·bonus_rol`; pesos y mínimos por rol
   configurables en `src/config`.
 - **Nunca se propone cortar**: comandante(s), tierras básicas, cartas bloqueadas.
+- **Nunca se propone meter** una carta fuera de la identidad de color del comandante.
+- **Mínimos por defecto**: 36 tierras, 10 ramp, 10 robo, 8 removal, 2 wipes.
 - **Idioma**: textos de la UI en español; código e identificadores en inglés.
 - **Formatos de lista admitidos**: `1 X`, `1x X`, `X`, `1 X (SET) 123`, `*F*`/`*E*`, `*CMDR*`,
   `SB:`, secciones Commander/Deck/Sideboard/Maybeboard/Companion/About, categorías y etiquetas de
@@ -151,7 +168,7 @@ Purchase price currency, Added`.
 2. `EdhrecClient` con caché + tests con fixtures ✅ (fixtures escritos a mano: verificar con
    `edhrec:fetch` contra EDHREC real)
 3. Motor de sugerencias + clasificador de roles, con tests de casos concretos ✅
-4. UI (import, mazo con curva/roles, swaps aceptar/descartar, bloqueos, exportar texto).
+4. UI (import, mazo con curva/roles, swaps aceptar/descartar, bloqueos, exportar texto) ✅
 5. Después: Archidekt/Moxfield, copias usadas en otros mazos, modo "comprar N cartas baratas"
    (Cardmarket), app móvil.
 

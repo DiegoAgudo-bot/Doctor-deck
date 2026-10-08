@@ -4,7 +4,7 @@ import type { Card } from "../cards/types";
 import type { ResolvedDeck } from "../deck/resolve";
 import type { ResolvedRecommendation } from "../recommendations/types";
 import type { Role, RoleClassifier } from "../roles/types";
-import { mergeEngineConfig, type EngineConfig } from "./config";
+import { DEFAULT_ENGINE_CONFIG, mergeEngineConfig, type EngineConfig } from "./config";
 import { suggestSwaps, type EngineInput } from "./engine";
 
 // ---------- helpers ----------
@@ -132,6 +132,16 @@ describe("suggestSwaps: candidatos a entrar", () => {
 
   it("solo recomendadas ∩ colección, fuera del mazo, legales y en identidad de color", () => {
     expect(result.addCandidates.map((c) => c.card.name).sort()).toEqual(["Colorless", "Owned"]);
+  });
+
+  it("no propone las cartas que el usuario ha descartado", () => {
+    const r = run({
+      deck: deckOf([filler]),
+      recommendations: [rec(owned, 0.2, 0.5), rec(colorless, 0.2, 0.5)],
+      owned: owns(owned, colorless),
+      excluded: new Set([owned.oracleId]),
+    });
+    expect(r.addCandidates.map((c) => c.card.name)).toEqual(["Colorless"]);
   });
 
   it("ordena por score y guarda las copias que tengo", () => {
@@ -376,5 +386,81 @@ describe("suggestSwaps: recuento de roles", () => {
     );
     expect(result.roleCounts).toMatchObject({ land: 30, ramp: 1, draw: 2, removal: 0 });
     expect(result.deficits.map((d) => d.role)).toEqual(["land", "removal", "wipe"]);
+  });
+});
+
+describe("suggestSwaps: identidad de color y legalidad", () => {
+  const bolt = card("Lightning Bolt", { colorIdentity: ["R"] });
+  const crypt = card("Mana Crypt", { colorIdentity: [], legalCommander: false });
+  const ok = card("Fine Card");
+  const great = card("Great Card");
+  const good = card("Good Card");
+  const redGreat = card("Red Great", { colorIdentity: ["U", "R"] });
+
+  it("las cartas fuera de color o prohibidas salen primero, aunque estén en EDHREC", () => {
+    const result = run({
+      deck: deckOf([ok, bolt, crypt]),
+      recommendations: [
+        rec(ok, 0, 0.01),
+        rec(bolt, 0.5, 0.9),
+        rec(crypt, 0.5, 0.9),
+        rec(great, 0.3, 0.6),
+        rec(good, 0.2, 0.5),
+      ],
+      owned: owns(great, good),
+    });
+    expect(result.cutCandidates.slice(0, 2).map((c) => [c.card.name, c.problem])).toEqual([
+      ["Lightning Bolt", "offColor"],
+      ["Mana Crypt", "notLegal"],
+    ]);
+    expect(result.swaps.map((s) => s.out.card.name).sort()).toEqual([
+      "Lightning Bolt",
+      "Mana Crypt",
+    ]);
+    const boltSwap = result.swaps.find((s) => s.out.card.name === "Lightning Bolt");
+    expect(boltSwap?.reason).toContain(
+      "Lightning Bolt (sinergia, fuera de la identidad de color del comandante)",
+    );
+    const cryptSwap = result.swaps.find((s) => s.out.card.name === "Mana Crypt");
+    expect(cryptSwap?.reason).toContain("Mana Crypt (sinergia, prohibida en Commander)");
+  });
+
+  it("una carta fuera de color sale aunque deje un rol bajo mínimo", () => {
+    const config = mergeEngineConfig({
+      minimums: { land: 0, ramp: 0, draw: 0, removal: 1, wipe: 0 },
+    });
+    const result = run(
+      {
+        deck: deckOf([bolt]),
+        recommendations: [rec(great, 0.3, 0.6)],
+        owned: owns(great),
+        classifier: fakeClassifier({ "Lightning Bolt": ["removal"], "Great Card": ["draw"] }),
+      },
+      config,
+    );
+    expect(result.swaps.map((s) => s.out.card.name)).toEqual(["Lightning Bolt"]);
+  });
+
+  it("nunca propone meter cartas fuera de la identidad, aunque las tenga y estén recomendadas", () => {
+    const result = run({
+      deck: deckOf([ok]),
+      recommendations: [rec(ok, 0, 0), rec(redGreat, 0.9, 0.9), rec(bolt, 0.9, 0.9)],
+      owned: owns(redGreat, bolt),
+    });
+    expect(result.addCandidates).toEqual([]);
+    expect(result.swaps).toEqual([]);
+  });
+
+  it("sin comandante no propone nada", () => {
+    const result = run({
+      deck: { ...deckOf([ok]), commanders: [], commanderSource: "none" },
+      recommendations: [rec(great, 0.9, 0.9)],
+      owned: owns(great),
+    });
+    expect(result.addCandidates).toEqual([]);
+  });
+
+  it("el mínimo de tierras por defecto es 36", () => {
+    expect(DEFAULT_ENGINE_CONFIG.minimums.land).toBe(36);
   });
 });
