@@ -10,8 +10,15 @@ export class ApiError extends Error {
   }
 }
 
-/** Llama a la API JSON y lanza ApiError con el mensaje del servidor si falla. */
-export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * Llama a la API JSON y lanza ApiError con el mensaje del servidor si falla. Con un 401 lleva a la
+ * página de entrar, salvo con `silent` (peticiones de fondo, p. ej. la lista del lateral).
+ */
+export async function api<T>(
+  path: string,
+  init?: RequestInit,
+  { silent = false }: { silent?: boolean } = {},
+): Promise<T> {
   let res: Response;
   try {
     // Contra el origin y no la ruta relativa: si la página se abrió con credenciales en la URL
@@ -21,7 +28,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError("network", "No se pudo contactar con el servidor", 0);
   }
   const body: unknown = await res.json().catch(() => null);
-  if (res.status === 401) {
+  if (res.status === 401 && !silent) {
     // Sesión caducada o inexistente: a la página de entrar, volviendo luego aquí. Recarga completa a
     // propósito: se descarta el estado del cliente.
     const next = encodeURIComponent(window.location.pathname + window.location.search);
@@ -51,11 +58,13 @@ export const storage = {
       /* ignorado */
     }
   },
-  set(key: string, value: unknown) {
+  /** false si no se ha podido guardar (cuota llena, modo privado…). */
+  set(key: string, value: unknown): boolean {
     try {
       window.localStorage.setItem(key, JSON.stringify(value));
+      return true;
     } catch {
-      /* ignorado */
+      return false;
     }
   },
 };

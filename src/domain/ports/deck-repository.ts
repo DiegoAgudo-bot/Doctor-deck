@@ -5,6 +5,8 @@ export interface SavedDeckSummary {
   name: string;
   source: string;
   commanderNames: string[];
+  /** oracleIds de los comandantes. */
+  commanders: string[];
   cardCount: number;
   updatedAt: Date;
 }
@@ -12,8 +14,6 @@ export interface SavedDeckSummary {
 export interface SavedDeck extends SavedDeckSummary {
   input: string;
   theme: string | null;
-  /** oracleIds de los comandantes. */
-  commanders: string[];
   locked: string[];
   excluded: string[];
 }

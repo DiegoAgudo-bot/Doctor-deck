@@ -1,15 +1,19 @@
+import { BrowserCollectionRepository } from "@/adapters/memory/anonymous";
 import { importCollection } from "@/application/import-collection";
 import { getContainer } from "@/server/container";
 import { collectionImportResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
-import { requireUser } from "@/server/session";
+import { currentUser } from "@/server/session";
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
-/** Cuerpo: el texto del CSV exportado por ManaBox. Reemplaza la colección guardada. */
+/**
+ * Cuerpo: el texto del CSV exportado por ManaBox. Con sesión reemplaza la colección guardada; sin
+ * ella solo la empareja y devuelve `owned` para que el navegador la guarde y la mande al analizar.
+ */
 export async function POST(request: Request) {
   try {
-    const user = await requireUser(request);
+    const user = await currentUser(request);
     const text = await request.text();
     if (text.trim().length === 0) {
       return Response.json(
@@ -24,11 +28,13 @@ export async function POST(request: Request) {
       );
     }
     const c = getContainer();
+    const browser = new BrowserCollectionRepository();
     const summary = await importCollection(text, {
       cards: c.cards,
-      collection: c.collectionFor(user.id),
+      collection: user ? c.collectionFor(user.id) : browser,
     });
-    return Response.json(collectionImportResponse(summary));
+    const owned = user ? null : [...(await browser.ownedQuantities())];
+    return Response.json(collectionImportResponse(summary, owned));
   } catch (err) {
     return errorResponse(err);
   }

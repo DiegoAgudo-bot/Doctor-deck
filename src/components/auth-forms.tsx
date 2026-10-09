@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { authClient, authErrorMessage, safeNext } from "./auth-client";
-import { Alert, buttonClass } from "./ui";
+import { Banner } from "./ui";
 
 /**
  * Navegación completa tras entrar: las rutas protegidas pueden estar precargadas (sin sesión) en la
@@ -13,9 +13,6 @@ import { Alert, buttonClass } from "./ui";
 function goTo(path: string) {
   window.location.assign(new URL(path, window.location.origin));
 }
-
-const inputClass =
-  "rounded-lg border border-zinc-300 p-2 text-base dark:border-zinc-700 dark:bg-zinc-900";
 
 function Field(props: {
   label: string;
@@ -26,8 +23,8 @@ function Field(props: {
   minLength?: number;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
-      <span>{props.label}</span>
+    <label className="field">
+      <span className="label">{props.label}</span>
       <input
         required
         type={props.type}
@@ -35,7 +32,8 @@ function Field(props: {
         minLength={props.minLength}
         autoComplete={props.autoComplete}
         onChange={(e) => props.onChange(e.target.value)}
-        className={inputClass}
+        className="input"
+        style={{ height: 38 }}
       />
     </label>
   );
@@ -43,8 +41,13 @@ function Field(props: {
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="mx-auto flex w-full max-w-sm flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{title}</h1>
+    <div
+      className="panel fade flex flex-col gap-3.5 p-[18px]"
+      style={{ ["--d" as string]: "80ms" }}
+    >
+      <h1 className="h1" style={{ fontSize: 20 }}>
+        {title}
+      </h1>
       {children}
     </div>
   );
@@ -60,9 +63,9 @@ function GoogleButton({ next }: { next: string }) {
         setBusy(true);
         await authClient.signIn.social({ provider: "google", callbackURL: next });
       }}
-      className={`${buttonClass.secondary} flex items-center justify-center gap-2 py-2`}
+      className="btn btn-lg w-full"
     >
-      <span aria-hidden className="font-bold text-sky-600">
+      <span aria-hidden style={{ fontWeight: 700, color: "var(--color-accent)" }}>
         G
       </span>
       Continuar con Google
@@ -72,9 +75,9 @@ function GoogleButton({ next }: { next: string }) {
 
 function Divider() {
   return (
-    <div className="flex items-center gap-3 text-xs text-zinc-500">
-      <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />o
-      <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+    <div className="subtle flex items-center gap-3 text-xs">
+      <span className="h-px flex-1 bg-line" />o
+      <span className="h-px flex-1 bg-line" />
     </div>
   );
 }
@@ -114,20 +117,18 @@ export function LoginForm({ google, passwordReset }: { google: boolean; password
           onChange={setPassword}
           autoComplete="current-password"
         />
-        {error && <Alert tone="error">{error}</Alert>}
-        <button type="submit" disabled={busy} className={buttonClass.primary}>
+        {error && <Banner tone="out">{error}</Banner>}
+        <button type="submit" disabled={busy} className="btn btn-primary btn-lg w-full">
           {busy ? "Entrando…" : "Entrar"}
         </button>
       </form>
-      <div className="flex flex-col gap-1 text-sm">
+      <div className="flex flex-col gap-1 text-[13px]">
         <span>
           ¿No tienes cuenta?{" "}
-          <Link href={`/registro?next=${encodeURIComponent(next)}`} className="underline">
-            Regístrate
-          </Link>
+          <Link href={`/registro?next=${encodeURIComponent(next)}`}>Regístrate</Link>
         </span>
         {passwordReset && (
-          <Link href="/recuperar" className="text-zinc-500 underline">
+          <Link href="/recuperar" className="subtle">
             He olvidado la contraseña
           </Link>
         )}
@@ -147,7 +148,7 @@ export function RegisterForm({ google }: { google: boolean }) {
 
   return (
     <Card title="Crear cuenta">
-      <p className="text-sm text-zinc-500">
+      <p className="muted text-[13px]">
         Tu colección y tus mazos quedan guardados en tu cuenta y puedes entrar desde cualquier
         dispositivo.
       </p>
@@ -188,16 +189,13 @@ export function RegisterForm({ google }: { google: boolean }) {
           autoComplete="new-password"
           minLength={8}
         />
-        {error && <Alert tone="error">{error}</Alert>}
-        <button type="submit" disabled={busy} className={buttonClass.primary}>
+        {error && <Banner tone="out">{error}</Banner>}
+        <button type="submit" disabled={busy} className="btn btn-primary btn-lg w-full">
           {busy ? "Creando cuenta…" : "Crear cuenta"}
         </button>
       </form>
-      <span className="text-sm">
-        ¿Ya tienes cuenta?{" "}
-        <Link href={`/entrar?next=${encodeURIComponent(next)}`} className="underline">
-          Entra
-        </Link>
+      <span className="text-[13px]">
+        ¿Ya tienes cuenta? <Link href={`/entrar?next=${encodeURIComponent(next)}`}>Entra</Link>
       </span>
     </Card>
   );
@@ -211,10 +209,10 @@ export function ForgotPasswordForm() {
   return (
     <Card title="Recuperar contraseña">
       {sent ? (
-        <Alert tone="info">
+        <Banner tone="info">
           Si existe una cuenta con ese email, te hemos enviado un enlace para elegir una contraseña
           nueva. Caduca en 1 hora.
-        </Alert>
+        </Banner>
       ) : (
         <form
           className="flex flex-col gap-3"
@@ -238,13 +236,13 @@ export function ForgotPasswordForm() {
             onChange={setEmail}
             autoComplete="email"
           />
-          {error && <Alert tone="error">{error}</Alert>}
-          <button type="submit" disabled={busy} className={buttonClass.primary}>
+          {error && <Banner tone="out">{error}</Banner>}
+          <button type="submit" disabled={busy} className="btn btn-primary btn-lg w-full">
             {busy ? "Enviando…" : "Enviar enlace"}
           </button>
         </form>
       )}
-      <Link href="/entrar" className="text-sm underline">
+      <Link href="/entrar" className="text-[13px]">
         Volver a entrar
       </Link>
     </Card>
@@ -264,13 +262,9 @@ export function ResetPasswordForm() {
   return (
     <Card title="Nueva contraseña">
       {done ? (
-        <Alert tone="info">
-          Contraseña cambiada.{" "}
-          <Link href="/entrar" className="underline">
-            Entra con la nueva
-          </Link>
-          .
-        </Alert>
+        <Banner tone="info">
+          Contraseña cambiada. <Link href="/entrar">Entra con la nueva</Link>.
+        </Banner>
       ) : (
         <form
           className="flex flex-col gap-3"
@@ -293,8 +287,8 @@ export function ResetPasswordForm() {
             autoComplete="new-password"
             minLength={8}
           />
-          {error && <Alert tone="error">{error}</Alert>}
-          <button type="submit" disabled={busy || !token} className={buttonClass.primary}>
+          {error && <Banner tone="out">{error}</Banner>}
+          <button type="submit" disabled={busy || !token} className="btn btn-primary btn-lg w-full">
             {busy ? "Guardando…" : "Guardar contraseña"}
           </button>
         </form>

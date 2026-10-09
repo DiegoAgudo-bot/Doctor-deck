@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * Comprobación optimista: si no hay cookie de sesión, a /entrar. La comprobación real (sesión válida
- * y dueño de los datos) la hace cada ruta de la API con `requireUser`.
+ * y dueño de los datos) la hace cada ruta de la API con `requireUser`. Analizar mazos e importar la
+ * colección (al navegador) no exige cuenta; solo los mazos guardados.
  */
 export function proxy(request: NextRequest) {
   if (getSessionCookie(request)) return NextResponse.next();
@@ -13,5 +14,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/coleccion", "/mazo", "/mazos"],
+  matcher: ["/mazos"],
 };

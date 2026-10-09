@@ -26,7 +26,13 @@ export async function GET(request: Request) {
   await connection();
   try {
     const user = await requireUser(request);
-    return Response.json((await getContainer().decksFor(user.id).list()).map(savedDeckSummaryDTO));
+    const c = getContainer();
+    const decks = await c.decksFor(user.id).list();
+    const commanders = await c.cards.findCardsByOracleIds([
+      ...new Set(decks.flatMap((d) => d.commanders)),
+    ]);
+    const byId = new Map(commanders.map((card) => [card.oracleId, card]));
+    return Response.json(decks.map((d) => savedDeckSummaryDTO(d, byId)));
   } catch (err) {
     return errorResponse(err);
   }

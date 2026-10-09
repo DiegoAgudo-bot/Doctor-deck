@@ -129,6 +129,9 @@ export interface PurchasesDTO {
 
 export interface SavedDeckSummaryDTO extends Omit<SavedDeckSummary, "updatedAt"> {
   updatedAt: string;
+  /** Primer comandante (imagen) e identidad de color del mazo, para las listas. */
+  commanderCard: CardDTO | null;
+  colorIdentity: Color[];
 }
 
 export interface SavedDeckDTO extends Omit<SavedDeck, "updatedAt"> {
@@ -151,6 +154,10 @@ export type CollectionImportResponse = Omit<CollectionImportSummary, "unmatched"
     collectorNumber: string | null;
   }[];
   errors: { line: number; reason: string }[];
+  /** Si se ha guardado en la cuenta (con sesión). */
+  saved: boolean;
+  /** Sin sesión: la colección emparejada, [oracleId, copias], para guardarla en el navegador. */
+  owned: [string, number][] | null;
 };
 
 export interface ApiErrorBody {
@@ -258,8 +265,13 @@ export function analyzeResponse(
   };
 }
 
-export function collectionImportResponse(s: CollectionImportSummary): CollectionImportResponse {
+export function collectionImportResponse(
+  s: CollectionImportSummary,
+  owned: [string, number][] | null = null,
+): CollectionImportResponse {
   return {
+    saved: owned === null,
+    owned,
     ...s,
     unmatched: s.unmatched.map((r) => ({
       line: r.line,
@@ -279,10 +291,22 @@ function purchasesDTO(p: PurchaseResult): PurchasesDTO {
   };
 }
 
-export const savedDeckSummaryDTO = (d: SavedDeckSummary): SavedDeckSummaryDTO => ({
-  ...d,
-  updatedAt: d.updatedAt.toISOString(),
-});
+const WUBRG: Color[] = ["W", "U", "B", "R", "G"];
+
+/** `cards`: los comandantes de los mazos (los que no estén se ignoran). */
+export function savedDeckSummaryDTO(
+  d: SavedDeckSummary,
+  cards: ReadonlyMap<string, Card> = new Map(),
+): SavedDeckSummaryDTO {
+  const commanders = d.commanders.flatMap((id) => cards.get(id) ?? []);
+  const identity = new Set(commanders.flatMap((c) => c.colorIdentity));
+  return {
+    ...d,
+    updatedAt: d.updatedAt.toISOString(),
+    commanderCard: commanders[0] ? cardDTO(commanders[0]) : null,
+    colorIdentity: WUBRG.filter((c) => identity.has(c)),
+  };
+}
 
 export const savedDeckDTO = (d: SavedDeck): SavedDeckDTO => ({
   ...d,
