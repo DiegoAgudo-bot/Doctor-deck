@@ -91,10 +91,13 @@ export function CollectionBrowser({
   loggedIn,
   localPairs,
   version,
+  username,
 }: {
   loggedIn: boolean;
   localPairs: [string, number][] | null;
   version: number;
+  /** La colección pública de otro usuario (en su perfil). */
+  username?: string | undefined;
 }) {
   const [f, setF] = useState<Filters>(EMPTY);
   const [view, setView] = useState<"cuadricula" | "tabla">("cuadricula");
@@ -112,14 +115,14 @@ export function CollectionBrowser({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...(!loggedIn && localPairs ? { collection: localPairs } : {}),
+          ...(username ? { username } : !loggedIn && localPairs ? { collection: localPairs } : {}),
           filters: toQuery(f),
           sort: f.sort,
           offset,
           limit: PAGE,
         }),
       }),
-    [f, loggedIn, localPairs],
+    [f, loggedIn, localPairs, username],
   );
 
   // Primera página al cambiar filtros u orden (con un respiro mientras se escribe en el buscador).

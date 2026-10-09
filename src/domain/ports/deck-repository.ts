@@ -10,6 +10,8 @@ export interface SavedDeckSummary {
   commanders: string[];
   cardCount: number;
   updatedAt: Date;
+  /** Visible en el perfil del dueño y para cualquiera con el enlace. */
+  isPublic: boolean;
 }
 
 export interface SavedDeck extends SavedDeckSummary {
@@ -31,6 +33,8 @@ export interface SaveDeckData {
   cards: { oracleId: string; quantity: number }[];
   locked: string[];
   excluded: string[];
+  /** Al crear: por defecto, público. Al actualizar, si no viene, se queda como estaba. */
+  isPublic?: boolean | undefined;
 }
 
 export interface DeckRepository {
@@ -39,6 +43,7 @@ export interface DeckRepository {
   /** Devuelve el id (uuid) del mazo creado o actualizado. */
   save(data: SaveDeckData): Promise<string>;
   delete(id: string): Promise<boolean>;
+  setPublic(id: string, isPublic: boolean): Promise<boolean>;
   /** Copias de cada carta usadas en los mazos guardados, salvo `excludeDeckId`. */
   usage(excludeDeckId?: string): Promise<Map<string, CardUsage>>;
 }

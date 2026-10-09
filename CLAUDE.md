@@ -172,6 +172,19 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     En el VPS, `scripts/deploy.sh` genera el secreto en `.env` si falta y `docker-compose.yml` pone
     `BETTER_AUTH_URL=https://$DECK_DOCTOR_HOST`. `/login` (el antiguo login de contraseña única)
     redirige a `/entrar`.
+- **Social** (Fase 9, `application/social.ts`, puertos en `domain/ports/social.ts`, adaptador
+  `PrismaSocialRepository`): `User.username` (perfil `/u/{username}`; `ensureUsername` lo genera
+  la primera vez desde el nombre o el email, reglas en `domain/social/username.ts`) y
+  `User.collectionPublic` (por defecto privada). `Deck.isPublic` (por defecto público): los
+  públicos los ve cualquiera, también sin cuenta (`PrismaPublicDecks.find`); abrir el de otro lo
+  analiza con TU colección y "Guardar una copia" crea uno tuyo. Nunca se expone el email.
+  `Follow` (seguir) y `Notification` (fan-out al escribir): `announceNewDeck` al crear un mazo
+  público y `announceBigCards` al añadir cartas de ≥ `socialConfig.bigCardEur` (20 €) si la
+  colección es pública (`src/config/social.ts`). Solo avisos en la web (campana, cada minuto).
+  Rutas: `/comunidad`, `/u/[username]`, `/notificaciones`, `/ajustes`; API `GET|PATCH
+/api/me/profile`, `GET /api/users?q=`, `GET /api/users/{u}`, `POST|DELETE /api/users/{u}/follow`,
+  `GET /api/notifications`, `POST /api/notifications/read`, `GET /api/community/decks`,
+  `PATCH /api/decks/{id}` (`{isPublic}`), `POST /api/collection/view` con `username`.
 - **Mazo**: `DeckSource.load` → `parseDecklist` → `resolveDecklist` (agrupa por oracleId, detecta
   comandante: marcado → único candidato o pareja válida → si no, `commanderCandidates` para que
   elija el usuario con `chooseCommanders`) → `validateDeck`.
@@ -239,6 +252,8 @@ Purchase price currency, Added`.
 6. Mazos guardados en BD + descontar copias usadas en otros mazos ✅
 7. Modo "si compro N cartas baratas, ¿cuáles mejoran más el mazo?" con precio de Cardmarket ✅
 8. Usuarios: registro/login con email+contraseña y Google; colección y mazos por usuario ✅
+9. Parte social: perfiles públicos, mazos públicos/privados, colección pública opcional, seguir y
+   notificaciones (mazo nuevo, carta cara) ✅
 
 ### Futuro (no empezar hasta que el usuario lo pida)
 

@@ -12,6 +12,8 @@ export interface SaveDeckInput {
   commanders?: readonly string[] | undefined;
   locked?: readonly string[] | undefined;
   excluded?: readonly string[] | undefined;
+  /** Al crear, por defecto público; al actualizar, si no viene, no cambia. */
+  isPublic?: boolean | undefined;
 }
 
 export class DeckWithoutCommanderError extends Error {
@@ -44,6 +46,7 @@ export async function saveDeck(
     cards: deck.cards.map((c) => ({ oracleId: c.card.oracleId, quantity: c.quantity })),
     locked: [...(req.locked ?? [])],
     excluded: [...(req.excluded ?? [])],
+    isPublic: req.isPublic ?? (req.id === undefined ? true : undefined),
   });
   return { id, name };
 }

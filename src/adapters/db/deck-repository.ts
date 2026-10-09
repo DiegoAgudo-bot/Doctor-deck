@@ -4,6 +4,7 @@ import type {
   SavedDeck,
   SavedDeckSummary,
 } from "@/domain/ports/deck-repository";
+import type { PublicDecks } from "@/domain/ports/social";
 import type { CardUsage } from "@/domain/suggestions/engine";
 import type { Db } from "./prisma";
 
@@ -20,6 +21,48 @@ const parseIds = (json: string): string[] => {
 export class DeckNotFoundError extends Error {
   constructor() {
     super("Ese mazo no existe");
+  }
+}
+
+type DeckRow = Awaited<ReturnType<Db["deck"]["findFirstOrThrow"]>> & {
+  cards: { oracleId: string; quantity: number; isCommander: boolean; locked: boolean }[];
+};
+
+function savedDeckFromRow(d: DeckRow): SavedDeck {
+  return {
+    id: d.publicId,
+    name: d.name,
+    source: d.source,
+    commanderNames: d.commanderNames ? d.commanderNames.split("\n") : [],
+    cardCount: d.cards.reduce((n, c) => n + c.quantity, 0),
+    updatedAt: d.updatedAt,
+    isPublic: d.isPublic,
+    input: d.input,
+    theme: d.theme,
+    commanders: d.cards.filter((c) => c.isCommander).map((c) => c.oracleId),
+    locked: d.cards.filter((c) => c.locked).map((c) => c.oracleId),
+    excluded: parseIds(d.excluded),
+  };
+}
+
+/** Mazos públicos de cualquiera (para perfiles, enlaces compartidos y la comunidad). */
+export class PrismaPublicDecks implements PublicDecks {
+  constructor(private readonly db: Db) {}
+
+  async find(id: string, viewerId: string | null) {
+    const d = await this.db.deck.findUnique({ where: { publicId: id }, include: { cards: true } });
+    if (!d?.userId || (!d.isPublic && d.userId !== viewerId)) return null;
+    return { deck: savedDeckFromRow(d), ownerId: d.userId };
+  }
+
+  async recent(limit: number) {
+    const decks = await this.db.deck.findMany({
+      where: { isPublic: true, user: { username: { not: null } } },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      include: { cards: true },
+    });
+    return decks.flatMap((d) => (d.userId ? [{ ...savedDeckFromRow(d), ownerId: d.userId }] : []));
   }
 }
 
@@ -44,6 +87,7 @@ export class PrismaDeckRepository implements DeckRepository {
       commanders: d.cards.filter((c) => c.isCommander).map((c) => c.oracleId),
       cardCount: d.cards.reduce((n, c) => n + c.quantity, 0),
       updatedAt: d.updatedAt,
+      isPublic: d.isPublic,
     }));
   }
 
@@ -52,20 +96,7 @@ export class PrismaDeckRepository implements DeckRepository {
       where: { publicId: id, userId: this.userId },
       include: { cards: true },
     });
-    if (!d) return null;
-    return {
-      id: d.publicId,
-      name: d.name,
-      source: d.source,
-      commanderNames: d.commanderNames ? d.commanderNames.split("\n") : [],
-      cardCount: d.cards.reduce((n, c) => n + c.quantity, 0),
-      updatedAt: d.updatedAt,
-      input: d.input,
-      theme: d.theme,
-      commanders: d.cards.filter((c) => c.isCommander).map((c) => c.oracleId),
-      locked: d.cards.filter((c) => c.locked).map((c) => c.oracleId),
-      excluded: parseIds(d.excluded),
-    };
+    return d ? savedDeckFromRow(d) : null;
   }
 
   async save(data: SaveDeckData): Promise<string> {
@@ -85,6 +116,7 @@ export class PrismaDeckRepository implements DeckRepository {
       })),
     ];
     const fields = {
+      ...(data.isPublic !== undefined ? { isPublic: data.isPublic } : {}),
       name: data.name,
       input: data.input,
       source: data.source,
@@ -111,6 +143,14 @@ export class PrismaDeckRepository implements DeckRepository {
       });
       return created.publicId;
     });
+  }
+
+  async setPublic(id: string, isPublic: boolean): Promise<boolean> {
+    const { count } = await this.db.deck.updateMany({
+      where: { publicId: id, userId: this.userId },
+      data: { isPublic },
+    });
+    return count > 0;
   }
 
   async delete(id: string): Promise<boolean> {

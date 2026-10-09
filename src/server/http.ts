@@ -3,6 +3,7 @@ import { DeckNotFoundError } from "@/adapters/db/deck-repository";
 import { DeckSourceError } from "@/adapters/deck-sources/errors";
 import { EdhrecError } from "@/adapters/edhrec/errors";
 import { UnsupportedDeckInputError } from "@/application/load-deck";
+import { CannotFollowSelfError, ProfileNotFoundError, UsernameError } from "@/application/social";
 import { DeckWithoutCommanderError } from "@/application/save-deck";
 import { EmptyCatalogError } from "@/application/import-collection";
 import { CsvParseError } from "@/domain/collection/csv";
@@ -23,6 +24,17 @@ export function errorResponse(err: unknown): Response {
   const body = (code: string, message: string): ApiErrorBody => ({ error: { code, message } });
   if (err instanceof UnauthorizedError) {
     return Response.json(body("unauthorized", err.message), { status: 401 });
+  }
+  if (err instanceof ProfileNotFoundError) {
+    return Response.json(body("user_not_found", err.message), { status: 404 });
+  }
+  if (err instanceof UsernameError) {
+    return Response.json(body(`username_${err.problem}`, err.message), {
+      status: err.problem === "taken" ? 409 : 400,
+    });
+  }
+  if (err instanceof CannotFollowSelfError) {
+    return Response.json(body("follow_self", err.message), { status: 400 });
   }
   if (err instanceof DeckNotFoundError) {
     return Response.json(body("deck_not_found", err.message), { status: 404 });

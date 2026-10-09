@@ -78,5 +78,6 @@ export const noSavedDecks: DeckRepository = {
     throw new Error("Guardar mazos exige iniciar sesión");
   },
   delete: async () => false,
+  setPublic: async () => false,
   usage: async () => new Map(),
 };

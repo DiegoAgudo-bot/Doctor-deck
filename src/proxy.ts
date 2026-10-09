@@ -14,5 +14,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/mazos", "/decks/:path*"],
+  matcher: ["/mazos", "/notificaciones", "/ajustes"],
 };

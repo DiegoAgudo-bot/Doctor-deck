@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { applySwaps, exportDecklist, type ExportableDeck } from "@/domain/deck/export";
-import type { AnalyzeResponse, CardDTO, SavedDeckDTO } from "@/server/dto";
+import type { AnalyzeResponse, CardDTO, DeckViewDTO } from "@/server/dto";
 import { api, ApiError, storage } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardHover, CardImage } from "./card-image";
@@ -40,6 +40,8 @@ interface Saved {
   name: string;
   /** Descontar copias usadas en mis otros mazos guardados. */
   useOtherDecks: boolean;
+  /** Visible en mi perfil (al guardarlo). */
+  isPublic: boolean;
 }
 
 const KEY = "deck-doctor:mazo";
@@ -52,6 +54,7 @@ const EMPTY: Saved = {
   deckId: null,
   name: "",
   useOtherDecks: true,
+  isPublic: true,
 };
 const PLACEHOLDER =
   "Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n1x Arcane Signet (C21) 263\n…";
@@ -83,6 +86,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const [filter, setFilter] = useState<Filter>("todos");
   const [view, setView] = useState<ListView>("pilas");
   const [dialog, setDialog] = useState<"save" | "export" | null>(null);
+  /** Si el mazo abierto es de otro (público): de quién. Se analiza con MI colección. */
+  const [owner, setOwner] = useState<DeckViewDTO["owner"] | null>(null);
   // Colección en este navegador (sin cuenta). Se lee tras montar: el servidor no tiene localStorage.
   const [hasLocal, setHasLocal] = useState(false);
   useEffect(() => {
@@ -97,17 +102,20 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (deckId) {
-      api<SavedDeckDTO>(`/api/decks/${encodeURIComponent(deckId)}`)
+      api<DeckViewDTO>(`/api/decks/${encodeURIComponent(deckId)}`)
         .then((d) => {
+          // El de otro se abre como un mazo sin guardar: guardarlo crea una copia mía.
           const next: Saved = {
             ...EMPTY,
             input: d.input,
             theme: d.theme ?? "",
-            locked: d.locked,
-            excluded: d.excluded,
-            deckId: d.id,
+            locked: d.isMine ? d.locked : [],
+            excluded: d.isMine ? d.excluded : [],
+            deckId: d.isMine ? d.id : null,
             name: d.name,
+            isPublic: d.isMine ? d.isPublic : true,
           };
+          if (!d.isMine) setOwner(d.owner);
           setSaved(next);
           setMode(isLink(d.input) ? "enlace" : "texto");
           setHydrated(true);
@@ -139,8 +147,9 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
   }, []);
   useEffect(() => {
-    if (hydrated) storage.set(KEY, saved);
-  }, [saved, hydrated]);
+    // El mazo de otro no pisa mi último mazo guardado en el navegador.
+    if (hydrated && !owner) storage.set(KEY, saved);
+  }, [saved, hydrated, owner]);
 
   const update = (patch: Partial<Saved>) => setSaved((s) => ({ ...s, ...patch }));
   const locked = useMemo(() => new Set(saved.locked), [saved.locked]);
@@ -225,10 +234,12 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     name,
     asNew,
     includeAccepted,
+    isPublic,
   }: {
     name: string;
     asNew: boolean;
     includeAccepted: boolean;
+    isPublic: boolean;
   }) {
     if (!ok) return;
     setBusy("save");
@@ -246,9 +257,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           commanders: ok.commanders.map((c) => c.oracleId),
           locked: saved.locked,
           excluded: saved.excluded,
+          isPublic,
         }),
       });
-      update({ deckId: res.id, name: res.name, input });
+      update({ deckId: res.id, name: res.name, input, isPublic });
+      setOwner(null);
       window.history.replaceState(null, "", `/decks/${res.id}`);
       setNotice(`Guardado como «${res.name}».`);
       setDialog(null);
@@ -336,6 +349,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           <DeckHeader
             ok={ok}
             name={saved.name || ok.deckName || ok.commanders.map((c) => c.name).join(" + ")}
+            owner={owner}
             onSave={() => setDialog("save")}
             onExport={() => setDialog("export")}
             onBuy={() => setTab("compra")}
@@ -594,6 +608,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             onClose={() => setDialog(null)}
             loggedIn={loggedIn}
             deckId={saved.deckId}
+            copyOf={owner}
+            isPublic={saved.isPublic}
             defaultName={saved.name || ok.deckName || ""}
             acceptedCount={accepted.length}
             busy={busy === "save"}
@@ -882,6 +898,7 @@ function CommanderPicker({
 function DeckHeader({
   ok,
   name,
+  owner,
   onSave,
   onExport,
   onBuy,
@@ -889,6 +906,7 @@ function DeckHeader({
 }: {
   ok: Ok;
   name: string;
+  owner: DeckViewDTO["owner"] | null;
   onSave: () => void;
   onExport: () => void;
   onBuy: () => void;
@@ -910,8 +928,24 @@ function DeckHeader({
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <span className="cap">
-          Commander
-          {ok.source !== "text" ? ` · importado de ${SOURCE_LABEL[ok.source] ?? ok.source}` : ""}
+          {owner ? (
+            <>
+              Mazo de{" "}
+              {owner.username ? (
+                <Link href={`/u/${owner.username}`}>@{owner.username}</Link>
+              ) : (
+                owner.name
+              )}{" "}
+              · comparado con tu colección
+            </>
+          ) : (
+            <>
+              Commander
+              {ok.source !== "text"
+                ? ` · importado de ${SOURCE_LABEL[ok.source] ?? ok.source}`
+                : ""}
+            </>
+          )}
         </span>
         <h1 className="h1">{name}</h1>
         <div className="flex flex-wrap items-center gap-2">
@@ -930,7 +964,7 @@ function DeckHeader({
       <div className="flex flex-wrap gap-2">
         <div className="btn-group">
           <button type="button" className="btn" onClick={onSave}>
-            Guardar
+            {owner ? "Guardar una copia" : "Guardar"}
           </button>
           <button type="button" className="btn" onClick={onExport}>
             Exportar

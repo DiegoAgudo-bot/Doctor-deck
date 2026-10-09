@@ -2,6 +2,8 @@ import { connection } from "next/server";
 import { z } from "zod";
 import { BrowserCollectionRepository } from "@/adapters/memory/anonymous";
 import { addedCards, addToCollection } from "@/application/collection-cards";
+import { announceBigCards } from "@/application/social";
+import { socialConfig } from "@/config/social";
 import { getContainer } from "@/server/container";
 import { addCardsResponse, cardDTO, type AddedCardDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
@@ -39,6 +41,15 @@ export async function POST(request: Request) {
       cards: c.cards,
       collection: user ? c.collectionFor(user.id) : new BrowserCollectionRepository(),
     });
+    if (user) {
+      // Cartas caras en una colección pública: aviso a quien le sigue.
+      await announceBigCards(
+        user.id,
+        result.added.map((a) => ({ oracleId: a.card.oracleId, name: a.card.name })),
+        { profiles: c.social, follows: c.social, notifications: c.social, cards: c.cards },
+        socialConfig,
+      );
+    }
     return Response.json(addCardsResponse(result, user !== null));
   } catch (err) {
     return errorResponse(err);

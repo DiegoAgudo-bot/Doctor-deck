@@ -3,10 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
-import type { SavedDeckSummaryDTO, StatusResponse } from "@/server/dto";
+import type {
+  MyProfileDTO,
+  NotificationsResponse,
+  SavedDeckSummaryDTO,
+  StatusResponse,
+} from "@/server/dto";
 import { api, storage } from "./api-client";
 import { authClient } from "./auth-client";
 import {
+  IconBell,
+  IconSettings,
+  IconUser,
+  IconUsers,
   IconCollection,
   IconDecks,
   IconHome,
@@ -21,13 +30,15 @@ import {
   COLLECTION_EVENT,
   DECKS_EVENT,
   LOCAL_COLLECTION_EVENT,
+  NOTIFICATIONS_EVENT,
   localCollection,
   localCopies,
 } from "./local-collection";
 import { ColorPips } from "./mana";
 import { fmt } from "./ui";
 
-type SessionUser = { name: string; email: string };
+type SessionUser = { name: string; email: string; username?: string | null };
+const profileHref = (u: SessionUser) => (u.username ? `/u/${u.username}` : "/ajustes");
 
 /**
  * Lee la ruta actual dentro de su propio <Suspense>: con Cache Components, en las rutas con
@@ -51,10 +62,35 @@ function ReadPath({ children }: { children: (pathname: string) => ReactNode }) {
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const { data, isPending } = authClient.useSession();
-  const user: SessionUser | null = data?.user ?? null;
+  const sessionUser = data?.user ?? null;
+  const [username, setUsername] = useState<string | null>(null);
+  const [unread, setUnread] = useState(0);
+
+  // Con sesión: mi nombre de usuario (perfil) y las notificaciones sin leer (cada minuto).
+  useEffect(() => {
+    if (!sessionUser) return;
+    api<MyProfileDTO>("/api/me/profile", undefined, { silent: true })
+      .then((p) => setUsername(p.username))
+      .catch(() => setUsername(null));
+    const poll = () =>
+      api<NotificationsResponse>("/api/notifications", undefined, { silent: true })
+        .then((n) => setUnread(n.unread))
+        .catch(() => undefined);
+    void poll();
+    const t = setInterval(poll, 60_000);
+    window.addEventListener(NOTIFICATIONS_EVENT, poll);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener(NOTIFICATIONS_EVENT, poll);
+    };
+  }, [sessionUser]);
+
+  const user: SessionUser | null = sessionUser ? { ...sessionUser, username } : null;
   return (
     <div className="app">
-      <WithPath>{(p) => <TopBar pathname={p} user={user} pending={isPending} />}</WithPath>
+      <WithPath>
+        {(p) => <TopBar pathname={p} user={user} pending={isPending} unread={unread} />}
+      </WithPath>
       <div className="shell">
         <WithPath>{(p) => <Sidebar user={user} pending={isPending} pathname={p} />}</WithPath>
         <div className="main">
@@ -121,14 +157,17 @@ function TopBar({
   pathname,
   user,
   pending,
+  unread,
 }: {
   pathname: string;
   user: SessionUser | null;
   pending: boolean;
+  unread: number;
 }) {
   const nav = [
     { href: "/", label: "Inicio" },
     { href: "/mazo", label: "Analizar mazo" },
+    { href: "/comunidad", label: "Comunidad" },
   ];
   return (
     <header className="topbar">
@@ -145,14 +184,40 @@ function TopBar({
       </nav>
       <div className="ml-auto flex items-center gap-2">
         <ThemeToggle />
+        {user && (
+          <Link
+            href="/notificaciones"
+            className="btn btn-ghost btn-icon relative"
+            aria-label={unread > 0 ? `Notificaciones (${unread} sin leer)` : "Notificaciones"}
+          >
+            <IconBell />
+            {unread > 0 && (
+              <span
+                className="absolute grid place-items-center rounded-full"
+                style={{
+                  top: 2,
+                  right: 2,
+                  minWidth: 16,
+                  height: 16,
+                  padding: "0 4px",
+                  background: "var(--color-out)",
+                  color: "#fff",
+                  font: "600 10px/1 var(--font-sans)",
+                }}
+              >
+                {unread > 99 ? "99+" : unread}
+              </span>
+            )}
+          </Link>
+        )}
         {pending ? (
           <span className="w-[30px]" />
         ) : user ? (
           <Link
-            href="/mazos"
+            href={profileHref(user)}
             className="avatar"
-            aria-label={`Mis mazos (${user.name})`}
-            title={user.email}
+            aria-label={`Mi perfil (${user.name})`}
+            title={user.username ? `@${user.username}` : user.name}
           >
             {initial(user)}
           </Link>
@@ -215,8 +280,9 @@ function Sidebar({
   return (
     <aside className="side" aria-label="Tu espacio">
       {user && (
-        <div
-          className="deckrow"
+        <Link
+          href={profileHref(user)}
+          className={`deckrow ${pathname === profileHref(user) ? "is-active" : ""}`}
           style={{ gridTemplateColumns: "36px minmax(0, 1fr)", padding: 8, marginBottom: 8 }}
         >
           <span className="avatar" style={{ width: 36, height: 36, fontSize: 15 }}>
@@ -226,9 +292,9 @@ function Sidebar({
             <span className="nm" style={{ color: "var(--color-text)", fontWeight: 600 }}>
               {user.name}
             </span>
-            <span className="cmd">{user.email}</span>
+            <span className="cmd">{user.username ? `@${user.username}` : "Mi perfil"}</span>
           </span>
-        </div>
+        </Link>
       )}
       {user && (
         <Link className={`nav ${pathname === "/mazos" ? "is-active" : ""}`} href="/mazos">
@@ -285,6 +351,17 @@ function Sidebar({
             ))}
           </nav>
           <div className="side-foot">
+            <Link
+              className={`nav ${pathname === "/comunidad" ? "is-active" : ""}`}
+              href="/comunidad"
+            >
+              <IconUsers />
+              Comunidad
+            </Link>
+            <Link className={`nav ${pathname === "/ajustes" ? "is-active" : ""}`} href="/ajustes">
+              <IconSettings />
+              Ajustes
+            </Link>
             <button type="button" className="nav" onClick={() => void signOut()}>
               <IconLogout />
               Salir
@@ -316,28 +393,24 @@ function BottomNav({ pathname, user }: { pathname: string; user: SessionUser | n
   const items = [
     { href: "/", label: "Inicio", icon: <IconHome size={20} /> },
     { href: "/mazo", label: "Analizar", icon: <IconPlus size={20} weight={1.8} /> },
-    ...(user ? [{ href: "/mazos", label: "Mazos", icon: <IconDecks size={20} /> }] : []),
+    { href: "/comunidad", label: "Comunidad", icon: <IconUsers size={20} /> },
     { href: "/coleccion", label: "Colección", icon: <IconCollection size={20} /> },
+    user
+      ? { href: profileHref(user), label: "Perfil", icon: <IconUser size={20} /> }
+      : {
+          href: `/entrar?next=${encodeURIComponent(pathname)}`,
+          label: "Entrar",
+          icon: <IconLogin size={20} />,
+        },
   ];
   return (
     <nav className="bottomnav" aria-label="Principal">
       {items.map((i) => (
-        <Link key={i.href} href={i.href} className={pathname === i.href ? "is-active" : ""}>
+        <Link key={i.label} href={i.href} className={pathname === i.href ? "is-active" : ""}>
           {i.icon}
           {i.label}
         </Link>
       ))}
-      {user ? (
-        <button type="button" onClick={() => void signOut()}>
-          <IconLogout size={20} />
-          Salir
-        </button>
-      ) : (
-        <Link href={`/entrar?next=${encodeURIComponent(pathname)}`}>
-          <IconLogin size={20} />
-          Entrar
-        </Link>
-      )}
     </nav>
   );
 }

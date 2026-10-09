@@ -100,3 +100,8 @@ export const notifyDecksChanged = () => window.dispatchEvent(new Event(DECKS_EVE
 /** Aviso de que ha cambiado la colección de la cuenta (importar, añadir, quitar). */
 export const COLLECTION_EVENT = "dd:collection";
 export const notifyCollectionChanged = () => window.dispatchEvent(new Event(COLLECTION_EVENT));
+
+/** Aviso de que han cambiado las notificaciones (al leerlas). */
+export const NOTIFICATIONS_EVENT = "dd:notifications";
+export const notifyNotificationsChanged = () =>
+  window.dispatchEvent(new Event(NOTIFICATIONS_EVENT));

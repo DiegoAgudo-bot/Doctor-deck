@@ -3,24 +3,47 @@ import { z } from "zod";
 import { getContainer } from "@/server/container";
 import { savedDeckDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
-import { requireUser } from "@/server/session";
+import { currentUser, requireUser } from "@/server/session";
 
 const notFound = () =>
   Response.json(
-    { error: { code: "deck_not_found", message: "Ese mazo no existe" } },
+    { error: { code: "deck_not_found", message: "Ese mazo no existe o es privado" } },
     { status: 404 },
   );
 
 /** Los mazos se identifican por su uuid público. */
 const parseId = (raw: string): string | null => (z.uuid().safeParse(raw).success ? raw : null);
 
+/** Un mazo: el tuyo, o el de otro si es público (también sin cuenta). */
 export async function GET(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">) {
   await connection();
   try {
+    const user = await currentUser(req);
+    const id = parseId((await ctx.params).id);
+    const c = getContainer();
+    const found = id === null ? null : await c.publicDecks.find(id, user?.id ?? null);
+    if (!found) return notFound();
+    const owner = await c.social.byId(found.ownerId);
+    return Response.json({
+      ...savedDeckDTO(found.deck),
+      isMine: user?.id === found.ownerId,
+      owner: { username: owner?.username ?? null, name: owner?.name ?? "" },
+    });
+  } catch (err) {
+    return errorResponse(err);
+  }
+}
+
+const patchSchema = z.object({ isPublic: z.boolean() });
+
+/** Cambia la visibilidad (público / privado) de uno de tus mazos. */
+export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">) {
+  try {
     const user = await requireUser(req);
     const id = parseId((await ctx.params).id);
-    const deck = id === null ? null : await getContainer().decksFor(user.id).get(id);
-    return deck ? Response.json(savedDeckDTO(deck)) : notFound();
+    const { isPublic } = patchSchema.parse(await req.json());
+    const ok = id !== null && (await getContainer().decksFor(user.id).setPublic(id, isPublic));
+    return ok ? Response.json({ isPublic }) : notFound();
   } catch (err) {
     return errorResponse(err);
   }

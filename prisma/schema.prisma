@@ -97,12 +97,15 @@ model Deck {
   commanderNames String         @default("")
   /// Array JSON de oracleIds descartados para entrar.
   excluded       String         @default("[]")
+  /// Visible en el perfil del dueño y abierto a cualquiera con el enlace.
+  isPublic       Boolean        @default(true)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   cards          DeckCard[]
   decisions      SwapDecision[]
 
   @@index([userId])
+  @@index([isPublic, createdAt])
 }
 
 model DeckCard {
@@ -141,19 +144,59 @@ model HttpCache {
 // ---------- Usuarios (tablas de Better Auth; nombres y campos los fija la librería) ----------
 
 model User {
-  id            String            @id
-  name          String
-  email         String            @unique
-  emailVerified Boolean           @default(false)
-  image         String?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  collection    CollectionEntry[]
-  decks         Deck[]
+  id                String            @id
+  name              String
+  email             String            @unique
+  emailVerified     Boolean           @default(false)
+  image             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  /// Nombre público (perfil /u/{username}). Se genera la primera vez que hace falta.
+  username          String?           @unique
+  /// Si cualquiera puede ver su colección en su perfil.
+  collectionPublic  Boolean           @default(false)
+  sessions          Session[]
+  accounts          Account[]
+  collection        CollectionEntry[]
+  decks             Deck[]
+  following         Follow[]          @relation("follower")
+  followers         Follow[]          @relation("followed")
+  notifications     Notification[]    @relation("recipient")
+  sentNotifications Notification[]    @relation("actor")
 
   @@map("user")
+}
+
+/// `followerId` sigue a `followedId`.
+model Follow {
+  followerId String
+  follower   User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followedId String
+  followed   User     @relation("followed", fields: [followedId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([followerId, followedId])
+  @@index([followedId])
+}
+
+/// Aviso para `userId` de algo que ha hecho `actorId` (alguien a quien sigue).
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    String
+  user      User      @relation("recipient", fields: [userId], references: [id], onDelete: Cascade)
+  actorId   String
+  actor     User      @relation("actor", fields: [actorId], references: [id], onDelete: Cascade)
+  /// "new_deck" | "big_card"
+  type      String
+  /// new_deck: publicId y nombre del mazo. big_card: oracleId, nombre y precio de la carta.
+  deckId    String?
+  cardId    String?
+  title     String
+  price     Float?
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  @@index([userId, createdAt])
 }
 
 model Session {

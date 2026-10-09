@@ -10,6 +10,8 @@ export function SaveDialog({
   onClose,
   loggedIn,
   deckId,
+  copyOf,
+  isPublic: initialPublic,
   defaultName,
   acceptedCount,
   busy,
@@ -19,17 +21,28 @@ export function SaveDialog({
   onClose: () => void;
   loggedIn: boolean;
   deckId: string | null;
+  /** Si es el mazo de otro: se guarda una copia. */
+  copyOf: { username: string | null; name: string } | null;
+  isPublic: boolean;
   defaultName: string;
   acceptedCount: number;
   busy: boolean;
-  onSave: (opts: { name: string; asNew: boolean; includeAccepted: boolean }) => void;
+  onSave: (opts: {
+    name: string;
+    asNew: boolean;
+    includeAccepted: boolean;
+    isPublic: boolean;
+  }) => void;
 }) {
   const [name, setName] = useState(defaultName);
   const [includeAccepted, setIncludeAccepted] = useState(true);
+  const [isPublic, setIsPublic] = useState(initialPublic);
   useEffect(() => {
+    if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reiniciar el formulario al abrir
-    if (open) setName(defaultName);
-  }, [open, defaultName]);
+    setName(defaultName);
+    setIsPublic(initialPublic);
+  }, [open, defaultName, initialPublic]);
 
   if (!loggedIn) {
     return (
@@ -58,12 +71,13 @@ export function SaveDialog({
     );
   }
 
-  const submit = (asNew: boolean) => onSave({ name: name.trim(), asNew, includeAccepted });
+  const submit = (asNew: boolean) =>
+    onSave({ name: name.trim(), asNew, includeAccepted, isPublic });
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      title={deckId ? "Guardar cambios" : "Guardar mazo"}
+      title={copyOf ? "Guardar una copia" : deckId ? "Guardar cambios" : "Guardar mazo"}
       width={380}
       footer={
         <>
@@ -106,6 +120,27 @@ export function SaveDialog({
             onChange={(e) => setName(e.target.value)}
           />
         </div>
+        {copyOf && (
+          <p className="muted text-[13px]">
+            Es el mazo de {copyOf.username ? `@${copyOf.username}` : copyOf.name}: se guardará una
+            copia en tus mazos, con tu nombre.
+          </p>
+        )}
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={isPublic}
+            onChange={(e) => setIsPublic(e.target.checked)}
+          />
+          <span>
+            Público
+            <span className="subtle block text-xs">
+              {isPublic
+                ? "Sale en tu perfil y cualquiera con el enlace puede verlo. Avisa a quien te sigue."
+                : "Solo lo ves tú."}
+            </span>
+          </span>
+        </label>
         {acceptedCount > 0 && (
           <label className="check muted">
             <input

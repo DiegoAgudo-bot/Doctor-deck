@@ -9,6 +9,8 @@ import { errorResponse } from "@/server/http";
 import { currentUser } from "@/server/session";
 
 const schema = z.object({
+  /** La colección de otro usuario (si la tiene pública). */
+  username: z.string().min(1).max(40).optional(),
   /** Sin sesión: la colección del navegador, como pares [oracleId, copias]. */
   collection: z
     .array(z.tuple([z.string().min(1).max(64), z.number().int().min(1).max(10_000)]))
@@ -40,12 +42,24 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const user = await currentUser(request);
-    const { collection, ...query } = schema.parse(await request.json().catch(() => ({})));
+    const { collection, username, ...query } = schema.parse(await request.json().catch(() => ({})));
     const c = getContainer();
+    // De quién es la colección: de otro (si es pública o soy yo), la mía o la del navegador.
+    let ownerId = user?.id ?? null;
+    if (username) {
+      const owner = await c.social.byUsername(username.toLowerCase());
+      if (!owner || (!owner.collectionPublic && owner.id !== user?.id)) {
+        return Response.json(
+          { error: { code: "collection_private", message: "Esta colección es privada" } },
+          { status: 403 },
+        );
+      }
+      ownerId = owner.id;
+    }
     const result = await browseMyCollection(query, {
       cards: c.cards,
-      collection: user ? c.collectionFor(user.id) : new BrowserCollectionRepository(collection),
-      decks: user ? c.decksFor(user.id) : noSavedDecks,
+      collection: ownerId ? c.collectionFor(ownerId) : new BrowserCollectionRepository(collection),
+      decks: ownerId ? c.decksFor(ownerId) : noSavedDecks,
       classifier: c.classifier,
     });
     const body: CollectionViewResponse = {

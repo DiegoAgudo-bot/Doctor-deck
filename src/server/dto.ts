@@ -139,6 +139,61 @@ export interface SavedDeckDTO extends Omit<SavedDeck, "updatedAt"> {
   updatedAt: string;
 }
 
+/** Un mazo abierto por su enlace: tuyo o, si es público, de otro. */
+export interface DeckViewDTO extends SavedDeckDTO {
+  isMine: boolean;
+  owner: { username: string | null; name: string };
+}
+
+/** Lo público de un usuario (nunca el email). */
+export interface PublicProfileDTO {
+  username: string;
+  name: string;
+  image: string | null;
+  collectionPublic: boolean;
+  createdAt: string;
+}
+
+export interface ProfileViewDTO {
+  profile: PublicProfileDTO;
+  followers: number;
+  following: number;
+  isMe: boolean;
+  isFollowing: boolean;
+  decks: SavedDeckSummaryDTO[];
+}
+
+export interface UserSummaryDTO extends PublicProfileDTO {
+  followers: number;
+  publicDecks: number;
+}
+
+export interface NotificationDTO {
+  id: string;
+  type: "new_deck" | "big_card";
+  actor: { username: string | null; name: string };
+  deckId: string | null;
+  cardId: string | null;
+  title: string;
+  price: number | null;
+  createdAt: string;
+  read: boolean;
+}
+
+export interface NotificationsResponse {
+  items: NotificationDTO[];
+  unread: number;
+}
+
+/** Mi perfil (ajustes). */
+export interface MyProfileDTO extends PublicProfileDTO {
+  email: string;
+}
+
+export interface CommunityDeckDTO extends SavedDeckSummaryDTO {
+  owner: { username: string | null; name: string };
+}
+
 export interface StatusResponse {
   catalog: { cards: number; printings: number };
   /** null si no hay sesión. */
@@ -378,4 +433,18 @@ export const addCardsResponse = (r: AddCardsResult, saved: boolean): AddCardsRes
   added: r.added.map((a) => ({ card: cardDTO(a.card), quantity: a.quantity, foil: a.foil })),
   notFound: r.notFound,
   saved,
+});
+
+export const publicProfileDTO = (p: {
+  username: string | null;
+  name: string;
+  image: string | null;
+  collectionPublic: boolean;
+  createdAt: Date;
+}): PublicProfileDTO => ({
+  username: p.username ?? "",
+  name: p.name,
+  image: p.image,
+  collectionPublic: p.collectionPublic,
+  createdAt: p.createdAt.toISOString(),
 });
