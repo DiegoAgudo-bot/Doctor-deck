@@ -34,13 +34,14 @@ export class PrismaDeckRepository implements DeckRepository {
     const decks = await this.db.deck.findMany({
       where: { userId: this.userId },
       orderBy: { updatedAt: "desc" },
-      include: { cards: { select: { quantity: true } } },
+      include: { cards: { select: { quantity: true, isCommander: true, oracleId: true } } },
     });
     return decks.map((d) => ({
       id: d.id,
       name: d.name,
       source: d.source,
       commanderNames: d.commanderNames ? d.commanderNames.split("\n") : [],
+      commanders: d.cards.filter((c) => c.isCommander).map((c) => c.oracleId),
       cardCount: d.cards.reduce((n, c) => n + c.quantity, 0),
       updatedAt: d.updatedAt,
     }));

@@ -1,15 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { CardDTO } from "@/server/dto";
 
-/** Imagen de Scryfall; si no hay o no carga (sin conexión), un recuadro con el nombre. */
-export function CardImage({ card, className = "" }: { card: CardDTO; className?: string }) {
+/** Imagen de Scryfall (488×680); si no hay o no carga (sin conexión), un hueco con el nombre. */
+export function CardImage({
+  card,
+  className = "",
+  style,
+}: {
+  card: Pick<CardDTO, "name" | "imageUrl">;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   const [failed, setFailed] = useState(false);
   if (!card.imageUrl || failed) {
     return (
       <div
-        className={`flex aspect-[488/680] items-center justify-center rounded-[4.5%] border border-zinc-300 bg-zinc-100 p-2 text-center text-xs dark:border-zinc-700 dark:bg-zinc-900 ${className}`}
+        className={`cardimg cardimg-missing ${className}`}
+        style={style}
+        role="img"
+        aria-label={card.name}
       >
         {card.name}
       </div>
@@ -24,7 +35,33 @@ export function CardImage({ card, className = "" }: { card: CardDTO; className?:
       width={488}
       height={680}
       onError={() => setFailed(true)}
-      className={`aspect-[488/680] h-auto rounded-[4.5%] ${className}`}
+      className={`cardimg ${className}`}
+      style={style}
     />
+  );
+}
+
+/**
+ * Envuelve un nombre (o fila) y muestra la carta grande al pasar el ratón (solo escritorio; en
+ * móvil no hay hover y se oculta).
+ */
+export function CardHover({
+  card,
+  children,
+  className = "",
+  as: Tag = "span",
+}: {
+  card: Pick<CardDTO, "name" | "imageUrl">;
+  children: ReactNode;
+  className?: string;
+  as?: "span" | "div";
+}) {
+  return (
+    <Tag className={`hov ${className}`}>
+      {children}
+      <span className="pv hide-sm" aria-hidden="true">
+        <CardImage card={card} />
+      </span>
+    </Tag>
   );
 }

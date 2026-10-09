@@ -1,9 +1,10 @@
 import { z } from "zod";
+import { BrowserCollectionRepository, noSavedDecks } from "@/adapters/memory/anonymous";
 import { analyzeDeck } from "@/application/analyze-deck";
 import { getContainer } from "@/server/container";
 import { analyzeResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
-import { requireUser } from "@/server/session";
+import { currentUser } from "@/server/session";
 
 const ids = z.array(z.string().min(1).max(64)).max(200).optional();
 
@@ -18,6 +19,11 @@ const analyzeRequestSchema = z.object({
   excluded: ids,
   deckId: z.number().int().positive().optional(),
   useOtherDecks: z.boolean().optional(),
+  /** Sin sesión: la colección guardada en el navegador, como pares [oracleId, copias]. */
+  collection: z
+    .array(z.tuple([z.string().min(1).max(64), z.number().int().min(1).max(10_000)]))
+    .max(60_000)
+    .optional(),
   buy: z
     .object({
       maxCards: z.number().int().min(1).max(30),
@@ -29,15 +35,16 @@ const analyzeRequestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const user = await requireUser(request);
-    const req = analyzeRequestSchema.parse(await request.json());
+    // Sin sesión también se analiza: con la colección que manda el navegador y sin mazos guardados.
+    const user = await currentUser(request);
+    const { collection, ...req } = analyzeRequestSchema.parse(await request.json());
     const c = getContainer();
     const result = await analyzeDeck(req, {
       sources: c.deckSources,
       cards: c.cards,
-      collection: c.collectionFor(user.id),
+      collection: user ? c.collectionFor(user.id) : new BrowserCollectionRepository(collection),
       recommendations: c.edhrec,
-      decks: c.decksFor(user.id),
+      decks: user ? c.decksFor(user.id) : noSavedDecks,
       classifier: c.classifier,
       config: c.engineConfig,
     });

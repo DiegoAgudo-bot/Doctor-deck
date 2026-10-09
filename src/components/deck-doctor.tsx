@@ -1,17 +1,29 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { applySwaps, exportDecklist, type ExportableDeck } from "@/domain/deck/export";
 import type { AnalyzeResponse, CardDTO, SavedDeckDTO } from "@/server/dto";
 import { api, ApiError, storage } from "./api-client";
-import { CardImage } from "./card-image";
-import { DeckCardList } from "./deck-card-list";
-import { BuyPanel, SaveDeckBar, UnavailableList, type BuyOptions } from "./deck-extras";
-import { ExportPanel } from "./export-panel";
-import { ManaCurve } from "./mana-curve";
-import { RoleSummary } from "./role-summary";
-import { SwapItem, type Decision } from "./swap-item";
-import { Alert, Section, buttonClass } from "./ui";
+import { authClient } from "./auth-client";
+import { CardHover, CardImage } from "./card-image";
+import { BuyPanel, type BuyOptions } from "./deck-buy";
+import { ExportDialog, SaveDialog } from "./deck-dialogs";
+import {
+  DeckFacts,
+  DeckList,
+  DiffSkeleton,
+  ManaCurve,
+  RoleMeters,
+  SwapDiff,
+  averageCmc,
+  type Decision,
+  type ListView,
+} from "./deck-views";
+import { IconCart, IconWarn } from "./icons";
+import { localCollection, notifyDecksChanged } from "./local-collection";
+import { ColorPips } from "./mana";
+import { Banner, Loading } from "./ui";
 
 interface Saved {
   input: string;
@@ -36,24 +48,40 @@ const EMPTY: Saved = {
   name: "",
   useOtherDecks: true,
 };
+const PLACEHOLDER =
+  "Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n1x Arcane Signet (C21) 263\n…";
 
 type Ok = Extract<AnalyzeResponse, { status: "ok" }>;
+type Tab = "cambios" | "lista" | "stats" | "compra";
+type Filter = "todos" | "pendientes" | "aceptados" | "descartados";
+
+const isLink = (s: string) => /^\s*https?:\/\//i.test(s);
+const shortName = (name: string) => name.split(/,| \/\/ /)[0] ?? name;
 
 export function DeckDoctor() {
+  const { data: session } = authClient.useSession();
+  const loggedIn = Boolean(session);
   const [saved, setSaved] = useState<Saved>(EMPTY);
   const [hydrated, setHydrated] = useState(false);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [chosen, setChosen] = useState<string[]>([]);
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [buy, setBuy] = useState<BuyOptions | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [mode, setMode] = useState<"texto" | "enlace">("texto");
+  const [tab, setTab] = useState<Tab>("cambios");
+  const [filter, setFilter] = useState<Filter>("todos");
+  const [view, setView] = useState<ListView>("pilas");
+  const [dialog, setDialog] = useState<"save" | "export" | null>(null);
 
-  // Restaurar lo último que se analizó, o abrir el mazo guardado de ?id= (solo en el navegador)
+  // Abrir el mazo guardado de ?id=, empezar uno nuevo (?nuevo=1) o restaurar el último analizado.
   useEffect(() => {
-    const id = Number(new URLSearchParams(window.location.search).get("id"));
+    const params = new URLSearchParams(window.location.search);
+    const id = Number(params.get("id"));
     if (Number.isInteger(id) && id > 0) {
       api<SavedDeckDTO>(`/api/decks/${id}`)
         .then((d) => {
@@ -67,6 +95,7 @@ export function DeckDoctor() {
             name: d.name,
           };
           setSaved(next);
+          setMode(isLink(d.input) ? "enlace" : "texto");
           setHydrated(true);
           setChosen(d.commanders);
           void analyze(next, d.commanders);
@@ -77,8 +106,15 @@ export function DeckDoctor() {
         });
       return;
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única de localStorage tras montar
-    setSaved({ ...EMPTY, ...storage.get<Partial<Saved>>(KEY, {}) });
+    if (params.has("nuevo")) {
+      window.history.replaceState(null, "", "/mazo");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única tras montar
+      setSaved(EMPTY);
+    } else {
+      const restored = { ...EMPTY, ...storage.get<Partial<Saved>>(KEY, {}) };
+      setSaved(restored);
+      setMode(isLink(restored.input) ? "enlace" : "texto");
+    }
     setHydrated(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
   }, []);
@@ -96,8 +132,11 @@ export function DeckDoctor() {
   ) {
     const req = { ...saved, ...next };
     if (!req.input.trim()) return;
-    setBusy(true);
+    setBusy(buyOptions && buyOptions !== buy ? "buy" : "analyze");
     setError(null);
+    setNotice(null);
+    // Sin cuenta, la colección vive en el navegador y se manda con cada análisis.
+    const local = loggedIn ? null : localCollection.get();
     try {
       const res = await api<AnalyzeResponse>("/api/analyze", {
         method: "POST",
@@ -111,22 +150,25 @@ export function DeckDoctor() {
           useOtherDecks: req.useOtherDecks,
           ...(req.deckId !== null ? { deckId: req.deckId } : {}),
           ...(buyOptions ? { buy: buyOptions } : {}),
+          ...(local ? { collection: local.owned } : {}),
         }),
       });
       setResult(res);
       setDecisions({});
       setDirty(false);
+      setEditing(false);
       update(next);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo analizar el mazo");
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
   const ok = result?.status === "ok" ? result : null;
   const accepted = ok ? ok.swaps.filter((s) => decisions[s.id] === "accepted") : [];
   const rejected = ok ? ok.swaps.filter((s) => decisions[s.id] === "rejected") : [];
+  const pending = ok ? ok.swaps.length - accepted.length - rejected.length : 0;
 
   const baseDeck: ExportableDeck | null = ok
     ? {
@@ -145,6 +187,10 @@ export function DeckDoctor() {
       )
     : null;
   const exportText = finalDeck ? exportDecklist(finalDeck) : "";
+  const changesText = accepted
+    .map((s) => `- 1 ${s.out.card.name}\n+ 1 ${s.in.card.name}`)
+    .join("\n");
+  const leaving = new Set(accepted.map((s) => s.out.card.oracleId));
 
   /** Aplica los aceptados a la lista, excluye los descartados y vuelve a analizar. */
   function applyAndRecalculate() {
@@ -155,20 +201,26 @@ export function DeckDoctor() {
     });
   }
 
-  async function saveDeck(asNew: boolean) {
+  async function saveDeck({
+    name,
+    asNew,
+    includeAccepted,
+  }: {
+    name: string;
+    asNew: boolean;
+    includeAccepted: boolean;
+  }) {
     if (!ok) return;
-    setBusy(true);
+    setBusy("save");
     setError(null);
-    setSaveMessage(null);
     try {
-      // Si hay cambios aceptados, se guarda el mazo ya con ellos aplicados.
-      const input = accepted.length > 0 ? exportText : saved.input;
+      const input = includeAccepted && accepted.length > 0 ? exportText : saved.input;
       const res = await api<{ id: number; name: string }>("/api/decks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...(saved.deckId !== null && !asNew ? { id: saved.deckId } : {}),
-          ...(saved.name.trim() ? { name: saved.name.trim() } : {}),
+          ...(name ? { name } : {}),
           input,
           ...(saved.theme ? { theme: saved.theme } : {}),
           commanders: ok.commanders.map((c) => c.oracleId),
@@ -178,11 +230,13 @@ export function DeckDoctor() {
       });
       update({ deckId: res.id, name: res.name, input });
       window.history.replaceState(null, "", `/mazo?id=${res.id}`);
-      setSaveMessage(`Guardado como «${res.name}»`);
+      setNotice(`Guardado como «${res.name}».`);
+      setDialog(null);
+      notifyDecksChanged();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo guardar el mazo");
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -194,77 +248,52 @@ export function DeckDoctor() {
     setDirty(true);
   }
 
+  const decide = (id: string, d: Decision | undefined) =>
+    setDecisions((prev) => {
+      const next = { ...prev };
+      if (d) next[id] = d;
+      else delete next[id];
+      return next;
+    });
+
+  const showForm = !ok || editing;
+  const analyzing = busy === "analyze";
+
   return (
-    <div className="flex flex-col gap-8">
-      <form
-        className="flex flex-col gap-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setChosen([]);
-          void analyze({}, []);
-        }}
-      >
-        <label className="flex flex-col gap-1 text-sm">
-          <span>Lista del mazo o link de Archidekt / Moxfield</span>
-          <textarea
-            value={saved.input}
-            onChange={(e) => update({ input: e.target.value })}
-            rows={8}
-            placeholder={
-              "https://archidekt.com/decks/123456\n\no bien:\n\nCommander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n1x Arcane Signet (C21) 263\n…"
-            }
-            className="w-full rounded-lg border border-zinc-300 p-2 font-mono text-sm dark:border-zinc-700 dark:bg-zinc-900"
-          />
-        </label>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="submit"
-            disabled={busy || !saved.input.trim()}
-            className={buttonClass.primary}
-          >
-            {busy ? "Analizando…" : "Analizar"}
-          </button>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={saved.useOtherDecks}
-              onChange={(e) => {
-                update({ useOtherDecks: e.target.checked });
-                setDirty(true);
-              }}
-            />
-            Descontar copias usadas en mis otros mazos
-          </label>
-          {saved.deckId !== null && (
-            <button
-              type="button"
-              className={buttonClass.secondary}
-              onClick={() => {
-                setSaved({ ...EMPTY, input: saved.input });
-                window.history.replaceState(null, "", "/mazo");
-              }}
-            >
-              Cerrar «{saved.name}»
-            </button>
-          )}
-          {(saved.locked.length > 0 || saved.excluded.length > 0) && (
-            <button
-              type="button"
-              className={buttonClass.secondary}
-              onClick={() => {
-                update({ locked: [], excluded: [] });
-                setDirty(true);
-              }}
-            >
-              Olvidar bloqueos y descartes ({saved.locked.length + saved.excluded.length})
-            </button>
-          )}
-        </div>
-      </form>
+    <main className="page max-w-[1240px]">
+      {showForm && (
+        <EntryForm
+          title={ok ? "Cambiar la lista" : "Analizar mazo"}
+          input={saved.input}
+          onInput={(input) => update({ input })}
+          mode={mode}
+          onMode={setMode}
+          useOtherDecks={saved.useOtherDecks}
+          onUseOtherDecks={(v) => {
+            update({ useOtherDecks: v });
+            setDirty(true);
+          }}
+          loggedIn={loggedIn}
+          analyzing={analyzing}
+          onCancel={ok ? () => setEditing(false) : null}
+          onSubmit={() => {
+            setChosen([]);
+            setTab("cambios");
+            void analyze({}, []);
+          }}
+          openDeck={saved.deckId !== null ? saved.name : null}
+          onCloseDeck={() => {
+            setSaved({ ...EMPTY, input: saved.input });
+            setResult(null);
+            window.history.replaceState(null, "", "/mazo");
+          }}
+        />
+      )}
 
-      {error && <Alert tone="error">{error}</Alert>}
+      {error && <Banner tone="out">{error}</Banner>}
+      {notice && <Banner tone="in">{notice}</Banner>}
 
-      {result?.status === "needs_commander" && (
+      {result?.status === "needs_commander" && !editing && (
         <CommanderPicker
           candidates={result.candidates}
           chosen={chosen}
@@ -272,100 +301,458 @@ export function DeckDoctor() {
             setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id].slice(-2)))
           }
           onConfirm={() => void analyze({}, chosen)}
-          busy={busy}
+          busy={analyzing}
         />
       )}
 
       {ok && (
         <>
-          <Overview
+          {analyzing && !showForm && (
+            <div className="progress" role="status" aria-label="Recalculando">
+              <i />
+            </div>
+          )}
+          <DeckHeader
             ok={ok}
-            theme={saved.theme}
-            onTheme={(theme) => void analyze({ theme })}
-            busy={busy}
+            name={saved.name || ok.deckName || ok.commanders.map((c) => c.name).join(" + ")}
+            onSave={() => setDialog("save")}
+            onExport={() => setDialog("export")}
+            onBuy={() => setTab("compra")}
+            onEdit={() => setEditing(true)}
           />
 
-          <Section
-            title={`Cambios sugeridos (${ok.swaps.length})`}
-            aside={
-              <span className="text-xs text-zinc-500">
-                {accepted.length} aceptados · {rejected.length} descartados
-              </span>
-            }
-          >
-            {ok.swaps.length === 0 ? (
-              <p className="text-sm text-zinc-500">
-                No hay cartas de tu colección que mejoren el mazo con la configuración actual.
-              </p>
-            ) : (
-              <ul className="grid gap-3 sm:grid-cols-2">
-                {ok.swaps.map((s) => (
-                  <SwapItem
-                    key={s.id}
-                    swap={s}
-                    decision={decisions[s.id]}
-                    onDecide={(d) =>
-                      setDecisions((prev) => {
-                        const next = { ...prev };
-                        if (d) next[s.id] = d;
-                        else delete next[s.id];
-                        return next;
-                      })
-                    }
-                  />
+          {ok.edhrec.themes.length > 0 && (
+            <div className="field">
+              <span className="label">Tema de EDHREC</span>
+              <div className="chips" role="radiogroup" aria-label="Tema">
+                {[
+                  { slug: "", name: "General", count: ok.edhrec.totalDecks },
+                  ...ok.edhrec.themes.slice(0, 12),
+                ].map((t) => (
+                  <button
+                    key={t.slug || "general"}
+                    type="button"
+                    role="radio"
+                    aria-checked={saved.theme === t.slug}
+                    className={`chipbtn ${saved.theme === t.slug ? "is-on" : ""}`}
+                    disabled={busy !== null}
+                    onClick={() => saved.theme !== t.slug && void analyze({ theme: t.slug })}
+                  >
+                    {t.name}
+                    {t.count !== null && <span className="n">{compact(t.count)}</span>}
+                  </button>
                 ))}
-              </ul>
-            )}
-            {(accepted.length > 0 || rejected.length > 0 || dirty) && (
-              <div className="sticky bottom-3 flex justify-center">
-                <button
-                  type="button"
-                  onClick={applyAndRecalculate}
-                  disabled={busy}
-                  className={`${buttonClass.primary} shadow-lg`}
-                >
-                  {busy ? "Recalculando…" : "Aplicar cambios y recalcular"}
-                </button>
               </div>
-            )}
-          </Section>
+            </div>
+          )}
 
-          <UnavailableList cards={ok.unavailableCandidates} />
+          <Issues ok={ok} />
 
-          <BuyPanel
-            purchases={ok.purchases}
-            busy={busy}
-            onSearch={(opts) => {
-              setBuy(opts);
-              void analyze({}, chosen, opts);
-            }}
-          />
+          <nav className="tabs" aria-label="Secciones del mazo">
+            {(
+              [
+                ["cambios", "Cambios", pending],
+                ["lista", "Lista", ok.totalCards],
+                ["stats", "Estadísticas", null],
+                ["compra", "Compra", null],
+              ] as const
+            ).map(([id, label, n]) => (
+              <button
+                key={id}
+                type="button"
+                className={tab === id ? "is-active" : ""}
+                aria-current={tab === id ? "page" : undefined}
+                onClick={() => setTab(id)}
+              >
+                {label}
+                {n !== null && <span className="n">{n}</span>}
+              </button>
+            ))}
+          </nav>
 
-          <Section
-            title="Cartas del mazo"
-            aside={<span className="text-xs text-zinc-500">🔒 = no cortar</span>}
-          >
-            <DeckCardList cards={ok.cards} locked={locked} onToggleLock={toggleLock} />
-          </Section>
+          {tab === "cambios" && (
+            <div
+              className="grid-1-sm grid items-start gap-5"
+              style={{ gridTemplateColumns: "minmax(0, 1fr) 300px" }}
+            >
+              <section className="flex min-w-0 flex-col gap-3">
+                {ok.swaps.length > 0 && (
+                  <div className="stack-sm flex items-center justify-between gap-2.5">
+                    <div className="chips">
+                      {(
+                        [
+                          ["todos", "Todos", ok.swaps.length],
+                          ["pendientes", "Pendientes", pending],
+                          ["aceptados", "Aceptados", accepted.length],
+                          ["descartados", "Descartados", rejected.length],
+                        ] as const
+                      ).map(([id, label, n]) => (
+                        <button
+                          key={id}
+                          type="button"
+                          className={`chipbtn ${filter === id ? "is-on" : ""}`}
+                          aria-pressed={filter === id}
+                          onClick={() => setFilter(id)}
+                        >
+                          {label} <span className="n">{n}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      {pending > 0 && (
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() =>
+                            setDecisions((prev) => {
+                              const next = { ...prev };
+                              for (const s of ok.swaps) next[s.id] ??= "accepted";
+                              return next;
+                            })
+                          }
+                        >
+                          Aceptar todos
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={
+                          busy !== null ||
+                          (accepted.length === 0 && rejected.length === 0 && !dirty)
+                        }
+                        onClick={applyAndRecalculate}
+                      >
+                        {analyzing
+                          ? "Recalculando…"
+                          : accepted.length > 0
+                            ? `Aplicar ${accepted.length} y recalcular`
+                            : "Recalcular"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {analyzing ? (
+                  <DiffSkeleton />
+                ) : ok.swaps.length === 0 ? (
+                  <NoSwaps loggedIn={loggedIn} />
+                ) : (
+                  <div className="diff">
+                    {ok.swaps
+                      .filter((s) => {
+                        const d = decisions[s.id];
+                        return (
+                          filter === "todos" ||
+                          (filter === "pendientes" && !d) ||
+                          (filter === "aceptados" && d === "accepted") ||
+                          (filter === "descartados" && d === "rejected")
+                        );
+                      })
+                      .map((s) => (
+                        <SwapDiff
+                          key={s.id}
+                          swap={s}
+                          decision={decisions[s.id]}
+                          onDecide={(d) => decide(s.id, d)}
+                          commanderName={shortName(ok.commanders[0]?.name ?? "")}
+                        />
+                      ))}
+                  </div>
+                )}
+              </section>
+              <aside className="flex flex-col gap-3">
+                <ManaCurve
+                  cards={[...ok.commanders.map((card) => ({ card, quantity: 1 })), ...ok.cards]}
+                />
+                <RoleMeters roles={ok.roles} />
+                {loggedIn && (ok.unavailableCandidates.length > 0 || !saved.useOtherDecks) && (
+                  <InOtherDecks
+                    ok={ok}
+                    useOtherDecks={saved.useOtherDecks}
+                    busy={busy !== null}
+                    onToggle={(v) => void analyze({ useOtherDecks: v })}
+                  />
+                )}
+              </aside>
+            </div>
+          )}
 
-          <Section title="Guardar">
-            <SaveDeckBar
-              deckId={saved.deckId}
-              name={saved.name}
-              onName={(name) => update({ name })}
-              onSave={(asNew) => void saveDeck(asNew)}
-              busy={busy}
-              message={saveMessage}
+          {tab === "lista" && (
+            <section className="flex flex-col gap-3">
+              <div className="stack-sm flex flex-wrap items-center justify-between gap-2.5">
+                <h2 className="h2" style={{ fontSize: 17 }}>
+                  Lista{" "}
+                  <span className="mono subtle" style={{ fontSize: 13, fontWeight: 400 }}>
+                    {ok.totalCards}
+                  </span>
+                </h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  {(saved.locked.length > 0 || saved.excluded.length > 0) && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => {
+                        update({ locked: [], excluded: [] });
+                        setDirty(true);
+                      }}
+                    >
+                      Olvidar candados y descartes ({saved.locked.length + saved.excluded.length})
+                    </button>
+                  )}
+                  <div className="btn-group" role="group" aria-label="Ver como">
+                    {(["pilas", "lista", "texto"] as const).map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        className={`btn ${view === v ? "is-on" : ""}`}
+                        aria-pressed={view === v}
+                        onClick={() => setView(v)}
+                      >
+                        {v === "pilas" ? "Pilas" : v === "lista" ? "Lista" : "Texto"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {view !== "texto" && (
+                <p className="muted flex flex-wrap items-center gap-1.5 text-xs">
+                  <span
+                    className="lockmark"
+                    style={{ position: "static", width: 16, height: 16 }}
+                    aria-hidden="true"
+                  />
+                  Bloqueada: nunca se propone para salir.{" "}
+                  {view === "pilas"
+                    ? "Haz clic en una carta para bloquearla."
+                    : "Usa el candado de cada fila."}
+                  {dirty && (
+                    <span className="pill pill-warn">
+                      · Pulsa Recalcular en Cambios para aplicarlo.
+                    </span>
+                  )}
+                </p>
+              )}
+              <DeckList
+                view={view}
+                cards={ok.cards}
+                locked={locked}
+                leaving={leaving}
+                onToggleLock={toggleLock}
+                text={exportText}
+              />
+            </section>
+          )}
+
+          {tab === "stats" && (
+            <div
+              className="grid-1-sm grid items-start gap-4"
+              style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
+            >
+              <ManaCurve
+                cards={[...ok.commanders.map((card) => ({ card, quantity: 1 })), ...ok.cards]}
+              />
+              <RoleMeters roles={ok.roles} />
+              <DeckFacts cards={ok.cards} />
+            </div>
+          )}
+
+          {tab === "compra" && (
+            <BuyPanel
+              purchases={ok.purchases}
+              options={buy}
+              busy={busy === "buy" || analyzing}
+              onSearch={(opts) => {
+                setBuy(opts);
+                void analyze({}, chosen, opts);
+              }}
             />
-          </Section>
+          )}
 
-          <Section title="Exportar">
-            <p className="text-xs text-zinc-500">Incluye los cambios aceptados.</p>
-            <ExportPanel text={exportText} />
-          </Section>
+          <SaveDialog
+            open={dialog === "save"}
+            onClose={() => setDialog(null)}
+            loggedIn={loggedIn}
+            deckId={saved.deckId}
+            defaultName={saved.name || ok.deckName || ""}
+            acceptedCount={accepted.length}
+            busy={busy === "save"}
+            onSave={(o) => void saveDeck(o)}
+          />
+          <ExportDialog
+            open={dialog === "export"}
+            onClose={() => setDialog(null)}
+            full={exportText}
+            changes={changesText}
+          />
         </>
       )}
-    </div>
+    </main>
+  );
+}
+
+const compact = (n: number) =>
+  n >= 1000 ? `${(n / 1000).toLocaleString("es", { maximumFractionDigits: 1 })}K` : String(n);
+
+function EntryForm({
+  title,
+  input,
+  onInput,
+  mode,
+  onMode,
+  useOtherDecks,
+  onUseOtherDecks,
+  loggedIn,
+  analyzing,
+  onCancel,
+  onSubmit,
+  openDeck,
+  onCloseDeck,
+}: {
+  title: string;
+  input: string;
+  onInput: (v: string) => void;
+  mode: "texto" | "enlace";
+  onMode: (m: "texto" | "enlace") => void;
+  useOtherDecks: boolean;
+  onUseOtherDecks: (v: boolean) => void;
+  loggedIn: boolean;
+  analyzing: boolean;
+  onCancel: (() => void) | null;
+  onSubmit: () => void;
+  openDeck: string | null;
+  onCloseDeck: () => void;
+}) {
+  const hasCollection = loggedIn || localCollection.get() !== null;
+  return (
+    <>
+      <h1 className="h1">{title}</h1>
+      <div
+        className="grid-1-sm grid items-start gap-4"
+        style={{ gridTemplateColumns: "minmax(0, 1fr) 300px" }}
+      >
+        <form
+          className="panel"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit();
+          }}
+        >
+          <nav className="tabs" style={{ padding: "0 6px" }} aria-label="Cómo darme el mazo">
+            {(["texto", "enlace"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={mode === m ? "is-active" : ""}
+                aria-pressed={mode === m}
+                onClick={() => onMode(m)}
+              >
+                {m === "texto" ? "Pegar lista" : "Enlace"}
+              </button>
+            ))}
+          </nav>
+          <div className="flex flex-col gap-3.5 p-3.5">
+            {mode === "texto" ? (
+              <div className="field">
+                <label className="label" htmlFor="lista">
+                  Lista{" "}
+                  <span className="subtle" style={{ fontWeight: 400 }}>
+                    (una carta por línea)
+                  </span>
+                </label>
+                <textarea
+                  id="lista"
+                  className="textarea"
+                  spellCheck={false}
+                  value={isLink(input) ? "" : input}
+                  placeholder={PLACEHOLDER}
+                  onChange={(e) => onInput(e.target.value)}
+                />
+              </div>
+            ) : (
+              <div className="field">
+                <label className="label" htmlFor="url">
+                  Enlace del mazo
+                </label>
+                <input
+                  id="url"
+                  className="input mono"
+                  type="url"
+                  value={isLink(input) ? input : ""}
+                  placeholder="https://www.moxfield.com/decks/…"
+                  onChange={(e) => onInput(e.target.value)}
+                />
+                <span className="hint">Archidekt y Moxfield, mazos públicos o sin listar.</span>
+              </div>
+            )}
+            {loggedIn && (
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={!useOtherDecks}
+                  onChange={(e) => onUseOtherDecks(!e.target.checked)}
+                />
+                <span>
+                  No descontar cartas usadas en otros mazos{" "}
+                  <span className="subtle">— tratarlas como libres</span>
+                </span>
+              </label>
+            )}
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
+              {openDeck && (
+                <button type="button" className="btn btn-ghost mr-auto" onClick={onCloseDeck}>
+                  Cerrar «{openDeck}»
+                </button>
+              )}
+              {onCancel && !analyzing && (
+                <button type="button" className="btn btn-lg" onClick={onCancel}>
+                  Cancelar
+                </button>
+              )}
+              <button
+                type="submit"
+                className="btn btn-primary btn-lg full-sm"
+                disabled={analyzing || !input.trim()}
+              >
+                {analyzing ? "Analizando…" : "Analizar"}
+              </button>
+            </div>
+          </div>
+          {analyzing && (
+            <div className="border-t border-line px-3.5 py-3">
+              <Loading>
+                Leyendo la lista y pidiendo recomendaciones a EDHREC…{" "}
+                <span className="subtle">
+                  Luego lo cruzo con tu colección. Suele tardar unos segundos.
+                </span>
+              </Loading>
+            </div>
+          )}
+        </form>
+        <aside className="panel">
+          <div className="panel-h">
+            <span className="h2">Cómo funciona</span>
+          </div>
+          <div className="flex flex-col gap-2.5 p-3 text-[13px]">
+            <p className="muted">
+              Detecto el comandante, pido a EDHREC lo que juega la gente con él y te propongo
+              cambios 1×1: qué carta sacar y cuál meter.
+            </p>
+            <p className="muted">
+              Formatos: <span className="mono">1 Sol Ring</span>,{" "}
+              <span className="mono">1x Sol Ring (C21) 263</span>, secciones{" "}
+              <span className="mono">Commander</span>/<span className="mono">Deck</span> o{" "}
+              <span className="mono">*CMDR*</span>, y exports de Moxfield y Archidekt.
+            </p>
+            {!hasCollection && (
+              <Banner tone="warn">
+                Sin colección solo puedo proponerte compras.{" "}
+                <Link href="/coleccion">Importa tu CSV de ManaBox</Link>.
+              </Banner>
+            )}
+          </div>
+        </aside>
+      </div>
+    </>
   );
 }
 
@@ -382,141 +769,244 @@ function CommanderPicker({
   onConfirm: () => void;
   busy: boolean;
 }) {
+  const names = candidates.filter((c) => chosen.includes(c.oracleId)).map((c) => shortName(c.name));
   return (
-    <Section title="¿Cuál es el comandante?">
+    <section className="panel fade">
+      <div className="panel-h stack-sm py-2">
+        <span className="h2">Elige el comandante</span>
+        <span className="muted text-[13px]">
+          La lista no lo marca. Candidatas encontradas: {candidates.length}
+        </span>
+      </div>
       {candidates.length === 0 ? (
-        <Alert tone="warning">
-          No hay ninguna carta que pueda ser comandante en la lista. Márcalo con una sección
-          &quot;Commander&quot; o con *CMDR*.
-        </Alert>
+        <div className="p-4">
+          <Banner tone="warn">
+            No hay ninguna carta que pueda ser comandante en la lista. Márcalo con una sección
+            «Commander» o con <span className="mono">*CMDR*</span>.
+          </Banner>
+        </div>
       ) : (
         <>
-          <p className="text-sm text-zinc-500">
-            Elige uno (o dos si son pareja: partner, background…).
-          </p>
-          <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {candidates.map((c) => (
-              <li key={c.oracleId}>
+          <div
+            className="flex flex-wrap gap-4 p-4"
+            role="group"
+            aria-label="Candidatos a comandante"
+          >
+            {candidates.map((c) => {
+              const sel = chosen.includes(c.oracleId);
+              return (
                 <button
+                  key={c.oracleId}
                   type="button"
-                  aria-pressed={chosen.includes(c.oracleId)}
+                  aria-pressed={sel}
                   onClick={() => onToggle(c.oracleId)}
-                  className={`w-full rounded-xl p-1 ${chosen.includes(c.oracleId) ? "ring-4 ring-sky-500" : ""}`}
+                  className="flex cursor-pointer flex-col gap-2 rounded-lg p-2.5 text-left"
+                  style={{
+                    border: `1px solid ${sel ? "var(--color-accent)" : "var(--color-line)"}`,
+                    background: sel ? "var(--color-hover)" : "transparent",
+                    color: "inherit",
+                    transition: "border-color var(--motion-150) var(--ease-out)",
+                  }}
                 >
-                  <CardImage card={c} className="w-full" />
+                  <CardImage card={c} style={{ width: 180 }} />
+                  <span className="flex items-center gap-2 text-[13px]">
+                    <span
+                      className="grid place-items-center rounded-full"
+                      style={{
+                        width: 14,
+                        height: 14,
+                        border: `1.5px solid ${sel ? "var(--color-accent)" : "var(--color-line-strong)"}`,
+                      }}
+                    >
+                      <span
+                        className="rounded-full"
+                        style={{
+                          width: 6,
+                          height: 6,
+                          background: "var(--color-accent)",
+                          opacity: sel ? 1 : 0,
+                        }}
+                      />
+                    </span>
+                    {shortName(c.name)}
+                  </span>
                 </button>
-              </li>
-            ))}
-          </ul>
-          <div>
+              );
+            })}
+          </div>
+          <div className="stack-sm flex items-center justify-between gap-3 px-4 pb-4">
+            <span className="muted text-[13px]">
+              Puedes elegir dos si son pareja (Partner, Background…).
+            </span>
             <button
               type="button"
+              className="btn btn-primary"
               disabled={chosen.length === 0 || busy}
               onClick={onConfirm}
-              className={buttonClass.primary}
             >
-              Usar como comandante
+              {busy
+                ? "Analizando…"
+                : names.length > 0
+                  ? `Analizar con ${names.join(" + ")}`
+                  : "Elige uno"}
             </button>
           </div>
         </>
       )}
-    </Section>
+    </section>
   );
 }
 
-function Overview({
+function DeckHeader({
   ok,
-  theme,
-  onTheme,
-  busy,
+  name,
+  onSave,
+  onExport,
+  onBuy,
+  onEdit,
 }: {
   ok: Ok;
-  theme: string;
-  onTheme: (theme: string) => void;
-  busy: boolean;
+  name: string;
+  onSave: () => void;
+  onExport: () => void;
+  onBuy: () => void;
+  onEdit: () => void;
 }) {
+  const identity = [...new Set(ok.commanders.flatMap((c) => c.colorIdentity))];
+  const order = ["W", "U", "B", "R", "G"];
+  const commander = ok.commanders[0];
   return (
-    <>
-      <div className="flex gap-4">
-        <div className="flex w-28 shrink-0 flex-col gap-1 sm:w-36">
+    <section className="stack-sm flex items-start gap-5">
+      {commander && (
+        <div className="hide-sm flex flex-none flex-col gap-1.5" style={{ width: 132 }}>
           {ok.commanders.map((c) => (
-            <CardImage key={c.oracleId} card={c} className="w-full" />
+            <CardHover key={c.oracleId} card={c} as="div">
+              <CardImage card={c} />
+            </CardHover>
           ))}
         </div>
-        <div className="flex min-w-0 flex-col gap-2 text-sm">
-          <h2 className="text-lg font-semibold">{ok.commanders.map((c) => c.name).join(" + ")}</h2>
-          {(ok.deckName || ok.source !== "text") && (
-            <p className="text-xs text-zinc-500">
-              {[
-                ok.deckName,
-                ok.source !== "text"
-                  ? `cargado desde ${SOURCE_LABEL[ok.source] ?? ok.source}`
-                  : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          )}
-          <p>
-            {ok.totalCards} cartas · EDHREC: {ok.edhrec.totalDecks?.toLocaleString("es") ?? "?"}{" "}
-            mazos
-          </p>
-          {ok.edhrec.themes.length > 0 && (
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-zinc-500">Tema de EDHREC</span>
-              <select
-                value={theme}
-                disabled={busy}
-                onChange={(e) => onTheme(e.target.value)}
-                className="rounded-lg border border-zinc-300 bg-background p-1.5 dark:border-zinc-700"
-              >
-                <option value="">General</option>
-                {ok.edhrec.themes.map((t) => (
-                  <option key={t.slug} value={t.slug}>
-                    {t.name}
-                    {t.count !== null ? ` (${t.count})` : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
+      )}
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <span className="cap">
+          Commander
+          {ok.source !== "text" ? ` · importado de ${SOURCE_LABEL[ok.source] ?? ok.source}` : ""}
+        </span>
+        <h1 className="h1">{name}</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <span>{ok.commanders.map((c) => c.name).join(" + ")}</span>
+          <ColorPips colors={order.filter((c) => identity.includes(c as never))} />
         </div>
+        <p className="subtle text-[13px]">
+          {ok.totalCards} cartas · coste medio {averageCmc(ok.cards).toFixed(2).replace(".", ",")}
+          {ok.edhrec.totalDecks !== null && (
+            <> · {ok.edhrec.totalDecks.toLocaleString("es")} mazos en EDHREC</>
+          )}
+        </p>
       </div>
+      <div className="flex flex-wrap gap-2">
+        <div className="btn-group">
+          <button type="button" className="btn" onClick={onSave}>
+            Guardar
+          </button>
+          <button type="button" className="btn" onClick={onExport}>
+            Exportar
+          </button>
+        </div>
+        <button type="button" className="btn" onClick={onBuy}>
+          <IconCart size={15} />
+          Modo compra
+        </button>
+        <button type="button" className="btn btn-ghost" onClick={onEdit}>
+          Cambiar lista
+        </button>
+      </div>
+    </section>
+  );
+}
 
-      {ok.edhrec.warning && <Alert tone="warning">{ok.edhrec.warning}</Alert>}
-      {ok.issues.length > 0 && (
-        <Alert tone="warning">
-          <ul className="list-disc pl-5">
-            {ok.issues.map((i, idx) => (
-              <li key={idx}>{i.message}</li>
-            ))}
-          </ul>
-        </Alert>
-      )}
-      {(ok.unresolved.length > 0 || ok.skipped.length > 0) && (
-        <details className="text-sm">
-          <summary className="cursor-pointer text-zinc-500">
-            {ok.unresolved.length} cartas no encontradas · {ok.skipped.length} líneas ignoradas
-          </summary>
-          <ul className="mt-1 list-disc pl-5">
-            {ok.unresolved.map((n) => (
-              <li key={`u-${n}`}>No encontrada: {n}</li>
-            ))}
-            {ok.skipped.map((s) => (
-              <li key={`s-${s.line}`}>
-                Línea {s.line}: {s.text.trim()} — {s.reason}
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
+/** Avisos del análisis, plegados en una línea. */
+function Issues({ ok }: { ok: Ok }) {
+  const items: string[] = [
+    ...ok.issues.map((i) => i.message),
+    ...ok.unresolved.map((n) => `«${n}» no la encuentro en el catálogo.`),
+    ...ok.skipped.map((s) => `Línea ${s.line} ignorada: ${s.text.trim()} (${s.reason}).`),
+    ...(ok.edhrec.warning ? [ok.edhrec.warning] : []),
+  ];
+  if (items.length === 0) return null;
+  return (
+    <details className="issues">
+      <summary>
+        <IconWarn size={15} style={{ color: "var(--color-warn)" }} />
+        <span>
+          <b>{items.length === 1 ? "1 cosa que revisar" : `${items.length} cosas que revisar`}</b>{" "}
+          <span className="muted">— {items[0]}</span>
+        </span>
+      </summary>
+      <ul>
+        {items.map((t, i) => (
+          <li key={i}>{t}</li>
+        ))}
+      </ul>
+    </details>
+  );
+}
 
-      <Section title="Curva de maná">
-        <ManaCurve curve={ok.curve} />
-      </Section>
-      <Section title="Roles">
-        <RoleSummary roles={ok.roles} />
-      </Section>
-    </>
+function NoSwaps({ loggedIn }: { loggedIn: boolean }) {
+  const hasCollection = loggedIn || localCollection.get() !== null;
+  return (
+    <div className="panel flex flex-col items-center gap-2 px-5 py-8 text-center">
+      <span className="h2">No hay cambios que proponer</span>
+      <span className="muted max-w-[420px] text-[13px]">
+        {hasCollection
+          ? "Ninguna carta de tu colección mejora el mazo con la configuración actual. Prueba otro tema de EDHREC o el modo compra."
+          : "Sin tu colección no sé qué cartas tienes. Impórtala, o mira el modo compra."}
+      </span>
+      {!hasCollection && (
+        <Link className="btn btn-primary" href="/coleccion">
+          Importar colección
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function InOtherDecks({
+  ok,
+  useOtherDecks,
+  busy,
+  onToggle,
+}: {
+  ok: Ok;
+  useOtherDecks: boolean;
+  busy: boolean;
+  onToggle: (v: boolean) => void;
+}) {
+  return (
+    <div className="panel">
+      <div className="panel-h">
+        <span className="h2">En otros mazos</span>
+        <span className="mono subtle text-xs">{ok.unavailableCandidates.length}</span>
+      </div>
+      <div className="px-3 pt-1.5 pb-2.5">
+        {ok.unavailableCandidates.slice(0, 8).map((c) => (
+          <div key={c.card.oracleId} className="kv">
+            <CardHover card={c.card} className="flex items-center gap-1.5">
+              <span className="dot dot-inuse" />
+              {c.card.name}
+            </CardHover>
+            <span className="subtle truncate">{c.usedIn?.join(", ")}</span>
+          </div>
+        ))}
+        <label className="check subtle pt-2 text-[12.5px]">
+          <input
+            type="checkbox"
+            checked={!useOtherDecks}
+            disabled={busy}
+            onChange={(e) => onToggle(!e.target.checked)}
+          />
+          Proponerlas igualmente
+        </label>
+      </div>
+    </div>
   );
 }
