@@ -1,9 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatEuros } from "@/domain/suggestions/format";
-import type { CollectionCardDTO, StatusResponse } from "@/server/dto";
+import type {
+  AddedCardDTO,
+  CollectionTotals,
+  CollectionViewResponse,
+  StatusResponse,
+} from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
 import { AddCards, type AddedRow } from "./collection-add";
@@ -29,24 +34,34 @@ export function CollectionPage() {
   const [tab, setTab] = useState<Tab>("cartas");
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [local, setLocal] = useState<LocalCollection | null>(null);
-  const [view, setView] = useState<CollectionCardDTO[] | null>(null);
+  /** Totales de toda la colección (la lista la pide CollectionBrowser por páginas). */
+  const [overall, setOverall] = useState<CollectionTotals | null>(null);
+  const [accountAdded, setAccountAdded] = useState<AddedCardDTO[]>([]);
+  /** Cambia cada vez que cambia la colección, para que la lista se vuelva a pedir. */
+  const [version, setVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [moving, setMoving] = useState(false);
 
   const load = useCallback(async () => {
     const l = localCollection.get();
     setLocal(l);
+    setVersion((v) => v + 1);
     try {
-      const [cards, st] = await Promise.all([
-        api<CollectionCardDTO[]>("/api/collection/view", {
+      const [view, st, added] = await Promise.all([
+        api<CollectionViewResponse>("/api/collection/view", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(loggedIn || !l ? {} : { collection: ownedPairs(l) }),
+          body: JSON.stringify({
+            limit: 0,
+            ...(loggedIn || !l ? {} : { collection: ownedPairs(l) }),
+          }),
         }),
         loggedIn ? api<StatusResponse>("/api/status") : Promise.resolve(null),
+        loggedIn ? api<AddedCardDTO[]>("/api/collection/cards") : Promise.resolve([]),
       ]);
-      setView(cards);
+      setOverall(view.overall);
       setStatus(st);
+      setAccountAdded(added);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo cargar la colección");
     }
@@ -68,8 +83,8 @@ export function CollectionPage() {
   // Colección vacía: directamente a importar.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- solo la primera vez que llega vacía
-    if (view && view.length === 0) setTab((t) => (t === "cartas" ? "importar" : t));
-  }, [view]);
+    if (overall && overall.cards === 0) setTab((t) => (t === "cartas" ? "importar" : t));
+  }, [overall]);
 
   /** Pasa la colección de este navegador (CSV y sueltas) a la cuenta recién creada. */
   async function moveToAccount(l: LocalCollection) {
@@ -112,27 +127,17 @@ export function CollectionPage() {
     }
   }
 
-  // Lo añadido a mano: de la cuenta (vista agrupada) o del navegador.
-  const byId = new Map((view ?? []).map((c) => [c.card.oracleId, c.card]));
+  // Lo añadido a mano: de la cuenta o del navegador (sin imagen hasta que se conozca la carta).
   const added: AddedRow[] = loggedIn
-    ? (view ?? [])
-        .flatMap((c) =>
-          c.manual.map((m) => ({
-            id: m.id,
-            card: c.card,
-            name: c.card.name,
-            quantity: m.quantity,
-            foil: m.foil,
-            addedAt: m.addedAt,
-          })),
-        )
-        .sort((a, b) => b.addedAt.localeCompare(a.addedAt))
-    : (local?.added ?? []).map((a) => ({ ...a, card: byId.get(a.oracleId) ?? null }));
+    ? accountAdded.map((a) => ({ ...a, name: a.card.name }))
+    : (local?.added ?? []).map((a) => ({ ...a, card: null }));
 
-  const copies = (view ?? []).reduce((n, c) => n + c.quantity, 0);
-  const value = (view ?? []).reduce((n, c) => n + (c.price ?? 0) * c.quantity, 0);
+  // Memorizado: si no, cada render daría un array nuevo y la lista se volvería a pedir sin parar.
+  const localPairs = useMemo(() => (local ? ownedPairs(local) : null), [local]);
+  const copies = overall?.copies ?? 0;
+  const value = overall?.value ?? 0;
   const tabs: [Tab, string, number | null][] = [
-    ["cartas", "Mis cartas", view?.length ?? null],
+    ["cartas", "Mis cartas", overall?.cards ?? null],
     ["anadir", "Añadir cartas", null],
     ["importar", "Importar CSV", null],
   ];
@@ -141,12 +146,12 @@ export function CollectionPage() {
     <main className="page max-w-[1240px]">
       <div className="stack-sm flex items-end justify-between gap-3">
         <h1 className="h1">Mi colección</h1>
-        {view && view.length > 0 && (
+        {overall && overall.cards > 0 && (
           <span className="muted text-[13px]">
             <b className="mono" style={{ color: "var(--color-text)" }}>
               {fmt(copies)}
             </b>{" "}
-            copias · {fmt(view.length)} cartas distintas
+            copias · {fmt(overall.cards)} cartas distintas
             {value > 0 && <> · valor aprox. {formatEuros(value)}</>}
           </span>
         )}
@@ -213,9 +218,9 @@ export function CollectionPage() {
       </nav>
 
       {tab === "cartas" &&
-        (view === null ? (
+        (overall === null ? (
           <Loading>Cargando tu colección…</Loading>
-        ) : view.length === 0 ? (
+        ) : overall.cards === 0 ? (
           <div className="panel">
             <EmptyState
               title="Tu colección está vacía"
@@ -238,7 +243,7 @@ export function CollectionPage() {
             </EmptyState>
           </div>
         ) : (
-          <CollectionBrowser cards={view} loggedIn={loggedIn} />
+          <CollectionBrowser loggedIn={loggedIn} localPairs={localPairs} version={version} />
         ))}
       {tab === "anadir" && <AddCards loggedIn={loggedIn} added={added} onRemove={removeAdded} />}
       {tab === "importar" && <CsvImport loggedIn={loggedIn} status={status} local={local} />}

@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { CollectionFilters, CollectionSort } from "@/domain/collection/browse";
 import { ROLES, type Role } from "@/domain/roles/types";
 import { formatEuros } from "@/domain/suggestions/format";
-import type { CollectionCardDTO } from "@/server/dto";
+import type { CollectionCardDTO, CollectionTotals, CollectionViewResponse } from "@/server/dto";
+import { api, ApiError } from "./api-client";
 import { CardHover, CardImage } from "./card-image";
 import { roleLabel } from "./deck-views";
 import { ManaCost } from "./mana";
-import { fmt } from "./ui";
+import { Banner, Loading, fmt } from "./ui";
 
 /* eslint-disable @next/next/no-img-element -- símbolos de maná de Scryfall en los filtros */
 
@@ -34,7 +36,7 @@ const TYPES = [
 ] as const;
 
 type ColorMode = "alguno" | "dentro" | "exacto";
-type Sort = "nombre" | "coste" | "copias" | "precio" | "recientes";
+type Sort = CollectionSort;
 
 interface Filters {
   q: string;
@@ -62,70 +64,109 @@ const EMPTY: Filters = {
   sort: "nombre",
 };
 
-const PAGE = 60;
+/** Cartas por página: la colección se pide al servidor por trozos ("Ver más"). */
+const PAGE = 48;
 const front = (typeLine: string) => typeLine.split("//")[0] ?? typeLine;
-const norm = (s: string) => s.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
 
-/** ¿Pasa el filtro de color? Incolora = identidad vacía. */
-function colorMatch(identity: readonly string[], colors: ColorKey[], mode: ColorMode) {
-  if (colors.length === 0) return true;
-  const wantColorless = colors.includes("C");
-  const want: string[] = colors.filter((c) => c !== "C");
-  if (identity.length === 0) return wantColorless || mode === "dentro";
-  if (mode === "alguno") return want.some((c) => identity.includes(c));
-  // "dentro": cabe en esa identidad (lo que puede jugar un comandante de esos colores).
-  if (mode === "dentro") return identity.every((c) => want.includes(c));
-  return identity.length === want.length && want.every((c) => identity.includes(c));
-}
-
-function applyFilters(cards: CollectionCardDTO[], f: Filters) {
-  const q = norm(f.q.trim());
-  const out = cards.filter((c) => {
-    if (q && !norm(c.card.name).includes(q) && !norm(c.card.typeLine).includes(q)) return false;
-    if (!colorMatch(c.card.colorIdentity, f.colors, f.colorMode)) return false;
-    if (f.type && !new RegExp(`\\b${f.type}\\b`).test(front(c.card.typeLine))) return false;
-    if (f.role && !c.roles.includes(f.role)) return false;
-    if (f.cmc !== null) {
-      const v = Math.floor(c.card.cmc);
-      if (f.cmc === 7 ? v < 7 : v !== f.cmc) return false;
-    }
-    if (f.origin === "csv" && c.fromCsv === 0) return false;
-    if (f.origin === "manual" && c.manual.length === 0) return false;
-    if (f.use === "libres" && c.quantity <= c.inUse) return false;
-    if (f.use === "en-mazos" && c.inUse === 0) return false;
-    if (f.foil && c.foilQuantity === 0) return false;
-    return true;
-  });
-  const byName = (a: CollectionCardDTO, b: CollectionCardDTO) =>
-    a.card.name.localeCompare(b.card.name);
-  const sorters: Record<Sort, (a: CollectionCardDTO, b: CollectionCardDTO) => number> = {
-    nombre: byName,
-    coste: (a, b) => a.card.cmc - b.card.cmc || byName(a, b),
-    copias: (a, b) => b.quantity - a.quantity || byName(a, b),
-    precio: (a, b) => (b.price ?? -1) - (a.price ?? -1) || byName(a, b),
-    recientes: (a, b) => b.lastAdded.localeCompare(a.lastAdded) || byName(a, b),
+/** Los filtros de la interfaz, en el formato de la API (sin los vacíos). */
+function toQuery(f: Filters): CollectionFilters {
+  return {
+    ...(f.q.trim() ? { q: f.q.trim() } : {}),
+    ...(f.colors.length > 0 ? { colors: f.colors, colorMode: f.colorMode } : {}),
+    ...(f.type ? { type: f.type as CollectionFilters["type"] } : {}),
+    ...(f.role ? { role: f.role } : {}),
+    ...(f.cmc !== null ? { cmc: f.cmc } : {}),
+    ...(f.origin ? { origin: f.origin } : {}),
+    ...(f.use ? { use: f.use } : {}),
+    ...(f.foil ? { foil: true } : {}),
   };
-  return out.sort(sorters[f.sort]);
 }
 
-/** Pestaña "Mis cartas": la colección agrupada por carta, con filtros, orden y dos vistas. */
+/**
+ * Pestaña "Mis cartas": la colección agrupada por carta, con filtros, orden y dos vistas. El
+ * servidor filtra, ordena y pagina; aquí solo se pide la página siguiente con "Ver más".
+ * `localPairs`: sin cuenta, la colección del navegador. `version` cambia cuando la colección cambia.
+ */
 export function CollectionBrowser({
-  cards,
   loggedIn,
+  localPairs,
+  version,
 }: {
-  cards: CollectionCardDTO[];
   loggedIn: boolean;
+  localPairs: [string, number][] | null;
+  version: number;
 }) {
   const [f, setF] = useState<Filters>(EMPTY);
   const [view, setView] = useState<"cuadricula" | "tabla">("cuadricula");
-  const [limit, setLimit] = useState(PAGE);
-  const set = (patch: Partial<Filters>) => {
-    setF((prev) => ({ ...prev, ...patch }));
-    setLimit(PAGE);
-  };
-  const shown = useMemo(() => applyFilters(cards, f), [cards, f]);
-  const copies = shown.reduce((n, c) => n + c.quantity, 0);
-  const value = shown.reduce((n, c) => n + (c.price ?? 0) * c.quantity, 0);
+  const [items, setItems] = useState<CollectionCardDTO[] | null>(null);
+  const [total, setTotal] = useState<CollectionTotals | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const request = useRef(0);
+  const set = (patch: Partial<Filters>) => setF((prev) => ({ ...prev, ...patch }));
+
+  const fetchPage = useCallback(
+    (offset: number) =>
+      api<CollectionViewResponse>("/api/collection/view", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(!loggedIn && localPairs ? { collection: localPairs } : {}),
+          filters: toQuery(f),
+          sort: f.sort,
+          offset,
+          limit: PAGE,
+        }),
+      }),
+    [f, loggedIn, localPairs],
+  );
+
+  // Primera página al cambiar filtros u orden (con un respiro mientras se escribe en el buscador).
+  useEffect(() => {
+    const id = ++request.current;
+    const t = setTimeout(
+      () => {
+        setLoading(true);
+        setError(null);
+        fetchPage(0)
+          .then((r) => {
+            if (id !== request.current) return;
+            setItems(r.items);
+            setTotal(r.total);
+          })
+          .catch((e: unknown) => {
+            if (id === request.current) {
+              setError(e instanceof ApiError ? e.message : "No se pudo cargar la colección");
+            }
+          })
+          .finally(() => id === request.current && setLoading(false));
+      },
+      f.q ? 250 : 0,
+    );
+    return () => clearTimeout(t);
+  }, [fetchPage, version, f.q]);
+
+  async function loadMore() {
+    if (!items) return;
+    const id = request.current;
+    setLoadingMore(true);
+    try {
+      const r = await fetchPage(items.length);
+      if (id !== request.current) return;
+      setItems([...items, ...r.items]);
+      setTotal(r.total);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "No se pudieron cargar más cartas");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  const shown = items ?? [];
+  const copies = total?.copies ?? 0;
+  const value = total?.value ?? 0;
+  const remaining = total ? total.cards - shown.length : 0;
   const active =
     f.q !== "" ||
     f.colors.length > 0 ||
@@ -286,9 +327,9 @@ export function CollectionBrowser({
       <div className="stack-sm flex flex-wrap items-center justify-between gap-2">
         <span className="muted text-[13px]">
           <b className="mono" style={{ color: "var(--color-text)" }}>
-            {fmt(shown.length)}
+            {fmt(total?.cards ?? 0)}
           </b>{" "}
-          {shown.length === 1 ? "carta" : "cartas"} · {fmt(copies)} copias
+          {total?.cards === 1 ? "carta" : "cartas"} · {fmt(copies)} copias
           {value > 0 && <> · aprox. {formatEuros(value)}</>}
         </span>
         <div className="flex flex-wrap items-center gap-2">
@@ -321,7 +362,16 @@ export function CollectionBrowser({
         </div>
       </div>
 
-      {shown.length === 0 ? (
+      {loading && items !== null && (
+        <div className="progress" role="status" aria-label="Actualizando">
+          <i />
+        </div>
+      )}
+      {error ? (
+        <Banner tone="out">{error}</Banner>
+      ) : items === null ? (
+        <Loading>Cargando tu colección…</Loading>
+      ) : shown.length === 0 ? (
         <div className="panel flex flex-col items-center gap-2.5 px-5 py-9 text-center">
           <span className="muted text-[13px]">
             Ninguna carta de tu colección cumple esos filtros.
@@ -335,7 +385,7 @@ export function CollectionBrowser({
           className="grid gap-x-3 gap-y-4"
           style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}
         >
-          {shown.slice(0, limit).map((c) => (
+          {shown.map((c) => (
             <figure key={c.card.oracleId} className="m-0 flex flex-col gap-1.5">
               <div className="relative">
                 <CardImage card={c.card} />
@@ -382,7 +432,7 @@ export function CollectionBrowser({
               </tr>
             </thead>
             <tbody>
-              {shown.slice(0, limit).map((c) => (
+              {shown.map((c) => (
                 <tr key={c.card.oracleId}>
                   <td className="r mono">{c.quantity}</td>
                   <td>
@@ -418,10 +468,15 @@ export function CollectionBrowser({
         </div>
       )}
 
-      {shown.length > limit && (
+      {remaining > 0 && (
         <div className="flex justify-center">
-          <button type="button" className="btn" onClick={() => setLimit((l) => l + PAGE)}>
-            Ver más ({fmt(shown.length - limit)} restantes)
+          <button
+            type="button"
+            className="btn"
+            disabled={loadingMore}
+            onClick={() => void loadMore()}
+          >
+            {loadingMore ? "Cargando…" : `Ver más (${fmt(remaining)} restantes)`}
           </button>
         </div>
       )}

@@ -177,6 +177,28 @@ export interface CollectionCardDTO {
   inUse: number;
 }
 
+/** Una página de la colección y sus totales (lo filtrado y todo). */
+export interface CollectionViewResponse {
+  items: CollectionCardDTO[];
+  total: CollectionTotals;
+  overall: CollectionTotals;
+}
+
+export interface CollectionTotals {
+  cards: number;
+  copies: number;
+  value: number;
+}
+
+/** Una carta añadida a mano. */
+export interface AddedCardDTO {
+  id: string;
+  card: CardDTO;
+  quantity: number;
+  foil: boolean;
+  addedAt: string;
+}
+
 export interface AddCardsResponse {
   added: { card: CardDTO; quantity: number; foil: boolean }[];
   notFound: string[];

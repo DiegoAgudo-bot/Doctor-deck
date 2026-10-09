@@ -1,5 +1,11 @@
 import { NON_GAME_LAYOUTS } from "@/domain/cards/card-index";
 import { nameKey } from "@/domain/cards/names";
+import {
+  browseCollection,
+  totals,
+  type CollectionFilters,
+  type CollectionSort,
+} from "@/domain/collection/browse";
 import type { Card } from "@/domain/cards/types";
 import type { CardRepository } from "@/domain/ports/card-repository";
 import type { CollectionRepository } from "@/domain/ports/collection-repository";
@@ -160,4 +166,59 @@ export async function collectionView(deps: {
     if (e.addedAt > item.lastAdded) item.lastAdded = e.addedAt;
   }
   return [...out.values()];
+}
+
+export interface CollectionQuery {
+  filters: CollectionFilters;
+  sort: CollectionSort;
+  offset: number;
+  limit: number;
+}
+
+export interface CollectionBrowseResult {
+  items: CollectionCard[];
+  /** Lo que cumple los filtros. */
+  total: ReturnType<typeof totals>;
+  /** Toda la colección, sin filtros. */
+  overall: ReturnType<typeof totals>;
+}
+
+/**
+ * Una página de la colección: filtra y ordena en el servidor y devuelve solo `limit` cartas (la
+ * colección entera puede ser de miles y pesar megas), con los totales de lo filtrado y de todo.
+ */
+export async function browseMyCollection(
+  query: CollectionQuery,
+  deps: Parameters<typeof collectionView>[0],
+): Promise<CollectionBrowseResult> {
+  const all = (await collectionView(deps)).map((c) => ({
+    ...c,
+    roles: c.roles.roles,
+    manualCount: c.manual.length,
+    lastAdded: c.lastAdded.toISOString(),
+    source: c,
+  }));
+  const page = browseCollection(all, query.filters, query.sort, query.offset, query.limit);
+  return {
+    items: page.items.map((i) => i.source),
+    total: page.total,
+    overall: totals(all),
+  };
+}
+
+/** Las cartas añadidas a mano, de la más reciente a la más antigua, con su carta. */
+export async function addedCards(deps: {
+  cards: CardRepository;
+  collection: CollectionRepository;
+}) {
+  const manual = (await deps.collection.entries()).filter((e) => e.source === "manual");
+  const cards = new Map(
+    (await deps.cards.findCardsByOracleIds([...new Set(manual.map((m) => m.oracleId))])).map(
+      (c) => [c.oracleId, c],
+    ),
+  );
+  return manual.flatMap((m) => {
+    const card = cards.get(m.oracleId);
+    return card ? [{ ...m, card }] : [];
+  });
 }

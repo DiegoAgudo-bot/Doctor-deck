@@ -84,7 +84,8 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   Además, cartas sueltas (`addToCollection`, `application/collection-cards.ts`): se resuelven por
   `oracleId` (buscador web), `scryfallId` (lo que dará el escáner de la app móvil) o nombre, y se
   guardan con `matchMethod = "manual"`; reimportar el CSV **no** las borra. `collectionView` agrupa
-  la colección por carta con catálogo, precio, roles y mazos que la usan (filtros en el cliente).
+  la colección por carta con catálogo, precio, roles y mazos que la usan; `browseMyCollection` filtra,
+  ordena y pagina en el servidor (`domain/collection/browse.ts`; la web pide 48 por página).
   `summary.totalCards` = copias identificadas (sin las filas sin emparejar). Sin cuenta, todo vive
   en el navegador (`local-collection.ts`: `{import, added}`) y se manda como pares
   `[oracleId, copias]`.
@@ -137,7 +138,8 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   - `GET /api/status`, `POST /api/collection` (cuerpo = texto del CSV), `POST /api/collection/cards`
     (`{cards: [{oracleId|scryfallId|name, quantity, foil?}]}`, máx. 500), `DELETE
 /api/collection/cards/{id}` (solo las añadidas a mano), `POST /api/collection/view`
-    (`{collection?}` sin sesión), `GET /api/cards/search?q=&limit=`, `POST /api/analyze`
+    (`{collection?, filters, sort, offset, limit}`; `limit: 0` = solo totales), `GET /api/collection/cards`
+    (las añadidas a mano), `GET /api/cards/search?q=&limit=`, `POST /api/analyze`
     (`{input, theme?, commanders?, locked?, excluded?, deckId?, useOtherDecks?, buy?: {maxCards,
 maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /api/decks/[id]`.
   - Páginas: `/mazos` (lista, borrar) y `/decks/{publicId}` (un mazo guardado; exigen sesión). Los
