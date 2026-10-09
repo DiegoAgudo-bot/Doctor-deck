@@ -14,13 +14,16 @@ export class ApiError extends Error {
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(path, init);
+    // Contra el origin y no la ruta relativa: si la página se abrió con credenciales en la URL
+    // (https://usuario:clave@…), fetch rechaza las URLs relativas que las heredan.
+    res = await fetch(new URL(path, window.location.origin), init);
   } catch {
     throw new ApiError("network", "No se pudo contactar con el servidor", 0);
   }
   const body: unknown = await res.json().catch(() => null);
   if (res.status === 401) {
-    // Sesión caducada o inexistente: a la página de entrar, volviendo luego aquí.
+    // Sesión caducada o inexistente: a la página de entrar, volviendo luego aquí. Recarga completa a
+    // propósito: se descarta el estado del cliente.
     const next = encodeURIComponent(window.location.pathname + window.location.search);
     window.location.assign(new URL(`/entrar?next=${next}`, window.location.origin));
   }

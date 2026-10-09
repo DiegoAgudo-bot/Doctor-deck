@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // El antiguo login de contraseña única vivía en /login.
+  async redirects() {
+    return [{ source: "/login", destination: "/entrar", permanent: false }];
+  },
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

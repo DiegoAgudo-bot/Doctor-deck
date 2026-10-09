@@ -27,10 +27,10 @@ export function SavedDecks() {
   async function remove(d: SavedDeckSummaryDTO) {
     if (!window.confirm(`¿Borrar «${d.name}»?`)) return;
     try {
-      await fetch(`/api/decks/${d.id}`, { method: "DELETE" });
+      await api<unknown>(`/api/decks/${d.id}`, { method: "DELETE" });
       setDecks((list) => list?.filter((x) => x.id !== d.id) ?? null);
-    } catch {
-      setError("No se pudo borrar el mazo");
+    } catch (e: unknown) {
+      setError(e instanceof ApiError ? e.message : "No se pudo borrar el mazo");
     }
   }
 

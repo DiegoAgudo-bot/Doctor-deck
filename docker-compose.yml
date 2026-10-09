@@ -1,0 +1,28 @@
+# Producción en el VPS: la app detrás del Traefik que ya corre allí (red externa `pulsestack_proxy`,
+# certificados de Let's Encrypt con el resolver `le`). Variables en .env (ver DEPLOY.md):
+#   DECK_DOCTOR_HOST     dominio público, p. ej. deckdoctor.37.27.32.222.nip.io
+#   BETTER_AUTH_SECRET   secreto de las sesiones de usuario (scripts/deploy.sh lo genera si falta)
+services:
+  deck-doctor:
+    build: .
+    container_name: deck_doctor
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}
+      BETTER_AUTH_URL: https://${DECK_DOCTOR_HOST:?DECK_DOCTOR_HOST must be set}
+    volumes:
+      - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.deckdoctor.rule=Host(`${DECK_DOCTOR_HOST:?DECK_DOCTOR_HOST must be set}`)"
+      - "traefik.http.routers.deckdoctor.entrypoints=websecure"
+      - "traefik.http.routers.deckdoctor.tls.certresolver=le"
+      - "traefik.http.services.deckdoctor.loadbalancer.server.port=3010"
+
+networks:
+  proxy:
+    name: pulsestack_proxy
+    external: true
