@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { makeCard } from "../../../tests/helpers/cards";
 import { InMemoryCardIndex } from "../cards/card-index";
+import type { Card } from "../cards/types";
 import { parseDecklist } from "./decklist";
 import { chooseCommanders, fittingCandidates, resolveDecklist, validateDeck } from "./resolve";
 
@@ -139,11 +140,7 @@ describe("validateDeck", () => {
 });
 
 describe("fittingCandidates", () => {
-  const legend = (
-    name: string,
-    colorIdentity: string[],
-    extra: Parameters<typeof makeCard>[0] = {},
-  ) =>
+  const legend = (name: string, colorIdentity: string[], extra: Partial<Card> = {}) =>
     makeCard({
       name,
       typeLine: "Legendary Creature — Human",
