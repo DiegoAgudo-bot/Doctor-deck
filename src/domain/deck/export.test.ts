@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseDecklist } from "./decklist";
-import { applySwaps, exportDecklist, type ExportableDeck } from "./export";
+import { applySwaps, changeCard, exportDecklist, type ExportableDeck } from "./export";
 
 const deck: ExportableDeck = {
   commanders: [{ oracleId: "c", name: "Teferi, Temporal Archmage" }],
@@ -41,5 +41,27 @@ describe("exportDecklist", () => {
       "Teferi, Temporal Archmage",
     ]);
     expect(parsed.entries.reduce((n, e) => n + e.quantity, 0)).toBe(33);
+  });
+});
+
+describe("changeCard", () => {
+  const deck = {
+    commanders: [{ oracleId: "k", name: "Korvold" }],
+    cards: [{ oracleId: "s", name: "Sol Ring", quantity: 1 }],
+  };
+  it("añade, suma copias y quita", () => {
+    const added = changeCard(deck, { oracleId: "b", name: "Lightning Bolt" }, 1);
+    expect(added.cards).toEqual([
+      { oracleId: "s", name: "Sol Ring", quantity: 1 },
+      { oracleId: "b", name: "Lightning Bolt", quantity: 1 },
+    ]);
+    expect(changeCard(added, { oracleId: "b", name: "Lightning Bolt" }, 2).cards[1]?.quantity).toBe(
+      3,
+    );
+    expect(changeCard(deck, { oracleId: "s", name: "Sol Ring" }, -1).cards).toEqual([]);
+    expect(changeCard(deck, { oracleId: "x", name: "X" }, -1)).toEqual(deck);
+  });
+  it("no toca a los comandantes", () => {
+    expect(changeCard(deck, { oracleId: "k", name: "Korvold" }, 1)).toBe(deck);
   });
 });

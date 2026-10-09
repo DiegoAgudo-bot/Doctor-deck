@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { applySwaps, exportDecklist, type ExportableDeck } from "@/domain/deck/export";
+import { applySwaps, changeCard, exportDecklist, type ExportableDeck } from "@/domain/deck/export";
 import { formatEuros } from "@/domain/suggestions/format";
 import type { AnalyzeResponse, CardDTO, DeckViewDTO } from "@/server/dto";
 import { api, ApiError, storage } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardHover, CardImage } from "./card-image";
+import { CardSearch } from "./card-search";
 import { BuyPanel, type BuyOptions } from "./deck-buy";
 import { OwnershipPanel } from "./deck-ownership";
 import { ExportDialog, SaveDialog } from "./deck-dialogs";
@@ -93,6 +94,9 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const [filter, setFilter] = useState<Filter>("todos");
   const [view, setView] = useState<ListView>("pilas");
   const [dialog, setDialog] = useState<"save" | "export" | null>(null);
+  /** Panel "Añadir cartas" de la lista abierto (al crear un mazo desde cero, de entrada). */
+  const [adding, setAdding] = useState(false);
+  const [editNotice, setEditNotice] = useState<string | null>(null);
   /** Si el mazo abierto es de otro (público): de quién. Se analiza con MI colección. */
   const [owner, setOwner] = useState<DeckViewDTO["owner"] | null>(null);
   // Colección en este navegador (sin cuenta). Se lee tras montar: el servidor no tiene localStorage.
@@ -106,8 +110,19 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const hasCollection = loggedIn || hasLocal;
 
   // Abrir el mazo guardado, empezar uno nuevo (?nuevo=1) o restaurar el último analizado.
+  // ?tab=… abre esa pestaña; ?editar=1, la lista con el editor; ?analizar=1 analiza lo restaurado
+  // (lo usa el asistente de "Nuevo mazo" sin cuenta).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const startTab = params.get("tab");
+    if (startTab && ["cambios", "falta", "lista", "stats", "compra"].includes(startTab)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única tras montar
+      setTab(startTab as Tab);
+    }
+    if (params.has("editar")) {
+      setView("lista");
+      setAdding(true);
+    }
     if (deckId) {
       api<DeckViewDTO>(`/api/decks/${encodeURIComponent(deckId)}`)
         .then((d) => {
@@ -142,7 +157,6 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     }
     if (params.has("nuevo")) {
       window.history.replaceState(null, "", "/mazo");
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única tras montar
       setSaved(EMPTY);
     } else {
       const stored = storage.get<Partial<Saved>>(KEY, {});
@@ -154,6 +168,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       };
       setSaved(restored);
       setMode(isLink(restored.input) ? "enlace" : "texto");
+      if (params.has("analizar") && restored.input.trim()) {
+        window.history.replaceState(null, "", "/mazo");
+        setOpening(true);
+        void analyze(restored, []).finally(() => setOpening(false));
+      }
     }
     setHydrated(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
@@ -283,6 +302,43 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     } finally {
       setBusy(null);
     }
+  }
+
+  /**
+   * Añade (delta > 0) o quita (delta < 0) copias de una carta: rehace la lista, vuelve a analizar y,
+   * si es uno de mis mazos guardados, lo guarda.
+   */
+  async function editCard(card: { oracleId: string; name: string }, delta: number) {
+    if (!baseDeck) return;
+    const input = exportDecklist(changeCard(baseDeck, card, delta));
+    setEditNotice(null);
+    await analyze({ input });
+    if (saved.deckId !== null && ok) {
+      try {
+        await api("/api/decks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: saved.deckId,
+            name: saved.name,
+            input,
+            ...(saved.theme ? { theme: saved.theme } : {}),
+            commanders: ok.commanders.map((c) => c.oracleId),
+            locked: saved.locked,
+            excluded: saved.excluded,
+          }),
+        });
+        notifyDecksChanged();
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : "No se pudo guardar el cambio");
+        return;
+      }
+    }
+    setEditNotice(
+      delta > 0
+        ? `Añadida: ${card.name}${saved.deckId ? " (guardado)" : ""}.`
+        : `Quitada una copia de ${card.name}${saved.deckId ? " (guardado)" : ""}.`,
+    );
   }
 
   function toggleLock(oracleId: string) {
@@ -583,14 +639,32 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                   )}
                 </p>
               )}
-              <DeckList
-                view={view}
-                cards={ok.cards}
-                locked={locked}
-                leaving={leaving}
-                onToggleLock={toggleLock}
-                text={exportText}
-              />
+              {!owner && (
+                <DeckEditor
+                  ok={ok}
+                  open={adding}
+                  onToggle={() => setAdding((a) => !a)}
+                  busy={busy !== null}
+                  notice={editNotice}
+                  onAdd={(card) => void editCard(card, 1)}
+                />
+              )}
+              {ok.cards.length === 0 ? (
+                <div className="panel muted p-4 text-[13px]">
+                  Solo está el comandante. Añade cartas con el buscador de arriba.
+                </div>
+              ) : (
+                <DeckList
+                  view={view}
+                  cards={ok.cards}
+                  locked={locked}
+                  leaving={leaving}
+                  onToggleLock={toggleLock}
+                  text={exportText}
+                  onChangeQuantity={owner ? undefined : (card, delta) => void editCard(card, delta)}
+                  busy={busy !== null}
+                />
+              )}
             </section>
           )}
 
@@ -1005,6 +1079,86 @@ function DeckHeader({
           Cambiar lista
         </button>
       </div>
+    </section>
+  );
+}
+
+/**
+ * Añadir cartas al mazo: buscador limitado a la identidad del comandante y, debajo, recomendadas
+ * por EDHREC que tengo en la colección (lo que sugiere el análisis).
+ */
+function DeckEditor({
+  ok,
+  open,
+  onToggle,
+  busy,
+  notice,
+  onAdd,
+}: {
+  ok: Ok;
+  open: boolean;
+  onToggle: () => void;
+  busy: boolean;
+  notice: string | null;
+  onAdd: (card: CardDTO) => void;
+}) {
+  const identity = ["W", "U", "B", "R", "G"]
+    .filter((c) => ok.commanders.some((k) => k.colorIdentity.includes(c as never)))
+    .join("");
+  const suggestions = ok.addCandidates.slice(0, 12);
+  return (
+    <section className="panel">
+      <div className="panel-h">
+        <span className="h2">Añadir cartas</span>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          aria-expanded={open}
+          onClick={onToggle}
+        >
+          {open ? "Ocultar" : "Mostrar"}
+        </button>
+      </div>
+      {open && (
+        <div className="flex flex-col gap-3 p-3.5">
+          <div style={{ maxWidth: 440 }}>
+            <CardSearch
+              id="deck-add"
+              label="Busca una carta (solo de los colores del comandante)"
+              filters={{ identity }}
+              clearOnPick
+              onPick={(card) => !busy && onAdd(card)}
+            />
+          </div>
+          {notice && <span className="pill pill-in">{notice}</span>}
+          {busy && <span className="subtle text-xs">Actualizando el mazo…</span>}
+          {suggestions.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <span className="label">
+                De tu colección, recomendadas por EDHREC para este comandante
+              </span>
+              <div className="chips">
+                {suggestions.map((s) => (
+                  <CardHover key={s.card.oracleId} card={s.card}>
+                    <button
+                      type="button"
+                      className="chipbtn"
+                      disabled={busy}
+                      onClick={() => onAdd(s.card)}
+                      aria-label={`Añadir ${s.card.name}`}
+                    >
+                      + {s.card.name}
+                      {s.inclusion !== null && (
+                        <span className="n">{Math.round(s.inclusion * 100)} %</span>
+                      )}
+                    </button>
+                  </CardHover>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }

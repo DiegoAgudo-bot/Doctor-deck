@@ -1,12 +1,14 @@
 import type { ResponseCache } from "@/domain/ports/cache";
 import type {
+  AverageDeckSource,
   RecommendationQuery,
   RecommendationSource,
 } from "@/domain/ports/recommendation-source";
-import type { CommanderRecommendations } from "@/domain/recommendations/types";
+import type { AverageDeck, CommanderRecommendations } from "@/domain/recommendations/types";
 import { HttpError, NetworkError, type HttpClient } from "../http/http-client";
 import { EdhrecError } from "./errors";
-import { parseEdhrecPage, type ParsedPage } from "./page";
+import { parseAverageDeck } from "./average-deck";
+import { parseEdhrecPage } from "./page";
 import { commanderSlug, isValidThemeSlug } from "./slug";
 
 export const EDHREC_JSON_BASE = "https://json.edhrec.com/pages";
@@ -20,12 +22,18 @@ export interface EdhrecClientOptions {
   baseUrl?: string;
 }
 
-interface Fetched {
-  page: ParsedPage;
+interface Fetched<T> {
+  page: T;
   fetchedAt: Date;
   stale: boolean;
   warning: string | null;
 }
+
+/** Intérprete de un tipo de página: la página o una redirección a otra ruta. */
+type Parser<T> = (
+  body: string,
+  url: string,
+) => { kind: "page"; page: T } | { kind: "redirect"; path: string };
 
 /**
  * Adaptador de los JSON públicos (no oficiales) de EDHREC. Todo acceso a EDHREC pasa por aquí.
@@ -33,7 +41,7 @@ interface Fetched {
  * - Si EDHREC falla y hay copia caducada, se devuelve marcada como `stale` con un aviso.
  * - 403/429 no se reintentan: se informa al usuario (no se intenta esquivar el bloqueo).
  */
-export class EdhrecClient implements RecommendationSource {
+export class EdhrecClient implements RecommendationSource, AverageDeckSource {
   private readonly now: () => Date;
   private readonly baseUrl: string;
 
@@ -50,12 +58,28 @@ export class EdhrecClient implements RecommendationSource {
   async getRecommendations(query: RecommendationQuery): Promise<CommanderRecommendations> {
     const { slug, path } = this.pathFor(query);
     const { theme } = query;
-    const { page, fetchedAt, stale, warning } = await this.fetchPage(path, 1);
+    const { page, fetchedAt, stale, warning } = await this.fetchPage(path, parseEdhrecPage, 1);
     return {
       commanderSlug: slug,
       theme: theme ?? null,
       totalDecks: page.totalDecks,
       themes: page.themes,
+      cards: page.cards,
+      fetchedAt,
+      stale,
+      warning,
+    };
+  }
+
+  /** Mazo medio del comandante (y tema): /average-decks/{slug}[/{tema}]. Mismas reglas de caché. */
+  async getAverageDeck(query: RecommendationQuery): Promise<AverageDeck> {
+    const { slug } = this.pathFor(query);
+    const path = `/average-decks/${slug}${query.theme ? `/${query.theme}` : ""}`;
+    const { page, fetchedAt, stale, warning } = await this.fetchPage(path, parseAverageDeck, 1);
+    return {
+      commanderSlug: slug,
+      theme: query.theme ?? null,
+      commanders: page.commanders,
       cards: page.cards,
       fetchedAt,
       stale,
@@ -74,13 +98,17 @@ export class EdhrecClient implements RecommendationSource {
     return { slug, path: `/commanders/${slug}${theme ? `/${theme}` : ""}` };
   }
 
-  private async fetchPage(path: string, redirectsLeft: number): Promise<Fetched> {
+  private async fetchPage<T>(
+    path: string,
+    parse: Parser<T>,
+    redirectsLeft: number,
+  ): Promise<Fetched<T>> {
     const url = `${this.baseUrl}${path}.json`;
     const cached = await this.opts.cache.get(url);
     const now = this.now();
 
     if (cached && now.getTime() - cached.fetchedAt.getTime() < this.opts.ttlMs) {
-      return this.fromBody(cached.body, cached.fetchedAt, url, redirectsLeft, false, null);
+      return this.fromBody(cached.body, cached.fetchedAt, url, parse, redirectsLeft, false, null);
     }
 
     let body: string;
@@ -93,6 +121,7 @@ export class EdhrecClient implements RecommendationSource {
           cached.body,
           cached.fetchedAt,
           url,
+          parse,
           redirectsLeft,
           true,
           staleWarning(error, cached.fetchedAt),
@@ -101,29 +130,35 @@ export class EdhrecClient implements RecommendationSource {
       throw error;
     }
 
-    const result = parseEdhrecPage(body, url); // lanza "format" antes de cachear nada
+    const result = parse(body, url); // lanza "format" antes de cachear nada
     await this.opts.cache.set(url, { body, fetchedAt: now });
-    if (result.kind === "redirect") return this.follow(result.path, redirectsLeft, url);
+    if (result.kind === "redirect") return this.follow(result.path, parse, redirectsLeft, url);
     return { page: result.page, fetchedAt: now, stale: false, warning: null };
   }
 
-  private async fromBody(
+  private async fromBody<T>(
     body: string,
     fetchedAt: Date,
     url: string,
+    parse: Parser<T>,
     redirectsLeft: number,
     stale: boolean,
     warning: string | null,
-  ): Promise<Fetched> {
-    const result = parseEdhrecPage(body, url);
-    if (result.kind === "redirect") return this.follow(result.path, redirectsLeft, url);
+  ): Promise<Fetched<T>> {
+    const result = parse(body, url);
+    if (result.kind === "redirect") return this.follow(result.path, parse, redirectsLeft, url);
     return { page: result.page, fetchedAt, stale, warning };
   }
 
-  private follow(path: string, redirectsLeft: number, url: string): Promise<Fetched> {
+  private follow<T>(
+    path: string,
+    parse: Parser<T>,
+    redirectsLeft: number,
+    url: string,
+  ): Promise<Fetched<T>> {
     if (redirectsLeft <= 0)
       throw new EdhrecError("format", "EDHREC ha devuelto demasiadas redirecciones", url);
-    return this.fetchPage(path, redirectsLeft - 1);
+    return this.fetchPage(path, parse, redirectsLeft - 1);
   }
 }
 

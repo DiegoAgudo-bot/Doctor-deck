@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { SavedDeckSummaryDTO } from "@/server/dto";
 import { CardImage } from "./card-image";
-import { IconEye, IconEyeOff, IconTrash } from "./icons";
+import { IconCopy, IconEye, IconEyeOff, IconPencil, IconTrash } from "./icons";
 import { ColorPips } from "./mana";
 import { ago } from "./ui";
 
@@ -22,15 +22,20 @@ export function DeckTile({
   owner,
   onToggleVisibility,
   onDelete,
+  onRename,
+  onDuplicate,
   delay = 0,
 }: {
   deck: SavedDeckSummaryDTO;
   owner?: { username: string | null; name: string } | undefined;
   onToggleVisibility?: (() => void) | undefined;
   onDelete?: (() => void) | undefined;
+  onRename?: (() => void) | undefined;
+  onDuplicate?: (() => void) | undefined;
   delay?: number;
 }) {
   const mine = Boolean(onToggleVisibility || onDelete);
+  const actions = [onRename, onDuplicate, onToggleVisibility, onDelete].filter(Boolean).length;
   return (
     <div className="fade relative" style={{ ["--d" as string]: `${delay}ms` }}>
       <Link className="deckcard" href={`/decks/${d.id}`}>
@@ -41,7 +46,10 @@ export function DeckTile({
             <div className="cardimg cardimg-missing" />
           )}
         </div>
-        <div className={`flex min-w-0 flex-1 flex-col gap-1 ${mine ? "pr-16" : ""}`}>
+        <div
+          className="flex min-w-0 flex-1 flex-col gap-1"
+          style={{ paddingRight: mine ? actions * 28 + 4 : 0 }}
+        >
           <span style={{ fontWeight: 600, fontSize: 15 }}>{d.name}</span>
           <span className="muted flex flex-wrap items-center gap-2">
             <span className="truncate">{d.commanderNames.join(" + ")}</span>
@@ -63,6 +71,30 @@ export function DeckTile({
       </Link>
       {mine && (
         <div className="absolute flex gap-0.5" style={{ top: 8, right: 8 }}>
+          {onRename && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon"
+              style={{ width: 28, height: 28 }}
+              aria-label={`Cambiar el nombre de ${d.name}`}
+              title="Cambiar el nombre"
+              onClick={onRename}
+            >
+              <IconPencil size={14} />
+            </button>
+          )}
+          {onDuplicate && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon"
+              style={{ width: 28, height: 28 }}
+              aria-label={`Duplicar ${d.name}`}
+              title="Duplicar"
+              onClick={onDuplicate}
+            >
+              <IconCopy size={14} />
+            </button>
+          )}
           {onToggleVisibility && (
             <button
               type="button"

@@ -1,4 +1,4 @@
-import type { CommanderRecommendations } from "../recommendations/types";
+import type { AverageDeck, CommanderRecommendations } from "../recommendations/types";
 
 export interface RecommendationQuery {
   /** Nombres de los comandantes (1 o 2). */
@@ -10,4 +10,9 @@ export interface RecommendationQuery {
 /** Fuente de recomendaciones por comandante (EDHREC). */
 export interface RecommendationSource {
   getRecommendations(query: RecommendationQuery): Promise<CommanderRecommendations>;
+}
+
+/** Fuente de mazos medios por comandante (EDHREC "average decks"). */
+export interface AverageDeckSource {
+  getAverageDeck(query: RecommendationQuery): Promise<AverageDeck>;
 }

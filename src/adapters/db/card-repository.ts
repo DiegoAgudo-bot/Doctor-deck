@@ -60,8 +60,8 @@ const printingFromRow = (r: PrintingRow): Printing => ({
   priceEur: r.priceEur,
 });
 
-/** No salen en el buscador: lo que no es carta de juego, y las caras sueltas de cartas especiales. */
-const NOT_PLAYABLE = [...NON_GAME_LAYOUTS, "front_card"];
+/** No salen en el buscador: lo que no es carta de juego (tokens, emblemas, caras sueltas…). */
+const NOT_PLAYABLE = [...NON_GAME_LAYOUTS];
 
 export class PrismaCardRepository implements CardRepository, CardCatalogWriter {
   constructor(private readonly db: Db) {}

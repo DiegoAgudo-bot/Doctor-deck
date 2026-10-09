@@ -191,3 +191,20 @@ export const IconEyeOff = (p: P) => (
     <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
   </Icon>
 );
+export const IconMinus = (p: P) => (
+  <Icon weight={2.2} {...p}>
+    <path d="M5 12h14" />
+  </Icon>
+);
+export const IconPencil = (p: P) => (
+  <Icon {...p}>
+    <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3z" />
+    <path d="M13.5 6.5l3 3" />
+  </Icon>
+);
+export const IconCopy = (p: P) => (
+  <Icon {...p}>
+    <rect x="8" y="8" width="12" height="12" rx="2" />
+    <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+  </Icon>
+);

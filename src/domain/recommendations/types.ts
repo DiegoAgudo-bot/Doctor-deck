@@ -45,3 +45,16 @@ export interface CommanderRecommendations {
 export interface ResolvedRecommendation extends CardRecommendation {
   card: Card;
 }
+
+/** Mazo medio de un comandante (y tema) según la fuente: lo que juega de media la comunidad. */
+export interface AverageDeck {
+  commanderSlug: string;
+  theme: string | null;
+  /** Comandantes tal como los nombra la fuente. */
+  commanders: string[];
+  /** Las 99 (con las básicas en su cantidad), por nombre. */
+  cards: { name: string; quantity: number }[];
+  fetchedAt: Date;
+  stale: boolean;
+  warning: string | null;
+}

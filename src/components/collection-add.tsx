@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { AddCardsResponse, CardDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
+import { CardSearch } from "./card-search";
 import { CardHover, CardImage } from "./card-image";
 import { IconPlus, IconTrash } from "./icons";
 import { localCollection, notifyCollectionChanged } from "./local-collection";
@@ -29,48 +30,14 @@ export function AddCards({
   added: AddedRow[];
   onRemove: (id: string) => Promise<void>;
 }) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<CardDTO[]>([]);
-  const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(0);
   const [selected, setSelected] = useState<CardDTO | null>(null);
+  /** Cambia tras añadir: vacía el buscador (se vuelve a montar). */
+  const [searchKey, setSearchKey] = useState(0);
   const [quantity, setQuantity] = useState("1");
   const [foil, setFoil] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "in" | "out"; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const listId = useId();
-
-  // Autocompletar con un pequeño retardo; se descartan respuestas de búsquedas anteriores.
-  useEffect(() => {
-    const q = query.trim();
-    if (selected && q === selected.name) return;
-    if (q.length < 2) return;
-    let cancelled = false;
-    const t = setTimeout(() => {
-      api<CardDTO[]>(`/api/cards/search?q=${encodeURIComponent(q)}&limit=8`)
-        .then((r) => {
-          if (cancelled) return;
-          setResults(r);
-          setActive(0);
-          setOpen(true);
-        })
-        .catch(() => !cancelled && setResults([]));
-    }, 180);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [query, selected]);
-
-  // Con menos de 2 letras no se busca: lo que quedara de antes no se enseña.
-  const suggestions = query.trim().length >= 2 ? results : [];
-
-  function choose(card: CardDTO) {
-    setSelected(card);
-    setQuery(card.name);
-    setOpen(false);
-  }
 
   async function add() {
     const card = selected;
@@ -98,10 +65,9 @@ export function AddCards({
       }
       setMessage({ tone: "in", text: `Añadida: ${qty} × ${card.name}${foil ? " (foil)" : ""}.` });
       setSelected(null);
-      setQuery("");
+      setSearchKey((k) => k + 1);
       setQuantity("1");
       setFoil(false);
-      inputRef.current?.focus();
     } catch (err) {
       setMessage({
         tone: "out",
@@ -129,81 +95,15 @@ export function AddCards({
             className="grid-1-sm grid items-end gap-3"
             style={{ gridTemplateColumns: "minmax(0, 1fr) 90px auto auto" }}
           >
-            <div className="field relative">
-              <label className="label" htmlFor="add-card">
-                Carta
-              </label>
-              <input
-                id="add-card"
-                ref={inputRef}
-                className="input"
-                role="combobox"
-                aria-expanded={open && suggestions.length > 0}
-                aria-controls={listId}
-                aria-autocomplete="list"
-                aria-activedescendant={
-                  open && suggestions[active] ? `${listId}-${active}` : undefined
-                }
-                autoComplete="off"
-                placeholder="Escribe el nombre (en inglés)…"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setSelected(null);
-                }}
-                onFocus={() => suggestions.length > 0 && !selected && setOpen(true)}
-                onBlur={() => setTimeout(() => setOpen(false), 120)}
-                onKeyDown={(e) => {
-                  if (!open || suggestions.length === 0) return;
-                  if (e.key === "ArrowDown") {
-                    e.preventDefault();
-                    setActive((a) => (a + 1) % suggestions.length);
-                  } else if (e.key === "ArrowUp") {
-                    e.preventDefault();
-                    setActive((a) => (a - 1 + suggestions.length) % suggestions.length);
-                  } else if (e.key === "Enter") {
-                    e.preventDefault();
-                    const r = suggestions[active];
-                    if (r) choose(r);
-                  } else if (e.key === "Escape") {
-                    setOpen(false);
-                  }
-                }}
-              />
-              {open && suggestions.length > 0 && (
-                <ul
-                  id={listId}
-                  role="listbox"
-                  className="dialog absolute top-full right-0 left-0 z-40 mt-1 max-h-[340px] overflow-auto p-1"
-                  style={{ width: "auto", animation: "none" }}
-                >
-                  {suggestions.map((c, i) => (
-                    <li
-                      key={c.oracleId}
-                      id={`${listId}-${i}`}
-                      role="option"
-                      aria-selected={i === active}
-                      className="flex cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5"
-                      style={{ background: i === active ? "var(--color-hover)" : undefined }}
-                      onMouseEnter={() => setActive(i)}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        choose(c);
-                      }}
-                    >
-                      <CardImage card={c} style={{ width: 28 }} />
-                      <span className="flex min-w-0 flex-1 flex-col leading-tight">
-                        <span className="truncate" style={{ fontWeight: 500 }}>
-                          {c.name}
-                        </span>
-                        <span className="subtle truncate text-xs">{c.typeLine}</span>
-                      </span>
-                      <ManaCost cost={c.manaCost} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <CardSearch
+              key={searchKey}
+              id="add-card"
+              autoFocus={searchKey > 0}
+              label="Carta"
+              inputRef={inputRef}
+              onPick={setSelected}
+              onType={() => setSelected(null)}
+            />
             <div className="field">
               <label className="label" htmlFor="add-qty">
                 Copias

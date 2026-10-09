@@ -44,6 +44,7 @@ export interface DeckRepository {
   save(data: SaveDeckData): Promise<string>;
   delete(id: string): Promise<boolean>;
   setPublic(id: string, isPublic: boolean): Promise<boolean>;
+  rename(id: string, name: string): Promise<boolean>;
   /** Copias de cada carta usadas en los mazos guardados, salvo `excludeDeckId`. */
   usage(excludeDeckId?: string): Promise<Map<string, CardUsage>>;
 }

@@ -153,6 +153,14 @@ export class PrismaDeckRepository implements DeckRepository {
     return count > 0;
   }
 
+  async rename(id: string, name: string): Promise<boolean> {
+    const { count } = await this.db.deck.updateMany({
+      where: { publicId: id, userId: this.userId },
+      data: { name },
+    });
+    return count > 0;
+  }
+
   async delete(id: string): Promise<boolean> {
     const { count } = await this.db.deck.deleteMany({
       where: { publicId: id, userId: this.userId },

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ROLE_LABELS, ROLES, type Role } from "@/domain/roles/types";
 import type { CardDTO, DeckCardDTO, RoleStatDTO, ScoredCardDTO, SwapDTO } from "@/server/dto";
 import { CardHover, CardImage } from "./card-image";
-import { IconArrowRight, IconChevron, IconLock, IconX } from "./icons";
+import { IconArrowRight, IconChevron, IconLock, IconMinus, IconPlus, IconX } from "./icons";
 import { ManaCost } from "./mana";
 
 export type Decision = "accepted" | "rejected";
@@ -354,6 +354,8 @@ export function DeckList({
   leaving,
   onToggleLock,
   text,
+  onChangeQuantity,
+  busy = false,
 }: {
   view: ListView;
   cards: DeckCardDTO[];
@@ -361,6 +363,9 @@ export function DeckList({
   leaving: ReadonlySet<string>;
   onToggleLock: (oracleId: string) => void;
   text: string;
+  /** Si el mazo se puede editar: quitar (−1) o, en básicas, añadir (+1) copias desde la tabla. */
+  onChangeQuantity?: ((card: CardDTO, delta: number) => void) | undefined;
+  busy?: boolean;
 }) {
   const groups = groupByRole(cards);
   if (view === "texto") {
@@ -385,6 +390,7 @@ export function DeckList({
               <th>Coste</th>
               <th className="hide-sm">Rol</th>
               <th style={{ width: 40 }} />
+              {onChangeQuantity && <th style={{ width: 70 }} />}
             </tr>
           </thead>
           <tbody>
@@ -427,6 +433,37 @@ export function DeckList({
                         </button>
                       )}
                     </td>
+                    {onChangeQuantity && (
+                      <td>
+                        <span className="flex justify-end gap-0.5">
+                          {c.isBasicLand && (
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-icon"
+                              style={{ width: 26, height: 26 }}
+                              disabled={busy}
+                              aria-label={`Añadir otra ${c.card.name}`}
+                              onClick={() => onChangeQuantity(c.card, 1)}
+                            >
+                              <IconPlus size={12} />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-icon"
+                            style={{ width: 26, height: 26, color: "var(--color-out)" }}
+                            disabled={busy}
+                            aria-label={
+                              c.quantity > 1 ? `Quitar una ${c.card.name}` : `Quitar ${c.card.name}`
+                            }
+                            title={c.quantity > 1 ? "Quitar una copia" : "Quitar del mazo"}
+                            onClick={() => onChangeQuantity(c.card, -1)}
+                          >
+                            <IconMinus size={12} />
+                          </button>
+                        </span>
+                      </td>
+                    )}
                   </tr>
                 );
               }),

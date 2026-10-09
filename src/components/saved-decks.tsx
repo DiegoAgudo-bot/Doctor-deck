@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { SavedDeckSummaryDTO } from "@/server/dto";
+import type { SavedDeckDTO, SavedDeckSummaryDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { DeckTile, setDeckVisibility } from "./deck-tile";
 import { IconEye, IconPlus } from "./icons";
@@ -15,6 +15,9 @@ export function SavedDecks() {
   const [filter, setFilter] = useState("");
   const [toDelete, setToDelete] = useState<SavedDeckSummaryDTO | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [toRename, setToRename] = useState<SavedDeckSummaryDTO | null>(null);
+  const [newName, setNewName] = useState("");
+  const [working, setWorking] = useState(false);
 
   useEffect(() => {
     const load = () =>
@@ -34,6 +37,55 @@ export function SavedDecks() {
       setDecks((list) => list?.map((x) => (x.id === d.id ? { ...x, isPublic } : x)) ?? null);
     } catch (e: unknown) {
       setError(e instanceof ApiError ? e.message : "No se pudo cambiar la visibilidad");
+    }
+  }
+
+  async function rename() {
+    if (!toRename || !newName.trim()) return;
+    setWorking(true);
+    try {
+      await api(`/api/decks/${toRename.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim() }),
+      });
+      const id = toRename.id;
+      setDecks(
+        (list) => list?.map((x) => (x.id === id ? { ...x, name: newName.trim() } : x)) ?? null,
+      );
+      setToRename(null);
+      notifyDecksChanged();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "No se pudo cambiar el nombre");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  /** Copia el mazo (lista, tema, candados y descartes) como uno nuevo y privado. */
+  async function duplicate(d: SavedDeckSummaryDTO) {
+    setWorking(true);
+    try {
+      const full = await api<SavedDeckDTO>(`/api/decks/${d.id}`);
+      await api("/api/decks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `${d.name} (copia)`.slice(0, 120),
+          input: full.input,
+          ...(full.theme ? { theme: full.theme } : {}),
+          commanders: full.commanders,
+          locked: full.locked,
+          excluded: full.excluded,
+          isPublic: false,
+        }),
+      });
+      notifyDecksChanged();
+      setToast(null);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "No se pudo duplicar el mazo");
+    } finally {
+      setWorking(false);
     }
   }
 
@@ -68,10 +120,15 @@ export function SavedDecks() {
             </span>
           )}
         </h1>
-        <Link className="btn btn-primary" href="/mazo?nuevo=1">
-          <IconPlus size={14} />
-          Analizar mazo
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link className="btn" href="/mazo?nuevo=1">
+            Importar lista
+          </Link>
+          <Link className="btn btn-primary" href="/mazos/nuevo">
+            <IconPlus size={14} />
+            Nuevo mazo
+          </Link>
+        </div>
       </div>
       <p className="muted text-[13px]">
         Las cartas de estos mazos cuentan como «en uso» al buscar mejoras para los demás. Los
@@ -98,14 +155,20 @@ export function SavedDecks() {
       {decks && decks.length === 0 && (
         <div className="panel">
           <EmptyState
-            title="Aún no has guardado ningún mazo"
+            title="Aún no tienes ningún mazo"
             action={
-              <Link className="btn btn-primary" href="/mazo?nuevo=1">
-                Analizar mazo
-              </Link>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Link className="btn btn-primary" href="/mazos/nuevo">
+                  Crear desde un comandante
+                </Link>
+                <Link className="btn" href="/mazo?nuevo=1">
+                  Importar una lista
+                </Link>
+              </div>
             }
           >
-            Analiza uno y pulsa Guardar en su cabecera.
+            Elige un comandante y te monto el mazo con EDHREC, empieza desde cero o importa tu
+            lista.
           </EmptyState>
         </div>
       )}
@@ -144,12 +207,58 @@ export function SavedDecks() {
                   delay={i * 40}
                   onToggleVisibility={() => void toggle(d)}
                   onDelete={() => setToDelete(d)}
+                  onRename={() => {
+                    setNewName(d.name);
+                    setToRename(d);
+                  }}
+                  onDuplicate={working ? undefined : () => void duplicate(d)}
                 />
               ))}
             </div>
           )}
         </>
       )}
+
+      <Dialog
+        open={toRename !== null}
+        onClose={() => setToRename(null)}
+        title="Cambiar el nombre"
+        width={420}
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setToRename(null)}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={working || !newName.trim()}
+              onClick={() => void rename()}
+            >
+              Guardar nombre
+            </button>
+          </>
+        }
+      >
+        <form
+          className="field"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void rename();
+          }}
+        >
+          <label className="label" htmlFor="rename">
+            Nombre
+          </label>
+          <input
+            id="rename"
+            className="input"
+            value={newName}
+            maxLength={120}
+            onChange={(e) => setNewName(e.target.value)}
+          />
+        </form>
+      </Dialog>
 
       <Dialog
         open={toDelete !== null}

@@ -62,7 +62,10 @@ describe("PrismaDeckRepository", () => {
       cards: [],
     });
     expect(await repo.get(id)).toMatchObject({ name: "Teferi v2", cardCount: 1, locked: [] });
-    expect((await repo.list()).map((d) => d.name)).toEqual(["Teferi v2"]);
+    expect(await repo.rename(id, "Teferi control")).toBe(true);
+    expect((await repo.get(id))?.name).toBe("Teferi control");
+    expect(await new PrismaDeckRepository(db, "u2").rename(id, "Robado")).toBe(false);
+    expect((await repo.list()).map((d) => d.name)).toEqual(["Teferi control"]);
 
     expect(await repo.delete(id)).toBe(true);
     expect(await repo.get(id)).toBeNull();

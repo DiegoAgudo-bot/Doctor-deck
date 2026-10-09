@@ -315,8 +315,8 @@ function Sidebar({
             <span className="cap">Mazos</span>
             <Link
               className="btn btn-ghost btn-icon"
-              href="/mazo?nuevo=1"
-              aria-label="Analizar un mazo nuevo"
+              href="/mazos/nuevo"
+              aria-label="Nuevo mazo"
               style={{ width: 26, height: 26 }}
             >
               <IconPlus size={14} />

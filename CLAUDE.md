@@ -188,6 +188,20 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
 /api/me/profile`, `GET /api/users?q=`, `GET /api/users/{u}`, `POST|DELETE /api/users/{u}/follow`,
   `GET /api/notifications`, `POST /api/notifications/read`, `GET /api/community/decks`,
   `PATCH /api/decks/{id}` (`{isPublic}`), `POST /api/collection/view` con `username`.
+- **Crear mazos** (`application/new-deck.ts`, página `/mazos/nuevo`): eliges el comandante
+  (buscador con `commander=1`) y `newDeckFromCommander` monta el **mazo medio de EDHREC**
+  (`EdhrecClient.getAverageDeck`, `/average-decks/{slug}[/{tema}]`, parser en
+  `adapters/edhrec/average-deck.ts`; mismas reglas de caché y errores) o un mazo **vacío** para
+  montarlo desde cero. Devuelve la lista en texto, que se guarda con `saveDeck` como cualquier otra.
+  Nombre propuesto (`domain/deck/naming.ts`): "<colores> - <de qué va>", p. ej. "Jund -
+  Aristócratas" (combinaciones Boros/Jund/… y temas de EDHREC traducidos). API: `GET
+/api/commanders?ids=` (temas y nombre) y `POST /api/decks/new` (con sesión guarda y devuelve
+  `id`; sin ella devuelve la lista para abrirla en `/mazo?analizar=1`).
+  Editor: en la pestaña Lista de un mazo propio o sin guardar, "Añadir cartas" (buscador con
+  `identity=` de los colores del comandante y recomendadas de tu colección) y −/+ en la tabla;
+  cada cambio (`changeCard` en `domain/deck/export.ts`) reanaliza y, si es un mazo guardado, lo
+  guarda. "Mis mazos" es el gestor: nuevo, importar, renombrar (`PATCH /api/decks/{id}` con
+  `name`), duplicar (copia privada), público/privado y borrar.
 - **Mazo**: `DeckSource.load` → `parseDecklist` → `resolveDecklist` (agrupa por oracleId, detecta
   comandante: marcado → único candidato o pareja válida → si no, `commanderCandidates` para que
   elija el usuario con `chooseCommanders`) → `validateDeck`.

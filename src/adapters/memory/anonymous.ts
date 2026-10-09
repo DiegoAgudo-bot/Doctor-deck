@@ -79,5 +79,6 @@ export const noSavedDecks: DeckRepository = {
   },
   delete: async () => false,
   setPublic: async () => false,
+  rename: async () => false,
   usage: async () => new Map(),
 };

@@ -19,6 +19,8 @@ export const NON_GAME_LAYOUTS: ReadonlySet<string> = new Set([
   "planar",
   "scheme",
   "vanguard",
+  // Caras frontales sueltas (p. ej. otra "Savage Lands"): no son la carta jugable ni son legales.
+  "front_card",
 ]);
 
 const setNumberKey = (setCode: string, num: string) => `${setCode.toLowerCase()}|${num}`;

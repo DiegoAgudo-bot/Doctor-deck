@@ -18,6 +18,11 @@
   está en el catálogo (_Reliquary Tower_). `redirect.json` y `changed-format.json` cubren la
   redirección y un cambio de estructura. Para sustituirlas por datos reales:
   `npm run edhrec:fetch -- "Teferi, Temporal Archmage" --save tests/fixtures/edhrec/real.json`.
+- `edhrec/average-deck-winota.json`: mazo medio **real** de `json.edhrec.com/pages/average-decks/
+winota-joiner-of-forces.json` (descargado el 2026-10-09, recortado a `header` y `deck`), para
+  comprobar el parser contra la estructura de verdad.
+- `edhrec/average-deck-teferi.json`: mazo medio **escrito a mano** con cartas del catálogo de prueba
+  (incluye al comandante dentro de las cartas, 30 Island y una carta fuera del catálogo).
 - `deck-sources/*.json`: respuestas de Archidekt (`/api/decks/{id}/`) y Moxfield (v3 y v2),
   **escritas a mano** con cartas del catálogo de prueba (Teferi + Sol Ring, Dig Through Time,
   Island; Body of Knowledge en maybeboard/sideboard).

@@ -23,6 +23,23 @@ export function applySwaps(deck: ExportableDeck, swaps: readonly AcceptedSwap[])
   return { commanders: deck.commanders, cards: cards.filter((c) => c.quantity > 0) };
 }
 
+/**
+ * Cambia las copias de una carta en las 99: `delta` positivo añade, negativo quita (si llega a 0,
+ * la carta sale del mazo). Los comandantes no se tocan.
+ */
+export function changeCard(
+  deck: ExportableDeck,
+  card: { oracleId: string; name: string },
+  delta: number,
+): ExportableDeck {
+  if (deck.commanders.some((c) => c.oracleId === card.oracleId)) return deck;
+  const cards = deck.cards.map((c) => ({ ...c }));
+  const existing = cards.find((c) => c.oracleId === card.oracleId);
+  if (existing) existing.quantity += delta;
+  else if (delta > 0) cards.push({ oracleId: card.oracleId, name: card.name, quantity: delta });
+  return { commanders: deck.commanders, cards: cards.filter((c) => c.quantity > 0) };
+}
+
 /** Texto en formato estándar (Moxfield/Archidekt/Arena lo importan): secciones Commander y Deck. */
 export function exportDecklist(deck: ExportableDeck): string {
   const lines = ["Commander", ...deck.commanders.map((c) => `1 ${c.name}`), "", "Deck"];

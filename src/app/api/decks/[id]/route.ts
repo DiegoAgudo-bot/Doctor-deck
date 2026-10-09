@@ -34,16 +34,22 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">
   }
 }
 
-const patchSchema = z.object({ isPublic: z.boolean() });
+const patchSchema = z
+  .object({ isPublic: z.boolean().optional(), name: z.string().trim().min(1).max(120).optional() })
+  .refine((p) => p.isPublic !== undefined || p.name !== undefined, "Nada que cambiar");
 
-/** Cambia la visibilidad (público / privado) de uno de tus mazos. */
+/** Cambia la visibilidad (público / privado) o el nombre de uno de tus mazos. */
 export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">) {
   try {
     const user = await requireUser(req);
     const id = parseId((await ctx.params).id);
-    const { isPublic } = patchSchema.parse(await req.json());
-    const ok = id !== null && (await getContainer().decksFor(user.id).setPublic(id, isPublic));
-    return ok ? Response.json({ isPublic }) : notFound();
+    const changes = patchSchema.parse(await req.json());
+    const decks = getContainer().decksFor(user.id);
+    let ok = id !== null;
+    if (ok && id && changes.isPublic !== undefined)
+      ok = await decks.setPublic(id, changes.isPublic);
+    if (ok && id && changes.name !== undefined) ok = await decks.rename(id, changes.name);
+    return ok ? Response.json(changes) : notFound();
   } catch (err) {
     return errorResponse(err);
   }

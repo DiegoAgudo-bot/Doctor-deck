@@ -1,0 +1,25 @@
+{
+  "header": "Average Deck for Teferi, Temporal Archmage (escrito a mano)",
+  "deck": {
+    "commander": ["Teferi, Temporal Archmage"],
+    "commander_v2": [["Teferi, Temporal Archmage", 1]],
+    "cards": {
+      "Artifact": [
+        ["Sol Ring", 1],
+        ["Tamiyo's Logbook", 1]
+      ],
+      "Instant": [
+        ["Dig Through Time", 1],
+        ["Body of Knowledge", 1]
+      ],
+      "Creature": [
+        ["Thundertrap Trainer", 1],
+        ["Teferi, Temporal Archmage", 1]
+      ],
+      "Land": [
+        ["Island", 30],
+        ["Reliquary Tower", 1]
+      ]
+    }
+  }
+}

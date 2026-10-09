@@ -73,10 +73,15 @@ export function Home() {
       {user ? (
         <div className="stack-sm flex items-center justify-between gap-3">
           <h1 className="h1">Hola, {user.name}</h1>
-          <Link className="btn btn-primary" href="/mazo?nuevo=1">
-            <IconPlus size={14} />
-            Analizar un mazo
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link className="btn" href="/mazo?nuevo=1">
+              Analizar una lista
+            </Link>
+            <Link className="btn btn-primary" href="/mazos/nuevo">
+              <IconPlus size={14} />
+              Nuevo mazo
+            </Link>
+          </div>
         </div>
       ) : (
         <section className="fade flex flex-col gap-3 py-2">
@@ -91,6 +96,9 @@ export function Home() {
           <div className="mt-1 flex flex-wrap gap-2">
             <Link className="btn btn-primary btn-lg" href="/mazo">
               Analizar un mazo
+            </Link>
+            <Link className="btn btn-lg" href="/mazos/nuevo">
+              Crear desde un comandante
             </Link>
             <Link className="btn btn-lg" href="/coleccion">
               Importar mi colección

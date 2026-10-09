@@ -215,6 +215,25 @@ export interface CommunityDeckDTO extends SavedDeckSummaryDTO {
   owner: { username: string | null; name: string };
 }
 
+/** Para el asistente de "Nuevo mazo": el comandante, sus temas en EDHREC y el nombre propuesto. */
+export interface CommanderInfoDTO {
+  commanders: CardDTO[];
+  themes: ThemeLink[];
+  totalDecks: number | null;
+  suggestedName: string;
+  warning: string | null;
+}
+
+export interface NewDeckResponse {
+  /** Con sesión se guarda (id); sin ella hay que abrir `input` en /mazo. */
+  saved: boolean;
+  id: string | null;
+  name: string;
+  input: string;
+  theme: string | null;
+  warning: string | null;
+}
+
 export interface StatusResponse {
   catalog: { cards: number; printings: number };
   /** null si no hay sesión. */
