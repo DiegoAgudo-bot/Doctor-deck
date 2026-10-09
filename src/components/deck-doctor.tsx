@@ -83,6 +83,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const [buy, setBuy] = useState<BuyOptions | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  /**
+   * Abriendo un mazo guardado (/decks/{id}): hasta que llega el análisis se enseña una carga, no
+   * el formulario con la lista (si no, la lista aparece un instante y luego salta al mazo).
+   */
+  const [opening, setOpening] = useState(Boolean(deckId));
   const [mode, setMode] = useState<"texto" | "enlace">("texto");
   const [tab, setTab] = useState<Tab>("cambios");
   const [filter, setFilter] = useState<Filter>("todos");
@@ -126,11 +131,12 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           setMode(isLink(d.input) ? "enlace" : "texto");
           setHydrated(true);
           setChosen(d.commanders);
-          void analyze(next, d.commanders);
+          void analyze(next, d.commanders).finally(() => setOpening(false));
         })
         .catch((e: unknown) => {
           setError(e instanceof ApiError ? e.message : "No se pudo abrir el mazo");
           setHydrated(true);
+          setOpening(false);
         });
       return;
     }
@@ -295,11 +301,13 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       return next;
     });
 
-  const showForm = !ok || editing;
+  // La lista solo se enseña para analizar uno nuevo, al pulsar "Cambiar lista" o si no se pudo abrir.
+  const showForm = (!ok && !opening) || editing;
   const analyzing = busy === "analyze";
 
   return (
     <main className="page max-w-[1240px]">
+      {opening && !ok && <OpeningDeck />}
       {showForm && (
         <EntryForm
           title={ok ? "Cambiar la lista" : "Analizar mazo"}
@@ -1039,6 +1047,30 @@ function OwnershipLine({
         <i style={{ width: `${pct}%` }} />
       </span>
     </button>
+  );
+}
+
+/** Mientras se abre un mazo guardado: la forma de la cabecera y del diff, sin la lista. */
+function OpeningDeck() {
+  return (
+    <div className="flex flex-col gap-5" aria-busy="true">
+      <section className="flex items-start gap-5">
+        <div className="skel hide-sm" style={{ width: 132, aspectRatio: "488/680" }} />
+        <div className="flex flex-1 flex-col gap-3">
+          <div className="skel" style={{ width: 140, height: 12 }} />
+          <div className="skel" style={{ width: "50%", height: 26 }} />
+          <div className="skel" style={{ width: "35%", height: 14 }} />
+          <div className="skel" style={{ width: 260, height: 44 }} />
+        </div>
+      </section>
+      <Loading>
+        Abriendo el mazo y comparándolo con tu colección…{" "}
+        <span className="subtle">
+          Pido las recomendaciones a EDHREC; suele tardar unos segundos.
+        </span>
+      </Loading>
+      <DiffSkeleton />
+    </div>
   );
 }
 
