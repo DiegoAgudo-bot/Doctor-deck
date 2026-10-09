@@ -95,10 +95,41 @@ export function resolveDecklist(parsed: ParsedDecklist, index: CardIndex): Resol
   return {
     commanders: [],
     commanderSource: "none",
-    commanderCandidates: candidates,
+    commanderCandidates: fittingCandidates(candidates, all),
     cards: strip([]),
     unresolved,
   };
+}
+
+/**
+ * De las cartas que pueden ser comandante, las que encajan con los colores del mazo: las que solas
+ * (o en una pareja válida: partner, background…) tienen una identidad de color que abarca más
+ * cartas del mazo. En un mazo blanco y rojo salen las legendarias blancas y rojas, no una solo
+ * blanca (las cartas rojas no cabrían). Si se ha colado alguna carta de otro color, en vez de no
+ * ofrecer ninguna, se quedan las que mejor encajan.
+ */
+export function fittingCandidates(
+  candidates: readonly Card[],
+  deck: readonly { card: Card }[],
+): Card[] {
+  const options: Card[][] = [];
+  candidates.forEach((a, i) => {
+    if (isValidCommanderPair(a)) options.push([a]);
+    for (const b of candidates.slice(i + 1)) {
+      if (isValidCommanderPair(a, b)) options.push([a, b]);
+    }
+  });
+  if (options.length === 0) return [...candidates];
+  // Cuántas cartas del mazo (aparte de los propios comandantes) caben en la identidad de la opción.
+  const coverage = (option: Card[]) => {
+    const identity = combinedColorIdentity(option);
+    return deck.filter((c) => !option.includes(c.card) && fitsColorIdentity(c.card, identity))
+      .length;
+  };
+  const scored = options.map((option) => ({ option, score: coverage(option) }));
+  const best = Math.max(...scored.map((s) => s.score));
+  const keep = new Set(scored.filter((s) => s.score === best).flatMap((s) => s.option));
+  return candidates.filter((c) => keep.has(c));
 }
 
 /** Aplica la elección de comandante(s) hecha por el usuario. */

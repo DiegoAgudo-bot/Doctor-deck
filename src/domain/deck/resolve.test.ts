@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { makeCard } from "../../../tests/helpers/cards";
 import { InMemoryCardIndex } from "../cards/card-index";
 import { parseDecklist } from "./decklist";
-import { chooseCommanders, resolveDecklist, validateDeck } from "./resolve";
+import { chooseCommanders, fittingCandidates, resolveDecklist, validateDeck } from "./resolve";
 
 const atraxa = makeCard({
   name: "Atraxa, Praetors' Voice",
@@ -79,10 +79,11 @@ describe("resolveDecklist", () => {
     expect(deck.commanders).toEqual([thrasios, tymna]);
   });
 
-  it("pide elegir si hay varios candidatos incompatibles", () => {
+  it("pide elegir si hay varios candidatos incompatibles (solo los que encajan con los colores)", () => {
     const deck = resolve("1 Atraxa, Praetors' Voice\n1 Thalia, Guardian of Thraben\n1 Sol Ring");
     expect(deck.commanderSource).toBe("none");
-    expect(deck.commanderCandidates).toEqual([atraxa, thalia]);
+    // Thalia (blanca) no puede ser la comandante: Atraxa no cabría en su identidad.
+    expect(deck.commanderCandidates).toEqual([atraxa]);
     expect(deck.cards).toHaveLength(3);
 
     const chosen = chooseCommanders(deck, [atraxa.oracleId]);
@@ -134,5 +135,79 @@ describe("validateDeck", () => {
 
   it("avisa si no hay comandante", () => {
     expect(validateDeck(resolve("1 Sol Ring")).map((i) => i.kind)).toContain("noCommander");
+  });
+});
+
+describe("fittingCandidates", () => {
+  const legend = (
+    name: string,
+    colorIdentity: string[],
+    extra: Parameters<typeof makeCard>[0] = {},
+  ) =>
+    makeCard({
+      name,
+      typeLine: "Legendary Creature — Human",
+      colorIdentity: colorIdentity as never,
+      ...extra,
+    });
+  const spell = (name: string, colorIdentity: string[]) =>
+    makeCard({ name, typeLine: "Instant", colorIdentity: colorIdentity as never });
+
+  const winota = legend("Winota, Joiner of Forces", ["R", "W"]);
+  const feather = legend("Feather, the Redeemed", ["R", "W"]);
+  const thaliaW = legend("Thalia, Guardian of Thraben", ["W"]);
+  const krenkoR = legend("Krenko, Mob Boss", ["R"]);
+  const karn = legend("Karn, Silver Golem", []);
+  const deckOf = (...cards: ReturnType<typeof makeCard>[]) => cards.map((card) => ({ card }));
+
+  it("en un mazo blanco y rojo solo ofrece las legendarias blancas y rojas", () => {
+    const deck = deckOf(
+      winota,
+      feather,
+      thaliaW,
+      krenkoR,
+      karn,
+      spell("Lightning Bolt", ["R"]),
+      spell("Swords to Plowshares", ["W"]),
+      spell("Boros Charm", ["R", "W"]),
+    );
+    expect(fittingCandidates([winota, feather, thaliaW, krenkoR, karn], deck)).toEqual([
+      winota,
+      feather,
+    ]);
+  });
+
+  it("si se ha colado una carta de otro color, se queda con las que mejor encajan", () => {
+    const deck = deckOf(
+      winota,
+      thaliaW,
+      spell("Lightning Bolt", ["R"]),
+      spell("Swords to Plowshares", ["W"]),
+      spell("Cultivate", ["G"]),
+    );
+    expect(fittingCandidates([winota, thaliaW], deck)).toEqual([winota]);
+  });
+
+  it("tiene en cuenta las parejas: dos partners que juntos cubren los colores", () => {
+    const tymnaWB = legend("Tymna the Weaver", ["W", "B"], { keywords: ["Partner"] });
+    const kraumUR = legend("Kraum, Ludevic's Opus", ["U", "R"], { keywords: ["Partner"] });
+    const deck = deckOf(
+      tymnaWB,
+      kraumUR,
+      thaliaW,
+      spell("Counterspell", ["U"]),
+      spell("Lightning Bolt", ["R"]),
+      spell("Doom Blade", ["B"]),
+    );
+    expect(fittingCandidates([tymnaWB, kraumUR, thaliaW], deck)).toEqual([tymnaWB, kraumUR]);
+  });
+
+  it("sin ninguna opción válida devuelve las candidatas tal cual", () => {
+    const background = makeCard({
+      name: "Raised by Giants",
+      typeLine: "Legendary Enchantment — Background",
+      colorIdentity: ["G"],
+    });
+    expect(fittingCandidates([background], deckOf(background))).toEqual([background]);
   });
 });
