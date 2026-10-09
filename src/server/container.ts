@@ -8,9 +8,11 @@ import { PrismaResponseCache } from "@/adapters/db/response-cache";
 import { EdhrecClient } from "@/adapters/edhrec/edhrec-client";
 import { createDb } from "@/adapters/db/prisma";
 import { HttpClient } from "@/adapters/http/http-client";
+import { smtpMailer } from "@/adapters/mail/mailer";
 import { engineConfig } from "@/config/engine";
 import { loadEnv } from "@/config/env";
 import { HeuristicRoleClassifier } from "@/domain/roles/heuristic-classifier";
+import { authFeatures, createAuth, type Auth } from "./auth";
 
 export type Container = ReturnType<typeof createContainer>;
 
@@ -30,13 +32,18 @@ export function createContainer() {
     userAgent: env.HTTP_USER_AGENT,
     minIntervalMs: env.DECK_SOURCES_MIN_INTERVAL_MS,
   });
+  const mailer = env.SMTP_URL ? smtpMailer(env.SMTP_URL, env.MAIL_FROM) : null;
   return {
     env,
     edhrec,
     db,
+    mailer,
+    authFeatures: authFeatures(env, mailer),
+    /** Catálogo de cartas: compartido por todos los usuarios. */
     cards: new PrismaCardRepository(db),
-    collection: new PrismaCollectionRepository(db),
-    decks: new PrismaDeckRepository(db),
+    /** Colección y mazos: siempre de un usuario concreto. */
+    collectionFor: (userId: string) => new PrismaCollectionRepository(db, userId),
+    decksFor: (userId: string) => new PrismaDeckRepository(db, userId),
     deckSources: [
       archidektDeckSource(deckSourcesHttp),
       moxfieldDeckSource(deckSourcesHttp),
@@ -51,10 +58,20 @@ export function createContainer() {
   };
 }
 
-const globalForContainer = globalThis as unknown as { deckDoctorContainer?: Container };
+const globalForContainer = globalThis as unknown as {
+  deckDoctorContainer?: Container;
+  deckDoctorAuth?: Auth;
+};
 
 /** Instancia única para el servidor web (sobrevive al recargado en caliente de `next dev`). */
 export function getContainer(): Container {
   globalForContainer.deckDoctorContainer ??= createContainer();
   return globalForContainer.deckDoctorContainer;
+}
+
+/** Better Auth sobre la misma BD que el resto de la app. */
+export function getAuth(): Auth {
+  const c = getContainer();
+  globalForContainer.deckDoctorAuth ??= createAuth({ db: c.db, env: c.env, mailer: c.mailer });
+  return globalForContainer.deckDoctorAuth;
 }

@@ -22,7 +22,26 @@ export function StatusPanel() {
   if (!status) return <p className="text-sm text-zinc-500">Cargando…</p>;
 
   const noCatalog = status.catalog.cards === 0;
-  const noCollection = status.collection.rows === 0;
+  const collection = status.collection;
+  if (!status.user || !collection) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-zinc-600 dark:text-zinc-400">
+          Crea una cuenta para guardar tu colección y tus mazos y no perderlos nunca. Puedes entrar
+          con Google o con email y contraseña.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/registro" className={buttonClass.primary}>
+            Crear cuenta
+          </Link>
+          <Link href="/entrar" className={buttonClass.secondary}>
+            Ya tengo cuenta
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  const noCollection = collection.rows === 0;
   return (
     <div className="flex flex-col gap-4">
       {noCatalog && (
@@ -31,14 +50,12 @@ export function StatusPanel() {
           servidor antes de importar la colección.
         </Alert>
       )}
+      <p className="text-sm text-zinc-500">Hola, {status.user.name}.</p>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Stat label="Cartas en catálogo" value={status.catalog.cards.toLocaleString("es")} />
-        <Stat
-          label="Copias en colección"
-          value={status.collection.totalCards.toLocaleString("es")}
-        />
-        <Stat label="Cartas distintas" value={status.collection.uniqueCards.toLocaleString("es")} />
-        <Stat label="Sin emparejar" value={status.collection.unmatchedRows.toLocaleString("es")} />
+        <Stat label="Copias en colección" value={collection.totalCards.toLocaleString("es")} />
+        <Stat label="Cartas distintas" value={collection.uniqueCards.toLocaleString("es")} />
+        <Stat label="Sin emparejar" value={collection.unmatchedRows.toLocaleString("es")} />
       </div>
       <div className="flex flex-wrap gap-2">
         <Link

@@ -16,11 +16,23 @@ const parseIds = (json: string): string[] => {
   }
 };
 
+/** Ya existe un mazo con ese id, pero es de otro usuario (o no existe). */
+export class DeckNotFoundError extends Error {
+  constructor() {
+    super("Ese mazo no existe");
+  }
+}
+
+/** Mazos de UN usuario: todas las consultas se filtran por `userId`. */
 export class PrismaDeckRepository implements DeckRepository {
-  constructor(private readonly db: Db) {}
+  constructor(
+    private readonly db: Db,
+    private readonly userId: string,
+  ) {}
 
   async list(): Promise<SavedDeckSummary[]> {
     const decks = await this.db.deck.findMany({
+      where: { userId: this.userId },
       orderBy: { updatedAt: "desc" },
       include: { cards: { select: { quantity: true } } },
     });
@@ -35,7 +47,10 @@ export class PrismaDeckRepository implements DeckRepository {
   }
 
   async get(id: number): Promise<SavedDeck | null> {
-    const d = await this.db.deck.findUnique({ where: { id }, include: { cards: true } });
+    const d = await this.db.deck.findFirst({
+      where: { id, userId: this.userId },
+      include: { cards: true },
+    });
     if (!d) return null;
     return {
       id: d.id,
@@ -78,6 +93,8 @@ export class PrismaDeckRepository implements DeckRepository {
     };
     return this.db.$transaction(async (tx) => {
       if (data.id !== undefined) {
+        const own = await tx.deck.count({ where: { id: data.id, userId: this.userId } });
+        if (own === 0) throw new DeckNotFoundError();
         await tx.deckCard.deleteMany({ where: { deckId: data.id } });
         await tx.deck.update({
           where: { id: data.id },
@@ -85,19 +102,24 @@ export class PrismaDeckRepository implements DeckRepository {
         });
         return data.id;
       }
-      const created = await tx.deck.create({ data: { ...fields, cards: { create: cards } } });
+      const created = await tx.deck.create({
+        data: { ...fields, userId: this.userId, cards: { create: cards } },
+      });
       return created.id;
     });
   }
 
   async delete(id: number): Promise<boolean> {
-    const { count } = await this.db.deck.deleteMany({ where: { id } });
+    const { count } = await this.db.deck.deleteMany({ where: { id, userId: this.userId } });
     return count > 0;
   }
 
   async usage(excludeDeckId?: number): Promise<Map<string, CardUsage>> {
     const rows = await this.db.deckCard.findMany({
-      where: excludeDeckId === undefined ? {} : { deckId: { not: excludeDeckId } },
+      where: {
+        deck: { userId: this.userId },
+        ...(excludeDeckId === undefined ? {} : { deckId: { not: excludeDeckId } }),
+      },
       select: { oracleId: true, quantity: true, deck: { select: { name: true } } },
     });
     const usage = new Map<string, CardUsage>();

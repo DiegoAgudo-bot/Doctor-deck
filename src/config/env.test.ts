@@ -18,3 +18,19 @@ describe("loadEnv", () => {
     expect(() => loadEnv({ DATABASE_URL: "f" })).toThrow();
   });
 });
+
+describe("loadEnv: usuarios", () => {
+  const base = { DATABASE_URL: "f", HTTP_USER_AGENT: "u" };
+  it("en producción exige BETTER_AUTH_SECRET", () => {
+    expect(() => loadEnv({ ...base, NODE_ENV: "production" })).toThrow(/BETTER_AUTH_SECRET/);
+    expect(() =>
+      loadEnv({ ...base, NODE_ENV: "production", BETTER_AUTH_SECRET: "x".repeat(32) }),
+    ).not.toThrow();
+  });
+  it("las variables vacías cuentan como no definidas", () => {
+    const env = loadEnv({ ...base, GOOGLE_CLIENT_ID: "", SMTP_URL: "", BETTER_AUTH_SECRET: "" });
+    expect(env.GOOGLE_CLIENT_ID).toBeUndefined();
+    expect(env.SMTP_URL).toBeUndefined();
+    expect(env.BETTER_AUTH_SECRET).toBeUndefined();
+  });
+});

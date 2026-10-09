@@ -19,7 +19,8 @@ recomendaciones de EDHREC, priorizando cartas de la colección del usuario (expo
 | `npm run format` / `format:check`                                                              | Prettier                                                                  |
 | `npm run build`                                                                                | Build de producción                                                       |
 | `npm run scryfall:sync [-- --force \| --skip-download]`                                        | Descarga los bulk de Scryfall (si hay versión nueva) y los vuelca a la BD |
-| `npm run collection:import -- "export.csv"`                                                    | Importa un CSV de ManaBox y muestra el resumen                            |
+| `npm run collection:import -- "export.csv" [--user email]`                                     | Importa un CSV de ManaBox (a la cuenta indicada) y muestra el resumen     |
+| `npm run users:claim -- --user email`                                                          | Pasa a esa cuenta la colección y los mazos de antes de haber usuarios     |
 | `npm run deck:check -- "lista.txt" \| "https://…"`                                             | Parsea y resuelve una lista de mazo contra el catálogo                    |
 | `npm run edhrec:fetch -- "Comandante" [--theme x] [--partner "B"] [--save f.json]`             | Pide recomendaciones a EDHREC (con caché) y muestra un resumen            |
 | `npm run deck:suggest -- "lista.txt" [--theme x] [--lock "Carta"] [--commander "C"]`           | Analiza un mazo y muestra los cambios sugeridos                           |
@@ -135,6 +136,21 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   - Estado del mazo (lista, tema, bloqueadas, descartadas) en `localStorage` del navegador.
     "Aplicar cambios y recalcular" reescribe la lista con `applySwaps` + `exportDecklist`
     (`domain/deck/export.ts`) y vuelve a analizar excluyendo las cartas descartadas.
+- **Usuarios** (Fase 8, Better Auth, `src/server/auth.ts`): email + contraseña (scrypt, mínimo 8)
+  y Google si hay `GOOGLE_CLIENT_ID/SECRET`; "olvidé mi contraseña" solo si hay `SMTP_URL`
+  (`adapters/mail`). Sesiones en BD (tablas `user`, `session`, `account`, `verification`) con cookie
+  httpOnly; rutas en `/api/auth/[...all]`. Si alguien entra con Google con el mismo email que una
+  cuenta existente, se vinculan (`accountLinking`).
+  - `CollectionEntry` y `Deck` tienen `userId`. Los repositorios se crean **por usuario**
+    (`container.collectionFor(userId)`, `decksFor(userId)`) y filtran todas sus consultas por él; el
+    catálogo y la caché de EDHREC son globales. Dominio y casos de uso no saben de usuarios.
+  - Cada ruta de la API llama a `requireUser(request)` (`src/server/session.ts`) → 401 si no hay
+    sesión; `/api/status` funciona sin sesión. `src/proxy.ts` redirige a `/entrar?next=…` las páginas
+    privadas si no hay cookie (comprobación optimista; la real es `requireUser`).
+  - UI: `/entrar`, `/registro`, `/recuperar`, `/restablecer`; `UserMenu` en la cabecera. Tras entrar
+    se navega con recarga completa (la caché del router puede tener la redirección de antes).
+  - Filas con `userId` vacío = datos de antes de los usuarios → `npm run users:claim`.
+  - En producción `loadEnv` exige `BETTER_AUTH_SECRET`; `BETTER_AUTH_URL` debe ser la URL pública.
 - **Mazo**: `DeckSource.load` → `parseDecklist` → `resolveDecklist` (agrupa por oracleId, detecta
   comandante: marcado → único candidato o pareja válida → si no, `commanderCandidates` para que
   elija el usuario con `chooseCommanders`) → `validateDeck`.
@@ -200,11 +216,13 @@ Purchase price currency, Added`.
 5. Importar mazos desde links de Archidekt y Moxfield (+ lista del mazo agrupada por rol) ✅
 6. Mazos guardados en BD + descontar copias usadas en otros mazos ✅
 7. Modo "si compro N cartas baratas, ¿cuáles mejoran más el mazo?" con precio de Cardmarket ✅
+8. Usuarios: registro/login con email+contraseña y Google; colección y mazos por usuario ✅
 
 ### Futuro (no empezar hasta que el usuario lo pida)
 
 - **App móvil**. Requisito ya fijado: debe aparecer como destino al **compartir desde ManaBox**
   (share sheet de Android/iOS) y aceptar tanto el **CSV** como el **texto** compartido, importándolo
-  directamente como colección (o como mazo si es una lista). Reutilizará la API JSON (`/api/*`).
+  directamente como colección (o como mazo si es una lista). Reutilizará la API JSON (`/api/*`);
+  para autenticarse desde la app, añadir el plugin `bearer` de Better Auth.
 
 Al terminar cada fase: parar y esperar el OK del usuario.

@@ -9,7 +9,7 @@ import { MemoryResponseCache } from "@/adapters/http/memory-cache";
 import { HeuristicRoleClassifier } from "@/domain/roles/heuristic-classifier";
 import { mergeEngineConfig } from "@/domain/suggestions/config";
 import { fixtureCards, fixturePrintings, readFixture } from "../../tests/helpers/scryfall-fixtures";
-import { createTestDb } from "../../tests/helpers/test-db";
+import { createTestDb, createTestUser } from "../../tests/helpers/test-db";
 import { analyzeDeck, type AnalyzeDeckDeps } from "./analyze-deck";
 import { importCollection } from "./import-collection";
 import { DeckWithoutCommanderError, saveDeck } from "./save-deck";
@@ -24,7 +24,8 @@ beforeAll(async () => {
   const cards = new PrismaCardRepository(t.db);
   await cards.insertCards(fixtureCards());
   await cards.insertPrintings(fixturePrintings());
-  const collection = new PrismaCollectionRepository(t.db);
+  await createTestUser(t.db, "u1");
+  const collection = new PrismaCollectionRepository(t.db, "u1");
   // Mi colección: el recorte real del CSV (Dig Through Time, Body of Knowledge, Cackling Counterpart…)
   await importCollection(readFixture("manabox_sample.csv"), { cards, collection });
 
@@ -56,7 +57,7 @@ beforeAll(async () => {
     cards,
     collection,
     recommendations,
-    decks: new PrismaDeckRepository(t.db),
+    decks: new PrismaDeckRepository(t.db, "u1"),
     classifier: new HeuristicRoleClassifier(),
     // Sin mínimos para que el mazo de prueba (pequeño) no bloquee cambios
     config: mergeEngineConfig({ minimums: { land: 0, ramp: 0, draw: 0, removal: 0, wipe: 0 } }),

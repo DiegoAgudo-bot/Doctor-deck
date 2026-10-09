@@ -137,7 +137,10 @@ export interface SavedDeckDTO extends Omit<SavedDeck, "updatedAt"> {
 
 export interface StatusResponse {
   catalog: { cards: number; printings: number };
-  collection: Omit<CollectionSummary, "importedAt"> & { importedAt: string | null };
+  /** null si no hay sesión. */
+  user: { id: string; name: string; email: string } | null;
+  /** null si no hay sesión. */
+  collection: (Omit<CollectionSummary, "importedAt"> & { importedAt: string | null }) | null;
 }
 
 export type CollectionImportResponse = Omit<CollectionImportSummary, "unmatched" | "errors"> & {

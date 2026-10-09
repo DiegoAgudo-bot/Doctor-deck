@@ -1,17 +1,23 @@
 /**
  * Importa un CSV de ManaBox a la BD local y muestra el resumen.
- * Uso: npm run collection:import -- "ruta/al/export.csv"
+ * Uso: npm run collection:import -- "ruta/al/export.csv" [--user "email@ejemplo.com"]
  */
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
 import { importCollection } from "@/application/import-collection";
 import { createContainer } from "@/server/container";
+import { resolveCliUser } from "./lib/cli-user";
 
 async function main() {
   const file = process.argv[2];
   if (!file) throw new Error('Uso: npm run collection:import -- "ruta/al/export.csv"');
   const c = createContainer();
-  const s = await importCollection(await readFile(file, "utf8"), c);
+  const user = await resolveCliUser(c.db);
+  console.log(`Usuario: ${user.email}`);
+  const s = await importCollection(await readFile(file, "utf8"), {
+    cards: c.cards,
+    collection: c.collectionFor(user.id),
+  });
   console.log(`Filas: ${s.rows} · copias: ${s.totalCards} · cartas distintas: ${s.uniqueCards}`);
   console.log(
     `Emparejadas: ${s.matchedRows} (id: ${s.matchedBy.scryfallId}, set+nº: ${s.matchedBy.setNumber}, nombre: ${s.matchedBy.name})`,

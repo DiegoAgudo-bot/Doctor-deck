@@ -1,7 +1,7 @@
 /**
  * Analiza un mazo y muestra los cambios sugeridos usando tu colección y EDHREC.
  * Uso: npm run deck:suggest -- "lista.txt" [--theme control] [--lock "Carta"]... [--commander "Nombre"]...
- *        [--deck-id N] [--ignore-other-decks] [--buy N [--max-price 1] [--budget 10]]
+ *        [--user "email"] [--deck-id N] [--ignore-other-decks] [--buy N [--max-price 1] [--budget 10]]
  */
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
@@ -11,6 +11,7 @@ import { nameKey } from "@/domain/cards/names";
 import { ROLE_LABELS, ROLES } from "@/domain/roles/types";
 import { formatEuros } from "@/domain/suggestions/format";
 import { createContainer } from "@/server/container";
+import { resolveCliUser } from "./lib/cli-user";
 
 function num(flag: string): number | undefined {
   const v = Number(args(flag)[0]);
@@ -29,12 +30,13 @@ async function main() {
     throw new Error('Uso: npm run deck:suggest -- "lista.txt" [--theme x] [--lock "Carta"]');
   const c = createContainer();
   const input = /^https?:\/\//i.test(file) ? file : await readFile(file, "utf8");
+  const user = await resolveCliUser(c.db);
   const deps = {
     sources: c.deckSources,
     cards: c.cards,
-    collection: c.collection,
+    collection: c.collectionFor(user.id),
     recommendations: c.edhrec,
-    decks: c.decks,
+    decks: c.decksFor(user.id),
     classifier: c.classifier,
     config: c.engineConfig,
   };

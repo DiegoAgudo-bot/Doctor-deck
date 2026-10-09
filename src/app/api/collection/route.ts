@@ -2,12 +2,14 @@ import { importCollection } from "@/application/import-collection";
 import { getContainer } from "@/server/container";
 import { collectionImportResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
+import { requireUser } from "@/server/session";
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
 /** Cuerpo: el texto del CSV exportado por ManaBox. Reemplaza la colección guardada. */
 export async function POST(request: Request) {
   try {
+    const user = await requireUser(request);
     const text = await request.text();
     if (text.trim().length === 0) {
       return Response.json(
@@ -22,7 +24,10 @@ export async function POST(request: Request) {
       );
     }
     const c = getContainer();
-    const summary = await importCollection(text, { cards: c.cards, collection: c.collection });
+    const summary = await importCollection(text, {
+      cards: c.cards,
+      collection: c.collectionFor(user.id),
+    });
     return Response.json(collectionImportResponse(summary));
   } catch (err) {
     return errorResponse(err);

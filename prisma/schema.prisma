@@ -56,6 +56,9 @@ model Printing {
 
 model CollectionEntry {
   id              Int      @id @default(autoincrement())
+  /// Dueño. null = datos de antes de que hubiera usuarios (ver scripts/claim-orphans.ts).
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   scryfallId      String?
   oracleId        String?
   name            String
@@ -74,10 +77,14 @@ model CollectionEntry {
   importedAt      DateTime @default(now())
 
   @@index([oracleId])
+  @@index([userId])
 }
 
 model Deck {
   id             Int            @id @default(autoincrement())
+  /// Dueño. null = datos de antes de que hubiera usuarios (ver scripts/claim-orphans.ts).
+  userId         String?
+  user           User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
   name           String
   theme          String?
   /// Lo que pegó el usuario (lista o link), para volver a analizarlo.
@@ -92,6 +99,8 @@ model Deck {
   updatedAt      DateTime       @updatedAt
   cards          DeckCard[]
   decisions      SwapDecision[]
+
+  @@index([userId])
 }
 
 model DeckCard {
@@ -125,4 +134,71 @@ model HttpCache {
   status    Int
   body      String
   fetchedAt DateTime
+}
+
+// ---------- Usuarios (tablas de Better Auth; nombres y campos los fija la librería) ----------
+
+model User {
+  id            String            @id
+  name          String
+  email         String            @unique
+  emailVerified Boolean           @default(false)
+  image         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  collection    CollectionEntry[]
+  decks         Deck[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+/// Una forma de entrar: "credential" (email + contraseña, con `password` hasheada) o "google".
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+/// Tokens temporales (restablecer contraseña, estado de OAuth…).
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
 }

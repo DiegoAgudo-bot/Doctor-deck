@@ -4,6 +4,7 @@ import { saveDeck } from "@/application/save-deck";
 import { getContainer } from "@/server/container";
 import { savedDeckSummaryDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
+import { requireUser } from "@/server/session";
 
 const ids = z.array(z.string().min(1).max(64)).max(200).optional();
 
@@ -21,10 +22,11 @@ const saveSchema = z.object({
 });
 
 /** Mis mazos guardados. */
-export async function GET() {
+export async function GET(request: Request) {
   await connection();
   try {
-    return Response.json((await getContainer().decks.list()).map(savedDeckSummaryDTO));
+    const user = await requireUser(request);
+    return Response.json((await getContainer().decksFor(user.id).list()).map(savedDeckSummaryDTO));
   } catch (err) {
     return errorResponse(err);
   }
@@ -33,10 +35,11 @@ export async function GET() {
 /** Crea o actualiza (si viene `id`) un mazo guardado. */
 export async function POST(request: Request) {
   try {
+    const user = await requireUser(request);
     const req = saveSchema.parse(await request.json());
     const c = getContainer();
     return Response.json(
-      await saveDeck(req, { sources: c.deckSources, cards: c.cards, decks: c.decks }),
+      await saveDeck(req, { sources: c.deckSources, cards: c.cards, decks: c.decksFor(user.id) }),
     );
   } catch (err) {
     return errorResponse(err);

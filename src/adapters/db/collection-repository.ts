@@ -1,8 +1,12 @@
 import type { CollectionRepository, StoredCollection } from "@/domain/ports/collection-repository";
 import type { Db } from "./prisma";
 
+/** Colección de UN usuario: todas las consultas se filtran por `userId`. */
 export class PrismaCollectionRepository implements CollectionRepository {
-  constructor(private readonly db: Db) {}
+  constructor(
+    private readonly db: Db,
+    private readonly userId: string,
+  ) {}
 
   async replaceCollection({ matched, unmatched }: StoredCollection) {
     const data = [
@@ -22,6 +26,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
       })),
     ].map(({ row, ...rest }) => ({
       ...rest,
+      userId: this.userId,
       name: row.name,
       setCode: row.setCode,
       collectorNumber: row.collectorNumber,
@@ -32,7 +37,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
     }));
 
     await this.db.$transaction(async (tx) => {
-      await tx.collectionEntry.deleteMany();
+      await tx.collectionEntry.deleteMany({ where: { userId: this.userId } });
       for (let i = 0; i < data.length; i += 500) {
         await tx.collectionEntry.createMany({ data: data.slice(i, i + 500) });
       }
@@ -41,15 +46,19 @@ export class PrismaCollectionRepository implements CollectionRepository {
 
   async summary() {
     const [rows, total, unique, unmatched, last] = await Promise.all([
-      this.db.collectionEntry.count(),
-      this.db.collectionEntry.aggregate({ _sum: { quantity: true } }),
+      this.db.collectionEntry.count({ where: { userId: this.userId } }),
+      this.db.collectionEntry.aggregate({
+        where: { userId: this.userId },
+        _sum: { quantity: true },
+      }),
       this.db.collectionEntry.findMany({
-        where: { status: "matched" },
+        where: { userId: this.userId, status: "matched" },
         distinct: ["oracleId"],
         select: { oracleId: true },
       }),
-      this.db.collectionEntry.count({ where: { status: "unmatched" } }),
+      this.db.collectionEntry.count({ where: { userId: this.userId, status: "unmatched" } }),
       this.db.collectionEntry.findFirst({
+        where: { userId: this.userId },
         orderBy: { importedAt: "desc" },
         select: { importedAt: true },
       }),
@@ -66,7 +75,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
   async ownedQuantities() {
     const groups = await this.db.collectionEntry.groupBy({
       by: ["oracleId"],
-      where: { status: "matched", oracleId: { not: null } },
+      where: { userId: this.userId, status: "matched", oracleId: { not: null } },
       _sum: { quantity: true },
     });
     return new Map(

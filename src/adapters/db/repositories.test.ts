@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fixtureCards, fixturePrintings } from "../../../tests/helpers/scryfall-fixtures";
-import { createTestDb } from "../../../tests/helpers/test-db";
+import { createTestDb, createTestUser } from "../../../tests/helpers/test-db";
 import { nameKey } from "@/domain/cards/names";
 import { PrismaCardRepository } from "./card-repository";
 import { PrismaCollectionRepository } from "./collection-repository";
@@ -12,6 +12,8 @@ let cards: PrismaCardRepository;
 
 beforeAll(async () => {
   ({ db, cleanup } = createTestDb());
+  await createTestUser(db, "u1");
+  await createTestUser(db, "u2");
   cards = new PrismaCardRepository(db);
   await cards.insertCards(fixtureCards());
   await cards.insertPrintings(fixturePrintings());
@@ -59,7 +61,8 @@ describe("PrismaCardRepository", () => {
 
 describe("PrismaCollectionRepository", () => {
   it("reemplaza la colección y agrega copias por carta", async () => {
-    const repo = new PrismaCollectionRepository(db);
+    const repo = new PrismaCollectionRepository(db, "u1");
+    const other = new PrismaCollectionRepository(db, "u2");
     const sol = fixtureCards().find((c) => c.name === "Sol Ring" && c.layout === "normal");
     const row = (name: string, quantity: number, line: number) => ({
       line,
@@ -90,6 +93,11 @@ describe("PrismaCollectionRepository", () => {
       unmatched: [row("Carta Inventada", 1, 4)],
     });
     expect(await repo.ownedQuantities()).toEqual(new Map([[sol?.oracleId, 3]]));
+    // Otro usuario no ve esta colección, y reemplazar la suya no toca la mía
+    expect((await other.ownedQuantities()).size).toBe(0);
+    await other.replaceCollection({ matched: [], unmatched: [row("Suya", 1, 2)] });
+    expect(await repo.ownedQuantities()).toEqual(new Map([[sol?.oracleId, 3]]));
+    expect(await other.summary()).toMatchObject({ rows: 1, unmatchedRows: 1 });
     expect(await repo.summary()).toMatchObject({
       rows: 3,
       totalCards: 4,
@@ -99,7 +107,8 @@ describe("PrismaCollectionRepository", () => {
 
     await repo.replaceCollection({ matched: [], unmatched: [] });
     expect((await repo.ownedQuantities()).size).toBe(0);
-    expect(await db.collectionEntry.count()).toBe(0);
+    expect(await db.collectionEntry.count({ where: { userId: "u1" } })).toBe(0);
+    expect(await db.collectionEntry.count({ where: { userId: "u2" } })).toBe(1);
     expect(await repo.summary()).toMatchObject({ rows: 0, totalCards: 0, importedAt: null });
   });
 });

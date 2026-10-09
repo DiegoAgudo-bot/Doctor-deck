@@ -1,14 +1,16 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { fixtureCards, fixturePrintings } from "../../../tests/helpers/scryfall-fixtures";
-import { createTestDb } from "../../../tests/helpers/test-db";
+import { createTestDb, createTestUser } from "../../../tests/helpers/test-db";
 import { PrismaCardRepository } from "./card-repository";
-import { PrismaDeckRepository } from "./deck-repository";
+import { DeckNotFoundError, PrismaDeckRepository } from "./deck-repository";
 import type { Db } from "./prisma";
 
 let db: Db;
 let cleanup: () => Promise<void>;
-beforeAll(() => {
+beforeAll(async () => {
   ({ db, cleanup } = createTestDb());
+  await createTestUser(db, "u1");
+  await createTestUser(db, "u2");
 });
 afterAll(async () => cleanup());
 
@@ -22,7 +24,7 @@ const base = {
 
 describe("PrismaDeckRepository", () => {
   it("guarda, lee, lista, actualiza y borra", async () => {
-    const repo = new PrismaDeckRepository(db);
+    const repo = new PrismaDeckRepository(db, "u1");
     const id = await repo.save({
       ...base,
       name: "Teferi",
@@ -64,7 +66,7 @@ describe("PrismaDeckRepository", () => {
   });
 
   it("calcula las copias usadas en otros mazos", async () => {
-    const repo = new PrismaDeckRepository(db);
+    const repo = new PrismaDeckRepository(db, "u1");
     const a = await repo.save({
       ...base,
       name: "Atraxa",
@@ -88,6 +90,27 @@ describe("PrismaDeckRepository", () => {
     expect(exceptA.get("sol")).toEqual({ quantity: 1, decks: ["Krenko"] });
     expect(exceptA.has("krenko")).toBe(true);
     expect((await repo.usage(b)).has("krenko")).toBe(false);
+  });
+});
+
+describe("PrismaDeckRepository: aislamiento entre usuarios", () => {
+  it("un usuario no ve, cambia ni borra los mazos de otro, ni cuentan para su uso", async () => {
+    const mine = new PrismaDeckRepository(db, "u1");
+    const theirs = new PrismaDeckRepository(db, "u2");
+    const id = await theirs.save({
+      ...base,
+      name: "Ajeno",
+      commanders: [{ oracleId: "c", name: "C" }],
+      cards: [{ oracleId: "rare", quantity: 1 }],
+    });
+    expect(await mine.get(id)).toBeNull();
+    expect((await mine.list()).map((d) => d.name)).not.toContain("Ajeno");
+    expect(await mine.delete(id)).toBe(false);
+    await expect(
+      mine.save({ ...base, id, name: "Robado", commanders: [], cards: [] }),
+    ).rejects.toBeInstanceOf(DeckNotFoundError);
+    expect((await mine.usage()).has("rare")).toBe(false);
+    expect((await theirs.get(id))?.name).toBe("Ajeno");
   });
 });
 

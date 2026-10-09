@@ -26,3 +26,9 @@ export function createTestDb(): { db: Db; cleanup: () => Promise<void> } {
     },
   };
 }
+
+/** Crea un usuario mínimo (las filas de colección y mazos lo necesitan por la clave foránea). */
+export async function createTestUser(db: Db, id = "user-1"): Promise<string> {
+  await db.user.create({ data: { id, name: id, email: `${id}@test.local` } });
+  return id;
+}

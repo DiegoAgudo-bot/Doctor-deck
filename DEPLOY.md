@@ -51,8 +51,29 @@ server {
 }
 ```
 
-> ⚠️ La app no tiene login. Si la expones a internet, cualquiera podría ver o reemplazar tu
-> colección. Protégela (p. ej. `auth_basic` en nginx, Cloudflare Access o solo por VPN/Tailscale).
+### Usuarios (obligatorio)
+
+En el `.env` del VPS:
+
+```bash
+BETTER_AUTH_SECRET="$(openssl rand -base64 32)"   # pega el valor generado, no el comando
+BETTER_AUTH_URL="https://deckdoctor.example.com"  # la URL pública exacta, sin barra final
+```
+
+Sin `BETTER_AUTH_SECRET` la app no arranca en producción. Usa **HTTPS** (Let's Encrypt): las
+cookies de sesión van marcadas como seguras.
+
+**Login con Google (opcional).** En [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
+crea un "ID de cliente de OAuth" de tipo _Aplicación web_ con la URI de redirección autorizada
+`<BETTER_AUTH_URL>/api/auth/callback/google` y pon en el `.env` `GOOGLE_CLIENT_ID` y
+`GOOGLE_CLIENT_SECRET`. Si no están, el botón de Google simplemente no aparece.
+
+**"He olvidado la contraseña" (opcional).** Necesita enviar emails: pon `SMTP_URL`
+(p. ej. `smtps://usuario:clave@smtp.tuproveedor.com:465`) y `MAIL_FROM`. Si no está, la opción no
+aparece.
+
+**Datos de antes de los usuarios.** Si ya tenías colección o mazos importados, regístrate en la
+web y luego: `npm run users:claim -- --user "tu@email.com"`.
 
 ## 2. Clave SSH para GitHub Actions
 

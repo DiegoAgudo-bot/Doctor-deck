@@ -10,7 +10,7 @@ import { HttpClient } from "@/adapters/http/http-client";
 import { readJsonArray } from "@/adapters/scryfall/bulk";
 import { safeMappers } from "@/adapters/scryfall/mapping";
 import { FIXTURES, readFixture } from "../../tests/helpers/scryfall-fixtures";
-import { createTestDb } from "../../tests/helpers/test-db";
+import { createTestDb, createTestUser } from "../../tests/helpers/test-db";
 import { EmptyCatalogError, importCollection } from "./import-collection";
 import { loadDeck, UnsupportedDeckInputError } from "./load-deck";
 import { syncScryfallCatalog } from "./sync-scryfall";
@@ -25,10 +25,10 @@ const bulk = {
   defaultCards: () => readJsonArray(path.join(FIXTURES, "scryfall/default_cards.sample.json")),
 };
 
-beforeAll(() => {
+beforeAll(async () => {
   ({ db, cleanup } = createTestDb());
   cards = new PrismaCardRepository(db);
-  collection = new PrismaCollectionRepository(db);
+  collection = new PrismaCollectionRepository(db, await createTestUser(db));
 });
 afterAll(async () => cleanup());
 
