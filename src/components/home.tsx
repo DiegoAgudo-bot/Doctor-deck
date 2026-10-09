@@ -11,6 +11,7 @@ import {
   LOCAL_COLLECTION_EVENT,
   localCollection,
   localCopies,
+  ownedPairs,
   type LocalCollection,
 } from "./local-collection";
 import { ColorPips } from "./mana";
@@ -65,7 +66,7 @@ export function Home() {
   const user = status.user;
   const collection = status.collection;
   const copies = user ? (collection?.totalCards ?? 0) : localCopies(local);
-  const unique = user ? (collection?.uniqueCards ?? 0) : (local?.owned.length ?? 0);
+  const unique = user ? (collection?.uniqueCards ?? 0) : ownedPairs(local).length;
 
   return (
     <main className="page max-w-[1100px]" style={{ gap: 20 }}>

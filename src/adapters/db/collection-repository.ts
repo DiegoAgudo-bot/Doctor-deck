@@ -1,5 +1,13 @@
-import type { CollectionRepository, StoredCollection } from "@/domain/ports/collection-repository";
+import type {
+  CollectionEntryRow,
+  CollectionRepository,
+  ManualCard,
+  StoredCollection,
+} from "@/domain/ports/collection-repository";
 import type { Db } from "./prisma";
+
+/** `matchMethod` de las cartas añadidas sueltas: sobreviven a reimportar el CSV. */
+export const MANUAL = "manual";
 
 /** Colección de UN usuario: todas las consultas se filtran por `userId`. */
 export class PrismaCollectionRepository implements CollectionRepository {
@@ -37,18 +45,85 @@ export class PrismaCollectionRepository implements CollectionRepository {
     }));
 
     await this.db.$transaction(async (tx) => {
-      await tx.collectionEntry.deleteMany({ where: { userId: this.userId } });
+      // Reimportar reemplaza lo que vino del CSV, no lo añadido a mano.
+      await tx.collectionEntry.deleteMany({
+        where: {
+          userId: this.userId,
+          OR: [{ matchMethod: null }, { matchMethod: { not: MANUAL } }],
+        },
+      });
       for (let i = 0; i < data.length; i += 500) {
         await tx.collectionEntry.createMany({ data: data.slice(i, i + 500) });
       }
     });
   }
 
+  async addCards(cards: readonly ManualCard[]) {
+    if (cards.length === 0) return;
+    await this.db.collectionEntry.createMany({
+      data: cards.map((c) => ({
+        userId: this.userId,
+        oracleId: c.oracleId,
+        scryfallId: c.scryfallId ?? null,
+        name: c.name,
+        quantity: c.quantity,
+        foil: c.foil,
+        status: "matched",
+        matchMethod: MANUAL,
+        line: 0,
+        raw: "{}",
+      })),
+    });
+  }
+
+  async entries(): Promise<CollectionEntryRow[]> {
+    const rows = await this.db.collectionEntry.findMany({
+      where: { userId: this.userId, status: "matched", oracleId: { not: null } },
+      orderBy: [{ importedAt: "desc" }, { id: "desc" }],
+      select: {
+        id: true,
+        oracleId: true,
+        name: true,
+        quantity: true,
+        foil: true,
+        setCode: true,
+        matchMethod: true,
+        importedAt: true,
+      },
+    });
+    return rows.flatMap((r) =>
+      r.oracleId
+        ? [
+            {
+              id: String(r.id),
+              oracleId: r.oracleId,
+              name: r.name,
+              quantity: r.quantity,
+              foil: r.foil,
+              setCode: r.setCode,
+              source: r.matchMethod === MANUAL ? ("manual" as const) : ("csv" as const),
+              addedAt: r.importedAt,
+            },
+          ]
+        : [],
+    );
+  }
+
+  async removeAdded(id: string) {
+    const n = Number(id);
+    if (!Number.isInteger(n) || n <= 0) return false;
+    const { count } = await this.db.collectionEntry.deleteMany({
+      where: { id: n, userId: this.userId, matchMethod: MANUAL },
+    });
+    return count > 0;
+  }
+
   async summary() {
     const [rows, total, unique, unmatched, last] = await Promise.all([
       this.db.collectionEntry.count({ where: { userId: this.userId } }),
+      // Copias identificadas (las que cuentan al analizar); las filas sin emparejar van aparte.
       this.db.collectionEntry.aggregate({
-        where: { userId: this.userId },
+        where: { userId: this.userId, status: "matched" },
         _sum: { quantity: true },
       }),
       this.db.collectionEntry.findMany({

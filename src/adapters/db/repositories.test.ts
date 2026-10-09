@@ -100,7 +100,7 @@ describe("PrismaCollectionRepository", () => {
     expect(await other.summary()).toMatchObject({ rows: 1, unmatchedRows: 1 });
     expect(await repo.summary()).toMatchObject({
       rows: 3,
-      totalCards: 4,
+      totalCards: 3, // las copias sin emparejar no cuentan
       uniqueCards: 1,
       unmatchedRows: 1,
     });

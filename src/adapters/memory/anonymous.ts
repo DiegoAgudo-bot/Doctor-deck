@@ -1,6 +1,8 @@
 import type {
+  CollectionEntryRow,
   CollectionRepository,
   CollectionSummary,
+  ManualCard,
   StoredCollection,
 } from "@/domain/ports/collection-repository";
 import type { DeckRepository } from "@/domain/ports/deck-repository";
@@ -24,6 +26,32 @@ export class BrowserCollectionRepository implements CollectionRepository {
       owned.set(m.oracleId, (owned.get(m.oracleId) ?? 0) + m.row.quantity);
     }
     this.owned = owned;
+  }
+
+  /** Las cartas sueltas del visitante viven en su navegador; aquí solo cuentan para esta petición. */
+  async addCards(cards: readonly ManualCard[]) {
+    for (const c of cards) {
+      this.owned.set(c.oracleId, (this.owned.get(c.oracleId) ?? 0) + c.quantity);
+    }
+  }
+
+  /** Sin detalle de líneas: una por carta con las copias que manda el navegador. */
+  async entries(): Promise<CollectionEntryRow[]> {
+    const at = new Date(0);
+    return [...this.owned].map(([oracleId, quantity]) => ({
+      id: oracleId,
+      oracleId,
+      name: "",
+      quantity,
+      foil: false,
+      setCode: null,
+      source: "csv",
+      addedAt: at,
+    }));
+  }
+
+  async removeAdded() {
+    return false;
   }
 
   async summary(): Promise<CollectionSummary> {

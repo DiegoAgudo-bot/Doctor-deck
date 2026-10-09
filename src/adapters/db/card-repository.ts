@@ -1,3 +1,4 @@
+import { NON_GAME_LAYOUTS } from "@/domain/cards/card-index";
 import { nameKey } from "@/domain/cards/names";
 import { COLORS, type Card, type Color, type Printing } from "@/domain/cards/types";
 import type { CardCatalogWriter, CardRepository } from "@/domain/ports/card-repository";
@@ -59,6 +60,9 @@ const printingFromRow = (r: PrintingRow): Printing => ({
   priceEur: r.priceEur,
 });
 
+/** No salen en el buscador: lo que no es carta de juego, y las caras sueltas de cartas especiales. */
+const NOT_PLAYABLE = [...NON_GAME_LAYOUTS, "front_card"];
+
 export class PrismaCardRepository implements CardRepository, CardCatalogWriter {
   constructor(private readonly db: Db) {}
 
@@ -80,6 +84,42 @@ export class PrismaCardRepository implements CardRepository, CardCatalogWriter {
       for (const r of rows) out.set(r.oracleId, fromRow(r));
     }
     return [...out.values()];
+  }
+
+  async searchByName(query: string, limit: number) {
+    const key = nameKey(query);
+    if (!key) return [];
+    const where = (match: object) => ({
+      AND: [match, { layout: { notIn: NOT_PLAYABLE } }],
+    });
+    const order = [
+      { edhrecRank: { sort: "asc" as const, nulls: "last" as const } },
+      { name: "asc" as const },
+    ];
+    const prefix = await this.db.oracleCard.findMany({
+      // Empieza así el nombre o alguna de sus palabras ("bolt" → Lightning Bolt).
+      where: where({
+        OR: [
+          { nameKey: { startsWith: key } },
+          { frontFaceKey: { startsWith: key } },
+          { nameKey: { contains: ` ${key}` } },
+        ],
+      }),
+      orderBy: order,
+      take: limit,
+    });
+    const rest =
+      prefix.length < limit
+        ? await this.db.oracleCard.findMany({
+            where: where({
+              nameKey: { contains: key },
+              oracleId: { notIn: prefix.map((r) => r.oracleId) },
+            }),
+            orderBy: order,
+            take: limit - prefix.length,
+          })
+        : [];
+    return [...prefix, ...rest].map(fromRow);
   }
 
   async findPrintingsByIds(scryfallIds: readonly string[]) {

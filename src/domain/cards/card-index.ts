@@ -11,7 +11,7 @@ export interface CardIndex {
 }
 
 /** Layouts que no son cartas jugables: se usan solo si no hay otra coincidencia por nombre. */
-const NON_GAME_LAYOUTS = new Set([
+export const NON_GAME_LAYOUTS: ReadonlySet<string> = new Set([
   "token",
   "double_faced_token",
   "emblem",

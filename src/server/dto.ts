@@ -1,4 +1,5 @@
 import type { AnalyzeDeckResult } from "@/application/analyze-deck";
+import type { AddCardsResult, CollectionCard } from "@/application/collection-cards";
 import type { CollectionImportSummary } from "@/application/import-collection";
 import type { Card, Color } from "@/domain/cards/types";
 import type { SkippedLine } from "@/domain/deck/decklist";
@@ -160,6 +161,29 @@ export type CollectionImportResponse = Omit<CollectionImportSummary, "unmatched"
   owned: [string, number][] | null;
 };
 
+/** Una carta de la colección (agrupada por oracleId) para la vista con filtros. */
+export interface CollectionCardDTO {
+  card: CardDTO;
+  roles: Role[];
+  primaryRole: Role;
+  quantity: number;
+  foilQuantity: number;
+  sets: string[];
+  fromCsv: number;
+  manual: { id: string; quantity: number; foil: boolean; addedAt: string }[];
+  lastAdded: string;
+  price: number | null;
+  usedIn: string[];
+  inUse: number;
+}
+
+export interface AddCardsResponse {
+  added: { card: CardDTO; quantity: number; foil: boolean }[];
+  notFound: string[];
+  /** Si se ha guardado en la cuenta (con sesión); sin ella, el navegador lo guarda. */
+  saved: boolean;
+}
+
 export interface ApiErrorBody {
   error: { code: string; message: string };
 }
@@ -311,4 +335,25 @@ export function savedDeckSummaryDTO(
 export const savedDeckDTO = (d: SavedDeck): SavedDeckDTO => ({
   ...d,
   updatedAt: d.updatedAt.toISOString(),
+});
+
+export const collectionCardDTO = (c: CollectionCard): CollectionCardDTO => ({
+  card: cardDTO(c.card),
+  roles: c.roles.roles,
+  primaryRole: c.roles.primary,
+  quantity: c.quantity,
+  foilQuantity: c.foilQuantity,
+  sets: c.sets,
+  fromCsv: c.fromCsv,
+  manual: c.manual.map((m) => ({ ...m, addedAt: m.addedAt.toISOString() })),
+  lastAdded: c.lastAdded.toISOString(),
+  price: c.price,
+  usedIn: c.usedIn,
+  inUse: c.inUse,
+});
+
+export const addCardsResponse = (r: AddCardsResult, saved: boolean): AddCardsResponse => ({
+  added: r.added.map((a) => ({ card: cardDTO(a.card), quantity: a.quantity, foil: a.foil })),
+  notFound: r.notFound,
+  saved,
 });

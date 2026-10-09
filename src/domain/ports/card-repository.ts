@@ -5,6 +5,11 @@ export interface CardRepository {
   findCardsByOracleIds(oracleIds: readonly string[]): Promise<Card[]>;
   /** Busca por clave de nombre completo o de primera cara (ver `nameKey`). */
   findCardsByNameKeys(keys: readonly string[]): Promise<Card[]>;
+  /**
+   * Cartas jugables cuyo nombre contiene `query` (sin tildes ni mayúsculas): primero aquellas en
+   * las que alguna palabra empieza así y, dentro de cada grupo, las más jugadas en EDHREC.
+   */
+  searchByName(query: string, limit: number): Promise<Card[]>;
   findPrintingsByIds(scryfallIds: readonly string[]): Promise<Printing[]>;
   findPrintingsBySetNumbers(
     pairs: readonly { setCode: string; collectorNumber: string }[],

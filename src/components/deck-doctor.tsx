@@ -21,7 +21,12 @@ import {
   type ListView,
 } from "./deck-views";
 import { IconCart, IconWarn } from "./icons";
-import { LOCAL_COLLECTION_EVENT, localCollection, notifyDecksChanged } from "./local-collection";
+import {
+  LOCAL_COLLECTION_EVENT,
+  localCollection,
+  notifyDecksChanged,
+  ownedPairs,
+} from "./local-collection";
 import { ColorPips } from "./mana";
 import { Banner, Loading } from "./ui";
 
@@ -165,7 +170,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           useOtherDecks: req.useOtherDecks,
           ...(req.deckId !== null ? { deckId: req.deckId } : {}),
           ...(buyOptions ? { buy: buyOptions } : {}),
-          ...(local ? { collection: local.owned } : {}),
+          ...(local ? { collection: ownedPairs(local) } : {}),
         }),
       });
       setResult(res);

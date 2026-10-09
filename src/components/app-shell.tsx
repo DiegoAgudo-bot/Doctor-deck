@@ -18,6 +18,7 @@ import {
   Logo,
 } from "./icons";
 import {
+  COLLECTION_EVENT,
   DECKS_EVENT,
   LOCAL_COLLECTION_EVENT,
   localCollection,
@@ -194,9 +195,11 @@ function Sidebar({
     };
     load();
     window.addEventListener(DECKS_EVENT, load);
+    window.addEventListener(COLLECTION_EVENT, load);
     window.addEventListener(LOCAL_COLLECTION_EVENT, load);
     return () => {
       window.removeEventListener(DECKS_EVENT, load);
+      window.removeEventListener(COLLECTION_EVENT, load);
       window.removeEventListener(LOCAL_COLLECTION_EVENT, load);
     };
   }, [user, pending]);
