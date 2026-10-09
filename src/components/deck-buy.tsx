@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ROLE_LABELS } from "@/domain/roles/types";
 import { formatEuros } from "@/domain/suggestions/format";
 import type { PurchasesDTO } from "@/server/dto";
 import { CardHover } from "./card-image";
-import { points } from "./deck-views";
+import { points, roleLabel } from "./deck-views";
 import { ManaCost } from "./mana";
 import { Loading } from "./ui";
 
@@ -44,7 +43,7 @@ export function BuyPanel({
   const items = purchases?.items ?? [];
   const chosen = items.filter((p) => !off.has(p.id));
   const total = chosen.reduce((n, p) => n + (p.in.price ?? 0), 0);
-  const gain = chosen.reduce((n, p) => n + points(p.score), 0);
+  const gain = points(chosen.reduce((n, p) => n + p.score, 0));
   const limit = options?.budget;
 
   async function copy() {
@@ -231,7 +230,7 @@ export function BuyPanel({
                           </span>
                         </td>
                         <td className="hide-sm">
-                          <span className="pill">{ROLE_LABELS[p.in.primaryRole]}</span>
+                          <span className="pill">{roleLabel(p.in.primaryRole)}</span>
                         </td>
                         <td className="r mono hide-sm">+{points(p.score)}</td>
                         <td className="r mono">

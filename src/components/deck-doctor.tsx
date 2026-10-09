@@ -21,7 +21,7 @@ import {
   type ListView,
 } from "./deck-views";
 import { IconCart, IconWarn } from "./icons";
-import { localCollection, notifyDecksChanged } from "./local-collection";
+import { LOCAL_COLLECTION_EVENT, localCollection, notifyDecksChanged } from "./local-collection";
 import { ColorPips } from "./mana";
 import { Banner, Loading } from "./ui";
 
@@ -77,6 +77,15 @@ export function DeckDoctor() {
   const [filter, setFilter] = useState<Filter>("todos");
   const [view, setView] = useState<ListView>("pilas");
   const [dialog, setDialog] = useState<"save" | "export" | null>(null);
+  // Colección en este navegador (sin cuenta). Se lee tras montar: el servidor no tiene localStorage.
+  const [hasLocal, setHasLocal] = useState(false);
+  useEffect(() => {
+    const read = () => setHasLocal(localCollection.get() !== null);
+    read();
+    window.addEventListener(LOCAL_COLLECTION_EVENT, read);
+    return () => window.removeEventListener(LOCAL_COLLECTION_EVENT, read);
+  }, []);
+  const hasCollection = loggedIn || hasLocal;
 
   // Abrir el mazo guardado de ?id=, empezar uno nuevo (?nuevo=1) o restaurar el último analizado.
   useEffect(() => {
@@ -274,6 +283,7 @@ export function DeckDoctor() {
             setDirty(true);
           }}
           loggedIn={loggedIn}
+          hasCollection={hasCollection}
           analyzing={analyzing}
           onCancel={ok ? () => setEditing(false) : null}
           onSubmit={() => {
@@ -324,7 +334,7 @@ export function DeckDoctor() {
           {ok.edhrec.themes.length > 0 && (
             <div className="field">
               <span className="label">Tema de EDHREC</span>
-              <div className="chips" role="radiogroup" aria-label="Tema">
+              <div className="chips scroll-sm" role="radiogroup" aria-label="Tema">
                 {[
                   { slug: "", name: "General", count: ok.edhrec.totalDecks },
                   ...ok.edhrec.themes.slice(0, 12),
@@ -377,7 +387,7 @@ export function DeckDoctor() {
             >
               <section className="flex min-w-0 flex-col gap-3">
                 {ok.swaps.length > 0 && (
-                  <div className="stack-sm flex items-center justify-between gap-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2.5">
                     <div className="chips">
                       {(
                         [
@@ -435,7 +445,7 @@ export function DeckDoctor() {
                 {analyzing ? (
                   <DiffSkeleton />
                 ) : ok.swaps.length === 0 ? (
-                  <NoSwaps loggedIn={loggedIn} />
+                  <NoSwaps hasCollection={hasCollection} />
                 ) : (
                   <div className="diff">
                     {ok.swaps
@@ -602,6 +612,7 @@ function EntryForm({
   useOtherDecks,
   onUseOtherDecks,
   loggedIn,
+  hasCollection,
   analyzing,
   onCancel,
   onSubmit,
@@ -616,13 +627,13 @@ function EntryForm({
   useOtherDecks: boolean;
   onUseOtherDecks: (v: boolean) => void;
   loggedIn: boolean;
+  hasCollection: boolean;
   analyzing: boolean;
   onCancel: (() => void) | null;
   onSubmit: () => void;
   openDeck: string | null;
   onCloseDeck: () => void;
 }) {
-  const hasCollection = loggedIn || localCollection.get() !== null;
   return (
     <>
       <h1 className="h1">{title}</h1>
@@ -893,7 +904,9 @@ function DeckHeader({
         </span>
         <h1 className="h1">{name}</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <span>{ok.commanders.map((c) => c.name).join(" + ")}</span>
+          {name !== ok.commanders.map((c) => c.name).join(" + ") && (
+            <span>{ok.commanders.map((c) => c.name).join(" + ")}</span>
+          )}
           <ColorPips colors={order.filter((c) => identity.includes(c as never))} />
         </div>
         <p className="subtle text-[13px]">
@@ -951,8 +964,7 @@ function Issues({ ok }: { ok: Ok }) {
   );
 }
 
-function NoSwaps({ loggedIn }: { loggedIn: boolean }) {
-  const hasCollection = loggedIn || localCollection.get() !== null;
+function NoSwaps({ hasCollection }: { hasCollection: boolean }) {
   return (
     <div className="panel flex flex-col items-center gap-2 px-5 py-8 text-center">
       <span className="h2">No hay cambios que proponer</span>

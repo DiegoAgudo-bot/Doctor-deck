@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ROLE_LABELS, ROLES } from "@/domain/roles/types";
+import { ROLE_LABELS, ROLES, type Role } from "@/domain/roles/types";
 import type { CardDTO, DeckCardDTO, RoleStatDTO, ScoredCardDTO, SwapDTO } from "@/server/dto";
 import { CardHover, CardImage } from "./card-image";
 import { IconArrowRight, IconChevron, IconLock, IconX } from "./icons";
@@ -11,7 +11,13 @@ export type Decision = "accepted" | "rejected";
 
 const pct = (x: number) => `${Math.round(x * 100)} %`;
 const signedPct = (x: number) => `${x >= 0 ? "+" : "−"}${Math.round(Math.abs(x) * 100)} %`;
-export const points = (score: number) => Math.round(score * 100);
+/** Mejora de la puntuación del motor, con un decimal ("4,4"). */
+export const points = (score: number) => score.toFixed(1).replace(".", ",");
+/** Las etiquetas de rol van en minúscula (se usan dentro de frases); en la interfaz, con mayúscula. */
+export const roleLabel = (role: Role) => {
+  const l = ROLE_LABELS[role];
+  return l.charAt(0).toUpperCase() + l.slice(1);
+};
 const isLand = (c: Pick<CardDTO, "typeLine">) => /\bLand\b/.test(c.typeLine.split("//")[0] ?? "");
 
 // ---------- Cambios (diff) ----------
@@ -56,7 +62,7 @@ export function SwapDiff({
   commanderName: string;
 }) {
   const [open, setOpen] = useState(false);
-  const role = ROLE_LABELS[swap.in.primaryRole];
+  const role = roleLabel(swap.in.primaryRole);
   const owned = ownedLabel(swap.in);
   const cls =
     decision === "accepted" ? "is-accepted" : decision === "rejected" ? "is-discarded" : "";
@@ -275,7 +281,7 @@ export function RoleMeters({ roles }: { roles: RoleStatDTO[] }) {
             r.min === 0 ? "na" : r.count >= r.min ? "" : r.count >= r.min * 0.75 ? "low" : "crit";
           return (
             <div key={r.role} className={`role ${cls}`}>
-              <span>{r.label}</span>
+              <span>{roleLabel(r.role)}</span>
               <div className="role-bar">
                 <i style={{ width: `${width}%`, ["--d" as string]: `${i * 30}ms` }} />
                 {r.min > 0 && <s style={{ left: "80%" }} />}
@@ -399,7 +405,7 @@ export function DeckList({
                     <td>
                       <ManaCost cost={c.card.manaCost} />
                     </td>
-                    <td className="muted hide-sm">{ROLE_LABELS[c.primaryRole]}</td>
+                    <td className="muted hide-sm">{roleLabel(c.primaryRole)}</td>
                     <td>
                       {!c.isBasicLand && (
                         <button
@@ -435,7 +441,7 @@ export function DeckList({
       {groups.map((g) => (
         <div key={g.role}>
           <div className="stack-h">
-            {ROLE_LABELS[g.role]} <span>{g.cards.reduce((n, c) => n + c.quantity, 0)}</span>
+            {roleLabel(g.role)} <span>{g.cards.reduce((n, c) => n + c.quantity, 0)}</span>
           </div>
           <div className="stack">
             {g.cards.map((c) => {
@@ -460,21 +466,7 @@ export function DeckList({
                     </span>
                   )}
                   {leaving.has(c.card.oracleId) && <span className="outmark">sale</span>}
-                  {c.quantity > 1 && (
-                    <span
-                      className="outmark"
-                      style={{
-                        background: "var(--color-raised)",
-                        color: "var(--color-text)",
-                        left: "auto",
-                        right: 6,
-                        top: "auto",
-                        bottom: "6%",
-                      }}
-                    >
-                      ×{c.quantity}
-                    </span>
-                  )}
+                  {c.quantity > 1 && !isLocked && <span className="qtymark">×{c.quantity}</span>}
                   <CardImage card={c.card} />
                 </button>
               );

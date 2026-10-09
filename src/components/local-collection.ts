@@ -37,9 +37,8 @@ export const localCollection = {
   },
 };
 
-/** Total de copias de una colección local. */
-export const localCopies = (c: LocalCollection | null) =>
-  c ? c.owned.reduce((n, [, q]) => n + q, 0) : 0;
+/** Total de copias del CSV (como el resumen de una colección guardada en la cuenta). */
+export const localCopies = (c: LocalCollection | null) => c?.summary.totalCards ?? 0;
 
 /** Aviso a la interfaz de que han cambiado los mazos guardados (guardar, borrar). */
 export const DECKS_EVENT = "dd:decks";
