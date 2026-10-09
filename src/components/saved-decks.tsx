@@ -139,7 +139,7 @@ export function SavedDecks() {
                   className="fade relative"
                   style={{ ["--d" as string]: `${i * 40}ms` }}
                 >
-                  <Link className="deckcard" href={`/mazo?id=${d.id}`}>
+                  <Link className="deckcard" href={`/decks/${d.id}`}>
                     <div style={{ width: 74, flex: "none" }}>
                       {d.commanderCard ? (
                         <CardImage card={d.commanderCard} />

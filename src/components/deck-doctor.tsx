@@ -30,8 +30,8 @@ interface Saved {
   theme: string;
   locked: string[];
   excluded: string[];
-  /** Mazo guardado abierto (null = sin guardar). */
-  deckId: number | null;
+  /** Mazo guardado abierto (uuid; null = sin guardar). */
+  deckId: string | null;
   name: string;
   /** Descontar copias usadas en mis otros mazos guardados. */
   useOtherDecks: boolean;
@@ -58,7 +58,8 @@ type Filter = "todos" | "pendientes" | "aceptados" | "descartados";
 const isLink = (s: string) => /^\s*https?:\/\//i.test(s);
 const shortName = (name: string) => name.split(/,| \/\/ /)[0] ?? name;
 
-export function DeckDoctor() {
+/** Con `deckId` abre ese mazo guardado (/decks/{uuid}); sin él, el analizador (/mazo). */
+export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const { data: session } = authClient.useSession();
   const loggedIn = Boolean(session);
   const [saved, setSaved] = useState<Saved>(EMPTY);
@@ -87,12 +88,11 @@ export function DeckDoctor() {
   }, []);
   const hasCollection = loggedIn || hasLocal;
 
-  // Abrir el mazo guardado de ?id=, empezar uno nuevo (?nuevo=1) o restaurar el último analizado.
+  // Abrir el mazo guardado, empezar uno nuevo (?nuevo=1) o restaurar el último analizado.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const id = Number(params.get("id"));
-    if (Number.isInteger(id) && id > 0) {
-      api<SavedDeckDTO>(`/api/decks/${id}`)
+    if (deckId) {
+      api<SavedDeckDTO>(`/api/decks/${encodeURIComponent(deckId)}`)
         .then((d) => {
           const next: Saved = {
             ...EMPTY,
@@ -120,7 +120,13 @@ export function DeckDoctor() {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única tras montar
       setSaved(EMPTY);
     } else {
-      const restored = { ...EMPTY, ...storage.get<Partial<Saved>>(KEY, {}) };
+      const stored = storage.get<Partial<Saved>>(KEY, {});
+      // Versiones anteriores guardaban el id numérico del mazo: ya no vale.
+      const restored = {
+        ...EMPTY,
+        ...stored,
+        deckId: typeof stored.deckId === "string" ? stored.deckId : null,
+      };
       setSaved(restored);
       setMode(isLink(restored.input) ? "enlace" : "texto");
     }
@@ -224,7 +230,7 @@ export function DeckDoctor() {
     setError(null);
     try {
       const input = includeAccepted && accepted.length > 0 ? exportText : saved.input;
-      const res = await api<{ id: number; name: string }>("/api/decks", {
+      const res = await api<{ id: string; name: string }>("/api/decks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -238,7 +244,7 @@ export function DeckDoctor() {
         }),
       });
       update({ deckId: res.id, name: res.name, input });
-      window.history.replaceState(null, "", `/mazo?id=${res.id}`);
+      window.history.replaceState(null, "", `/decks/${res.id}`);
       setNotice(`Guardado como «${res.name}».`);
       setDialog(null);
       notifyDecksChanged();

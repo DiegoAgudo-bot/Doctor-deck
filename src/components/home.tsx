@@ -196,7 +196,7 @@ export function Home() {
                     <tr key={d.id} className="fade" style={{ ["--d" as string]: `${i * 40}ms` }}>
                       <td>
                         <Link
-                          href={`/mazo?id=${d.id}`}
+                          href={`/decks/${d.id}`}
                           className="flex items-center gap-2.5"
                           style={{ color: "var(--color-text)", textDecoration: "none" }}
                         >

@@ -1,4 +1,5 @@
 import { connection, type NextRequest } from "next/server";
+import { z } from "zod";
 import { getContainer } from "@/server/container";
 import { savedDeckDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
@@ -10,10 +11,8 @@ const notFound = () =>
     { status: 404 },
   );
 
-function parseId(raw: string): number | null {
-  const id = Number(raw);
-  return Number.isInteger(id) && id > 0 ? id : null;
-}
+/** Los mazos se identifican por su uuid público. */
+const parseId = (raw: string): string | null => (z.uuid().safeParse(raw).success ? raw : null);
 
 export async function GET(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">) {
   await connection();

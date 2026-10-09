@@ -37,7 +37,7 @@ export class PrismaDeckRepository implements DeckRepository {
       include: { cards: { select: { quantity: true, isCommander: true, oracleId: true } } },
     });
     return decks.map((d) => ({
-      id: d.id,
+      id: d.publicId,
       name: d.name,
       source: d.source,
       commanderNames: d.commanderNames ? d.commanderNames.split("\n") : [],
@@ -47,14 +47,14 @@ export class PrismaDeckRepository implements DeckRepository {
     }));
   }
 
-  async get(id: number): Promise<SavedDeck | null> {
+  async get(id: string): Promise<SavedDeck | null> {
     const d = await this.db.deck.findFirst({
-      where: { id, userId: this.userId },
+      where: { publicId: id, userId: this.userId },
       include: { cards: true },
     });
     if (!d) return null;
     return {
-      id: d.id,
+      id: d.publicId,
       name: d.name,
       source: d.source,
       commanderNames: d.commanderNames ? d.commanderNames.split("\n") : [],
@@ -68,7 +68,7 @@ export class PrismaDeckRepository implements DeckRepository {
     };
   }
 
-  async save(data: SaveDeckData): Promise<number> {
+  async save(data: SaveDeckData): Promise<string> {
     const locked = new Set(data.locked);
     const cards = [
       ...data.commanders.map((c) => ({
@@ -94,11 +94,14 @@ export class PrismaDeckRepository implements DeckRepository {
     };
     return this.db.$transaction(async (tx) => {
       if (data.id !== undefined) {
-        const own = await tx.deck.count({ where: { id: data.id, userId: this.userId } });
-        if (own === 0) throw new DeckNotFoundError();
-        await tx.deckCard.deleteMany({ where: { deckId: data.id } });
+        const own = await tx.deck.findFirst({
+          where: { publicId: data.id, userId: this.userId },
+          select: { id: true },
+        });
+        if (!own) throw new DeckNotFoundError();
+        await tx.deckCard.deleteMany({ where: { deckId: own.id } });
         await tx.deck.update({
-          where: { id: data.id },
+          where: { id: own.id },
           data: { ...fields, cards: { create: cards } },
         });
         return data.id;
@@ -106,20 +109,24 @@ export class PrismaDeckRepository implements DeckRepository {
       const created = await tx.deck.create({
         data: { ...fields, userId: this.userId, cards: { create: cards } },
       });
-      return created.id;
+      return created.publicId;
     });
   }
 
-  async delete(id: number): Promise<boolean> {
-    const { count } = await this.db.deck.deleteMany({ where: { id, userId: this.userId } });
+  async delete(id: string): Promise<boolean> {
+    const { count } = await this.db.deck.deleteMany({
+      where: { publicId: id, userId: this.userId },
+    });
     return count > 0;
   }
 
-  async usage(excludeDeckId?: number): Promise<Map<string, CardUsage>> {
+  async usage(excludeDeckId?: string): Promise<Map<string, CardUsage>> {
     const rows = await this.db.deckCard.findMany({
       where: {
-        deck: { userId: this.userId },
-        ...(excludeDeckId === undefined ? {} : { deckId: { not: excludeDeckId } }),
+        deck: {
+          userId: this.userId,
+          ...(excludeDeckId === undefined ? {} : { publicId: { not: excludeDeckId } }),
+        },
       },
       select: { oracleId: true, quantity: true, deck: { select: { name: true } } },
     });

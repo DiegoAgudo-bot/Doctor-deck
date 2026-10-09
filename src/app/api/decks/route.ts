@@ -9,7 +9,7 @@ import { requireUser } from "@/server/session";
 const ids = z.array(z.string().min(1).max(64)).max(200).optional();
 
 const saveSchema = z.object({
-  id: z.number().int().positive().optional(),
+  id: z.uuid().optional(),
   name: z.string().max(120).optional(),
   input: z.string().min(1).max(50_000),
   theme: z

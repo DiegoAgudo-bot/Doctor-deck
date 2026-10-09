@@ -5,7 +5,7 @@ import type { DeckSource } from "@/domain/ports/deck-source";
 import { loadDeck } from "./load-deck";
 
 export interface SaveDeckInput {
-  id?: number | undefined;
+  id?: string | undefined;
   name?: string | undefined;
   input: string;
   theme?: string | undefined;
@@ -24,7 +24,7 @@ export class DeckWithoutCommanderError extends Error {
 export async function saveDeck(
   req: SaveDeckInput,
   deps: { sources: readonly DeckSource[]; cards: CardRepository; decks: DeckRepository },
-): Promise<{ id: number; name: string }> {
+): Promise<{ id: string; name: string }> {
   const loaded = await loadDeck(req.input, { sources: deps.sources, cards: deps.cards });
   const deck =
     req.commanders && req.commanders.length > 0

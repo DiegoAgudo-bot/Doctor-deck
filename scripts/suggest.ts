@@ -1,7 +1,7 @@
 /**
  * Analiza un mazo y muestra los cambios sugeridos usando tu colección y EDHREC.
  * Uso: npm run deck:suggest -- "lista.txt" [--theme control] [--lock "Carta"]... [--commander "Nombre"]...
- *        [--user "email"] [--deck-id N] [--ignore-other-decks] [--buy N [--max-price 1] [--budget 10]]
+ *        [--user "email"] [--deck-id uuid] [--ignore-other-decks] [--buy N [--max-price 1] [--budget 10]]
  */
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
@@ -51,7 +51,7 @@ async function main() {
     {
       input,
       theme: args("--theme")[0],
-      deckId: num("--deck-id"),
+      deckId: args("--deck-id")[0],
       useOtherDecks: !process.argv.includes("--ignore-other-decks"),
       buy: num("--buy")
         ? { maxCards: num("--buy") ?? 5, maxPrice: num("--max-price"), budget: num("--budget") }

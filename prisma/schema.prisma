@@ -82,6 +82,8 @@ model CollectionEntry {
 
 model Deck {
   id             Int            @id @default(autoincrement())
+  /// Identificador público (URL /decks/{publicId} y API). El `id` numérico no sale de la BD.
+  publicId       String         @unique @default(uuid())
   /// Dueño. null = datos de antes de que hubiera usuarios (ver scripts/claim-orphans.ts).
   userId         String?
   user           User?          @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -18,7 +18,7 @@ export function SaveDialog({
   open: boolean;
   onClose: () => void;
   loggedIn: boolean;
-  deckId: number | null;
+  deckId: string | null;
   defaultName: string;
   acceptedCount: number;
   busy: boolean;

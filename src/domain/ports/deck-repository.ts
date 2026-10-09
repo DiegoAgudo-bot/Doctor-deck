@@ -1,7 +1,8 @@
 import type { CardUsage } from "../suggestions/engine";
 
 export interface SavedDeckSummary {
-  id: number;
+  /** Identificador público (uuid): el de las URL /decks/{id} y la API. */
+  id: string;
   name: string;
   source: string;
   commanderNames: string[];
@@ -20,7 +21,7 @@ export interface SavedDeck extends SavedDeckSummary {
 
 export interface SaveDeckData {
   /** Si viene, actualiza ese mazo; si no, crea uno nuevo. */
-  id?: number | undefined;
+  id?: string | undefined;
   name: string;
   input: string;
   source: string;
@@ -34,9 +35,10 @@ export interface SaveDeckData {
 
 export interface DeckRepository {
   list(): Promise<SavedDeckSummary[]>;
-  get(id: number): Promise<SavedDeck | null>;
-  save(data: SaveDeckData): Promise<number>;
-  delete(id: number): Promise<boolean>;
+  get(id: string): Promise<SavedDeck | null>;
+  /** Devuelve el id (uuid) del mazo creado o actualizado. */
+  save(data: SaveDeckData): Promise<string>;
+  delete(id: string): Promise<boolean>;
   /** Copias de cada carta usadas en los mazos guardados, salvo `excludeDeckId`. */
-  usage(excludeDeckId?: number): Promise<Map<string, CardUsage>>;
+  usage(excludeDeckId?: string): Promise<Map<string, CardUsage>>;
 }

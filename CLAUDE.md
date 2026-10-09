@@ -7,24 +7,24 @@ recomendaciones de EDHREC, priorizando cartas de la colección del usuario (expo
 
 ## Comandos
 
-| Comando                                                                                        | Qué hace                                                                  |
-| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `npm install`                                                                                  | Instala dependencias y genera el cliente Prisma (`postinstall`)           |
-| `cp .env.example .env`                                                                         | Configuración local (nunca se sube `.env`)                                |
-| `npm run db:migrate`                                                                           | Aplica/crea migraciones de Prisma sobre SQLite (`data/deck-doctor.db`)    |
-| `npm run dev`                                                                                  | Servidor de desarrollo                                                    |
-| `npm test` / `npm run test:watch` / `npm run test:coverage`                                    | Vitest                                                                    |
-| `npm run typecheck`                                                                            | `next typegen` + `tsc --noEmit`                                           |
-| `npm run lint`                                                                                 | ESLint (incluye la regla de capas)                                        |
-| `npm run format` / `format:check`                                                              | Prettier                                                                  |
-| `npm run build`                                                                                | Build de producción                                                       |
-| `npm run scryfall:sync [-- --force \| --skip-download]`                                        | Descarga los bulk de Scryfall (si hay versión nueva) y los vuelca a la BD |
-| `npm run collection:import -- "export.csv" [--user email]`                                     | Importa un CSV de ManaBox (a la cuenta indicada) y muestra el resumen     |
-| `npm run users:claim -- --user email`                                                          | Pasa a esa cuenta la colección y los mazos de antes de haber usuarios     |
-| `npm run deck:check -- "lista.txt" \| "https://…"`                                             | Parsea y resuelve una lista de mazo contra el catálogo                    |
-| `npm run edhrec:fetch -- "Comandante" [--theme x] [--partner "B"] [--save f.json]`             | Pide recomendaciones a EDHREC (con caché) y muestra un resumen            |
-| `npm run deck:suggest -- "lista.txt" [--theme x] [--lock "Carta"] [--commander "C"]`           | Analiza un mazo y muestra los cambios sugeridos                           |
-| `… deck:suggest -- … [--deck-id N] [--ignore-other-decks] [--buy N --max-price 1 --budget 10]` | Igual, con mazo guardado / sin descontar otros mazos / modo compra        |
+| Comando                                                                                           | Qué hace                                                                  |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `npm install`                                                                                     | Instala dependencias y genera el cliente Prisma (`postinstall`)           |
+| `cp .env.example .env`                                                                            | Configuración local (nunca se sube `.env`)                                |
+| `npm run db:migrate`                                                                              | Aplica/crea migraciones de Prisma sobre SQLite (`data/deck-doctor.db`)    |
+| `npm run dev`                                                                                     | Servidor de desarrollo                                                    |
+| `npm test` / `npm run test:watch` / `npm run test:coverage`                                       | Vitest                                                                    |
+| `npm run typecheck`                                                                               | `next typegen` + `tsc --noEmit`                                           |
+| `npm run lint`                                                                                    | ESLint (incluye la regla de capas)                                        |
+| `npm run format` / `format:check`                                                                 | Prettier                                                                  |
+| `npm run build`                                                                                   | Build de producción                                                       |
+| `npm run scryfall:sync [-- --force \| --skip-download]`                                           | Descarga los bulk de Scryfall (si hay versión nueva) y los vuelca a la BD |
+| `npm run collection:import -- "export.csv" [--user email]`                                        | Importa un CSV de ManaBox (a la cuenta indicada) y muestra el resumen     |
+| `npm run users:claim -- --user email`                                                             | Pasa a esa cuenta la colección y los mazos de antes de haber usuarios     |
+| `npm run deck:check -- "lista.txt" \| "https://…"`                                                | Parsea y resuelve una lista de mazo contra el catálogo                    |
+| `npm run edhrec:fetch -- "Comandante" [--theme x] [--partner "B"] [--save f.json]`                | Pide recomendaciones a EDHREC (con caché) y muestra un resumen            |
+| `npm run deck:suggest -- "lista.txt" [--theme x] [--lock "Carta"] [--commander "C"]`              | Analiza un mazo y muestra los cambios sugeridos                           |
+| `… deck:suggest -- … [--deck-id uuid] [--ignore-other-decks] [--buy N --max-price 1 --budget 10]` | Igual, con mazo guardado / sin descontar otros mazos / modo compra        |
 
 Antes de cada commit: `npm run typecheck && npm run lint && npm run format:check && npm test`.
 
@@ -95,7 +95,7 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   eligió; si no hay comandante → `status: "needs_commander"`) → `loadRecommendations` →
   `ownedQuantities` + `decks.usage(deckId)` → `suggestSwaps` (dominio) + `manaCurve` +
   `validateDeck`; con `buy` además `findMinPrices` → `suggestPurchases`.
-- **Mazos guardados** (Fase 6): tablas `Deck`/`DeckCard` (por oracleId; comandantes con
+- **Mazos guardados** (Fase 6): tablas `Deck` (`publicId` uuid para URL y API)/`DeckCard` (por oracleId; comandantes con
   `isCommander`, bloqueadas con `locked`; `input` original, `source`, `theme`, `excluded`).
   `PrismaDeckRepository.usage(excludeDeckId)` suma las copias usadas en los demás mazos (comandantes
   incluidos). En el motor, copias libres = tengo − usadas en otros mazos; solo entran cartas con
@@ -130,7 +130,11 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   - `GET /api/status`, `POST /api/collection` (cuerpo = texto del CSV), `POST /api/analyze`
     (`{input, theme?, commanders?, locked?, excluded?, deckId?, useOtherDecks?, buy?: {maxCards,
 maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /api/decks/[id]`.
-  - Páginas: `/mazos` (lista, abrir → `/mazo?id=N`, borrar).
+  - Páginas: `/mazos` (lista, borrar) y `/decks/{publicId}` (un mazo guardado; exigen sesión). Los
+    mazos se identifican fuera de la BD solo por `Deck.publicId` (uuid): API `/api/decks/{uuid}`,
+    `deckId` de `/api/analyze`; el `id` numérico es interno. Rutas en grupos `(app)` (con barras) y
+    `(cuenta)` (entrar, registro…, sin barras). Con Cache Components, `usePathname`/`useParams` se
+    leen dentro de `<Suspense>` (si no, falla el build en rutas dinámicas).
   - Tipos y mapeadores de la API en `src/server/dto.ts` (los componentes solo hacen `import type`);
     errores → JSON `{error: {code, message}}` en `src/server/http.ts`.
   - Las rutas GET llaman a `await connection()` (better-sqlite3 es síncrono y si no, Next las

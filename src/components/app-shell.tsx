@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import type { SavedDeckSummaryDTO, StatusResponse } from "@/server/dto";
 import { api, storage } from "./api-client";
@@ -26,50 +26,60 @@ import {
 import { ColorPips } from "./mana";
 import { fmt } from "./ui";
 
-/** Páginas de cuenta (entrar, registro…): sin barras, centradas. */
-const BARE = ["/entrar", "/registro", "/recuperar", "/restablecer"];
-
 type SessionUser = { name: string; email: string };
+
+/**
+ * Lee la ruta actual dentro de su propio <Suspense>: con Cache Components, en las rutas con
+ * parámetros dinámicos (/decks/[id]) usePathname suspende durante el prerender. Mientras tanto se
+ * pinta lo mismo sin marcar la sección activa.
+ */
+function WithPath({ children }: { children: (pathname: string) => ReactNode }) {
+  return (
+    <Suspense fallback={children("")}>
+      <ReadPath>{children}</ReadPath>
+    </Suspense>
+  );
+}
+function ReadPath({ children }: { children: (pathname: string) => ReactNode }) {
+  return <>{children(usePathname())}</>;
+}
 
 /**
  * Estructura de la app: arriba, lo público (secciones para explorar); al lado, lo tuyo (mazos,
  * colección, salir). En móvil (<760 px) el lateral desaparece y aparece la barra inferior.
  */
 export function AppShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
   const { data, isPending } = authClient.useSession();
   const user: SessionUser | null = data?.user ?? null;
-
-  if (BARE.includes(pathname)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center px-4 py-8">
-        <div className="flex w-full max-w-[340px] flex-col gap-5">
-          <Link href="/" className="brand fade justify-center" style={{ fontSize: 20 }}>
-            <Logo size={30} />
-            Deck Doctor
-          </Link>
-          {children}
-          <p className="subtle fade text-center text-xs" style={{ ["--d" as string]: "160ms" }}>
-            Datos de cartas de Scryfall · Recomendaciones de EDHREC
-            <br />
-            Contenido no oficial bajo la Fan Content Policy de Wizards of the Coast.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="app">
-      <TopBar pathname={pathname} user={user} pending={isPending} />
+      <WithPath>{(p) => <TopBar pathname={p} user={user} pending={isPending} />}</WithPath>
       <div className="shell">
-        <Suspense fallback={<aside className="side" />}>
-          <Sidebar user={user} pending={isPending} pathname={pathname} />
-        </Suspense>
+        <WithPath>{(p) => <Sidebar user={user} pending={isPending} pathname={p} />}</WithPath>
         <div className="main">
           {children}
-          <BottomNav pathname={pathname} user={user} />
+          <WithPath>{(p) => <BottomNav pathname={p} user={user} />}</WithPath>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Páginas de cuenta (entrar, registro…): sin barras, centradas. */
+export function BareShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center px-4 py-8">
+      <div className="flex w-full max-w-[340px] flex-col gap-5">
+        <Link href="/" className="brand fade justify-center" style={{ fontSize: 20 }}>
+          <Logo size={30} />
+          Deck Doctor
+        </Link>
+        {children}
+        <p className="subtle fade text-center text-xs" style={{ ["--d" as string]: "160ms" }}>
+          Datos de cartas de Scryfall · Recomendaciones de EDHREC
+          <br />
+          Contenido no oficial bajo la Fan Content Policy de Wizards of the Coast.
+        </p>
       </div>
     </div>
   );
@@ -164,7 +174,6 @@ function Sidebar({
   pending: boolean;
   pathname: string;
 }) {
-  const openId = Number(useSearchParams().get("id"));
   const [decks, setDecks] = useState<SavedDeckSummaryDTO[] | null>(null);
   const [copies, setCopies] = useState<number | null>(null);
   const [filter, setFilter] = useState("");
@@ -261,8 +270,8 @@ function Sidebar({
             {shown.map((d) => (
               <Link
                 key={d.id}
-                href={`/mazo?id=${d.id}`}
-                className={`deckrow ${pathname === "/mazo" && openId === d.id ? "is-active" : ""}`}
+                href={`/decks/${d.id}`}
+                className={`deckrow ${pathname === `/decks/${d.id}` ? "is-active" : ""}`}
               >
                 <ColorPips colors={d.colorIdentity} className="pips" />
                 <span className="min-w-0">

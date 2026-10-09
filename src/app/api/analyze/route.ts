@@ -17,7 +17,7 @@ const analyzeRequestSchema = z.object({
   commanders: z.array(z.string().min(1).max(64)).max(2).optional(),
   locked: ids,
   excluded: ids,
-  deckId: z.number().int().positive().optional(),
+  deckId: z.uuid().optional(),
   useOtherDecks: z.boolean().optional(),
   /** Sin sesión: la colección guardada en el navegador, como pares [oracleId, copias]. */
   collection: z

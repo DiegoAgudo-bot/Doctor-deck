@@ -36,7 +36,7 @@ export interface AnalyzeDeckInput {
   /** oracleIds que el usuario ha descartado meter. */
   excluded?: readonly string[] | undefined;
   /** Mazo guardado que se está analizando (sus propias copias no cuentan como "usadas"). */
-  deckId?: number | undefined;
+  deckId?: string | undefined;
   /** Descontar las copias que ya usan mis otros mazos guardados (por defecto, sí). */
   useOtherDecks?: boolean | undefined;
   /** Si viene, calcula también qué cartas comprar. */
