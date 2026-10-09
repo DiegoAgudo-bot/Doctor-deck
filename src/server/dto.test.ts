@@ -1,3 +1,4 @@
+import { deckOwnership } from "@/domain/deck/ownership";
 import { describe, expect, it } from "vitest";
 import { makeCard } from "../../tests/helpers/cards";
 import type { AnalyzeDeckResult } from "@/application/analyze-deck";
@@ -56,6 +57,11 @@ describe("analyzeResponse", () => {
         unresolved: [],
       },
       purchases: null,
+      ownership: {
+        ...deckOwnership(deck.commanders, deck.cards, new Map()),
+        prices: new Map([[bolt.oracleId, 0.5]]),
+        cost: 0.5,
+      },
       suggestions: suggestSwaps({
         deck,
         recommendations: [],
@@ -73,6 +79,17 @@ describe("analyzeResponse", () => {
       "Lightning Bolt está fuera de la identidad de color del comandante.",
     );
     expect(dto.cards[0]).toMatchObject({ primaryRole: "removal", isBasicLand: false });
+    expect(dto.ownership.totals).toEqual({
+      cards: 2,
+      have: 0,
+      fromOtherDecks: 0,
+      toBuy: 2,
+      cost: 0.5,
+    });
+    expect(dto.ownership.items.find((i) => i.card.name === "Lightning Bolt")).toMatchObject({
+      status: "missing",
+      price: 0.5,
+    });
     expect(dto.roles.find((r) => r.role === "land")).toMatchObject({
       label: "tierra",
       count: 0,

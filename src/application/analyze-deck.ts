@@ -6,6 +6,7 @@ import {
   type DeckIssue,
   type ResolvedDeck,
 } from "@/domain/deck/resolve";
+import { deckOwnership, type CardOwnership, type OwnershipTotals } from "@/domain/deck/ownership";
 import { manaCurve } from "@/domain/deck/stats";
 import type { CardRepository } from "@/domain/ports/card-repository";
 import type { CollectionRepository } from "@/domain/ports/collection-repository";
@@ -82,6 +83,15 @@ export type AnalyzeDeckResult =
       };
       suggestions: SuggestionResult;
       purchases: PurchaseResult | null;
+      /** Qué parte del mazo tengo, qué está en otros mazos y qué me falta (con su precio). */
+      ownership: {
+        items: CardOwnership[];
+        totals: OwnershipTotals;
+        /** Precio de referencia (EUR) de cada carta que hay que comprar. */
+        prices: Map<string, number>;
+        /** Coste aproximado de comprar lo que falta. */
+        cost: number;
+      };
     };
 
 /** Pipeline completo: mazo → comandante → EDHREC → colección → motor de sugerencias. */
@@ -122,6 +132,10 @@ export async function analyzeDeck(
     config: deps.config,
   };
   const suggestions = suggestSwaps(engineInput);
+  const own = deckOwnership(deck.commanders, deck.cards, owned, usage);
+  const missing = own.items.filter((i) => i.toBuy > 0);
+  const missingPrices = await deps.cards.findMinPrices(missing.map((i) => i.card.oracleId));
+  const cost = missing.reduce((n, i) => n + (missingPrices.get(i.card.oracleId) ?? 0) * i.toBuy, 0);
   const purchases = req.buy
     ? suggestPurchases({
         ...engineInput,
@@ -150,5 +164,6 @@ export async function analyzeDeck(
     },
     suggestions,
     purchases,
+    ownership: { ...own, prices: missingPrices, cost: Math.round(cost * 100) / 100 },
   };
 }

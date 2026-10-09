@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { applySwaps, exportDecklist, type ExportableDeck } from "@/domain/deck/export";
+import { formatEuros } from "@/domain/suggestions/format";
 import type { AnalyzeResponse, CardDTO, DeckViewDTO } from "@/server/dto";
 import { api, ApiError, storage } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardHover, CardImage } from "./card-image";
 import { BuyPanel, type BuyOptions } from "./deck-buy";
+import { OwnershipPanel } from "./deck-ownership";
 import { ExportDialog, SaveDialog } from "./deck-dialogs";
 import {
   DeckFacts,
@@ -60,7 +62,7 @@ const PLACEHOLDER =
   "Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n1x Arcane Signet (C21) 263\n…";
 
 type Ok = Extract<AnalyzeResponse, { status: "ok" }>;
-type Tab = "cambios" | "lista" | "stats" | "compra";
+type Tab = "cambios" | "falta" | "lista" | "stats" | "compra";
 type Filter = "todos" | "pendientes" | "aceptados" | "descartados";
 
 const isLink = (s: string) => /^\s*https?:\/\//i.test(s);
@@ -115,7 +117,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             name: d.name,
             isPublic: d.isMine ? d.isPublic : true,
           };
-          if (!d.isMine) setOwner(d.owner);
+          if (!d.isMine) {
+            setOwner(d.owner);
+            // El mazo de otro: lo primero es ver qué me falta para montarlo.
+            setTab("falta");
+          }
           setSaved(next);
           setMode(isLink(d.input) ? "enlace" : "texto");
           setHydrated(true);
@@ -350,6 +356,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             ok={ok}
             name={saved.name || ok.deckName || ok.commanders.map((c) => c.name).join(" + ")}
             owner={owner}
+            onShowMissing={() => setTab("falta")}
             onSave={() => setDialog("save")}
             onExport={() => setDialog("export")}
             onBuy={() => setTab("compra")}
@@ -387,9 +394,10 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             {(
               [
                 ["cambios", "Cambios", pending],
+                ["falta", "Qué me falta", ok.ownership.totals.toBuy],
                 ["lista", "Lista", ok.totalCards],
                 ["stats", "Estadísticas", null],
-                ["compra", "Compra", null],
+                ["compra", "Mejorar comprando", null],
               ] as const
             ).map(([id, label, n]) => (
               <button
@@ -589,6 +597,14 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
               <RoleMeters roles={ok.roles} />
               <DeckFacts cards={ok.cards} />
             </div>
+          )}
+
+          {tab === "falta" && (
+            <OwnershipPanel
+              ownership={ok.ownership}
+              hasCollection={hasCollection}
+              loggedIn={loggedIn}
+            />
           )}
 
           {tab === "compra" && (
@@ -899,6 +915,7 @@ function DeckHeader({
   ok,
   name,
   owner,
+  onShowMissing,
   onSave,
   onExport,
   onBuy,
@@ -907,6 +924,7 @@ function DeckHeader({
   ok: Ok;
   name: string;
   owner: DeckViewDTO["owner"] | null;
+  onShowMissing: () => void;
   onSave: () => void;
   onExport: () => void;
   onBuy: () => void;
@@ -916,7 +934,7 @@ function DeckHeader({
   const order = ["W", "U", "B", "R", "G"];
   const commander = ok.commanders[0];
   return (
-    <section className="stack-sm flex items-start gap-5">
+    <section className="stack-sm flex flex-wrap items-start gap-5">
       {commander && (
         <div className="hide-sm flex flex-none flex-col gap-1.5" style={{ width: 132 }}>
           {ok.commanders.map((c) => (
@@ -926,7 +944,7 @@ function DeckHeader({
           ))}
         </div>
       )}
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
+      <div className="flex min-w-0 flex-col gap-2" style={{ flex: "1 1 300px" }}>
         <span className="cap">
           {owner ? (
             <>
@@ -960,11 +978,12 @@ function DeckHeader({
             <> · {ok.edhrec.totalDecks.toLocaleString("es")} mazos en EDHREC</>
           )}
         </p>
+        <OwnershipLine totals={ok.ownership.totals} onClick={onShowMissing} />
       </div>
       <div className="flex flex-wrap gap-2">
         <div className="btn-group">
           <button type="button" className="btn" onClick={onSave}>
-            {owner ? "Guardar una copia" : "Guardar"}
+            {owner ? "Copiar a mis mazos" : "Guardar"}
           </button>
           <button type="button" className="btn" onClick={onExport}>
             Exportar
@@ -979,6 +998,47 @@ function DeckHeader({
         </button>
       </div>
     </section>
+  );
+}
+
+/** "Tienes 72 de 99 · te faltan 27 (≈ 85 €)", que lleva a la pestaña "Qué me falta". */
+function OwnershipLine({
+  totals,
+  onClick,
+}: {
+  totals: Ok["ownership"]["totals"];
+  onClick: () => void;
+}) {
+  const pct = totals.cards ? Math.round((totals.have / totals.cards) * 100) : 0;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex max-w-[420px] cursor-pointer flex-col gap-1.5 rounded-md border border-line bg-transparent p-2 text-left"
+      style={{ color: "inherit", font: "inherit" }}
+    >
+      <span className="text-[13px]">
+        Tienes <b className="mono">{totals.have}</b> de <b className="mono">{totals.cards}</b>
+        {totals.toBuy > 0 ? (
+          <>
+            {" "}
+            · te faltan{" "}
+            <b className="mono" style={{ color: "var(--color-out)" }}>
+              {totals.toBuy}
+            </b>{" "}
+            <span className="muted">(≈ {formatEuros(totals.cost)})</span>
+          </>
+        ) : (
+          <span className="pill pill-in"> · lo tienes todo</span>
+        )}
+        {totals.fromOtherDecks > 0 && (
+          <span className="muted"> · {totals.fromOtherDecks} en otros mazos</span>
+        )}
+      </span>
+      <span className="role-bar" style={{ height: 4 }}>
+        <i style={{ width: `${pct}%` }} />
+      </span>
+    </button>
   );
 }
 

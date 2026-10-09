@@ -116,6 +116,26 @@ describe("analyzeDeck (de extremo a extremo con fixtures)", () => {
     expect(result.issues.map((i) => i.kind)).toContain("size");
   });
 
+  it("dice qué cartas del mazo tengo, cuáles me faltan y cuánto cuestan", async () => {
+    const result = await analyzeDeck({ input: DECK }, deps);
+    if (result.status !== "ok") throw new Error();
+    const { items, totals, prices, cost } = result.ownership;
+    const status = (name: string) => items.find((i) => i.card.name === name)?.status;
+    // De mi CSV: Ultros, Tamiyo's Logbook, Ichor Synthesizer y Thundertrap Trainer.
+    expect(status("Thundertrap Trainer")).toBe("owned");
+    expect(status("Ultros, Obnoxious Octopus")).toBe("owned");
+    // No los tengo: Teferi (comandante) y Sol Ring. Las islas son básicas.
+    expect(status("Teferi, Temporal Archmage")).toBe("missing");
+    expect(status("Sol Ring")).toBe("missing");
+    expect(status("Island")).toBe("basic");
+    expect(totals).toEqual({ cards: 6, have: 4, fromOtherDecks: 0, toBuy: 2 });
+    // Precio de la impresión más barata de cada una: Sol Ring 0,80 €, Teferi 3,50 €.
+    expect(prices.get(items.find((i) => i.card.name === "Sol Ring")?.card.oracleId ?? "")).toBe(
+      0.8,
+    );
+    expect(cost).toBe(4.3);
+  });
+
   it("respeta las cartas bloqueadas", async () => {
     const free = await analyzeDeck({ input: DECK }, deps);
     if (free.status !== "ok") throw new Error();

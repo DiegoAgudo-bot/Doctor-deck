@@ -69,6 +69,26 @@ export interface DeckCardDTO {
   isBasicLand: boolean;
 }
 
+/** Una carta del mazo frente a mi colección. */
+export interface OwnershipItemDTO {
+  card: CardDTO;
+  isCommander: boolean;
+  needed: number;
+  owned: number;
+  available: number;
+  usedIn: string[];
+  fromOtherDecks: number;
+  toBuy: number;
+  status: "owned" | "in_other_decks" | "missing" | "basic";
+  /** Precio de referencia (EUR) si hay que comprarla. */
+  price: number | null;
+}
+
+export interface OwnershipDTO {
+  items: OwnershipItemDTO[];
+  totals: { cards: number; have: number; fromOtherDecks: number; toBuy: number; cost: number };
+}
+
 export interface IssueDTO {
   kind: DeckIssue["kind"];
   message: string;
@@ -119,6 +139,7 @@ export type AnalyzeResponse =
       unavailableCandidates: ScoredCardDTO[];
       purchases: PurchasesDTO | null;
       cutCandidates: ScoredCardDTO[];
+      ownership: OwnershipDTO;
     };
 
 export interface PurchasesDTO {
@@ -363,6 +384,21 @@ export function analyzeResponse(
     unavailableCandidates: s.unavailableCandidates.slice(0, 40).map(scoredDTO),
     purchases: result.purchases ? purchasesDTO(result.purchases) : null,
     cutCandidates: s.cutCandidates.slice(0, 40).map(scoredDTO),
+    ownership: {
+      items: result.ownership.items.map((i) => ({
+        card: cardDTO(i.card),
+        isCommander: i.isCommander,
+        needed: i.needed,
+        owned: i.owned,
+        available: i.available,
+        usedIn: i.usedIn,
+        fromOtherDecks: i.fromOtherDecks,
+        toBuy: i.toBuy,
+        status: i.status,
+        price: result.ownership.prices.get(i.card.oracleId) ?? null,
+      })),
+      totals: { ...result.ownership.totals, cost: result.ownership.cost },
+    },
   };
 }
 
