@@ -1,3 +1,4 @@
+import { rulesText as prepare } from "../cards/rules-text";
 import type { Card } from "../cards/types";
 import { ROLES, type Role, type RoleClassifier, type RoleSet } from "./types";
 
@@ -16,15 +17,6 @@ const PRIMARY_ORDER: readonly Role[] = [
 
 const PERMANENT_NOUN = String.raw`(?:creature|artifact|enchantment|planeswalker|battle|permanent)s?`;
 const BASIC_TYPES = String.raw`(?:plains|island|swamp|mountain|forest)`;
-
-/** Texto preparado: minúsculas, sin reminder text, nombre propio → "this". */
-function prepare(card: Card): string {
-  let text = (card.oracleText ?? "").toLowerCase();
-  for (const n of card.name.toLowerCase().split(" // ")) {
-    if (n) text = text.split(n).join("this");
-  }
-  return text.replace(/\([^)]*\)/g, " ").replace(/[ \t]+/g, " ");
-}
 
 /** Cara frontal del tipo (en MDFC "Instant // Land" cuenta la cara que se juega normalmente). */
 const frontType = (card: Card) => (card.typeLine.split("//")[0] ?? "").toLowerCase();

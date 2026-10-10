@@ -29,6 +29,7 @@ export const scryfallCardSchema = z.object({
   color_identity: z.array(z.string()).default([]),
   legalities: z.record(z.string(), z.string()).default({}),
   edhrec_rank: z.number().optional(),
+  game_changer: z.boolean().default(false),
   prices: z.looseObject({ eur: z.string().nullish() }).nullish(),
   image_uris: imageUris,
   card_faces: z.array(face).optional(),
@@ -75,6 +76,7 @@ export function toCard(c: ScryfallCard): Card | null {
     isBasicLand: /\bBasic\b/.test(typeLine) && /\bLand\b/.test(typeLine),
     edhrecRank: c.edhrec_rank ?? null,
     imageUrl: imageOf(c),
+    gameChanger: c.game_changer,
   };
 }
 

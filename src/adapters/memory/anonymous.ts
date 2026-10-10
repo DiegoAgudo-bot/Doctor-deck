@@ -80,5 +80,6 @@ export const noSavedDecks: DeckRepository = {
   delete: async () => false,
   setVisibility: async () => false,
   rename: async () => false,
+  setTargetBracket: async () => false,
   usage: async () => new Map(),
 };

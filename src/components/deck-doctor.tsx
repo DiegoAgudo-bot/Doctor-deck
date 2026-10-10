@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { applySwaps, changeCard, exportDecklist, type ExportableDeck } from "@/domain/deck/export";
+import type { Bracket } from "@/domain/deck/bracket";
 import type { DeckVisibility } from "@/domain/deck/visibility";
 import { formatEuros } from "@/domain/suggestions/format";
 import type { AnalyzeResponse, CardDTO, DeckViewDTO } from "@/server/dto";
@@ -11,6 +12,7 @@ import { authClient } from "./auth-client";
 import { CardHover, CardImage } from "./card-image";
 import { CardSearch } from "./card-search";
 import { BuyPanel, type BuyOptions } from "./deck-buy";
+import { BracketPanel, BracketPill } from "./deck-bracket";
 import { OpeningHand } from "./deck-hand";
 import { OwnershipPanel } from "./deck-ownership";
 import { ExportDialog, SaveDialog } from "./deck-dialogs";
@@ -47,6 +49,8 @@ interface Saved {
   useOtherDecks: boolean;
   /** Quién lo ve al guardarlo (público, oculto o privado). */
   visibility: DeckVisibility;
+  /** Bracket al que apunta: limita los cambios propuestos. */
+  targetBracket: Bracket | null;
 }
 
 const KEY = "deck-doctor:mazo";
@@ -60,6 +64,7 @@ const EMPTY: Saved = {
   name: "",
   useOtherDecks: true,
   visibility: "public",
+  targetBracket: null,
 };
 const PLACEHOLDER =
   "Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n1x Arcane Signet (C21) 263\n…";
@@ -138,6 +143,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             deckId: d.isMine ? d.id : null,
             name: d.name,
             visibility: d.isMine ? d.visibility : "public",
+            targetBracket: d.isMine ? d.targetBracket : null,
           };
           if (!d.isMine) {
             setOwner(d.owner);
@@ -212,6 +218,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           useOtherDecks: req.useOtherDecks,
           ...(req.deckId !== null ? { deckId: req.deckId } : {}),
           ...(buyOptions ? { buy: buyOptions } : {}),
+          ...(req.targetBracket ? { targetBracket: req.targetBracket } : {}),
           ...(local ? { collection: ownedPairs(local) } : {}),
         }),
       });
@@ -292,6 +299,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           locked: saved.locked,
           excluded: saved.excluded,
           visibility,
+          targetBracket: saved.targetBracket,
         }),
       });
       update({ deckId: res.id, name: res.name, input, visibility });
@@ -311,6 +319,21 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
    * Añade (delta > 0) o quita (delta < 0) copias de una carta: rehace la lista, vuelve a analizar y,
    * si es uno de mis mazos guardados, lo guarda.
    */
+  /** Cambia el bracket objetivo: reanaliza y, si es un mazo mío guardado, lo guarda. */
+  async function changeTarget(targetBracket: Bracket | null) {
+    await analyze({ targetBracket });
+    if (saved.deckId === null || owner) return;
+    try {
+      await api(`/api/decks/${saved.deckId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetBracket }),
+      });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo guardar el bracket objetivo");
+    }
+  }
+
   async function editCard(card: { oracleId: string; name: string }, delta: number) {
     if (!baseDeck) return;
     const input = exportDecklist(changeCard(baseDeck, card, delta));
@@ -428,6 +451,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             onExport={() => setDialog("export")}
             onBuy={() => setTab("compra")}
             onEdit={() => setEditing(true)}
+            target={saved.targetBracket}
+            onShowBracket={() => setTab("stats")}
           />
 
           {ok.edhrec.themes.length > 0 && (
@@ -676,6 +701,15 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
               className="grid-1-sm grid items-start gap-4"
               style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
             >
+              <div style={{ gridColumn: "1 / -1" }}>
+                <BracketPanel
+                  bracket={ok.bracket}
+                  target={saved.targetBracket}
+                  busy={busy !== null}
+                  canSetTarget={!owner}
+                  onTarget={(b) => void changeTarget(b)}
+                />
+              </div>
               <ManaCurve
                 cards={[...ok.commanders.map((card) => ({ card, quantity: 1 })), ...ok.cards]}
               />
@@ -1008,6 +1042,8 @@ function DeckHeader({
   onExport,
   onBuy,
   onEdit,
+  target,
+  onShowBracket,
 }: {
   ok: Ok;
   name: string;
@@ -1017,6 +1053,8 @@ function DeckHeader({
   onExport: () => void;
   onBuy: () => void;
   onEdit: () => void;
+  target: Bracket | null;
+  onShowBracket: () => void;
 }) {
   const identity = [...new Set(ok.commanders.flatMap((c) => c.colorIdentity))];
   const order = ["W", "U", "B", "R", "G"];
@@ -1059,6 +1097,7 @@ function DeckHeader({
             <span>{ok.commanders.map((c) => c.name).join(" + ")}</span>
           )}
           <ColorPips colors={order.filter((c) => identity.includes(c as never))} />
+          <BracketPill bracket={ok.bracket} target={target} onClick={onShowBracket} />
         </div>
         <p className="subtle text-[13px]">
           {ok.totalCards} cartas · coste medio {averageCmc(ok.cards).toFixed(2).replace(".", ",")}

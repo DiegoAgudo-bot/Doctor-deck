@@ -67,6 +67,23 @@ describe("PrismaDeckRepository", () => {
     expect(await new PrismaDeckRepository(db, "u2").rename(id, "Robado")).toBe(false);
     expect((await repo.list()).map((d) => d.name)).toEqual(["Teferi control"]);
 
+    expect((await repo.get(id))?.targetBracket).toBeNull();
+    expect(await repo.setTargetBracket(id, 3)).toBe(true);
+    expect((await repo.get(id))?.targetBracket).toBe(3);
+    // Guardar sin targetBracket no lo cambia; con null lo quita.
+    await repo.save({ ...base, id, name: "Teferi control", commanders: [], cards: [] });
+    expect((await repo.get(id))?.targetBracket).toBe(3);
+    await repo.save({
+      ...base,
+      id,
+      name: "Teferi control",
+      commanders: [],
+      cards: [],
+      targetBracket: null,
+    });
+    expect((await repo.get(id))?.targetBracket).toBeNull();
+    expect(await new PrismaDeckRepository(db, "u2").setTargetBracket(id, 4)).toBe(false);
+
     expect(await repo.delete(id)).toBe(true);
     expect(await repo.get(id)).toBeNull();
     expect(await repo.delete(id)).toBe(false);

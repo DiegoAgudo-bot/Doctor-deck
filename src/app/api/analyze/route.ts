@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { BrowserCollectionRepository, noSavedDecks } from "@/adapters/memory/anonymous";
 import { analyzeDeck } from "@/application/analyze-deck";
+import { BRACKETS } from "@/domain/deck/bracket";
 import { getContainer } from "@/server/container";
 import { analyzeResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
@@ -31,6 +32,7 @@ const analyzeRequestSchema = z.object({
       budget: z.number().positive().max(100_000).optional(),
     })
     .optional(),
+  targetBracket: z.union(BRACKETS.map((b) => z.literal(b))).optional(),
 });
 
 export async function POST(request: Request) {

@@ -1,5 +1,6 @@
 import { connection, type NextRequest } from "next/server";
 import { z } from "zod";
+import { BRACKETS } from "@/domain/deck/bracket";
 import { DECK_VISIBILITIES } from "@/domain/deck/visibility";
 import { getContainer } from "@/server/container";
 import { savedDeckDTO } from "@/server/dto";
@@ -39,10 +40,17 @@ const patchSchema = z
   .object({
     visibility: z.enum(DECK_VISIBILITIES).optional(),
     name: z.string().trim().min(1).max(120).optional(),
+    targetBracket: z
+      .union(BRACKETS.map((b) => z.literal(b)))
+      .nullable()
+      .optional(),
   })
-  .refine((p) => p.visibility !== undefined || p.name !== undefined, "Nada que cambiar");
+  .refine(
+    (p) => p.visibility !== undefined || p.name !== undefined || p.targetBracket !== undefined,
+    "Nada que cambiar",
+  );
 
-/** Cambia la visibilidad (público / oculto / privado) o el nombre de uno de tus mazos. */
+/** Cambia la visibilidad (público / oculto / privado), el nombre o el bracket objetivo de uno de tus mazos. */
 export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">) {
   try {
     const user = await requireUser(req);
@@ -53,6 +61,8 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/decks/[id]
     if (ok && id && changes.visibility !== undefined)
       ok = await decks.setVisibility(id, changes.visibility);
     if (ok && id && changes.name !== undefined) ok = await decks.rename(id, changes.name);
+    if (ok && id && changes.targetBracket !== undefined)
+      ok = await decks.setTargetBracket(id, changes.targetBracket);
     return ok ? Response.json(changes) : notFound();
   } catch (err) {
     return errorResponse(err);

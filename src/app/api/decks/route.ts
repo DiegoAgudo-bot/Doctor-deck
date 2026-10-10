@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { z } from "zod";
+import { BRACKETS } from "@/domain/deck/bracket";
 import { DECK_VISIBILITIES } from "@/domain/deck/visibility";
 import { saveDeck } from "@/application/save-deck";
 import { announceNewDeck } from "@/application/social";
@@ -22,6 +23,10 @@ const saveSchema = z.object({
   locked: ids,
   excluded: ids,
   visibility: z.enum(DECK_VISIBILITIES).optional(),
+  targetBracket: z
+    .union(BRACKETS.map((b) => z.literal(b)))
+    .nullable()
+    .optional(),
 });
 
 /** Mis mazos guardados. */

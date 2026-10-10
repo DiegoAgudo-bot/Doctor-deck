@@ -1,5 +1,11 @@
 import { combinedColorIdentity, fitsColorIdentity } from "../cards/commander";
 import type { Card } from "../cards/types";
+import {
+  allowsMassLandDenial,
+  GAME_CHANGER_LIMIT,
+  isMassLandDenial,
+  type Bracket,
+} from "../deck/bracket";
 import type { ResolvedDeck } from "../deck/resolve";
 import type { ResolvedRecommendation } from "../recommendations/types";
 import { ROLES, type Role, type RoleClassifier, type RoleSet } from "../roles/types";
@@ -27,6 +33,11 @@ export interface EngineInput {
   usage?: ReadonlyMap<string, CardUsage> | undefined;
   classifier: RoleClassifier;
   config: EngineConfig;
+  /**
+   * Bracket al que apunta el mazo: no se proponen game changers por encima de su límite ni
+   * destrucción masiva de tierras por debajo del 4. Si falta, no se limita nada.
+   */
+  targetBracket?: Bracket | undefined;
 }
 
 /** Motivo por el que una carta del mazo debe salir sí o sí. */
@@ -131,6 +142,7 @@ function prepare(input: EngineInput) {
   const deckIds = new Set([...commanderIds, ...deck.cards.map((c) => c.card.oracleId)]);
   const identity = combinedColorIdentity(deck.commanders);
   const excluded = input.excluded ?? new Set<string>();
+  const target = input.targetBracket;
 
   // Las cartas con problema puntúan por debajo de cualquier otra para que salgan primero.
   const PROBLEM_SCORE = -(Math.abs(weights.synergy) + Math.abs(weights.inclusion)) - 1;
@@ -183,9 +195,19 @@ function prepare(input: EngineInput) {
     !card.isBasicLand &&
     // Nunca fuera de la identidad de color del comandante (sin comandante, nada que proponer).
     deck.commanders.length > 0 &&
-    fitsColorIdentity(card, identity);
+    fitsColorIdentity(card, identity) &&
+    (target === undefined || allowsMassLandDenial(target) || !isMassLandDenial(card)) &&
+    (target === undefined || GAME_CHANGER_LIMIT[target] > 0 || !card.gameChanger);
 
-  return { scored, roleCounts, cutCandidates, canEnter };
+  // Game changers del mazo y cuántos admite el bracket objetivo (lo controla el emparejado).
+  const gameChangers = {
+    count:
+      deck.commanders.filter((c) => c.gameChanger).length +
+      deck.cards.filter((c) => c.card.gameChanger).reduce((n, c) => n + c.quantity, 0),
+    limit: target === undefined ? Infinity : GAME_CHANGER_LIMIT[target],
+  };
+
+  return { scored, roleCounts, cutCandidates, canEnter, gameChangers };
 }
 
 /** Copias libres de una carta teniendo en cuenta los otros mazos. */
@@ -205,7 +227,7 @@ const byScore = <C extends ScoredCard>(a: C, b: C) =>
 /** Motor de sugerencias: propone cambios 1×1 usando solo cartas libres de la colección. */
 export function suggestSwaps(input: EngineInput): SuggestionResult {
   const { config } = input;
-  const { scored, roleCounts, cutCandidates, canEnter } = prepare(input);
+  const { scored, roleCounts, cutCandidates, canEnter, gameChangers } = prepare(input);
 
   // 3. Candidatos a entrar: recomendadas ∩ colección (con copias libres) que pueden entrar.
   const owned: AddCandidate[] = input.recommendations
@@ -217,6 +239,7 @@ export function suggestSwaps(input: EngineInput): SuggestionResult {
 
   const swaps = pairGreedy(cutCandidates, addCandidates, roleCounts, config, {
     maxSwaps: config.maxSuggestions,
+    gameChangers,
     reason: (pair, counts) =>
       swapReason(pair, { counts, minimums: config.minimums }, ownedSentence(pair.in)),
   });
@@ -243,7 +266,7 @@ export function suggestPurchases(
   },
 ): PurchaseResult {
   const { config, prices, options } = input;
-  const { scored, roleCounts, cutCandidates, canEnter } = prepare(input);
+  const { scored, roleCounts, cutCandidates, canEnter, gameChangers } = prepare(input);
 
   const candidates: PurchaseCandidate[] = input.recommendations
     .filter((r) => canEnter(r.card) && availability(input, r.card.oracleId).available === 0)
@@ -260,6 +283,7 @@ export function suggestPurchases(
   const purchases = pairGreedy(cutCandidates, candidates, roleCounts, config, {
     maxSwaps: Math.max(0, Math.floor(options.maxCards)),
     budget: options.budget,
+    gameChangers,
     reason: (pair, counts) =>
       swapReason(pair, { counts, minimums: config.minimums }, purchaseSentence(pair.in)),
   });
@@ -283,6 +307,8 @@ function pairGreedy<C extends ScoredCard & { price?: number }>(
   opts: {
     maxSwaps: number;
     budget?: number | undefined;
+    /** Game changers en el mazo y máximo que admite el bracket objetivo. */
+    gameChangers: { count: number; limit: number };
     reason: (pair: Omit<Pair<C>, "reason">, countsAfter: Record<Role, number>) => string;
   },
 ): Pair<C>[] {
@@ -291,12 +317,18 @@ function pairGreedy<C extends ScoredCard & { price?: number }>(
   const ins = [...addCandidates];
   const result: Pair<C>[] = [];
   let remaining = opts.budget ?? Infinity;
+  let gameChangers = opts.gameChangers.count;
+  const gcDelta = (out: ScoredCard, inn: ScoredCard) =>
+    Number(inn.card.gameChanger) - Number(out.card.gameChanger);
 
   while (result.length < opts.maxSwaps) {
     let best: Omit<Pair<C>, "reason"> | null = null;
     for (const out of outs) {
       for (const inn of ins) {
         if ((inn.price ?? 0) > remaining + 1e-9) continue;
+        // Que entre un game changer no puede pasar el límite del bracket objetivo.
+        const delta = gcDelta(out, inn);
+        if (delta > 0 && gameChangers + delta > opts.gameChangers.limit) continue;
         const improvement = inn.score - out.score;
         if (improvement <= config.minImprovement) continue;
         // Una carta fuera de color o prohibida sale aunque deje un rol bajo mínimo.
@@ -318,6 +350,7 @@ function pairGreedy<C extends ScoredCard & { price?: number }>(
     for (const r of best.out.roles.roles) counts[r] -= 1;
     for (const r of best.in.roles.roles) counts[r] += 1;
     remaining -= best.in.price ?? 0;
+    gameChangers += gcDelta(best.out, best.in);
     outs.splice(outs.indexOf(best.out), 1);
     ins.splice(ins.indexOf(best.in), 1);
     result.push({ ...best, reason: opts.reason(best, counts) });

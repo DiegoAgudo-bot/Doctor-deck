@@ -909,6 +909,21 @@
     color: #fff;
     font: 600 10.5px/1 var(--font-sans);
   }
+  /* Game changer (brackets): arriba a la izquierda (en las pilas solo se ve la franja de arriba). */
+  .gcmark {
+    position: absolute;
+    z-index: 2;
+    top: 2.5%;
+    left: -6px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    background: var(--color-warn);
+    color: #1a1a1a;
+    font: 700 10px/1 var(--font-sans);
+  }
 
   /* ---------- Tabla densa ---------- */
   .table {

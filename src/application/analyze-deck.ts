@@ -6,6 +6,7 @@ import {
   type DeckIssue,
   type ResolvedDeck,
 } from "@/domain/deck/resolve";
+import { estimateBracket, type Bracket, type BracketEstimate } from "@/domain/deck/bracket";
 import { deckOwnership, type CardOwnership, type OwnershipTotals } from "@/domain/deck/ownership";
 import { manaCurve } from "@/domain/deck/stats";
 import type { CardRepository } from "@/domain/ports/card-repository";
@@ -42,6 +43,8 @@ export interface AnalyzeDeckInput {
   useOtherDecks?: boolean | undefined;
   /** Si viene, calcula también qué cartas comprar. */
   buy?: PurchaseOptions | undefined;
+  /** Bracket al que apunta el mazo: limita lo que se propone meter. */
+  targetBracket?: Bracket | undefined;
 }
 
 export interface AnalyzeDeckDeps {
@@ -83,6 +86,8 @@ export type AnalyzeDeckResult =
       };
       suggestions: SuggestionResult;
       purchases: PurchaseResult | null;
+      /** Bracket estimado (mínimo) y por qué. */
+      bracket: BracketEstimate;
       /** Qué parte del mazo tengo, qué está en otros mazos y qué me falta (con su precio). */
       ownership: {
         items: CardOwnership[];
@@ -130,6 +135,7 @@ export async function analyzeDeck(
     excluded: new Set(req.excluded ?? []),
     classifier: deps.classifier,
     config: deps.config,
+    targetBracket: req.targetBracket,
   };
   const suggestions = suggestSwaps(engineInput);
   const own = deckOwnership(deck.commanders, deck.cards, owned, usage);
@@ -164,6 +170,12 @@ export async function analyzeDeck(
     },
     suggestions,
     purchases,
+    bracket: estimateBracket(
+      [...deck.commanders, ...deck.cards.map((c) => c.card)].map((card) => ({
+        card,
+        roles: deps.classifier.classify(card).roles,
+      })),
+    ),
     ownership: { ...own, prices: missingPrices, cost: Math.round(cost * 100) / 100 },
   };
 }

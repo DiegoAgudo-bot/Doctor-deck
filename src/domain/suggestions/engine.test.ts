@@ -579,3 +579,56 @@ describe("suggestPurchases: modo compra", () => {
     expect(r.purchases[0]?.reason).toContain("La tienes, pero ocupada en Otro: cuesta unos 0,10 €");
   });
 });
+
+describe("suggestSwaps: bracket objetivo", () => {
+  const weak = [card("Débil 1"), card("Débil 2"), card("Débil 3")];
+  const rhystic = card("Rhystic Study", { gameChanger: true });
+  const tithe = card("Mystic Remora", { gameChanger: true });
+  const armageddon = card("Armageddon", { oracleText: "Destroy all lands." });
+  const good = card("Buena");
+  const recs = [
+    rec(rhystic, 0.9, 0.9),
+    rec(tithe, 0.85, 0.85),
+    rec(armageddon, 0.8, 0.8),
+    rec(good, 0.3, 0.3),
+  ];
+  const base = {
+    deck: deckOf(weak),
+    recommendations: recs,
+    owned: owns(rhystic, tithe, armageddon, good),
+  };
+  const entering = (r: ReturnType<typeof run>) => r.swaps.map((s) => s.in.card.name).sort();
+
+  it("sin bracket objetivo no limita nada", () => {
+    expect(entering(run(base))).toEqual(["Armageddon", "Mystic Remora", "Rhystic Study"]);
+  });
+
+  it("bracket 2: ni game changers ni destrucción masiva de tierras", () => {
+    expect(entering(run({ ...base, targetBracket: 2 }))).toEqual(["Buena"]);
+  });
+
+  it("bracket 3: game changers hasta 3 contando los que ya hay", () => {
+    const already = [card("GC 1", { gameChanger: true }), card("GC 2", { gameChanger: true })];
+    const r = run({ ...base, deck: deckOf([...weak, ...already]), targetBracket: 3 });
+    // Ya hay 2: el total nunca pasa de 3 (puede cambiar un game changer por otro mejor).
+    const after =
+      already.length +
+      r.swaps.reduce(
+        (n, sw) => n + Number(sw.in.card.gameChanger) - Number(sw.out.card.gameChanger),
+        0,
+      );
+    expect(after).toBeLessThanOrEqual(3);
+    expect(r.swaps.map((sw) => sw.in.card.name)).not.toContain("Armageddon");
+  });
+
+  it("cambiar un game changer por otro no suma", () => {
+    const three = [1, 2, 3].map((i) => card(`GC ${i}`, { gameChanger: true }));
+    const r = run({
+      deck: deckOf(three),
+      recommendations: [rec(rhystic, 0.9, 0.9)],
+      owned: owns(rhystic),
+      targetBracket: 3,
+    });
+    expect(r.swaps.map((s) => s.in.card.name)).toEqual(["Rhystic Study"]);
+  });
+});

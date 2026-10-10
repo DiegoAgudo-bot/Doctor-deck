@@ -1,3 +1,4 @@
+import { toBracket, type Bracket } from "@/domain/deck/bracket";
 import { canOpenDeck, toDeckVisibility, type DeckVisibility } from "@/domain/deck/visibility";
 import type {
   DeckRepository,
@@ -39,6 +40,7 @@ function savedDeckFromRow(d: DeckRow): SavedDeck {
     updatedAt: d.updatedAt,
     visibility: toDeckVisibility(d.visibility),
     input: d.input,
+    targetBracket: toBracket(d.targetBracket),
     theme: d.theme,
     commanders: d.cards.filter((c) => c.isCommander).map((c) => c.oracleId),
     locked: d.cards.filter((c) => c.locked).map((c) => c.oracleId),
@@ -118,6 +120,7 @@ export class PrismaDeckRepository implements DeckRepository {
     ];
     const fields = {
       ...(data.visibility !== undefined ? { visibility: data.visibility } : {}),
+      ...(data.targetBracket !== undefined ? { targetBracket: data.targetBracket } : {}),
       name: data.name,
       input: data.input,
       source: data.source,
@@ -150,6 +153,14 @@ export class PrismaDeckRepository implements DeckRepository {
     const { count } = await this.db.deck.updateMany({
       where: { publicId: id, userId: this.userId },
       data: { visibility },
+    });
+    return count > 0;
+  }
+
+  async setTargetBracket(id: string, targetBracket: Bracket | null): Promise<boolean> {
+    const { count } = await this.db.deck.updateMany({
+      where: { publicId: id, userId: this.userId },
+      data: { targetBracket },
     });
     return count > 0;
   }

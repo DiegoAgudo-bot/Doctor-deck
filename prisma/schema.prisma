@@ -32,6 +32,8 @@ model OracleCard {
   isBasicLand    Boolean    @default(false)
   edhrecRank     Int?
   imageUrl       String?
+  /// En la lista de "game changers" de los brackets (Scryfall `game_changer`).
+  gameChanger    Boolean    @default(false)
   printings      Printing[]
 
   @@index([nameKey])
@@ -99,6 +101,8 @@ model Deck {
   excluded       String         @default("[]")
   /// "public" (perfil, Comunidad y avisos) | "unlisted" (solo con el enlace) | "private".
   visibility     String         @default("public")
+  /// Bracket al que apunta el mazo (1–5); null = sin objetivo.
+  targetBracket  Int?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   cards          DeckCard[]

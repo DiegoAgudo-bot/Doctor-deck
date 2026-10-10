@@ -18,6 +18,8 @@ export interface Card {
   isBasicLand: boolean;
   edhrecRank: number | null;
   imageUrl: string | null;
+  /** En la lista de "game changers" de los brackets de Commander (Scryfall `game_changer`). */
+  gameChanger: boolean;
 }
 
 /** Impresión concreta de una carta. */

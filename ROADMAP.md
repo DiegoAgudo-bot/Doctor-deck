@@ -17,7 +17,7 @@ despliegue en `main` y **parar al terminar cada fase hasta el OK del usuario**.
 | ---- | ------------------------------------------------------------- | -------- | ------ |
 | 10   | Crear mazos (comandante, mazo medio, desde cero) y gestor     | Bajo     | ✅     |
 | 11   | Exportar Arena/MTGO, mazos ocultos, manos de muestra, precios | Bajo     | ✅     |
-| 12   | Bracket y game changers                                       | Bajo     |        |
+| 12   | Bracket y game changers                                       | Bajo     | ✅     |
 | 13   | Comunidad: mazos que puedes montar ya, me gusta, filtros      | Medio    |        |
 | 14   | Precios: histórico, lo que más sube, avisos de bajada         | Medio    |        |
 | 15   | Etiquetas propias que corrigen los roles                      | Medio    |        |
@@ -68,7 +68,7 @@ Cubre la idea 2 del análisis.
 **Hecho cuando:** un mazo exportado se importa sin errores en Arena y en Moxfield; un mazo oculto
 no aparece en ningún listado; la probabilidad está probada contra valores conocidos.
 
-## Fase 12 · Bracket y game changers
+## Fase 12 · Bracket y game changers ✅
 
 **Objetivo:** decir en qué bracket está un mazo (1–5) y por qué, que es lo que más se pregunta
 desde que existen los brackets.

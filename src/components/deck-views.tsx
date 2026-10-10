@@ -403,6 +403,11 @@ export function DeckList({
                     <td>
                       <CardHover card={c.card} className="inline-flex items-center gap-2">
                         {c.card.name}
+                        {c.card.gameChanger && (
+                          <span className="pill pill-warn" title="Game changer (brackets)">
+                            GC
+                          </span>
+                        )}
                         {leaving.has(c.card.oracleId) && (
                           <span className="pill pill-out">sale</span>
                         )}
@@ -503,6 +508,11 @@ export function DeckList({
                     </span>
                   )}
                   {leaving.has(c.card.oracleId) && <span className="outmark">sale</span>}
+                  {c.card.gameChanger && !leaving.has(c.card.oracleId) && (
+                    <span className="gcmark" title="Game changer (brackets)">
+                      GC
+                    </span>
+                  )}
                   {c.quantity > 1 && !isLocked && <span className="qtymark">×{c.quantity}</span>}
                   <CardImage card={c.card} />
                 </button>

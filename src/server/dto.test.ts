@@ -1,3 +1,4 @@
+import { estimateBracket } from "@/domain/deck/bracket";
 import { deckOwnership } from "@/domain/deck/ownership";
 import { describe, expect, it } from "vitest";
 import { makeCard } from "../../tests/helpers/cards";
@@ -57,6 +58,7 @@ describe("analyzeResponse", () => {
         unresolved: [],
       },
       purchases: null,
+      bracket: estimateBracket([]),
       ownership: {
         ...deckOwnership(deck.commanders, deck.cards, new Map()),
         prices: new Map([[bolt.oracleId, 0.5]]),

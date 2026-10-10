@@ -209,6 +209,14 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
 - **Mano inicial** (`domain/deck/draw-odds.ts`, pestaña Estadísticas): hipergeométrica sobre las
   99 (P de 2–4 tierras, caídas de tierra, ramp, robo; en multijugador se roba en el turno 1) y
   manos de muestra con mulligan (el primero gratis).
+- **Bracket** (`domain/deck/bracket.ts`): `estimateBracket` da el bracket MÍNIMO (2, 3 o 4) por
+  game changers (`Card.gameChanger`, campo `game_changer` de Scryfall; 1–3 → 3, ≥4 → 4),
+  destrucción masiva de tierras (regex sobre el texto: "destroy all lands", "each player
+  sacrifices N lands", Blood Moon, Winter Orb…; sacrificar tus tierras como coste no cuenta) y ≥3
+  cartas de turno extra (→ 4). Tutores solo informativos; combos pendientes (fase 16). Sale en
+  `analyze` (`bracket`), en la cabecera y en Estadísticas. `Deck.targetBracket` (opcional): el
+  motor no propone game changers por encima del límite (0 hasta el 2, 3 en el 3, contando los que
+  salen) ni destrucción masiva por debajo del 4. `PATCH /api/decks/{id}` acepta `targetBracket`.
 - **Histórico de precios** (`PriceSnapshot`, `PrismaPriceHistory`): `scryfall:sync` guarda cada
   día (`recordPriceSnapshot`, fecha UTC) el precio más barato de las cartas que están en alguna
   colección o mazo. Aún sin pantalla: la usará la fase 14.
@@ -283,8 +291,9 @@ Purchase price currency, Added`.
    notificaciones (mazo nuevo, carta cara) ✅
 10. Crear mazos desde el comandante (mazo medio de EDHREC o desde cero) y gestor de mazos ✅
 11. Exportar a Arena/MTGO, mazos ocultos, mano inicial y empezar a guardar precios ✅
+12. Bracket estimado, game changers y bracket objetivo en el motor ✅
 
-Las fases siguientes (12–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
+Las fases siguientes (13–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
 diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)

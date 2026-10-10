@@ -31,6 +31,7 @@ const toRow = (c: Card) => ({
   isBasicLand: c.isBasicLand,
   edhrecRank: c.edhrecRank,
   imageUrl: c.imageUrl,
+  gameChanger: c.gameChanger,
 });
 
 const fromRow = (r: OracleCard): Card => ({
@@ -48,6 +49,7 @@ const fromRow = (r: OracleCard): Card => ({
   isBasicLand: r.isBasicLand,
   edhrecRank: r.edhrecRank,
   imageUrl: r.imageUrl,
+  gameChanger: r.gameChanger,
 });
 
 const printingFromRow = (r: PrintingRow): Printing => ({

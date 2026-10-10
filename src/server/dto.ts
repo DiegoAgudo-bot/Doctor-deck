@@ -1,3 +1,4 @@
+import type { BracketEstimate } from "@/domain/deck/bracket";
 import type { AnalyzeDeckResult } from "@/application/analyze-deck";
 import type { AddCardsResult, CollectionCard } from "@/application/collection-cards";
 import type { CollectionImportSummary } from "@/application/import-collection";
@@ -34,6 +35,8 @@ export interface CardDTO {
   colorIdentity: Color[];
   /** `layout` de Scryfall (normal, split, transform, modal_dfc…). */
   layout: string;
+  /** En la lista de game changers de los brackets. */
+  gameChanger: boolean;
 }
 
 export interface ScoredCardDTO {
@@ -142,6 +145,8 @@ export type AnalyzeResponse =
       purchases: PurchasesDTO | null;
       cutCandidates: ScoredCardDTO[];
       ownership: OwnershipDTO;
+      /** Bracket estimado (el mínimo en el que encaja) y por qué. */
+      bracket: BracketEstimate;
     };
 
 export interface PurchasesDTO {
@@ -318,6 +323,7 @@ export const cardDTO = (c: Card): CardDTO => ({
   cmc: c.cmc,
   colorIdentity: c.colorIdentity,
   layout: c.layout,
+  gameChanger: c.gameChanger,
 });
 
 const scoredDTO = (s: ScoredCard | AddCandidate | PurchaseCandidate): ScoredCardDTO => ({
@@ -406,6 +412,7 @@ export function analyzeResponse(
     unavailableCandidates: s.unavailableCandidates.slice(0, 40).map(scoredDTO),
     purchases: result.purchases ? purchasesDTO(result.purchases) : null,
     cutCandidates: s.cutCandidates.slice(0, 40).map(scoredDTO),
+    bracket: result.bracket,
     ownership: {
       items: result.ownership.items.map((i) => ({
         card: cardDTO(i.card),

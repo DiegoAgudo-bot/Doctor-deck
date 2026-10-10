@@ -1,4 +1,5 @@
 import { chooseCommanders } from "@/domain/deck/resolve";
+import type { Bracket } from "@/domain/deck/bracket";
 import type { DeckVisibility } from "@/domain/deck/visibility";
 import type { CardRepository } from "@/domain/ports/card-repository";
 import type { DeckRepository } from "@/domain/ports/deck-repository";
@@ -15,6 +16,8 @@ export interface SaveDeckInput {
   excluded?: readonly string[] | undefined;
   /** Al crear, por defecto público; al actualizar, si no viene, no cambia. */
   visibility?: DeckVisibility | undefined;
+  /** Bracket objetivo; null lo quita y, si no viene, no cambia. */
+  targetBracket?: Bracket | null | undefined;
 }
 
 export class DeckWithoutCommanderError extends Error {
@@ -48,6 +51,7 @@ export async function saveDeck(
     locked: [...(req.locked ?? [])],
     excluded: [...(req.excluded ?? [])],
     visibility: req.visibility ?? (req.id === undefined ? "public" : undefined),
+    targetBracket: req.targetBracket,
   });
   return { id, name };
 }

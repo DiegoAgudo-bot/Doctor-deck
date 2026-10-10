@@ -1,3 +1,4 @@
+import type { Bracket } from "../deck/bracket";
 import type { DeckVisibility } from "../deck/visibility";
 import type { CardUsage } from "../suggestions/engine";
 
@@ -17,6 +18,8 @@ export interface SavedDeckSummary {
 
 export interface SavedDeck extends SavedDeckSummary {
   input: string;
+  /** Bracket al que apunta (limita lo que se propone meter); null = sin objetivo. */
+  targetBracket: Bracket | null;
   theme: string | null;
   locked: string[];
   excluded: string[];
@@ -36,6 +39,8 @@ export interface SaveDeckData {
   excluded: string[];
   /** Al crear: por defecto, público. Al actualizar, si no viene, se queda como estaba. */
   visibility?: DeckVisibility | undefined;
+  /** Si no viene, al crear queda sin objetivo y al actualizar no cambia. */
+  targetBracket?: Bracket | null | undefined;
 }
 
 export interface DeckRepository {
@@ -46,6 +51,7 @@ export interface DeckRepository {
   delete(id: string): Promise<boolean>;
   setVisibility(id: string, visibility: DeckVisibility): Promise<boolean>;
   rename(id: string, name: string): Promise<boolean>;
+  setTargetBracket(id: string, bracket: Bracket | null): Promise<boolean>;
   /** Copias de cada carta usadas en los mazos guardados, salvo `excludeDeckId`. */
   usage(excludeDeckId?: string): Promise<Map<string, CardUsage>>;
 }
