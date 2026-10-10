@@ -71,6 +71,26 @@ export function NotificationsPage() {
                       {who} ha publicado un mazo:{" "}
                       {n.deckId ? <Link href={`/decks/${n.deckId}`}>{n.title}</Link> : n.title}
                     </>
+                  ) : n.type === "price_drop" ? (
+                    <>
+                      Ha bajado <b>{n.title}</b>, que te falta
+                      {n.deckId && (
+                        <>
+                          {" "}
+                          para <Link href={`/decks/${n.deckId}?tab=falta`}>uno de tus mazos</Link>
+                        </>
+                      )}
+                      {n.price !== null && (
+                        <span className="mono subtle">
+                          {" "}
+                          · {n.prevPrice !== null && <>{formatEuros(n.prevPrice)} → </>}
+                          {formatEuros(n.price)}
+                          {n.prevPrice !== null &&
+                            n.prevPrice > 0 &&
+                            ` (−${Math.round(((n.prevPrice - n.price) / n.prevPrice) * 100)} %)`}
+                        </span>
+                      )}
+                    </>
                   ) : (
                     <>
                       {who} ha añadido <b>{n.title}</b> a su colección

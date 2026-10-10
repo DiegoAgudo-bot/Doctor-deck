@@ -925,6 +925,21 @@
     font: 700 10px/1 var(--font-sans);
   }
 
+  /* Botón que parece texto (p. ej. el precio que abre su histórico). */
+  .linkbtn {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+  }
+  .linkbtn:hover {
+    color: var(--color-accent);
+  }
+
   /* ---------- Tabla densa ---------- */
   .table {
     width: 100%;

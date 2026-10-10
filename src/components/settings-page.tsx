@@ -9,7 +9,7 @@ import { authClient } from "./auth-client";
 import { IconLogout } from "./icons";
 import { Banner, Loading } from "./ui";
 
-/** /ajustes: nombre de usuario, privacidad de la colección y salir. */
+/** /ajustes: nombre de usuario, privacidad de la colección, avisos de precio y salir. */
 export function SettingsPage() {
   const [me, setMe] = useState<MyProfileDTO | null>(null);
   const [username, setUsername] = useState("");
@@ -27,7 +27,11 @@ export function SettingsPage() {
       );
   }, []);
 
-  async function save(changes: { username?: string; collectionPublic?: boolean }) {
+  async function save(changes: {
+    username?: string;
+    collectionPublic?: boolean;
+    priceAlertPercent?: number | null;
+  }) {
     setBusy(true);
     setMessage(null);
     try {
@@ -141,6 +145,43 @@ export function SettingsPage() {
             Cada mazo tiene su propio interruptor público/privado en{" "}
             <Link href="/mazos">Mis mazos</Link>.
           </p>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-h">
+          <span className="h2">Avisos de precio</span>
+        </div>
+        <div className="flex flex-col gap-3 p-3.5">
+          <div className="field">
+            <label className="label" htmlFor="price-alert">
+              Avisarme si algo que me falta baja de precio
+            </label>
+            <select
+              id="price-alert"
+              className="select"
+              style={{ maxWidth: 260 }}
+              disabled={busy}
+              value={me.priceAlertPercent ?? "off"}
+              onChange={(e) =>
+                void save({
+                  priceAlertPercent: e.target.value === "off" ? null : Number(e.target.value),
+                })
+              }
+            >
+              <option value="off">No avisarme</option>
+              {[10, 15, 20, 25, 30, 40, 50].map((p) => (
+                <option key={p} value={p}>
+                  Si baja un {p} % o más
+                </option>
+              ))}
+            </select>
+            <span className="hint">
+              Cada noche se miran las cartas que te faltan para tus mazos guardados y se comparan
+              con su precio más alto de los 30 días anteriores. Como mucho, un aviso por carta a la
+              semana.
+            </span>
+          </div>
         </div>
       </section>
 

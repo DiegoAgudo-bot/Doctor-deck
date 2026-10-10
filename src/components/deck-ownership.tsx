@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { formatEuros } from "@/domain/suggestions/format";
-import type { OwnershipDTO, OwnershipItemDTO } from "@/server/dto";
+import type { CardDTO, OwnershipDTO, OwnershipItemDTO } from "@/server/dto";
 import { CardHover } from "./card-image";
+import { CardPriceDialog } from "./card-price-dialog";
 import { ManaCost } from "./mana";
 import { Banner, fmt } from "./ui";
 
@@ -65,6 +66,7 @@ export function OwnershipPanel({
   loggedIn: boolean;
 }) {
   const [copied, setCopied] = useState(false);
+  const [priceCard, setPriceCard] = useState<CardDTO | null>(null);
   const { items, totals } = ownership;
   const missing = items
     .filter((i) => i.status === "missing")
@@ -186,7 +188,18 @@ export function OwnershipPanel({
                     </td>
                     <td className="r mono subtle hide-sm">{i.owned || "—"}</td>
                     <td className="r mono">
-                      {i.price !== null ? formatEuros(i.price * i.toBuy) : "—"}
+                      {i.price !== null ? (
+                        <button
+                          type="button"
+                          className="linkbtn"
+                          title="Ver el histórico de precio"
+                          onClick={() => setPriceCard(i.card)}
+                        >
+                          {formatEuros(i.price * i.toBuy)}
+                        </button>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="r">
                       <a
@@ -271,6 +284,7 @@ export function OwnershipPanel({
           Sin cuenta no se descuentan las cartas de otros mazos (no tienes mazos guardados).
         </p>
       )}
+      <CardPriceDialog card={priceCard} onClose={() => setPriceCard(null)} />
     </div>
   );
 }

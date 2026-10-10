@@ -4,9 +4,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { CollectionFilters, CollectionSort } from "@/domain/collection/browse";
 import { ROLES, type Role } from "@/domain/roles/types";
 import { formatEuros } from "@/domain/suggestions/format";
-import type { CollectionCardDTO, CollectionTotals, CollectionViewResponse } from "@/server/dto";
+import type {
+  CardDTO,
+  CollectionCardDTO,
+  CollectionTotals,
+  CollectionViewResponse,
+} from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { CardHover, CardImage } from "./card-image";
+import { CardPriceDialog } from "./card-price-dialog";
 import { roleLabel } from "./deck-views";
 import { ManaCost } from "./mana";
 import { Banner, Loading, fmt } from "./ui";
@@ -101,6 +107,8 @@ export function CollectionBrowser({
 }) {
   const [f, setF] = useState<Filters>(EMPTY);
   const [view, setView] = useState<"cuadricula" | "tabla">("cuadricula");
+  /** Carta cuyo histórico de precio se está viendo. */
+  const [priceCard, setPriceCard] = useState<CardDTO | null>(null);
   const [items, setItems] = useState<CollectionCardDTO[] | null>(null);
   const [total, setTotal] = useState<CollectionTotals | null>(null);
   const [loading, setLoading] = useState(false);
@@ -411,7 +419,14 @@ export function CollectionBrowser({
                   </span>
                 )}
                 {c.price !== null && (
-                  <span className="mono subtle ml-auto">{formatEuros(c.price)}</span>
+                  <button
+                    type="button"
+                    className="linkbtn mono subtle ml-auto"
+                    title="Ver el histórico de precio"
+                    onClick={() => setPriceCard(c.card)}
+                  >
+                    {formatEuros(c.price)}
+                  </button>
                 )}
               </figcaption>
             </figure>
@@ -463,7 +478,20 @@ export function CollectionBrowser({
                         : "—"}
                     </td>
                   )}
-                  <td className="r mono">{c.price !== null ? formatEuros(c.price) : "—"}</td>
+                  <td className="r mono">
+                    {c.price !== null ? (
+                      <button
+                        type="button"
+                        className="linkbtn"
+                        title="Ver el histórico de precio"
+                        onClick={() => setPriceCard(c.card)}
+                      >
+                        {formatEuros(c.price)}
+                      </button>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -483,6 +511,7 @@ export function CollectionBrowser({
           </button>
         </div>
       )}
+      <CardPriceDialog card={priceCard} onClose={() => setPriceCard(null)} />
     </div>
   );
 }

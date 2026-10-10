@@ -2,11 +2,14 @@ import type {
   FollowRepository,
   NewNotification,
   NotificationRepository,
+  NotificationType,
   ProfileRepository,
   PublicProfile,
 } from "@/domain/ports/social";
 import { Prisma } from "@/generated/prisma/client";
 import type { Db } from "./prisma";
+
+const NOTIFICATION_TYPES: readonly NotificationType[] = ["new_deck", "big_card", "price_drop"];
 
 const PROFILE = {
   id: true,
@@ -52,6 +55,31 @@ export class PrismaSocialRepository
 
   async setCollectionPublic(userId: string, value: boolean) {
     await this.db.user.update({ where: { id: userId }, data: { collectionPublic: value } });
+  }
+
+  async priceAlertPercent(userId: string) {
+    return (
+      (
+        await this.db.user.findUnique({
+          where: { id: userId },
+          select: { priceAlertPercent: true },
+        })
+      )?.priceAlertPercent ?? null
+    );
+  }
+
+  async setPriceAlertPercent(userId: string, percent: number | null) {
+    await this.db.user.update({ where: { id: userId }, data: { priceAlertPercent: percent } });
+  }
+
+  async priceAlertUsers() {
+    const rows = await this.db.user.findMany({
+      where: { priceAlertPercent: { not: null } },
+      select: { id: true, priceAlertPercent: true },
+    });
+    return rows.flatMap((r) =>
+      r.priceAlertPercent === null ? [] : [{ id: r.id, percent: r.priceAlertPercent }],
+    );
   }
 
   async search(query: string, limit: number) {
@@ -130,6 +158,7 @@ export class PrismaSocialRepository
         cardId: n.cardId ?? null,
         title: n.title,
         price: n.price ?? null,
+        prevPrice: n.prevPrice ?? null,
       })),
     });
   }
@@ -146,11 +175,12 @@ export class PrismaSocialRepository
       userId: r.userId,
       actorId: r.actorId,
       actor: r.actor,
-      type: r.type === "big_card" ? ("big_card" as const) : ("new_deck" as const),
+      type: NOTIFICATION_TYPES.find((t) => t === r.type) ?? ("new_deck" as const),
       deckId: r.deckId,
       cardId: r.cardId,
       title: r.title,
       price: r.price,
+      prevPrice: r.prevPrice,
       createdAt: r.createdAt,
       read: r.readAt !== null,
     }));
@@ -158,6 +188,14 @@ export class PrismaSocialRepository
 
   async unreadCount(userId: string) {
     return this.db.notification.count({ where: { userId, readAt: null } });
+  }
+
+  async recentCardIds(userId: string, type: NotificationType, since: Date) {
+    const rows = await this.db.notification.findMany({
+      where: { userId, type, createdAt: { gte: since }, cardId: { not: null } },
+      select: { cardId: true },
+    });
+    return new Set(rows.flatMap((r) => (r.cardId ? [r.cardId] : [])));
   }
 
   async markAllRead(userId: string) {

@@ -18,6 +18,8 @@ export interface CardUsage {
   quantity: number;
   /** Nombres de esos mazos. */
   decks: string[];
+  /** Ids (uuid) de esos mazos, en el mismo orden (si el repositorio los da). */
+  deckIds?: string[] | undefined;
 }
 
 export interface EngineInput {

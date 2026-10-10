@@ -24,6 +24,7 @@ export async function GET(request: Request) {
         cardId: n.cardId,
         title: n.title,
         price: n.price,
+        prevPrice: n.prevPrice,
         createdAt: n.createdAt.toISOString(),
         read: n.read,
       })),

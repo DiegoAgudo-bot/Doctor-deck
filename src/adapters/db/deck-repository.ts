@@ -275,13 +275,16 @@ export class PrismaDeckRepository implements DeckRepository {
           ...(excludeDeckId === undefined ? {} : { publicId: { not: excludeDeckId } }),
         },
       },
-      select: { oracleId: true, quantity: true, deck: { select: { name: true } } },
+      select: { oracleId: true, quantity: true, deck: { select: { name: true, publicId: true } } },
     });
     const usage = new Map<string, CardUsage>();
     for (const r of rows) {
-      const u = usage.get(r.oracleId) ?? { quantity: 0, decks: [] };
+      const u = usage.get(r.oracleId) ?? { quantity: 0, decks: [], deckIds: [] };
       u.quantity += r.quantity;
-      if (!u.decks.includes(r.deck.name)) u.decks.push(r.deck.name);
+      if (!u.deckIds?.includes(r.deck.publicId)) {
+        u.decks.push(r.deck.name);
+        u.deckIds?.push(r.deck.publicId);
+      }
       usage.set(r.oracleId, u);
     }
     return usage;

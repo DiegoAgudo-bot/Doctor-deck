@@ -6,7 +6,7 @@ import "dotenv/config";
 import { ensureBulkFile, readBulkFile } from "@/adapters/scryfall/bulk";
 import { safeMappers } from "@/adapters/scryfall/mapping";
 import { refreshDeckFacts } from "@/application/community";
-import { recordPriceSnapshot } from "@/application/prices";
+import { notifyPriceDrops, recordPriceSnapshot } from "@/application/prices";
 import { syncScryfallCatalog } from "@/application/sync-scryfall";
 import { createContainer } from "@/server/container";
 import { existsSync } from "node:fs";
@@ -50,6 +50,15 @@ async function main() {
   );
   const snapshot = await recordPriceSnapshot({ prices: c.prices });
   console.log(`Precios del ${snapshot.date}: ${snapshot.cards} cartas de colecciones y mazos.`);
+  const alerts = await notifyPriceDrops({
+    prices: c.prices,
+    profiles: c.social,
+    notifications: c.social,
+    cards: c.cards,
+    collectionFor: (id) => c.collectionFor(id),
+    decksFor: (id) => c.decksFor(id),
+  });
+  console.log(`Avisos de bajada de precio: ${alerts}.`);
   // La lista de game changers puede cambiar: se recalcula el bracket de todos los mazos.
   const facts = await refreshDeckFacts(
     { publicDecks: c.publicDecks, cards: c.cards },

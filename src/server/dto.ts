@@ -1,5 +1,6 @@
 import type { DeckOwnershipSummary } from "@/domain/community/rank";
 import type { BracketEstimate } from "@/domain/deck/bracket";
+import type { PriceChange, PricePoint } from "@/domain/prices/history";
 import type { AnalyzeDeckResult } from "@/application/analyze-deck";
 import type { AddCardsResult, CollectionCard } from "@/application/collection-cards";
 import type { CollectionImportSummary } from "@/application/import-collection";
@@ -201,12 +202,14 @@ export interface UserSummaryDTO extends PublicProfileDTO {
 
 export interface NotificationDTO {
   id: string;
-  type: "new_deck" | "big_card";
+  type: "new_deck" | "big_card" | "price_drop";
   actor: { username: string | null; name: string };
   deckId: string | null;
   cardId: string | null;
   title: string;
   price: number | null;
+  /** price_drop: el precio de referencia (máximo de los 30 días anteriores). */
+  prevPrice: number | null;
   createdAt: string;
   read: boolean;
 }
@@ -219,6 +222,32 @@ export interface NotificationsResponse {
 /** Mi perfil (ajustes). */
 export interface MyProfileDTO extends PublicProfileDTO {
   email: string;
+  /** Avisar si algo que me falta baja este % (null = no avisar). */
+  priceAlertPercent: number | null;
+}
+
+export interface CardPricesDTO {
+  /** Precio de cada día guardado (la impresión más barata), del más antiguo al más reciente. */
+  history: PricePoint[];
+  change: PriceChange | null;
+}
+
+export interface PriceMoverDTO extends PriceChange {
+  card: CardDTO;
+  copies: number;
+  before: number;
+  delta: number;
+  /** Lo que ha cambiado el valor de mis copias. */
+  valueDelta: number;
+}
+
+export interface CollectionPricesDTO {
+  /** Desde qué día y hasta qué día hay datos (null si aún no hay ninguno). */
+  since: string | null;
+  latest: string | null;
+  value: PricePoint[];
+  up: PriceMoverDTO[];
+  down: PriceMoverDTO[];
 }
 
 export interface CommunityDeckDTO extends SavedDeckSummaryDTO {

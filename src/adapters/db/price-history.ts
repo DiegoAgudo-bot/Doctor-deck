@@ -21,6 +21,30 @@ export class PrismaPriceHistory implements PriceHistory {
       ON CONFLICT ("oracleId", "date") DO UPDATE SET "eur" = excluded."eur"`;
   }
 
+  async historyMany(oracleIds: readonly string[], since: string) {
+    const result = new Map<string, { date: string; eur: number }[]>();
+    const ids = [...new Set(oracleIds)];
+    for (let i = 0; i < ids.length; i += 500) {
+      const rows = await this.db.priceSnapshot.findMany({
+        where: { oracleId: { in: ids.slice(i, i + 500) }, date: { gte: since } },
+        orderBy: { date: "asc" },
+      });
+      for (const r of rows) {
+        const list = result.get(r.oracleId) ?? [];
+        list.push({ date: r.date, eur: r.eur });
+        result.set(r.oracleId, list);
+      }
+    }
+    return result;
+  }
+
+  async latestDate() {
+    return (
+      (await this.db.priceSnapshot.findFirst({ orderBy: { date: "desc" }, select: { date: true } }))
+        ?.date ?? null
+    );
+  }
+
   async history(oracleId: string, since?: string) {
     return this.db.priceSnapshot.findMany({
       where: { oracleId, ...(since === undefined ? {} : { date: { gte: since } }) },

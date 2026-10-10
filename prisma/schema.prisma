@@ -165,6 +165,8 @@ model User {
   username          String?           @unique
   /// Si cualquiera puede ver su colección en su perfil.
   collectionPublic  Boolean           @default(false)
+  /// Avisar si una carta que me falta baja este % respecto a su máximo de 30 días. null = no avisar.
+  priceAlertPercent Int?              @default(15)
   sessions          Session[]
   accounts          Account[]
   collection        CollectionEntry[]
@@ -197,17 +199,20 @@ model Notification {
   user      User      @relation("recipient", fields: [userId], references: [id], onDelete: Cascade)
   actorId   String
   actor     User      @relation("actor", fields: [actorId], references: [id], onDelete: Cascade)
-  /// "new_deck" | "big_card"
+  /// "new_deck" | "big_card" | "price_drop"
   type      String
   /// new_deck: publicId y nombre del mazo. big_card: oracleId, nombre y precio de la carta.
   deckId    String?
   cardId    String?
   title     String
   price     Float?
+  /// price_drop: precio de referencia (máximo de los 30 días anteriores).
+  prevPrice Float?
   createdAt DateTime  @default(now())
   readAt    DateTime?
 
   @@index([userId, createdAt])
+  @@index([userId, type, cardId])
 }
 
 model Session {

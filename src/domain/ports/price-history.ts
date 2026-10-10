@@ -7,4 +7,11 @@ export interface PriceHistory {
   recordSnapshot(date: string): Promise<number>;
   /** Precios guardados de una carta, del más antiguo al más reciente. */
   history(oracleId: string, since?: string): Promise<{ date: string; eur: number }[]>;
+  /** Lo mismo para muchas cartas a la vez (las que no tienen histórico no salen). */
+  historyMany(
+    oracleIds: readonly string[],
+    since: string,
+  ): Promise<Map<string, { date: string; eur: number }[]>>;
+  /** El último día con precios guardados ("YYYY-MM-DD"), o null si no hay ninguno. */
+  latestDate(): Promise<string | null>;
 }

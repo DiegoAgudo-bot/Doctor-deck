@@ -107,11 +107,11 @@ describe("PrismaDeckRepository", () => {
       ],
     });
     const all = await repo.usage();
-    expect(all.get("sol")).toEqual({ quantity: 2, decks: ["Atraxa", "Krenko"] });
-    expect(all.get("atraxa")).toEqual({ quantity: 2, decks: ["Atraxa", "Krenko"] });
+    expect(all.get("sol")).toEqual({ quantity: 2, decks: ["Atraxa", "Krenko"], deckIds: [a, b] });
+    expect(all.get("atraxa")).toMatchObject({ quantity: 2, decks: ["Atraxa", "Krenko"] });
 
     const exceptA = await repo.usage(a);
-    expect(exceptA.get("sol")).toEqual({ quantity: 1, decks: ["Krenko"] });
+    expect(exceptA.get("sol")).toEqual({ quantity: 1, decks: ["Krenko"], deckIds: [b] });
     expect(exceptA.has("krenko")).toBe(true);
     expect((await repo.usage(b)).has("krenko")).toBe(false);
   });

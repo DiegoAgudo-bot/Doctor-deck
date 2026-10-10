@@ -13,6 +13,7 @@ import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
 import { AddCards, type AddedRow } from "./collection-add";
 import { CollectionBrowser } from "./collection-browser";
+import { CollectionPrices } from "./collection-prices";
 import { CsvImport, uploadCsv } from "./collection-import";
 import {
   COLLECTION_EVENT,
@@ -25,7 +26,7 @@ import {
 } from "./local-collection";
 import { Banner, EmptyState, Loading, fmt } from "./ui";
 
-type Tab = "cartas" | "anadir" | "importar";
+type Tab = "cartas" | "precios" | "anadir" | "importar";
 
 /** /coleccion: ver la colección con filtros, añadir cartas sueltas e importar el CSV de ManaBox. */
 export function CollectionPage() {
@@ -138,6 +139,7 @@ export function CollectionPage() {
   const value = overall?.value ?? 0;
   const tabs: [Tab, string, number | null][] = [
     ["cartas", "Mis cartas", overall?.cards ?? null],
+    ["precios", "Precios", null],
     ["anadir", "Añadir cartas", null],
     ["importar", "Importar CSV", null],
   ];
@@ -245,6 +247,7 @@ export function CollectionPage() {
         ) : (
           <CollectionBrowser loggedIn={loggedIn} localPairs={localPairs} version={version} />
         ))}
+      {tab === "precios" && <CollectionPrices loggedIn={loggedIn} localPairs={localPairs} />}
       {tab === "anadir" && <AddCards loggedIn={loggedIn} added={added} onRemove={removeAdded} />}
       {tab === "importar" && <CsvImport loggedIn={loggedIn} status={status} local={local} />}
     </main>

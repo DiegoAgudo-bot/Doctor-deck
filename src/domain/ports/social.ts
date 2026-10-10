@@ -25,6 +25,11 @@ export interface ProfileRepository {
   /** false si ese nombre ya lo tiene otro. */
   setUsername(userId: string, username: string): Promise<boolean>;
   setCollectionPublic(userId: string, value: boolean): Promise<void>;
+  /** % de bajada de precio a partir del que avisar (null = no avisar). Ajuste privado. */
+  priceAlertPercent(userId: string): Promise<number | null>;
+  setPriceAlertPercent(userId: string, percent: number | null): Promise<void>;
+  /** Usuarios con avisos de precio activados. */
+  priceAlertUsers(): Promise<{ id: string; percent: number }[]>;
   /** Por nombre o usuario (o, sin texto, los que más mazos públicos tienen). Solo con username. */
   search(query: string, limit: number): Promise<ProfileSummary[]>;
 }
@@ -39,7 +44,7 @@ export interface FollowRepository {
   followingIds(userId: string): Promise<string[]>;
 }
 
-export type NotificationType = "new_deck" | "big_card";
+export type NotificationType = "new_deck" | "big_card" | "price_drop";
 
 export interface NewNotification {
   userId: string;
@@ -47,11 +52,13 @@ export interface NewNotification {
   type: NotificationType;
   /** new_deck: publicId del mazo. */
   deckId?: string | null;
-  /** big_card: oracleId de la carta. */
+  /** big_card y price_drop: oracleId de la carta. */
   cardId?: string | null;
   /** Nombre del mazo o de la carta. */
   title: string;
   price?: number | null;
+  /** price_drop: precio de referencia (el máximo de antes). */
+  prevPrice?: number | null;
 }
 
 export interface Notification extends Required<NewNotification> {
@@ -66,6 +73,8 @@ export interface NotificationRepository {
   list(userId: string, limit: number): Promise<Notification[]>;
   unreadCount(userId: string): Promise<number>;
   markAllRead(userId: string): Promise<void>;
+  /** Cartas sobre las que ya se avisó a `userId` con ese tipo desde `since`. */
+  recentCardIds(userId: string, type: NotificationType, since: Date): Promise<Set<string>>;
 }
 
 /** Mazos públicos de cualquiera (el resto de operaciones de mazos son siempre del dueño). */
