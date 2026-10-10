@@ -1,3 +1,4 @@
+import type { DeckVisibility } from "../deck/visibility";
 import type { CardUsage } from "../suggestions/engine";
 
 export interface SavedDeckSummary {
@@ -10,8 +11,8 @@ export interface SavedDeckSummary {
   commanders: string[];
   cardCount: number;
   updatedAt: Date;
-  /** Visible en el perfil del dueño y para cualquiera con el enlace. */
-  isPublic: boolean;
+  /** Público (perfil y Comunidad), oculto (solo con el enlace) o privado. */
+  visibility: DeckVisibility;
 }
 
 export interface SavedDeck extends SavedDeckSummary {
@@ -34,7 +35,7 @@ export interface SaveDeckData {
   locked: string[];
   excluded: string[];
   /** Al crear: por defecto, público. Al actualizar, si no viene, se queda como estaba. */
-  isPublic?: boolean | undefined;
+  visibility?: DeckVisibility | undefined;
 }
 
 export interface DeckRepository {
@@ -43,7 +44,7 @@ export interface DeckRepository {
   /** Devuelve el id (uuid) del mazo creado o actualizado. */
   save(data: SaveDeckData): Promise<string>;
   delete(id: string): Promise<boolean>;
-  setPublic(id: string, isPublic: boolean): Promise<boolean>;
+  setVisibility(id: string, visibility: DeckVisibility): Promise<boolean>;
   rename(id: string, name: string): Promise<boolean>;
   /** Copias de cada carta usadas en los mazos guardados, salvo `excludeDeckId`. */
   usage(excludeDeckId?: string): Promise<Map<string, CardUsage>>;

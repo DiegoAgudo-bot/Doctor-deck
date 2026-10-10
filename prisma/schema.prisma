@@ -97,15 +97,15 @@ model Deck {
   commanderNames String         @default("")
   /// Array JSON de oracleIds descartados para entrar.
   excluded       String         @default("[]")
-  /// Visible en el perfil del dueño y abierto a cualquiera con el enlace.
-  isPublic       Boolean        @default(true)
+  /// "public" (perfil, Comunidad y avisos) | "unlisted" (solo con el enlace) | "private".
+  visibility     String         @default("public")
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   cards          DeckCard[]
   decisions      SwapDecision[]
 
   @@index([userId])
-  @@index([isPublic, createdAt])
+  @@index([visibility, createdAt])
 }
 
 model DeckCard {
@@ -246,4 +246,16 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+/// Precio de cada día (el de la impresión más barata) de las cartas que alguien tiene en su
+/// colección o en un mazo. Lo rellena `scryfall:sync` (cada noche) para el histórico de precios.
+model PriceSnapshot {
+  oracleId String
+  /// Día en UTC, "YYYY-MM-DD".
+  date     String
+  eur      Float
+
+  @@id([oracleId, date])
+  @@index([date])
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseDecklist } from "./decklist";
-import { applySwaps, changeCard, exportDecklist, type ExportableDeck } from "./export";
+import { applySwaps, changeCard, exportDeck, exportDecklist, type ExportableDeck } from "./export";
 
 const deck: ExportableDeck = {
   commanders: [{ oracleId: "c", name: "Teferi, Temporal Archmage" }],
@@ -63,5 +63,72 @@ describe("changeCard", () => {
   });
   it("no toca a los comandantes", () => {
     expect(changeCard(deck, { oracleId: "k", name: "Korvold" }, 1)).toBe(deck);
+  });
+});
+
+describe("exportDeck", () => {
+  const deck: ExportableDeck = {
+    commanders: [{ oracleId: "c", name: "Teferi, Temporal Archmage", layout: "normal" }],
+    cards: [
+      { oracleId: "s", name: "Sol Ring", layout: "normal", quantity: 1 },
+      { oracleId: "f", name: "Fire // Ice", layout: "split", quantity: 1 },
+      {
+        oracleId: "d",
+        name: "Delver of Secrets // Insectile Aberration",
+        layout: "transform",
+        quantity: 1,
+      },
+      { oracleId: "b", name: "Bonecrusher Giant // Stomp", layout: "adventure", quantity: 1 },
+      { oracleId: "i", name: "Island", layout: "normal", quantity: 30 },
+    ],
+  };
+
+  it("texto: el formato de siempre", () => {
+    expect(exportDeck(deck, "text")).toBe(exportDecklist(deck));
+  });
+
+  it("Arena: split con ///, dos caras y aventuras solo con la cara frontal", () => {
+    expect(exportDeck(deck, "arena")).toBe(
+      [
+        "Commander",
+        "1 Teferi, Temporal Archmage",
+        "",
+        "Deck",
+        "1 Bonecrusher Giant",
+        "1 Delver of Secrets",
+        "1 Fire /// Ice",
+        "30 Island",
+        "1 Sol Ring",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("MTGO: las 99 y el comandante en el banquillo; split con /", () => {
+    expect(exportDeck(deck, "mtgo")).toBe(
+      [
+        "1 Bonecrusher Giant",
+        "1 Delver of Secrets",
+        "1 Fire/Ice",
+        "30 Island",
+        "1 Sol Ring",
+        "",
+        "1 Teferi, Temporal Archmage",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("los cambios conservan el layout para exportar", () => {
+    const changed = changeCard(
+      applySwaps(deck, [
+        { outOracleId: "s", in: { oracleId: "w", name: "Wear // Tear", layout: "split" } },
+      ]),
+      { oracleId: "x", name: "Expansion // Explosion", layout: "split" },
+      1,
+    );
+    const arena = exportDeck(changed, "arena");
+    expect(arena).toContain("1 Wear /// Tear");
+    expect(arena).toContain("1 Expansion /// Explosion");
   });
 });

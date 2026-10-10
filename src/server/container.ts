@@ -4,6 +4,7 @@ import { textDeckSource } from "@/adapters/deck-sources/text-deck-source";
 import { PrismaCardRepository } from "@/adapters/db/card-repository";
 import { PrismaCollectionRepository } from "@/adapters/db/collection-repository";
 import { PrismaDeckRepository, PrismaPublicDecks } from "@/adapters/db/deck-repository";
+import { PrismaPriceHistory } from "@/adapters/db/price-history";
 import { PrismaSocialRepository } from "@/adapters/db/social-repository";
 import { PrismaResponseCache } from "@/adapters/db/response-cache";
 import { EdhrecClient } from "@/adapters/edhrec/edhrec-client";
@@ -48,6 +49,8 @@ export function createContainer() {
     /** Parte social: perfiles, seguidores y notificaciones (un mismo adaptador). */
     social: new PrismaSocialRepository(db),
     publicDecks: new PrismaPublicDecks(db),
+    /** Precio de cada día de las cartas en colecciones y mazos (lo rellena `scryfall:sync`). */
+    prices: new PrismaPriceHistory(db),
     deckSources: [
       archidektDeckSource(deckSourcesHttp),
       moxfieldDeckSource(deckSourcesHttp),

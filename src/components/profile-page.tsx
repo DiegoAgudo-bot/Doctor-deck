@@ -7,7 +7,8 @@ import type { ProfileViewDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
 import { CollectionBrowser } from "./collection-browser";
-import { DeckTile, setDeckVisibility } from "./deck-tile";
+import { DeckTile } from "./deck-tile";
+import { nextVisibility, setDeckVisibility } from "./deck-visibility";
 import { IconEyeOff, IconSettings } from "./icons";
 import { Banner, EmptyState, Loading, fmt } from "./ui";
 
@@ -66,7 +67,7 @@ export function ProfilePage() {
 
   const { profile } = view;
   const canSeeCollection = profile.collectionPublic || view.isMe;
-  const publicCount = view.decks.filter((d) => d.isPublic).length;
+  const publicCount = view.decks.filter((d) => d.visibility === "public").length;
   return (
     <main className="page max-w-[1100px]">
       <section className="stack-sm flex items-center gap-4">
@@ -161,11 +162,14 @@ export function ProfilePage() {
                 onToggleVisibility={
                   view.isMe
                     ? () =>
-                        void setDeckVisibility(api, d.id, !d.isPublic).then(({ isPublic }) =>
-                          setView({
-                            ...view,
-                            decks: view.decks.map((x) => (x.id === d.id ? { ...x, isPublic } : x)),
-                          }),
+                        void setDeckVisibility(api, d.id, nextVisibility(d.visibility)).then(
+                          ({ visibility }) =>
+                            setView({
+                              ...view,
+                              decks: view.decks.map((x) =>
+                                x.id === d.id ? { ...x, visibility } : x,
+                              ),
+                            }),
                         )
                     : undefined
                 }

@@ -1,4 +1,5 @@
 import { chooseCommanders } from "@/domain/deck/resolve";
+import type { DeckVisibility } from "@/domain/deck/visibility";
 import type { CardRepository } from "@/domain/ports/card-repository";
 import type { DeckRepository } from "@/domain/ports/deck-repository";
 import type { DeckSource } from "@/domain/ports/deck-source";
@@ -13,7 +14,7 @@ export interface SaveDeckInput {
   locked?: readonly string[] | undefined;
   excluded?: readonly string[] | undefined;
   /** Al crear, por defecto público; al actualizar, si no viene, no cambia. */
-  isPublic?: boolean | undefined;
+  visibility?: DeckVisibility | undefined;
 }
 
 export class DeckWithoutCommanderError extends Error {
@@ -46,7 +47,7 @@ export async function saveDeck(
     cards: deck.cards.map((c) => ({ oracleId: c.card.oracleId, quantity: c.quantity })),
     locked: [...(req.locked ?? [])],
     excluded: [...(req.excluded ?? [])],
-    isPublic: req.isPublic ?? (req.id === undefined ? true : undefined),
+    visibility: req.visibility ?? (req.id === undefined ? "public" : undefined),
   });
   return { id, name };
 }

@@ -63,7 +63,7 @@ export class PrismaSocialRepository
       },
       select: {
         ...PROFILE,
-        _count: { select: { followers: true, decks: { where: { isPublic: true } } } },
+        _count: { select: { followers: true, decks: { where: { visibility: "public" } } } },
       },
       orderBy: q ? { username: "asc" } : { decks: { _count: "desc" } },
       take: limit,

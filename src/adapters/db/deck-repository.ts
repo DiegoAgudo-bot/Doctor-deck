@@ -1,3 +1,4 @@
+import { canOpenDeck, toDeckVisibility, type DeckVisibility } from "@/domain/deck/visibility";
 import type {
   DeckRepository,
   SaveDeckData,
@@ -36,7 +37,7 @@ function savedDeckFromRow(d: DeckRow): SavedDeck {
     commanderNames: d.commanderNames ? d.commanderNames.split("\n") : [],
     cardCount: d.cards.reduce((n, c) => n + c.quantity, 0),
     updatedAt: d.updatedAt,
-    isPublic: d.isPublic,
+    visibility: toDeckVisibility(d.visibility),
     input: d.input,
     theme: d.theme,
     commanders: d.cards.filter((c) => c.isCommander).map((c) => c.oracleId),
@@ -51,13 +52,13 @@ export class PrismaPublicDecks implements PublicDecks {
 
   async find(id: string, viewerId: string | null) {
     const d = await this.db.deck.findUnique({ where: { publicId: id }, include: { cards: true } });
-    if (!d?.userId || (!d.isPublic && d.userId !== viewerId)) return null;
+    if (!d?.userId || !canOpenDeck(toDeckVisibility(d.visibility), d.userId, viewerId)) return null;
     return { deck: savedDeckFromRow(d), ownerId: d.userId };
   }
 
   async recent(limit: number) {
     const decks = await this.db.deck.findMany({
-      where: { isPublic: true, user: { username: { not: null } } },
+      where: { visibility: "public", user: { username: { not: null } } },
       orderBy: { createdAt: "desc" },
       take: limit,
       include: { cards: true },
@@ -87,7 +88,7 @@ export class PrismaDeckRepository implements DeckRepository {
       commanders: d.cards.filter((c) => c.isCommander).map((c) => c.oracleId),
       cardCount: d.cards.reduce((n, c) => n + c.quantity, 0),
       updatedAt: d.updatedAt,
-      isPublic: d.isPublic,
+      visibility: toDeckVisibility(d.visibility),
     }));
   }
 
@@ -116,7 +117,7 @@ export class PrismaDeckRepository implements DeckRepository {
       })),
     ];
     const fields = {
-      ...(data.isPublic !== undefined ? { isPublic: data.isPublic } : {}),
+      ...(data.visibility !== undefined ? { visibility: data.visibility } : {}),
       name: data.name,
       input: data.input,
       source: data.source,
@@ -145,10 +146,10 @@ export class PrismaDeckRepository implements DeckRepository {
     });
   }
 
-  async setPublic(id: string, isPublic: boolean): Promise<boolean> {
+  async setVisibility(id: string, visibility: DeckVisibility): Promise<boolean> {
     const { count } = await this.db.deck.updateMany({
       where: { publicId: id, userId: this.userId },
-      data: { isPublic },
+      data: { visibility },
     });
     return count > 0;
   }

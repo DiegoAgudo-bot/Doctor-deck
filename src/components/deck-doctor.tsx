@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { applySwaps, changeCard, exportDecklist, type ExportableDeck } from "@/domain/deck/export";
+import type { DeckVisibility } from "@/domain/deck/visibility";
 import { formatEuros } from "@/domain/suggestions/format";
 import type { AnalyzeResponse, CardDTO, DeckViewDTO } from "@/server/dto";
 import { api, ApiError, storage } from "./api-client";
@@ -10,6 +11,7 @@ import { authClient } from "./auth-client";
 import { CardHover, CardImage } from "./card-image";
 import { CardSearch } from "./card-search";
 import { BuyPanel, type BuyOptions } from "./deck-buy";
+import { OpeningHand } from "./deck-hand";
 import { OwnershipPanel } from "./deck-ownership";
 import { ExportDialog, SaveDialog } from "./deck-dialogs";
 import {
@@ -43,8 +45,8 @@ interface Saved {
   name: string;
   /** Descontar copias usadas en mis otros mazos guardados. */
   useOtherDecks: boolean;
-  /** Visible en mi perfil (al guardarlo). */
-  isPublic: boolean;
+  /** Quién lo ve al guardarlo (público, oculto o privado). */
+  visibility: DeckVisibility;
 }
 
 const KEY = "deck-doctor:mazo";
@@ -57,7 +59,7 @@ const EMPTY: Saved = {
   deckId: null,
   name: "",
   useOtherDecks: true,
-  isPublic: true,
+  visibility: "public",
 };
 const PLACEHOLDER =
   "Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n1x Arcane Signet (C21) 263\n…";
@@ -135,7 +137,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             excluded: d.isMine ? d.excluded : [],
             deckId: d.isMine ? d.id : null,
             name: d.name,
-            isPublic: d.isMine ? d.isPublic : true,
+            visibility: d.isMine ? d.visibility : "public",
           };
           if (!d.isMine) {
             setOwner(d.owner);
@@ -236,6 +238,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
         cards: ok.cards.map((c) => ({
           oracleId: c.card.oracleId,
           name: c.card.name,
+          layout: c.card.layout,
           quantity: c.quantity,
         })),
       }
@@ -265,12 +268,12 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     name,
     asNew,
     includeAccepted,
-    isPublic,
+    visibility,
   }: {
     name: string;
     asNew: boolean;
     includeAccepted: boolean;
-    isPublic: boolean;
+    visibility: DeckVisibility;
   }) {
     if (!ok) return;
     setBusy("save");
@@ -288,10 +291,10 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           commanders: ok.commanders.map((c) => c.oracleId),
           locked: saved.locked,
           excluded: saved.excluded,
-          isPublic,
+          visibility,
         }),
       });
-      update({ deckId: res.id, name: res.name, input, isPublic });
+      update({ deckId: res.id, name: res.name, input, visibility });
       setOwner(null);
       window.history.replaceState(null, "", `/decks/${res.id}`);
       setNotice(`Guardado como «${res.name}».`);
@@ -678,6 +681,9 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
               />
               <RoleMeters roles={ok.roles} />
               <DeckFacts cards={ok.cards} />
+              <div style={{ gridColumn: "1 / -1" }}>
+                <OpeningHand cards={ok.cards} />
+              </div>
             </div>
           )}
 
@@ -707,7 +713,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             loggedIn={loggedIn}
             deckId={saved.deckId}
             copyOf={owner}
-            isPublic={saved.isPublic}
+            visibility={saved.visibility}
             defaultName={saved.name || ok.deckName || ""}
             acceptedCount={accepted.length}
             busy={busy === "save"}
@@ -716,7 +722,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           <ExportDialog
             open={dialog === "export"}
             onClose={() => setDialog(null)}
-            full={exportText}
+            deck={finalDeck ?? { commanders: [], cards: [] }}
             changes={changesText}
           />
         </>

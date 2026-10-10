@@ -32,6 +32,8 @@ export interface CardDTO {
   manaCost: string | null;
   cmc: number;
   colorIdentity: Color[];
+  /** `layout` de Scryfall (normal, split, transform, modal_dfc…). */
+  layout: string;
 }
 
 export interface ScoredCardDTO {
@@ -315,6 +317,7 @@ export const cardDTO = (c: Card): CardDTO => ({
   manaCost: c.manaCost,
   cmc: c.cmc,
   colorIdentity: c.colorIdentity,
+  layout: c.layout,
 });
 
 const scoredDTO = (s: ScoredCard | AddCandidate | PurchaseCandidate): ScoredCardDTO => ({

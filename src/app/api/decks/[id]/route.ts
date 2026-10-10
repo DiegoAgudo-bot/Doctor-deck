@@ -1,5 +1,6 @@
 import { connection, type NextRequest } from "next/server";
 import { z } from "zod";
+import { DECK_VISIBILITIES } from "@/domain/deck/visibility";
 import { getContainer } from "@/server/container";
 import { savedDeckDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
@@ -35,10 +36,13 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">
 }
 
 const patchSchema = z
-  .object({ isPublic: z.boolean().optional(), name: z.string().trim().min(1).max(120).optional() })
-  .refine((p) => p.isPublic !== undefined || p.name !== undefined, "Nada que cambiar");
+  .object({
+    visibility: z.enum(DECK_VISIBILITIES).optional(),
+    name: z.string().trim().min(1).max(120).optional(),
+  })
+  .refine((p) => p.visibility !== undefined || p.name !== undefined, "Nada que cambiar");
 
-/** Cambia la visibilidad (público / privado) o el nombre de uno de tus mazos. */
+/** Cambia la visibilidad (público / oculto / privado) o el nombre de uno de tus mazos. */
 export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">) {
   try {
     const user = await requireUser(req);
@@ -46,8 +50,8 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/decks/[id]
     const changes = patchSchema.parse(await req.json());
     const decks = getContainer().decksFor(user.id);
     let ok = id !== null;
-    if (ok && id && changes.isPublic !== undefined)
-      ok = await decks.setPublic(id, changes.isPublic);
+    if (ok && id && changes.visibility !== undefined)
+      ok = await decks.setVisibility(id, changes.visibility);
     if (ok && id && changes.name !== undefined) ok = await decks.rename(id, changes.name);
     return ok ? Response.json(changes) : notFound();
   } catch (err) {

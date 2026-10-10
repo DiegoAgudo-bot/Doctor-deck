@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { exportDeck, type ExportableDeck, type ExportFormat } from "@/domain/deck/export";
+import type { DeckVisibility } from "@/domain/deck/visibility";
+import { VisibilityPicker } from "./deck-visibility";
 import { Dialog } from "./ui";
 
 /** Guardar en "Mis mazos". Sin sesión, invita a entrar (el mazo sigue en el navegador). */
@@ -11,7 +14,7 @@ export function SaveDialog({
   loggedIn,
   deckId,
   copyOf,
-  isPublic: initialPublic,
+  visibility: initialVisibility,
   defaultName,
   acceptedCount,
   busy,
@@ -23,7 +26,7 @@ export function SaveDialog({
   deckId: string | null;
   /** Si es el mazo de otro: se guarda una copia. */
   copyOf: { username: string | null; name: string } | null;
-  isPublic: boolean;
+  visibility: DeckVisibility;
   defaultName: string;
   acceptedCount: number;
   busy: boolean;
@@ -31,18 +34,18 @@ export function SaveDialog({
     name: string;
     asNew: boolean;
     includeAccepted: boolean;
-    isPublic: boolean;
+    visibility: DeckVisibility;
   }) => void;
 }) {
   const [name, setName] = useState(defaultName);
   const [includeAccepted, setIncludeAccepted] = useState(true);
-  const [isPublic, setIsPublic] = useState(initialPublic);
+  const [visibility, setVisibility] = useState(initialVisibility);
   useEffect(() => {
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reiniciar el formulario al abrir
     setName(defaultName);
-    setIsPublic(initialPublic);
-  }, [open, defaultName, initialPublic]);
+    setVisibility(initialVisibility);
+  }, [open, defaultName, initialVisibility]);
 
   if (!loggedIn) {
     return (
@@ -72,7 +75,7 @@ export function SaveDialog({
   }
 
   const submit = (asNew: boolean) =>
-    onSave({ name: name.trim(), asNew, includeAccepted, isPublic });
+    onSave({ name: name.trim(), asNew, includeAccepted, visibility });
   return (
     <Dialog
       open={open}
@@ -126,21 +129,7 @@ export function SaveDialog({
             copia en tus mazos, con tu nombre.
           </p>
         )}
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={isPublic}
-            onChange={(e) => setIsPublic(e.target.checked)}
-          />
-          <span>
-            Público
-            <span className="subtle block text-xs">
-              {isPublic
-                ? "Sale en tu perfil y cualquiera con el enlace puede verlo. Avisa a quien te sigue."
-                : "Solo lo ves tú."}
-            </span>
-          </span>
-        </label>
+        <VisibilityPicker value={visibility} onChange={setVisibility} />
         {acceptedCount > 0 && (
           <label className="check muted">
             <input
@@ -159,20 +148,40 @@ export function SaveDialog({
 }
 
 /** Exportar la lista (con los cambios aceptados) o solo los cambios. */
+const FORMAT: Record<ExportFormat, { label: string; hint: string; file: string }> = {
+  text: {
+    label: "Texto",
+    hint: "El formato que aceptan Moxfield, Archidekt y ManaBox.",
+    file: "mazo.txt",
+  },
+  arena: {
+    label: "MTG Arena",
+    hint: "En Arena: Mazos › Importar (copia y pulsa Importar). Solo entran las cartas que existen en Arena.",
+    file: "mazo-arena.txt",
+  },
+  mtgo: {
+    label: "MTGO",
+    hint: "Para Magic Online: el comandante va en el banquillo.",
+    file: "mazo-mtgo.txt",
+  },
+};
+
 export function ExportDialog({
   open,
   onClose,
-  full,
+  deck,
   changes,
 }: {
   open: boolean;
   onClose: () => void;
-  full: string;
+  /** El mazo con los cambios aceptados. */
+  deck: ExportableDeck;
   changes: string;
 }) {
   const [mode, setMode] = useState<"full" | "changes">("full");
+  const [format, setFormat] = useState<ExportFormat>("text");
   const [copied, setCopied] = useState(false);
-  const text = mode === "full" ? full : changes;
+  const text = mode === "full" ? exportDeck(deck, format) : changes;
 
   async function copy() {
     try {
@@ -187,7 +196,7 @@ export function ExportDialog({
     const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = mode === "full" ? "mazo.txt" : "cambios.txt";
+    a.download = mode === "full" ? FORMAT[format].file : "cambios.txt";
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -230,9 +239,25 @@ export function ExportDialog({
         </>
       }
     >
+      {mode === "full" && (
+        <div className="chips" role="radiogroup" aria-label="Formato">
+          {(Object.keys(FORMAT) as ExportFormat[]).map((f) => (
+            <button
+              key={f}
+              type="button"
+              role="radio"
+              aria-checked={format === f}
+              className={`chipbtn ${format === f ? "is-on" : ""}`}
+              onClick={() => setFormat(f)}
+            >
+              {FORMAT[f].label}
+            </button>
+          ))}
+        </div>
+      )}
       <p className="subtle text-[12.5px]">
         {mode === "full"
-          ? "Formato de texto que aceptan Moxfield, Archidekt y ManaBox. Incluye los cambios aceptados."
+          ? `${FORMAT[format].hint} Incluye los cambios aceptados.`
           : "Los cambios aceptados: − sale, + entra."}
       </p>
       <textarea

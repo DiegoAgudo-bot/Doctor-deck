@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { z } from "zod";
+import { DECK_VISIBILITIES } from "@/domain/deck/visibility";
 import { saveDeck } from "@/application/save-deck";
 import { announceNewDeck } from "@/application/social";
 import { deckSummaries } from "@/server/deck-summaries";
@@ -20,7 +21,7 @@ const saveSchema = z.object({
   commanders: z.array(z.string().min(1).max(64)).max(2).optional(),
   locked: ids,
   excluded: ids,
-  isPublic: z.boolean().optional(),
+  visibility: z.enum(DECK_VISIBILITIES).optional(),
 });
 
 /** Mis mazos guardados. */
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
     if (req.id === undefined) {
       await announceNewDeck(
         user.id,
-        { id: saved.id, name: saved.name, isPublic: req.isPublic ?? true },
+        { id: saved.id, name: saved.name, visibility: req.visibility ?? "public" },
         { follows: c.social, notifications: c.social },
       );
     }

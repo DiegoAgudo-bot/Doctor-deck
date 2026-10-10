@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { COLORS } from "@/domain/cards/types";
 import { suggestedDeckName } from "@/domain/deck/naming";
+import type { DeckVisibility } from "@/domain/deck/visibility";
 import type { CardDTO, CommanderInfoDTO, NewDeckResponse } from "@/server/dto";
 import { api, ApiError, storage } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardImage } from "./card-image";
 import { CardSearch } from "./card-search";
+import { VisibilityPicker } from "./deck-visibility";
 import { IconX } from "./icons";
 import { notifyDecksChanged } from "./local-collection";
 import { ColorPips } from "./mana";
@@ -38,7 +40,7 @@ export function NewDeckWizard() {
   const [theme, setTheme] = useState("");
   const [name, setName] = useState("");
   const [nameTouched, setNameTouched] = useState(false);
-  const [isPublic, setIsPublic] = useState(true);
+  const [visibility, setVisibility] = useState<DeckVisibility>("public");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -99,7 +101,7 @@ export function NewDeckWizard() {
           mode,
           ...(mode === "average" && theme ? { theme } : {}),
           ...(finalName.trim() ? { name: finalName.trim() } : {}),
-          isPublic,
+          visibility,
         }),
       });
       const tab = mode === "empty" ? "lista&editar=1" : "falta";
@@ -116,7 +118,7 @@ export function NewDeckWizard() {
           excluded: [],
           deckId: null,
           useOtherDecks: true,
-          isPublic: true,
+          visibility: "public",
         });
         router.push(`/mazo?analizar=1&tab=${tab}`);
       }
@@ -282,19 +284,7 @@ export function NewDeckWizard() {
             </div>
 
             {loggedIn ? (
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={isPublic}
-                  onChange={(e) => setIsPublic(e.target.checked)}
-                />
-                <span>
-                  Público
-                  <span className="subtle block text-xs">
-                    {isPublic ? "Sale en tu perfil y avisa a quien te sigue." : "Solo lo ves tú."}
-                  </span>
-                </span>
-              </label>
+              <VisibilityPicker value={visibility} onChange={setVisibility} />
             ) : (
               <Banner tone="info">
                 Sin cuenta, el mazo se abre en el analizador y se queda en este navegador.{" "}

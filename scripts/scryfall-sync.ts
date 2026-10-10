@@ -5,6 +5,7 @@
 import "dotenv/config";
 import { ensureBulkFile, readBulkFile } from "@/adapters/scryfall/bulk";
 import { safeMappers } from "@/adapters/scryfall/mapping";
+import { recordPriceSnapshot } from "@/application/prices";
 import { syncScryfallCatalog } from "@/application/sync-scryfall";
 import { createContainer } from "@/server/container";
 import { existsSync } from "node:fs";
@@ -46,6 +47,8 @@ async function main() {
   console.log(
     `\nListo: ${result.cards} cartas, ${result.printings} impresiones, ${result.skipped} descartadas.`,
   );
+  const snapshot = await recordPriceSnapshot({ prices: c.prices });
+  console.log(`Precios del ${snapshot.date}: ${snapshot.cards} cartas de colecciones y mazos.`);
   await c.db.$disconnect();
 }
 

@@ -16,7 +16,7 @@ despliegue en `main` y **parar al terminar cada fase hasta el OK del usuario**.
 | Fase | Contenido                                                     | Esfuerzo | Estado |
 | ---- | ------------------------------------------------------------- | -------- | ------ |
 | 10   | Crear mazos (comandante, mazo medio, desde cero) y gestor     | Bajo     | ✅     |
-| 11   | Exportar Arena/MTGO, mazos ocultos, manos de muestra, precios | Bajo     |        |
+| 11   | Exportar Arena/MTGO, mazos ocultos, manos de muestra, precios | Bajo     | ✅     |
 | 12   | Bracket y game changers                                       | Bajo     |        |
 | 13   | Comunidad: mazos que puedes montar ya, me gusta, filtros      | Medio    |        |
 | 14   | Precios: histórico, lo que más sube, avisos de bajada         | Medio    |        |
@@ -36,7 +36,7 @@ Hecha. El asistente `/mazos/nuevo` crea el mazo desde el comandante, con el mazo
 en la pestaña Lista y "Mis mazos" hace de gestor (renombrar, duplicar, visibilidad, borrar).
 Cubre la idea 2 del análisis.
 
-## Fase 11 · Huecos básicos rápidos
+## Fase 11 · Huecos básicos rápidos ✅
 
 **Objetivo:** que nadie eche de menos nada básico al venir de Moxfield o Archidekt.
 

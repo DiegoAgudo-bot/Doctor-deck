@@ -178,8 +178,9 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
 - **Social** (Fase 9, `application/social.ts`, puertos en `domain/ports/social.ts`, adaptador
   `PrismaSocialRepository`): `User.username` (perfil `/u/{username}`; `ensureUsername` lo genera
   la primera vez desde el nombre o el email, reglas en `domain/social/username.ts`) y
-  `User.collectionPublic` (por defecto privada). `Deck.isPublic` (por defecto público): los
-  públicos los ve cualquiera, también sin cuenta (`PrismaPublicDecks.find`); abrir el de otro lo
+  `User.collectionPublic` (por defecto privada). `Deck.visibility` (`domain/deck/visibility.ts`):
+  `public` (por defecto; perfil, Comunidad y avisos), `unlisted` (oculto: solo con el enlace) o
+  `private`. Los públicos y ocultos los ve cualquiera, también sin cuenta (`PrismaPublicDecks.find`); abrir el de otro lo
   analiza con TU colección y "Guardar una copia" crea uno tuyo. Nunca se expone el email.
   `Follow` (seguir) y `Notification` (fan-out al escribir): `announceNewDeck` al crear un mazo
   público y `announceBigCards` al añadir cartas de ≥ `socialConfig.bigCardEur` (20 €) si la
@@ -187,7 +188,7 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   Rutas: `/comunidad`, `/u/[username]`, `/notificaciones`, `/ajustes`; API `GET|PATCH
 /api/me/profile`, `GET /api/users?q=`, `GET /api/users/{u}`, `POST|DELETE /api/users/{u}/follow`,
   `GET /api/notifications`, `POST /api/notifications/read`, `GET /api/community/decks`,
-  `PATCH /api/decks/{id}` (`{isPublic}`), `POST /api/collection/view` con `username`.
+  `PATCH /api/decks/{id}` (`{visibility}`), `POST /api/collection/view` con `username`.
 - **Crear mazos** (`application/new-deck.ts`, página `/mazos/nuevo`): eliges el comandante
   (buscador con `commander=1`) y `newDeckFromCommander` monta el **mazo medio de EDHREC**
   (`EdhrecClient.getAverageDeck`, `/average-decks/{slug}[/{tema}]`, parser en
@@ -202,6 +203,15 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   cada cambio (`changeCard` en `domain/deck/export.ts`) reanaliza y, si es un mazo guardado, lo
   guarda. "Mis mazos" es el gestor: nuevo, importar, renombrar (`PATCH /api/decks/{id}` con
   `name`), duplicar (copia privada), público/privado y borrar.
+- **Exportar** (`exportDeck` en `domain/deck/export.ts`): `text` (Moxfield/Archidekt/ManaBox),
+  `arena` (split con `///`, dos caras solo la frontal) y `mtgo` (comandante en el banquillo, split
+  con `/`). Por eso `CardDTO` lleva `layout`.
+- **Mano inicial** (`domain/deck/draw-odds.ts`, pestaña Estadísticas): hipergeométrica sobre las
+  99 (P de 2–4 tierras, caídas de tierra, ramp, robo; en multijugador se roba en el turno 1) y
+  manos de muestra con mulligan (el primero gratis).
+- **Histórico de precios** (`PriceSnapshot`, `PrismaPriceHistory`): `scryfall:sync` guarda cada
+  día (`recordPriceSnapshot`, fecha UTC) el precio más barato de las cartas que están en alguna
+  colección o mazo. Aún sin pantalla: la usará la fase 14.
 - **Mazo**: `DeckSource.load` → `parseDecklist` → `resolveDecklist` (agrupa por oracleId, detecta
   comandante: marcado → único candidato o pareja válida → si no, `commanderCandidates` para que
   elija el usuario con `chooseCommanders`) → `validateDeck`.
@@ -272,8 +282,9 @@ Purchase price currency, Added`.
 9. Parte social: perfiles públicos, mazos públicos/privados, colección pública opcional, seguir y
    notificaciones (mazo nuevo, carta cara) ✅
 10. Crear mazos desde el comandante (mazo medio de EDHREC o desde cero) y gestor de mazos ✅
+11. Exportar a Arena/MTGO, mazos ocultos, mano inicial y empezar a guardar precios ✅
 
-Las fases siguientes (11–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
+Las fases siguientes (12–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
 diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)

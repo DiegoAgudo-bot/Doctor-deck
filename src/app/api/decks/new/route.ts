@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { newDeckFromCommander } from "@/application/new-deck";
+import { DECK_VISIBILITIES } from "@/domain/deck/visibility";
 import { saveDeck } from "@/application/save-deck";
 import { announceNewDeck } from "@/application/social";
 import { getContainer } from "@/server/container";
@@ -16,7 +17,7 @@ const schema = z.object({
     .optional(),
   /** Si no viene, "<colores> - <de qué va>". */
   name: z.string().trim().max(120).optional(),
-  isPublic: z.boolean().optional(),
+  visibility: z.enum(DECK_VISIBILITIES).optional(),
 });
 
 /**
@@ -45,20 +46,20 @@ export async function POST(request: Request) {
       };
       return Response.json(body);
     }
-    const isPublic = req.isPublic ?? true;
+    const visibility = req.visibility ?? "public";
     const saved = await saveDeck(
       {
         input: deck.input,
         name,
         commanders: [...req.commanderIds],
-        isPublic,
+        visibility,
         ...(deck.theme ? { theme: deck.theme } : {}),
       },
       { sources: c.deckSources, cards: c.cards, decks: c.decksFor(user.id) },
     );
     await announceNewDeck(
       user.id,
-      { id: saved.id, name: saved.name, isPublic },
+      { id: saved.id, name: saved.name, visibility },
       { follows: c.social, notifications: c.social },
     );
     const body: NewDeckResponse = {

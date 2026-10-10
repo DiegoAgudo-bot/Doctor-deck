@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { SavedDeckDTO, SavedDeckSummaryDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
-import { DeckTile, setDeckVisibility } from "./deck-tile";
+import { DeckTile } from "./deck-tile";
+import { nextVisibility, setDeckVisibility } from "./deck-visibility";
 import { IconEye, IconPlus } from "./icons";
 import { DECKS_EVENT, notifyDecksChanged } from "./local-collection";
 import { Banner, Dialog, EmptyState, Loading } from "./ui";
@@ -33,8 +34,8 @@ export function SavedDecks() {
 
   async function toggle(d: SavedDeckSummaryDTO) {
     try {
-      const { isPublic } = await setDeckVisibility(api, d.id, !d.isPublic);
-      setDecks((list) => list?.map((x) => (x.id === d.id ? { ...x, isPublic } : x)) ?? null);
+      const { visibility } = await setDeckVisibility(api, d.id, nextVisibility(d.visibility));
+      setDecks((list) => list?.map((x) => (x.id === d.id ? { ...x, visibility } : x)) ?? null);
     } catch (e: unknown) {
       setError(e instanceof ApiError ? e.message : "No se pudo cambiar la visibilidad");
     }
@@ -77,7 +78,7 @@ export function SavedDecks() {
           commanders: full.commanders,
           locked: full.locked,
           excluded: full.excluded,
-          isPublic: false,
+          visibility: "private",
         }),
       });
       notifyDecksChanged();

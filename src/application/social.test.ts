@@ -3,6 +3,7 @@ import { PrismaCardRepository } from "@/adapters/db/card-repository";
 import { PrismaDeckRepository, PrismaPublicDecks } from "@/adapters/db/deck-repository";
 import type { Db } from "@/adapters/db/prisma";
 import { PrismaSocialRepository } from "@/adapters/db/social-repository";
+import type { DeckVisibility } from "@/domain/deck/visibility";
 import { fixtureCards, fixturePrintings } from "../../tests/helpers/scryfall-fixtures";
 import { createTestDb, createTestUser } from "../../tests/helpers/test-db";
 import {
@@ -33,7 +34,7 @@ const card = (name: string) => {
   if (!c) throw new Error(name);
   return c;
 };
-const deck = (name: string, isPublic?: boolean) => ({
+const deck = (name: string, visibility?: DeckVisibility) => ({
   name,
   input: "",
   source: "text",
@@ -42,7 +43,7 @@ const deck = (name: string, isPublic?: boolean) => ({
   cards: [],
   locked: [],
   excluded: [],
-  ...(isPublic === undefined ? {} : { isPublic }),
+  ...(visibility === undefined ? {} : { visibility }),
 });
 
 beforeAll(async () => {
@@ -85,25 +86,28 @@ describe("nombres de usuario y perfil", () => {
 });
 
 describe("mazos públicos y perfiles", () => {
-  it("los mazos nacen públicos; los privados solo los ve su dueño", async () => {
+  it("los mazos nacen públicos; los ocultos solo con el enlace; los privados solo su dueño", async () => {
     const ana = new PrismaDeckRepository(db, "ana");
     const pub = await ana.save(deck("Público"));
-    const priv = await ana.save(deck("Privado", false));
+    const priv = await ana.save(deck("Privado", "private"));
+    const hidden = await ana.save(deck("Oculto", "unlisted"));
     const decks = new PrismaPublicDecks(db);
-    expect((await decks.find(pub, null))?.deck.name).toBe("Público");
+    expect((await decks.find(pub, null))?.deck.visibility).toBe("public");
     expect(await decks.find(priv, null)).toBeNull();
     expect(await decks.find(priv, "beto")).toBeNull();
     expect((await decks.find(priv, "ana"))?.deck.name).toBe("Privado");
+    expect((await decks.find(hidden, null))?.deck.name).toBe("Oculto");
     expect((await decks.recent(10)).map((d) => d.name)).toEqual(["Público"]);
 
     expect((await profileView("ana", "beto", deps())).decks.map((d) => d.name)).toEqual([
       "Público",
     ]);
-    expect((await profileView("ANA", "ana", deps())).decks).toHaveLength(2);
+    expect((await profileView("ANA", "ana", deps())).decks).toHaveLength(3);
     await expect(profileView("nadie", null, deps())).rejects.toBeInstanceOf(ProfileNotFoundError);
 
-    expect(await ana.setPublic(priv, true)).toBe(true);
-    expect(await new PrismaDeckRepository(db, "beto").setPublic(priv, false)).toBe(false);
+    expect(await ana.setVisibility(priv, "public")).toBe(true);
+    expect(await new PrismaDeckRepository(db, "beto").setVisibility(priv, "private")).toBe(false);
+    await ana.delete(hidden);
   });
 });
 
@@ -124,11 +128,14 @@ describe("seguir y notificaciones", () => {
 
   it("avisa a los seguidores de un mazo nuevo público, no de uno privado", async () => {
     expect(
-      await announceNewDeck("ana", { id: "x", name: "Privado", isPublic: false }, deps()),
+      await announceNewDeck("ana", { id: "x", name: "Privado", visibility: "private" }, deps()),
     ).toBe(0);
-    expect(await announceNewDeck("ana", { id: "d1", name: "Nuevo", isPublic: true }, deps())).toBe(
-      1,
-    );
+    expect(
+      await announceNewDeck("ana", { id: "y", name: "Oculto", visibility: "unlisted" }, deps()),
+    ).toBe(0);
+    expect(
+      await announceNewDeck("ana", { id: "d1", name: "Nuevo", visibility: "public" }, deps()),
+    ).toBe(1);
     const [n] = await social.list("beto", 10);
     expect(n).toMatchObject({ type: "new_deck", deckId: "d1", title: "Nuevo", read: false });
     expect(n?.actor).toEqual({ username: "ana", name: "ana" });

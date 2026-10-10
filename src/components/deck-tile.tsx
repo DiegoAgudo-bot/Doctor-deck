@@ -3,7 +3,8 @@
 import Link from "next/link";
 import type { SavedDeckSummaryDTO } from "@/server/dto";
 import { CardImage } from "./card-image";
-import { IconCopy, IconEye, IconEyeOff, IconPencil, IconTrash } from "./icons";
+import { nextVisibility, VISIBILITY } from "./deck-visibility";
+import { IconCopy, IconPencil, IconTrash } from "./icons";
 import { ColorPips } from "./mana";
 import { ago } from "./ui";
 
@@ -15,7 +16,7 @@ const SOURCE_LABEL: Record<string, string> = {
 
 /**
  * Tarjeta de un mazo (Mis mazos, perfiles, comunidad). Con `onToggleVisibility` / `onDelete`
- * (solo los míos) enseña los botones de público/privado y borrar; con `owner`, de quién es.
+ * (solo los míos) enseña los botones de visibilidad (público → oculto → privado) y borrar; con `owner`, de quién es.
  */
 export function DeckTile({
   deck: d,
@@ -35,6 +36,8 @@ export function DeckTile({
   delay?: number;
 }) {
   const mine = Boolean(onToggleVisibility || onDelete);
+  const Vis = VISIBILITY[d.visibility].Icon;
+  const next = nextVisibility(d.visibility);
   const actions = [onRename, onDuplicate, onToggleVisibility, onDelete].filter(Boolean).length;
   return (
     <div className="fade relative" style={{ ["--d" as string]: `${delay}ms` }}>
@@ -61,10 +64,10 @@ export function DeckTile({
             <span>{d.cardCount} cartas</span>
             <span>{ago(d.updatedAt)}</span>
           </span>
-          {mine && !d.isPublic && (
+          {mine && d.visibility !== "public" && (
             <span className="pill subtle mt-auto">
-              <IconEyeOff size={12} />
-              Privado
+              <Vis size={12} />
+              {VISIBILITY[d.visibility].label}
             </span>
           )}
         </div>
@@ -100,15 +103,11 @@ export function DeckTile({
               type="button"
               className="btn btn-ghost btn-icon"
               style={{ width: 28, height: 28 }}
-              aria-label={d.isPublic ? `Hacer privado ${d.name}` : `Hacer público ${d.name}`}
-              title={
-                d.isPublic
-                  ? "Público: lo ve cualquiera. Clic para hacerlo privado"
-                  : "Privado: solo lo ves tú. Clic para hacerlo público"
-              }
+              aria-label={`${VISIBILITY[d.visibility].label}: cambiar a ${VISIBILITY[next].label.toLowerCase()} ${d.name}`}
+              title={`${VISIBILITY[d.visibility].label}: ${VISIBILITY[d.visibility].hint} Clic para hacerlo ${VISIBILITY[next].label.toLowerCase()}.`}
               onClick={onToggleVisibility}
             >
-              {d.isPublic ? <IconEye size={14} /> : <IconEyeOff size={14} />}
+              <Vis size={14} />
             </button>
           )}
           {onDelete && (
@@ -126,17 +125,4 @@ export function DeckTile({
       )}
     </div>
   );
-}
-
-/** Cambia la visibilidad de uno de mis mazos (la API devuelve el nuevo estado). */
-export async function setDeckVisibility(
-  api: <T>(path: string, init?: RequestInit) => Promise<T>,
-  id: string,
-  isPublic: boolean,
-) {
-  return api<{ isPublic: boolean }>(`/api/decks/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ isPublic }),
-  });
 }

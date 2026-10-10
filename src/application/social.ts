@@ -1,3 +1,4 @@
+import { isListedDeck, type DeckVisibility } from "@/domain/deck/visibility";
 import type { CardRepository } from "@/domain/ports/card-repository";
 import type { DeckRepository, SavedDeckSummary } from "@/domain/ports/deck-repository";
 import type {
@@ -107,7 +108,7 @@ export async function profileView(
     ...counts,
     isMe,
     isFollowing,
-    decks: isMe ? decks : decks.filter((d) => d.isPublic),
+    decks: isMe ? decks : decks.filter((d) => isListedDeck(d.visibility)),
   };
 }
 
@@ -130,10 +131,10 @@ type NotifyDeps = { follows: FollowRepository; notifications: NotificationReposi
 /** Avisa a los seguidores de un mazo nuevo, si es público. */
 export async function announceNewDeck(
   actorId: string,
-  deck: { id: string; name: string; isPublic: boolean },
+  deck: { id: string; name: string; visibility: DeckVisibility },
   deps: NotifyDeps,
 ) {
-  if (!deck.isPublic) return 0;
+  if (!isListedDeck(deck.visibility)) return 0;
   const followers = await deps.follows.followerIds(actorId);
   await deps.notifications.create(
     followers.map((userId) => ({
