@@ -1,3 +1,4 @@
+import { localImageUrl } from "@/domain/cards/images";
 import type { DeckOwnershipSummary } from "@/domain/community/rank";
 import type { BracketEstimate } from "@/domain/deck/bracket";
 import type { PriceChange, PricePoint } from "@/domain/prices/history";
@@ -361,7 +362,8 @@ export interface ApiErrorBody {
 export const cardDTO = (c: Card): CardDTO => ({
   oracleId: c.oracleId,
   name: c.name,
-  imageUrl: c.imageUrl,
+  // Desde nuestro servidor (/img/…), que la guarda: no depende de que Scryfall responda.
+  imageUrl: localImageUrl(c.imageUrl),
   typeLine: c.typeLine,
   manaCost: c.manaCost,
   cmc: c.cmc,

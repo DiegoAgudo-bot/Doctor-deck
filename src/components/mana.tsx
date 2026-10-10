@@ -1,6 +1,11 @@
-/* eslint-disable @next/next/no-img-element -- símbolos SVG servidos por el CDN de Scryfall */
+/* eslint-disable @next/next/no-img-element -- símbolos SVG estáticos */
 
-const SYMBOL_URL = "https://svgs.scryfall.io/card-symbols/";
+/**
+ * Los símbolos se sirven desde nuestro servidor (`public/symbols/`, `npm run symbols:sync`), no
+ * desde svgs.scryfall.io: va detrás de Cloudflare, que en España se bloquea en los partidos de
+ * LaLiga.
+ */
+export const SYMBOL_URL = "/symbols/";
 
 /** "{2}{B/G}{R}" → ["2", "BG", "R"] (nombres de fichero de Scryfall: sin "/"). */
 export function manaSymbols(cost: string | null | undefined): string[] {

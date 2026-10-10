@@ -14,7 +14,7 @@ import { api, ApiError } from "./api-client";
 import { CardHover, CardImage } from "./card-image";
 import { CardPriceDialog } from "./card-price-dialog";
 import { roleLabel } from "./deck-views";
-import { ManaCost } from "./mana";
+import { ManaCost, SYMBOL_URL } from "./mana";
 import { Banner, Loading, fmt } from "./ui";
 
 /* eslint-disable @next/next/no-img-element -- símbolos de maná de Scryfall en los filtros */
@@ -223,12 +223,7 @@ export function CollectionBrowser({
                     set({ colors: on ? f.colors.filter((x) => x !== c) : [...f.colors, c] })
                   }
                 >
-                  <img
-                    src={`https://svgs.scryfall.io/card-symbols/${c}.svg`}
-                    alt=""
-                    width={20}
-                    height={20}
-                  />
+                  <img src={`${SYMBOL_URL}${c}.svg`} alt="" width={20} height={20} />
                 </button>
               );
             })}

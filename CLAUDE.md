@@ -19,6 +19,7 @@ recomendaciones de EDHREC, priorizando cartas de la colección del usuario (expo
 | `npm run format` / `format:check`                                                                 | Prettier                                                                  |
 | `npm run build`                                                                                   | Build de producción                                                       |
 | `npm run scryfall:sync [-- --force \| --skip-download]`                                           | Descarga los bulk de Scryfall (si hay versión nueva) y los vuelca a la BD |
+| `npm run symbols:sync`                                                                            | Descarga los símbolos de maná de Scryfall a `public/symbols/`             |
 | `npm run collection:import -- "export.csv" [--user email]`                                        | Importa un CSV de ManaBox (a la cuenta indicada) y muestra el resumen     |
 | `npm run users:claim -- --user email`                                                             | Pasa a esa cuenta la colección y los mazos de antes de haber usuarios     |
 | `npm run deck:check -- "lista.txt" \| "https://…"`                                                | Parsea y resuelve una lista de mazo contra el catálogo                    |
@@ -229,9 +230,26 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   del navegador). "Me gusta": tabla `DeckLike`, `POST|DELETE /api/decks/{id}/like` (no a los
   propios ni a los privados); `GET /api/decks/{id}` devuelve `likes` y `liked`. Los perfiles de
   otros piden lo mismo con `username` para enseñar el % en cada mazo.
-- **Histórico de precios** (`PriceSnapshot`, `PrismaPriceHistory`): `scryfall:sync` guarda cada
-  día (`recordPriceSnapshot`, fecha UTC) el precio más barato de las cartas que están en alguna
-  colección o mazo. Aún sin pantalla: la usará la fase 14.
+- **Precios** (Fase 14): `scryfall:sync` guarda cada día (`recordPriceSnapshot`, fecha UTC) en
+  `PriceSnapshot` el precio más barato de las cartas que están en alguna colección o mazo, y después
+  lanza `notifyPriceDrops`: a cada usuario con `User.priceAlertPercent` (15 % por defecto, null =
+  no), las cartas que le faltan para sus mazos guardados (`decks.usage()` − colección, sin básicas)
+  cuyo precio de hoy baja ese % respecto al máximo de los 30 días anteriores → `Notification`
+  `price_drop` (`price`, `prevPrice`, `deckId` del primer mazo que la usa); como mucho una por
+  carta cada 7 días; si no hay precio de hoy no se compara. Cálculos en `domain/prices/history.ts`
+  (`priceChange`, `priceMovers` por valor de mis copias, `collectionValueSeries` arrastrando el
+  último precio conocido, `priceDrop`). API: `GET /api/cards/{oracleId}/prices?days=` (pública),
+  `POST /api/collection/prices` (`{days, collection?}`: valor día a día y lo que más sube/baja),
+  `PATCH /api/me/profile` con `priceAlertPercent`. UI: pulsar un precio (colección, "Qué me falta")
+  abre el histórico (`CardPriceDialog`, gráfica `PriceChart`), pestaña "Precios" en la colección y
+  el ajuste en `/ajustes`.
+- **Sin depender de Scryfall/Cloudflare en el navegador** (en España se bloquean IPs de Cloudflare
+  durante los partidos de LaLiga): el navegador solo habla con nuestro servidor. Los símbolos de
+  maná están en `public/symbols/` (`npm run symbols:sync`, se suben al repo) y las imágenes de
+  cartas se sirven desde `/img/<ruta de Scryfall>`: `cardDTO` reescribe `imageUrl`
+  (`localImageUrl`, `domain/cards/images.ts`) y `FileImageCache` las guarda en `IMAGE_CACHE_DIR` la
+  primera vez (tope `IMAGE_CACHE_MAX_MB`; lleno, se sirven sin guardar). Solo acepta rutas con la
+  forma de las de Scryfall.
 - **Mazo**: `DeckSource.load` → `parseDecklist` → `resolveDecklist` (agrupa por oracleId, detecta
   comandante: marcado → único candidato o pareja válida → si no, `commanderCandidates` para que
   elija el usuario con `chooseCommanders`) → `validateDeck`.
@@ -305,8 +323,10 @@ Purchase price currency, Added`.
 11. Exportar a Arena/MTGO, mazos ocultos, mano inicial y empezar a guardar precios ✅
 12. Bracket estimado, game changers y bracket objetivo en el motor ✅
 13. Comunidad: mazos que puedes montar ya (% y coste), filtros y "me gusta" ✅
+14. Precios: histórico, lo que más sube/baja de la colección, avisos de bajada; símbolos e
+    imágenes servidos desde nuestro servidor ✅
 
-Las fases siguientes (14–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
+Las fases siguientes (15–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
 diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)

@@ -19,7 +19,7 @@ despliegue en `main` y **parar al terminar cada fase hasta el OK del usuario**.
 | 11   | Exportar Arena/MTGO, mazos ocultos, manos de muestra, precios | Bajo     | ✅     |
 | 12   | Bracket y game changers                                       | Bajo     | ✅     |
 | 13   | Comunidad: mazos que puedes montar ya, me gusta, filtros      | Medio    | ✅     |
-| 14   | Precios: histórico, lo que más sube, avisos de bajada         | Medio    |        |
+| 14   | Precios: histórico, lo que más sube, avisos de bajada         | Medio    | ✅     |
 | 15   | Etiquetas propias que corrigen los roles                      | Medio    |        |
 | 16   | Combos (Commander Spellbook) y bracket con combos             | Medio    |        |
 | 17   | Listas de deseos e intercambio con cruce automático           | Medio    |        |
@@ -111,7 +111,7 @@ desde que existen los brackets.
 **Hecho cuando:** Comunidad responde en menos de 1 s con 500 mazos públicos y el porcentaje
 coincide con el de la pestaña "Qué me falta".
 
-## Fase 14 · Precios
+## Fase 14 · Precios ✅
 
 **Objetivo:** sacar partido del histórico que se empezó a guardar en la fase 11.
 

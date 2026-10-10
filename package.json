@@ -17,6 +17,7 @@
     "db:migrate": "prisma migrate dev",
     "postinstall": "prisma generate",
     "scryfall:sync": "tsx scripts/scryfall-sync.ts",
+    "symbols:sync": "tsx scripts/symbols-sync.ts",
     "collection:import": "tsx scripts/import-collection.ts",
     "deck:check": "tsx scripts/check-deck.ts",
     "edhrec:fetch": "tsx scripts/edhrec-fetch.ts",

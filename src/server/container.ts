@@ -10,6 +10,7 @@ import { PrismaResponseCache } from "@/adapters/db/response-cache";
 import { EdhrecClient } from "@/adapters/edhrec/edhrec-client";
 import { createDb } from "@/adapters/db/prisma";
 import { HttpClient } from "@/adapters/http/http-client";
+import { FileImageCache } from "@/adapters/images/image-cache";
 import { smtpMailer } from "@/adapters/mail/mailer";
 import { engineConfig } from "@/config/engine";
 import { loadEnv } from "@/config/env";
@@ -62,6 +63,12 @@ export function createContainer() {
       userAgent: env.HTTP_USER_AGENT,
       minIntervalMs: env.SCRYFALL_MIN_INTERVAL_MS,
     }),
+    /** Imágenes de cartas: de disco o de cards.scryfall.io (que no tiene límite de peticiones). */
+    images: new FileImageCache(
+      env.IMAGE_CACHE_DIR,
+      env.IMAGE_CACHE_MAX_MB * 1024 * 1024,
+      new HttpClient({ userAgent: env.HTTP_USER_AGENT, minIntervalMs: 0, accept: "image/*" }),
+    ),
   };
 }
 

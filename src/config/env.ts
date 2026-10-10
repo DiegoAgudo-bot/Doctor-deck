@@ -6,6 +6,9 @@ const optionalString = z.preprocess((v) => (v === "" ? undefined : v), z.string(
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   SCRYFALL_DATA_DIR: z.string().default("./data/scryfall"),
+  /** Caché en disco de las imágenes de cartas (se sirven desde /img/…) y su tamaño máximo. */
+  IMAGE_CACHE_DIR: z.string().default("./data/images"),
+  IMAGE_CACHE_MAX_MB: z.coerce.number().int().min(0).default(2000),
   HTTP_USER_AGENT: z.string().min(1),
   SCRYFALL_MIN_INTERVAL_MS: z.coerce.number().int().min(100).default(100),
   EDHREC_MIN_INTERVAL_MS: z.coerce.number().int().min(0).default(1000),
