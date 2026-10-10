@@ -15,6 +15,7 @@ import {
   IconBell,
   IconSettings,
   IconUser,
+  IconSwap,
   IconUsers,
   IconCollection,
   IconDecks,
@@ -357,6 +358,13 @@ function Sidebar({
             >
               <IconUsers />
               Comunidad
+            </Link>
+            <Link
+              className={`nav ${pathname === "/intercambios" ? "is-active" : ""}`}
+              href="/intercambios"
+            >
+              <IconSwap />
+              Intercambios
             </Link>
             <Link className={`nav ${pathname === "/ajustes" ? "is-active" : ""}`} href="/ajustes">
               <IconSettings />

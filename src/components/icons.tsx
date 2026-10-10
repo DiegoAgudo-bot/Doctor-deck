@@ -222,3 +222,8 @@ export const IconHeart = ({ filled = false, ...p }: P & { filled?: boolean }) =>
     />
   </Icon>
 );
+export const IconSwap = (p: P) => (
+  <Icon {...p}>
+    <path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" />
+  </Icon>
+);

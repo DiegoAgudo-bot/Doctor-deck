@@ -71,6 +71,11 @@ export function NotificationsPage() {
                       {who} ha publicado un mazo:{" "}
                       {n.deckId ? <Link href={`/decks/${n.deckId}`}>{n.title}</Link> : n.title}
                     </>
+                  ) : n.type === "trade_match" ? (
+                    <>
+                      {who} tiene libre <b>{n.title}</b>, que está en tu lista de deseos ·{" "}
+                      <Link href="/intercambios">Ver cruces</Link>
+                    </>
                   ) : n.type === "price_drop" ? (
                     <>
                       Ha bajado <b>{n.title}</b>, que te falta

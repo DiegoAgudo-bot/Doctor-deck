@@ -81,5 +81,7 @@ export const noSavedDecks: DeckRepository = {
   setVisibility: async () => false,
   rename: async () => false,
   setTargetBracket: async () => false,
+  setInWishlist: async () => false,
+  wishlistDeckCards: async () => new Map(),
   usage: async () => new Map(),
 };

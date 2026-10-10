@@ -191,6 +191,8 @@ export interface PublicProfileDTO {
   name: string;
   image: string | null;
   collectionPublic: boolean;
+  /** Lista de deseos y "para cambiar" públicas. */
+  tradesPublic: boolean;
   createdAt: string;
 }
 
@@ -210,7 +212,7 @@ export interface UserSummaryDTO extends PublicProfileDTO {
 
 export interface NotificationDTO {
   id: string;
-  type: "new_deck" | "big_card" | "price_drop";
+  type: "new_deck" | "big_card" | "price_drop" | "trade_match";
   actor: { username: string | null; name: string };
   deckId: string | null;
   cardId: string | null;
@@ -272,6 +274,42 @@ export interface DeckCombosDTO {
   fetchedAt: string;
   stale: boolean;
   warning: string | null;
+}
+
+export interface TradeCardDTO {
+  card: CardDTO;
+  quantity: number;
+  price: number | null;
+}
+
+export interface WishlistCardDTO extends TradeCardDTO {
+  /** Copias pedidas a mano y copias que faltan para los mazos marcados. */
+  manual: number;
+  forDecks: number;
+}
+
+export interface MyTradesDTO {
+  /** Mis listas son públicas (salen en mi perfil y en los cruces de otros). */
+  public: boolean;
+  wishlist: WishlistCardDTO[];
+  /** Mis copias libres para cambiar, de más a menos valor (como mucho las 300 primeras). */
+  tradelist: TradeCardDTO[];
+  tradelistTotal: number;
+  /** Cartas que he marcado como "no la cambio". */
+  keep: CardDTO[];
+  /** Mis mazos, para elegir cuáles entran en la lista de deseos. */
+  decks: { id: string; name: string; inWishlist: boolean; commanderNames: string[] }[];
+}
+
+export interface TradePartnerDTO {
+  profile: PublicProfileDTO;
+  following: boolean;
+  /** Lo que tiene para cambiar y yo quiero. */
+  theyHave: TradeCardDTO[];
+  /** Lo que quiere y yo tengo para cambiar. */
+  theyWant: TradeCardDTO[];
+  haveValue: number;
+  wantValue: number;
 }
 
 /** Corrección de roles de una carta (roles vacíos = los automáticos). */
@@ -603,11 +641,13 @@ export const publicProfileDTO = (p: {
   name: string;
   image: string | null;
   collectionPublic: boolean;
+  tradesPublic: boolean;
   createdAt: Date;
 }): PublicProfileDTO => ({
   username: p.username ?? "",
   name: p.name,
   image: p.image,
   collectionPublic: p.collectionPublic,
+  tradesPublic: p.tradesPublic,
   createdAt: p.createdAt.toISOString(),
 });

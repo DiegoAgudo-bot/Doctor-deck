@@ -131,6 +131,20 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
     el mejor par válido; un par es inválido si deja algún rol por debajo de su mínimo.
   - Pesos, mínimos, umbral y nº máximo en `src/config/engine.ts` (defaults en
     `domain/suggestions/config.ts`). Motivos en español en `domain/suggestions/reason.ts`.
+- **Intercambios** (Fase 17, `application/trades.ts`, dominio en `domain/trades/lists.ts`):
+  lista de deseos = cartas añadidas a mano (`WishlistItem`) + lo que falta de los mazos con
+  `Deck.inWishlist` (lo que piden todos mis mazos − lo que tengo, como mucho lo que piden los
+  marcados; si está por las dos vías, el máximo); "para cambiar" = copias libres (tengo − usadas
+  en mis mazos), sin básicas ni las marcadas "no la cambio" (`TradeKeep`). `User.tradesPublic`
+  (privadas por defecto). `tradeMatches`: con cada usuario con listas públicas, lo que tiene que
+  quiero y lo que quiere que tengo, con valor; primero la gente que sigo. `notifyTradeMatches`
+  (tras `scryfall:sync`): aviso `trade_match` por carta, como mucho cada 30 días. API `GET
+/api/trades`, `GET /api/trades/matches?username=`, `PUT /api/trades/wishes/{oracleId}`
+  (`{quantity}`), `PUT /api/trades/keeps/{oracleId}` (`{keep}`), `PATCH /api/decks/{id}`
+  (`{inWishlist}`), `PATCH /api/me/profile` (`{tradesPublic}`). UI: `/intercambios` (cruces, lo que
+  busco, para cambiar), sección en el perfil de otros, botón en "Qué me falta" y ajuste en
+  `/ajustes`. Sin pagos ni mensajes. Cuentas de prueba locales en `data/test-accounts.local.json`
+  (gitignored).
 - **Combos** (Fase 16, Commander Spellbook, **sin API oficial**): `SpellbookClient`
   (`adapters/spellbook`, puerto `ComboSource`) hace `POST
 backend.commanderspellbook.com/find-my-combos?limit=500` con el mazo (nombres), cachea en
@@ -349,8 +363,9 @@ Purchase price currency, Added`.
     imágenes servidos desde nuestro servidor ✅
 15. Roles corregidos a mano y etiquetas (Moxfield/Archidekt), en el motor y al exportar ✅
 16. Combos (Commander Spellbook): en el mazo, a una carta (con tu colección) y en el bracket ✅
+17. Intercambios: lista de deseos, para cambiar, cruces entre usuarios y avisos ✅
 
-Las fases siguientes (17–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
+Las fases siguientes (18–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
 diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)

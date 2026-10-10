@@ -121,6 +121,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const [owner, setOwner] = useState<DeckViewDTO["owner"] | null>(null);
   /** "Me gusta" del mazo guardado abierto (mío o de otro). */
   const [like, setLike] = useState<{ id: string; count: number; liked: boolean } | null>(null);
+  /** Si lo que falta de este mazo (guardado y mío) está en mi lista de deseos. */
+  const [inWishlist, setInWishlist] = useState(false);
   // Colección en este navegador (sin cuenta). Se lee tras montar: el servidor no tiene localStorage.
   const [hasLocal, setHasLocal] = useState(false);
   useEffect(() => {
@@ -161,6 +163,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             targetBracket: d.isMine ? d.targetBracket : null,
           };
           setLike({ id: d.id, count: d.likes, liked: d.liked });
+          setInWishlist(d.isMine && d.inWishlist);
           if (!d.isMine) {
             setOwner(d.owner);
             // El mazo de otro: lo primero es ver qué me falta para montarlo.
@@ -388,6 +391,23 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
    * Añade (delta > 0) o quita (delta < 0) copias de una carta: rehace la lista, vuelve a analizar y,
    * si es uno de mis mazos guardados, lo guarda.
    */
+  async function toggleWishlist() {
+    if (!saved.deckId) return;
+    setBusy("wishlist");
+    try {
+      await api(`/api/decks/${saved.deckId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inWishlist: !inWishlist }),
+      });
+      setInWishlist(!inWishlist);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo cambiar la lista de deseos");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function toggleLike() {
     if (!like || !owner) return;
     const liked = !like.liked;
@@ -847,6 +867,15 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
               ownership={ok.ownership}
               hasCollection={hasCollection}
               loggedIn={loggedIn}
+              wishlist={
+                loggedIn && !owner && saved.deckId
+                  ? {
+                      on: inWishlist,
+                      busy: busy === "wishlist",
+                      onToggle: () => void toggleWishlist(),
+                    }
+                  : undefined
+              }
             />
           )}
 

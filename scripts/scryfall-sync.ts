@@ -7,6 +7,7 @@ import { ensureBulkFile, readBulkFile } from "@/adapters/scryfall/bulk";
 import { safeMappers } from "@/adapters/scryfall/mapping";
 import { refreshDeckFacts } from "@/application/community";
 import { notifyPriceDrops, recordPriceSnapshot } from "@/application/prices";
+import { notifyTradeMatches } from "@/application/trades";
 import { syncScryfallCatalog } from "@/application/sync-scryfall";
 import { createContainer } from "@/server/container";
 import { existsSync } from "node:fs";
@@ -59,6 +60,16 @@ async function main() {
     decksFor: (id) => c.decksFor(id),
   });
   console.log(`Avisos de bajada de precio: ${alerts}.`);
+  const trades = await notifyTradeMatches({
+    cards: c.cards,
+    collectionFor: (id) => c.collectionFor(id),
+    decksFor: (id) => c.decksFor(id),
+    tradesFor: (id) => c.tradesFor(id),
+    profiles: c.social,
+    follows: c.social,
+    notifications: c.social,
+  });
+  console.log(`Avisos de cruces de intercambio: ${trades}.`);
   // La lista de game changers puede cambiar: se recalcula el bracket de todos los mazos.
   const facts = await refreshDeckFacts(
     { publicDecks: c.publicDecks, cards: c.cards },

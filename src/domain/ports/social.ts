@@ -9,6 +9,8 @@ export interface PublicProfile {
   name: string;
   image: string | null;
   collectionPublic: boolean;
+  /** Lista de deseos y "para cambiar" públicas. */
+  tradesPublic: boolean;
   createdAt: Date;
 }
 
@@ -25,6 +27,9 @@ export interface ProfileRepository {
   /** false si ese nombre ya lo tiene otro. */
   setUsername(userId: string, username: string): Promise<boolean>;
   setCollectionPublic(userId: string, value: boolean): Promise<void>;
+  setTradesPublic(userId: string, value: boolean): Promise<void>;
+  /** Usuarios con nombre de usuario y listas de intercambio públicas. */
+  publicTraders(): Promise<PublicProfile[]>;
   /** % de bajada de precio a partir del que avisar (null = no avisar). Ajuste privado. */
   priceAlertPercent(userId: string): Promise<number | null>;
   setPriceAlertPercent(userId: string, percent: number | null): Promise<void>;
@@ -44,7 +49,7 @@ export interface FollowRepository {
   followingIds(userId: string): Promise<string[]>;
 }
 
-export type NotificationType = "new_deck" | "big_card" | "price_drop";
+export type NotificationType = "new_deck" | "big_card" | "price_drop" | "trade_match";
 
 export interface NewNotification {
   userId: string;

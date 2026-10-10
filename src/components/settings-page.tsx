@@ -30,6 +30,7 @@ export function SettingsPage() {
   async function save(changes: {
     username?: string;
     collectionPublic?: boolean;
+    tradesPublic?: boolean;
     priceAlertPercent?: number | null;
   }) {
     setBusy(true);
@@ -138,6 +139,21 @@ export function SettingsPage() {
               <span className="subtle block text-xs">
                 Cualquiera podrá verla en tu perfil, y quien te siga recibirá un aviso cuando añadas
                 una carta de más de 20 €.
+              </span>
+            </span>
+          </label>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={me.tradesPublic}
+              disabled={busy}
+              onChange={(e) => void save({ tradesPublic: e.target.checked })}
+            />
+            <span>
+              Listas de intercambio públicas
+              <span className="subtle block text-xs">
+                Tu lista de deseos y tus cartas para cambiar salen en tu perfil y en los cruces de{" "}
+                <Link href="/intercambios">Intercambios</Link>.
               </span>
             </span>
           </label>

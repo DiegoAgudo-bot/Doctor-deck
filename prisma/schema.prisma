@@ -108,6 +108,8 @@ model Deck {
   /// null = sin calcular todavía.
   colorIdentity  String?
   bracket        Int?
+  /// Lo que me falta para este mazo entra en mi lista de deseos.
+  inWishlist     Boolean        @default(false)
   likes          DeckLike[]
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
@@ -165,6 +167,8 @@ model User {
   username          String?            @unique
   /// Si cualquiera puede ver su colección en su perfil.
   collectionPublic  Boolean            @default(false)
+  /// Lista de deseos y "para cambiar" visibles en el perfil y en los cruces de otros.
+  tradesPublic      Boolean            @default(false)
   /// Avisar si una carta que me falta baja este % respecto a su máximo de 30 días. null = no avisar.
   priceAlertPercent Int?               @default(15)
   sessions          Session[]
@@ -177,6 +181,8 @@ model User {
   sentNotifications Notification[]     @relation("actor")
   deckLikes         DeckLike[]
   cardRoles         CardRoleOverride[]
+  wishlist          WishlistItem[]
+  tradeKeeps        TradeKeep[]
 
   @@map("user")
 }
@@ -300,6 +306,26 @@ model CardRoleOverride {
   /// Array JSON de etiquetas libres ("wincon", "tesoros"…).
   tags      String   @default("[]")
   updatedAt DateTime @updatedAt
+
+  @@id([userId, oracleId])
+}
+
+/// Cartas que he añadido a mano a mi lista de deseos.
+model WishlistItem {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oracleId  String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  @@id([userId, oracleId])
+}
+
+/// Cartas que no cambio aunque tenga copias libres (salen de mi lista "para cambiar").
+model TradeKeep {
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oracleId String
 
   @@id([userId, oracleId])
 }

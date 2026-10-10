@@ -3,12 +3,18 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { CommunityDeckDTO, CommunityResponse, ProfileViewDTO } from "@/server/dto";
+import type {
+  CommunityDeckDTO,
+  CommunityResponse,
+  ProfileViewDTO,
+  TradePartnerDTO,
+} from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
 import { CollectionBrowser } from "./collection-browser";
 import { DeckTile } from "./deck-tile";
 import { localCollection, ownedPairs } from "./local-collection";
+import { PartnerCard } from "./trades-page";
 import { nextVisibility, setDeckVisibility } from "./deck-visibility";
 import { IconEyeOff, IconSettings } from "./icons";
 import { Banner, EmptyState, Loading, fmt } from "./ui";
@@ -34,6 +40,19 @@ export function ProfilePage() {
   }, [username, session]);
 
   const isMe = view?.isMe ?? true;
+  /** Cruce de intercambio con este jugador (si tiene listas públicas y he entrado). */
+  const [trade, setTrade] = useState<TradePartnerDTO[] | null>(null);
+  const tradesPublic = view?.profile.tradesPublic ?? false;
+  useEffect(() => {
+    if (isMe || !tradesPublic || !session) return;
+    api<TradePartnerDTO[]>(
+      `/api/trades/matches?username=${encodeURIComponent(username)}`,
+      undefined,
+      { silent: true },
+    )
+      .then(setTrade)
+      .catch(() => setTrade(null));
+  }, [isMe, tradesPublic, session, username]);
   useEffect(() => {
     if (isMe) return;
     const local = session ? null : localCollection.get();
@@ -204,6 +223,22 @@ export function ProfilePage() {
             ))}
           </div>
         ))}
+
+      {tab === "mazos" && trade && (
+        <section className="flex flex-col gap-2">
+          <h2 className="h2" style={{ fontSize: 17 }}>
+            Intercambio con @{profile.username}
+          </h2>
+          {trade.length > 0 ? (
+            <PartnerCard p={trade[0]!} />
+          ) : (
+            <p className="muted text-[13px]">
+              No tiene libre nada de tu lista de deseos ni busca nada de lo que te sobra.{" "}
+              <Link href="/intercambios">Tus listas</Link>
+            </p>
+          )}
+        </section>
+      )}
 
       {tab === "coleccion" &&
         (canSeeCollection ? (

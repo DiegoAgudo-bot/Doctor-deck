@@ -60,10 +60,13 @@ export function OwnershipPanel({
   ownership,
   hasCollection,
   loggedIn,
+  wishlist,
 }: {
   ownership: OwnershipDTO;
   hasCollection: boolean;
   loggedIn: boolean;
+  /** En mis mazos guardados: si lo que falta entra en mi lista de deseos, y cambiarlo. */
+  wishlist?: { on: boolean; busy: boolean; onToggle: () => void } | undefined;
 }) {
   const [copied, setCopied] = useState(false);
   const [priceCard, setPriceCard] = useState<CardDTO | null>(null);
@@ -157,7 +160,19 @@ export function OwnershipPanel({
                 {fmt(totals.toBuy)} · ≈ {formatEuros(totals.cost)}
               </span>
             </span>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              {wishlist && (
+                <button
+                  type="button"
+                  className={`btn ${wishlist.on ? "is-on" : ""}`}
+                  aria-pressed={wishlist.on}
+                  disabled={wishlist.busy}
+                  title="Lo que falta entra en tu lista de deseos y se cruza con otros jugadores"
+                  onClick={wishlist.onToggle}
+                >
+                  {wishlist.on ? "En tu lista de deseos ✓" : "Añadir a mi lista de deseos"}
+                </button>
+              )}
               <button type="button" className="btn" onClick={download}>
                 Descargar .txt
               </button>

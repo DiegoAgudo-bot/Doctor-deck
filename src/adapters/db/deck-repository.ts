@@ -45,6 +45,7 @@ function savedDeckFromRow(d: DeckRow): SavedDeck {
     cardCount: d.cards.reduce((n, c) => n + c.quantity, 0),
     updatedAt: d.updatedAt,
     visibility: toDeckVisibility(d.visibility),
+    inWishlist: d.inWishlist,
     input: d.input,
     targetBracket: toBracket(d.targetBracket),
     theme: d.theme,
@@ -177,6 +178,7 @@ export class PrismaDeckRepository implements DeckRepository {
       cardCount: d.cards.reduce((n, c) => n + c.quantity, 0),
       updatedAt: d.updatedAt,
       visibility: toDeckVisibility(d.visibility),
+      inWishlist: d.inWishlist,
     }));
   }
 
@@ -250,6 +252,23 @@ export class PrismaDeckRepository implements DeckRepository {
       data: { targetBracket },
     });
     return count > 0;
+  }
+
+  async setInWishlist(id: string, inWishlist: boolean): Promise<boolean> {
+    const { count } = await this.db.deck.updateMany({
+      where: { publicId: id, userId: this.userId },
+      data: { inWishlist },
+    });
+    return count > 0;
+  }
+
+  async wishlistDeckCards(): Promise<Map<string, number>> {
+    const rows = await this.db.deckCard.groupBy({
+      by: ["oracleId"],
+      where: { deck: { userId: this.userId, inWishlist: true } },
+      _sum: { quantity: true },
+    });
+    return new Map(rows.map((r) => [r.oracleId, r._sum.quantity ?? 0]));
   }
 
   async rename(id: string, name: string): Promise<boolean> {

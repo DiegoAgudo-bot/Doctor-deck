@@ -15,6 +15,8 @@ export interface SavedDeckSummary {
   updatedAt: Date;
   /** Público (perfil y Comunidad), oculto (solo con el enlace) o privado. */
   visibility: DeckVisibility;
+  /** Lo que me falta para este mazo entra en mi lista de deseos. */
+  inWishlist: boolean;
 }
 
 export interface SavedDeck extends SavedDeckSummary {
@@ -55,6 +57,9 @@ export interface DeckRepository {
   setVisibility(id: string, visibility: DeckVisibility): Promise<boolean>;
   rename(id: string, name: string): Promise<boolean>;
   setTargetBracket(id: string, bracket: Bracket | null): Promise<boolean>;
+  setInWishlist(id: string, inWishlist: boolean): Promise<boolean>;
+  /** Copias que piden (comandantes incluidos) los mazos que están en la lista de deseos. */
+  wishlistDeckCards(): Promise<Map<string, number>>;
   /** Copias de cada carta usadas en los mazos guardados, salvo `excludeDeckId`. */
   usage(excludeDeckId?: string): Promise<Map<string, CardUsage>>;
 }

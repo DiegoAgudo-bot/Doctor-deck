@@ -51,13 +51,14 @@ const patchSchema = z
       .union(BRACKETS.map((b) => z.literal(b)))
       .nullable()
       .optional(),
+    inWishlist: z.boolean().optional(),
   })
-  .refine(
-    (p) => p.visibility !== undefined || p.name !== undefined || p.targetBracket !== undefined,
-    "Nada que cambiar",
-  );
+  .refine((p) => Object.values(p).some((v) => v !== undefined), "Nada que cambiar");
 
-/** Cambia la visibilidad (público / oculto / privado), el nombre o el bracket objetivo de uno de tus mazos. */
+/**
+ * Cambia la visibilidad (público / oculto / privado), el nombre, el bracket objetivo o si entra en
+ * la lista de deseos de uno de tus mazos.
+ */
 export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">) {
   try {
     const user = await requireUser(req);
@@ -70,6 +71,8 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/decks/[id]
     if (ok && id && changes.name !== undefined) ok = await decks.rename(id, changes.name);
     if (ok && id && changes.targetBracket !== undefined)
       ok = await decks.setTargetBracket(id, changes.targetBracket);
+    if (ok && id && changes.inWishlist !== undefined)
+      ok = await decks.setInWishlist(id, changes.inWishlist);
     return ok ? Response.json(changes) : notFound();
   } catch (err) {
     return errorResponse(err);

@@ -9,7 +9,12 @@ import type {
 import { Prisma } from "@/generated/prisma/client";
 import type { Db } from "./prisma";
 
-const NOTIFICATION_TYPES: readonly NotificationType[] = ["new_deck", "big_card", "price_drop"];
+const NOTIFICATION_TYPES: readonly NotificationType[] = [
+  "new_deck",
+  "big_card",
+  "price_drop",
+  "trade_match",
+];
 
 const PROFILE = {
   id: true,
@@ -17,6 +22,7 @@ const PROFILE = {
   name: true,
   image: true,
   collectionPublic: true,
+  tradesPublic: true,
   createdAt: true,
 } as const;
 
@@ -55,6 +61,17 @@ export class PrismaSocialRepository
 
   async setCollectionPublic(userId: string, value: boolean) {
     await this.db.user.update({ where: { id: userId }, data: { collectionPublic: value } });
+  }
+
+  async setTradesPublic(userId: string, value: boolean) {
+    await this.db.user.update({ where: { id: userId }, data: { tradesPublic: value } });
+  }
+
+  async publicTraders() {
+    return this.db.user.findMany({
+      where: { tradesPublic: true, username: { not: null } },
+      select: PROFILE,
+    });
   }
 
   async priceAlertPercent(userId: string) {

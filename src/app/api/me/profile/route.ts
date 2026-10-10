@@ -27,6 +27,7 @@ export async function GET(request: Request) {
 const schema = z.object({
   username: z.string().max(40).optional(),
   collectionPublic: z.boolean().optional(),
+  tradesPublic: z.boolean().optional(),
   /** null = sin avisos de precio. */
   priceAlertPercent: z.number().int().min(5).max(90).nullable().optional(),
 });
@@ -34,8 +35,9 @@ const schema = z.object({
 export async function PATCH(request: Request) {
   try {
     const user = await requireUser(request);
-    const { priceAlertPercent, ...changes } = schema.parse(await request.json());
+    const { priceAlertPercent, tradesPublic, ...changes } = schema.parse(await request.json());
     const social = getContainer().social;
+    if (tradesPublic !== undefined) await social.setTradesPublic(user.id, tradesPublic);
     if (priceAlertPercent !== undefined)
       await social.setPriceAlertPercent(user.id, priceAlertPercent);
     const profile = await updateProfile(user.id, changes, { profiles: social });

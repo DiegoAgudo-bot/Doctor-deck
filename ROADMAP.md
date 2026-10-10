@@ -22,7 +22,7 @@ despliegue en `main` y **parar al terminar cada fase hasta el OK del usuario**.
 | 14   | Precios: histórico, lo que más sube, avisos de bajada         | Medio    | ✅     |
 | 15   | Etiquetas propias que corrigen los roles                      | Medio    | ✅     |
 | 16   | Combos (Commander Spellbook) y bracket con combos             | Medio    | ✅     |
-| 17   | Listas de deseos e intercambio con cruce automático           | Medio    |        |
+| 17   | Listas de deseos e intercambio con cruce automático           | Medio    | ✅     |
 | 18   | Impresiones concretas (edición, foil, idioma)                 | Alto     |        |
 | 19   | Calculadora de intercambio entre dos usuarios                 | Medio    |        |
 | 20   | App móvil: compartir desde ManaBox y escáner                  | Alto     |        |
@@ -151,7 +151,7 @@ completas con tu colección** (nadie más lo hace).
   - los que están a una carta y la tendrías que comprar (con su precio).
 - **El bracket de la fase 12** pasa a tener en cuenta los combos tempranos.
 
-## Fase 17 · Listas de deseos e intercambio
+## Fase 17 · Listas de deseos e intercambio ✅
 
 **Objetivo:** el paso grande de la comunidad: "@ana tiene libre la Mana Crypt que te falta".
 
