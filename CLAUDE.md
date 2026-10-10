@@ -271,6 +271,10 @@ Purchase price currency, Added`.
 8. Usuarios: registro/login con email+contraseña y Google; colección y mazos por usuario ✅
 9. Parte social: perfiles públicos, mazos públicos/privados, colección pública opcional, seguir y
    notificaciones (mazo nuevo, carta cara) ✅
+10. Crear mazos desde el comandante (mazo medio de EDHREC o desde cero) y gestor de mazos ✅
+
+Las fases siguientes (11–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
+diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)
 
