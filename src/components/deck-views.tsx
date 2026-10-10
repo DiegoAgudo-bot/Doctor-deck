@@ -355,6 +355,7 @@ export function DeckList({
   onToggleLock,
   text,
   onChangeQuantity,
+  onEditRoles,
   busy = false,
 }: {
   view: ListView;
@@ -365,6 +366,8 @@ export function DeckList({
   text: string;
   /** Si el mazo se puede editar: quitar (−1) o, en básicas, añadir (+1) copias desde la tabla. */
   onChangeQuantity?: ((card: CardDTO, delta: number) => void) | undefined;
+  /** Corregir los roles y etiquetas de una carta (desde la columna "Rol" de la tabla). */
+  onEditRoles?: ((card: DeckCardDTO) => void) | undefined;
   busy?: boolean;
 }) {
   const groups = groupByRole(cards);
@@ -388,7 +391,7 @@ export function DeckList({
               <th style={{ width: 30 }} />
               <th>Carta</th>
               <th>Coste</th>
-              <th className="hide-sm">Rol</th>
+              <th>Rol</th>
               <th style={{ width: 40 }} />
               {onChangeQuantity && <th style={{ width: 70 }} />}
             </tr>
@@ -412,11 +415,50 @@ export function DeckList({
                           <span className="pill pill-out">sale</span>
                         )}
                       </CardHover>
+                      {c.tags.length > 0 && (
+                        <span className="ml-2 inline-flex flex-wrap gap-1 align-middle">
+                          {c.tags.map((t) => (
+                            <span key={t} className="pill subtle">
+                              #{t}
+                            </span>
+                          ))}
+                        </span>
+                      )}
                     </td>
                     <td>
                       <ManaCost cost={c.card.manaCost} />
                     </td>
-                    <td className="muted hide-sm">{roleLabel(c.primaryRole)}</td>
+                    <td className="muted whitespace-nowrap">
+                      {onEditRoles && !c.isBasicLand ? (
+                        <button
+                          type="button"
+                          className="linkbtn"
+                          title={
+                            c.roleSource === "mine"
+                              ? "Roles corregidos por ti. Clic para cambiarlos"
+                              : c.roleSource === "list"
+                                ? "Roles de las etiquetas de la lista. Clic para cambiarlos"
+                                : "Roles automáticos. Clic para corregirlos"
+                          }
+                          onClick={() => onEditRoles(c)}
+                        >
+                          {roleLabel(c.primaryRole)}
+                          {c.roles.length > 1 && (
+                            <span className="subtle"> +{c.roles.length - 1}</span>
+                          )}
+                        </button>
+                      ) : (
+                        roleLabel(c.primaryRole)
+                      )}
+                      {c.roleSource !== "auto" && (
+                        <span
+                          className="pill subtle ml-1.5"
+                          title={c.roleSource === "mine" ? "Corregido por ti" : "De la lista"}
+                        >
+                          {c.roleSource === "mine" ? "tuyo" : "lista"}
+                        </span>
+                      )}
+                    </td>
                     <td>
                       {!c.isBasicLand && (
                         <button

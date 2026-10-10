@@ -2,6 +2,7 @@ import { localImageUrl } from "@/domain/cards/images";
 import type { DeckOwnershipSummary } from "@/domain/community/rank";
 import type { BracketEstimate } from "@/domain/deck/bracket";
 import type { PriceChange, PricePoint } from "@/domain/prices/history";
+import type { RoleSource } from "@/domain/roles/overrides";
 import type { AnalyzeDeckResult } from "@/application/analyze-deck";
 import type { AddCardsResult, CollectionCard } from "@/application/collection-cards";
 import type { CollectionImportSummary } from "@/application/import-collection";
@@ -10,7 +11,7 @@ import type { SkippedLine } from "@/domain/deck/decklist";
 import type { DeckIssue } from "@/domain/deck/resolve";
 import type { CollectionSummary } from "@/domain/ports/collection-repository";
 import type { ThemeLink } from "@/domain/recommendations/types";
-import { ROLE_LABELS, type Role, type RoleClassifier } from "@/domain/roles/types";
+import { ROLE_LABELS, type Role } from "@/domain/roles/types";
 import type { EngineConfig } from "@/domain/suggestions/config";
 import type {
   AddCandidate,
@@ -74,6 +75,10 @@ export interface DeckCardDTO {
   quantity: number;
   roles: Role[];
   primaryRole: Role;
+  /** De dónde salen los roles: automáticos, etiquetas de la lista o corregidos por mí. */
+  roleSource: RoleSource;
+  /** Etiquetas libres (de la lista y mías). */
+  tags: string[];
   isBasicLand: boolean;
 }
 
@@ -225,6 +230,13 @@ export interface MyProfileDTO extends PublicProfileDTO {
   email: string;
   /** Avisar si algo que me falta baja este % (null = no avisar). */
   priceAlertPercent: number | null;
+}
+
+/** Corrección de roles de una carta (roles vacíos = los automáticos). */
+export interface CardRoleEditDTO {
+  roles: Role[];
+  primary: Role | null;
+  tags: string[];
 }
 
 export interface CardPricesDTO {
@@ -409,11 +421,7 @@ export function issueMessage(i: DeckIssue): string {
   }
 }
 
-export function analyzeResponse(
-  result: AnalyzeDeckResult,
-  classifier: RoleClassifier,
-  config: EngineConfig,
-): AnalyzeResponse {
+export function analyzeResponse(result: AnalyzeDeckResult, config: EngineConfig): AnalyzeResponse {
   const unresolved = result.deck.unresolved.map((e) => e.name);
   if (result.status === "needs_commander") {
     return {
@@ -432,12 +440,14 @@ export function analyzeResponse(
     deckName: result.deckName,
     commanders: deck.commanders.map(cardDTO),
     cards: deck.cards.map(({ card, quantity }) => {
-      const roles = classifier.classify(card);
+      const roles = result.roles.classifier.classify(card);
       return {
         card: cardDTO(card),
         quantity,
         roles: roles.roles,
         primaryRole: roles.primary,
+        roleSource: result.roles.sourceOf(card),
+        tags: result.tags.get(card.oracleId) ?? [],
         isBasicLand: card.isBasicLand,
       };
     }),

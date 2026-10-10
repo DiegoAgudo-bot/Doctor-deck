@@ -154,28 +154,29 @@ model HttpCache {
 // ---------- Usuarios (tablas de Better Auth; nombres y campos los fija la librería) ----------
 
 model User {
-  id                String            @id
+  id                String             @id
   name              String
-  email             String            @unique
-  emailVerified     Boolean           @default(false)
+  email             String             @unique
+  emailVerified     Boolean            @default(false)
   image             String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   /// Nombre público (perfil /u/{username}). Se genera la primera vez que hace falta.
-  username          String?           @unique
+  username          String?            @unique
   /// Si cualquiera puede ver su colección en su perfil.
-  collectionPublic  Boolean           @default(false)
+  collectionPublic  Boolean            @default(false)
   /// Avisar si una carta que me falta baja este % respecto a su máximo de 30 días. null = no avisar.
-  priceAlertPercent Int?              @default(15)
+  priceAlertPercent Int?               @default(15)
   sessions          Session[]
   accounts          Account[]
   collection        CollectionEntry[]
   decks             Deck[]
-  following         Follow[]          @relation("follower")
-  followers         Follow[]          @relation("followed")
-  notifications     Notification[]    @relation("recipient")
-  sentNotifications Notification[]    @relation("actor")
+  following         Follow[]           @relation("follower")
+  followers         Follow[]           @relation("followed")
+  notifications     Notification[]     @relation("recipient")
+  sentNotifications Notification[]     @relation("actor")
   deckLikes         DeckLike[]
+  cardRoles         CardRoleOverride[]
 
   @@map("user")
 }
@@ -286,4 +287,19 @@ model DeckLike {
 
   @@id([userId, deckId])
   @@index([deckId])
+}
+
+/// Roles y etiquetas que un usuario ha corregido a mano para una carta (valen en todos sus mazos).
+model CardRoleOverride {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oracleId  String
+  /// Array JSON de roles (vacío = usar los automáticos, solo etiquetas).
+  roles     String   @default("[]")
+  primary   String?
+  /// Array JSON de etiquetas libres ("wincon", "tesoros"…).
+  tags      String   @default("[]")
+  updatedAt DateTime @updatedAt
+
+  @@id([userId, oracleId])
 }

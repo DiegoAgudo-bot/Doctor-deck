@@ -15,6 +15,14 @@ import type { DeckRepository } from "@/domain/ports/deck-repository";
 import type { DeckSource } from "@/domain/ports/deck-source";
 import type { RecommendationSource } from "@/domain/ports/recommendation-source";
 import type { ThemeLink } from "@/domain/recommendations/types";
+import type { CardRoleEdit } from "@/domain/ports/role-overrides";
+import {
+  normalizeOverride,
+  withOverrides,
+  type RoleOverride,
+  type RoleSource,
+} from "@/domain/roles/overrides";
+import { splitTags } from "@/domain/roles/tags";
 import type { RoleClassifier } from "@/domain/roles/types";
 import type { EngineConfig } from "@/domain/suggestions/config";
 import {
@@ -45,6 +53,8 @@ export interface AnalyzeDeckInput {
   buy?: PurchaseOptions | undefined;
   /** Bracket al que apunta el mazo: limita lo que se propone meter. */
   targetBracket?: Bracket | undefined;
+  /** Roles y etiquetas que el usuario ha corregido a mano (mandan sobre todo lo demás). */
+  roleEdits?: ReadonlyMap<string, CardRoleEdit> | undefined;
 }
 
 export interface AnalyzeDeckDeps {
@@ -88,6 +98,12 @@ export type AnalyzeDeckResult =
       purchases: PurchaseResult | null;
       /** Bracket estimado (mínimo) y por qué. */
       bracket: BracketEstimate;
+      /**
+       * Clasificador con las correcciones aplicadas (mías > etiquetas de la lista > automático) y
+       * de dónde sale cada rol, y las etiquetas libres de cada carta (de la lista y mías).
+       */
+      roles: { classifier: RoleClassifier; sourceOf: (card: Card) => RoleSource };
+      tags: Map<string, string[]>;
       /** Qué parte del mazo tengo, qué está en otros mazos y qué me falta (con su precio). */
       ownership: {
         items: CardOwnership[];
@@ -118,6 +134,22 @@ export async function analyzeDeck(
     };
   }
 
+  // Roles: mis correcciones > las etiquetas que trae la lista > los automáticos.
+  const listOverrides = new Map<string, RoleOverride>();
+  const tags = new Map<string, string[]>();
+  for (const c of deck.cards) {
+    const split = splitTags(c.tags ?? []);
+    const override = normalizeOverride(split.roles);
+    if (override) listOverrides.set(c.card.oracleId, override);
+    if (split.free.length > 0) tags.set(c.card.oracleId, split.free);
+  }
+  const mine = new Map<string, RoleOverride>();
+  for (const [id, edit] of req.roleEdits ?? []) {
+    if (edit.override) mine.set(id, edit.override);
+    if (edit.tags.length > 0) tags.set(id, [...new Set([...(tags.get(id) ?? []), ...edit.tags])]);
+  }
+  const classifier = withOverrides(deps.classifier, { mine, list: listOverrides });
+
   const recs = await loadRecommendations(
     { commanders: deck.commanders.map((c) => c.name), theme: req.theme },
     { source: deps.recommendations, cards: deps.cards },
@@ -133,7 +165,7 @@ export async function analyzeDeck(
     usage,
     locked: new Set(req.locked ?? []),
     excluded: new Set(req.excluded ?? []),
-    classifier: deps.classifier,
+    classifier,
     config: deps.config,
     targetBracket: req.targetBracket,
   };
@@ -173,9 +205,11 @@ export async function analyzeDeck(
     bracket: estimateBracket(
       [...deck.commanders, ...deck.cards.map((c) => c.card)].map((card) => ({
         card,
-        roles: deps.classifier.classify(card).roles,
+        roles: classifier.classify(card).roles,
       })),
     ),
     ownership: { ...own, prices: missingPrices, cost: Math.round(cost * 100) / 100 },
+    roles: { classifier, sourceOf: (card) => classifier.sourceOf(card) },
+    tags,
   };
 }

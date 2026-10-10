@@ -6,7 +6,14 @@ import { applySwaps, changeCard, exportDecklist, type ExportableDeck } from "@/d
 import type { Bracket } from "@/domain/deck/bracket";
 import type { DeckVisibility } from "@/domain/deck/visibility";
 import { formatEuros } from "@/domain/suggestions/format";
-import type { AnalyzeResponse, CardDTO, DeckViewDTO } from "@/server/dto";
+import { ROLE_TAGS } from "@/domain/roles/tags";
+import type {
+  AnalyzeResponse,
+  CardDTO,
+  CardRoleEditDTO,
+  DeckCardDTO,
+  DeckViewDTO,
+} from "@/server/dto";
 import { api, ApiError, storage } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardHover, CardImage } from "./card-image";
@@ -14,6 +21,8 @@ import { CardSearch } from "./card-search";
 import { BuyPanel, type BuyOptions } from "./deck-buy";
 import { BracketPanel, BracketPill } from "./deck-bracket";
 import { OpeningHand } from "./deck-hand";
+import { localRoles } from "./local-roles";
+import { RoleEditDialog } from "./role-edit-dialog";
 import { OwnershipPanel } from "./deck-ownership";
 import { ExportDialog, SaveDialog } from "./deck-dialogs";
 import {
@@ -86,6 +95,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const [chosen, setChosen] = useState<string[]>([]);
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  /** Carta cuyos roles se están corrigiendo. */
+  const [editingRoles, setEditingRoles] = useState<DeckCardDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [buy, setBuy] = useState<BuyOptions | null>(null);
@@ -223,6 +234,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           ...(buyOptions ? { buy: buyOptions } : {}),
           ...(req.targetBracket ? { targetBracket: req.targetBracket } : {}),
           ...(local ? { collection: ownedPairs(local) } : {}),
+          ...(loggedIn ? {} : { roleEdits: localRoles.all() }),
         }),
       });
       setResult(res);
@@ -250,6 +262,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           name: c.card.name,
           layout: c.card.layout,
           quantity: c.quantity,
+          // Para exportar a Moxfield: el rol principal (si no es "sinergia") y mis etiquetas.
+          tags: [
+            ...(c.isBasicLand || c.primaryRole === "synergy" ? [] : [ROLE_TAGS[c.primaryRole]]),
+            ...c.tags,
+          ],
         })),
       }
     : null;
@@ -350,6 +367,29 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo guardar el bracket objetivo");
     }
+  }
+
+  /** Guarda la corrección de roles de una carta (en la cuenta o en el navegador) y reanaliza. */
+  async function saveRoles(card: DeckCardDTO, edit: CardRoleEditDTO) {
+    setBusy("roles");
+    try {
+      if (loggedIn) {
+        await api(`/api/me/card-roles/${encodeURIComponent(card.card.oracleId)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(edit),
+        });
+      } else {
+        localRoles.set(card.card.oracleId, edit);
+      }
+      setEditingRoles(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudieron guardar los roles");
+      setBusy(null);
+      return;
+    }
+    setBusy(null);
+    await analyze();
   }
 
   async function editCard(card: { oracleId: string; name: string }, delta: number) {
@@ -711,6 +751,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                   onToggleLock={toggleLock}
                   text={exportText}
                   onChangeQuantity={owner ? undefined : (card, delta) => void editCard(card, delta)}
+                  onEditRoles={setEditingRoles}
                   busy={busy !== null}
                 />
               )}
@@ -762,6 +803,12 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             />
           )}
 
+          <RoleEditDialog
+            card={editingRoles}
+            busy={busy === "roles"}
+            onClose={() => setEditingRoles(null)}
+            onSave={(edit) => editingRoles && void saveRoles(editingRoles, edit)}
+          />
           <SaveDialog
             open={dialog === "save"}
             onClose={() => setDialog(null)}

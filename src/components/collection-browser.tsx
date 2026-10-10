@@ -13,6 +13,7 @@ import type {
 import { api, ApiError } from "./api-client";
 import { CardHover, CardImage } from "./card-image";
 import { CardPriceDialog } from "./card-price-dialog";
+import { localRoles } from "./local-roles";
 import { roleLabel } from "./deck-views";
 import { ManaCost, SYMBOL_URL } from "./mana";
 import { Banner, Loading, fmt } from "./ui";
@@ -124,6 +125,7 @@ export function CollectionBrowser({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...(username ? { username } : !loggedIn && localPairs ? { collection: localPairs } : {}),
+          ...(!username && !loggedIn ? { roleEdits: localRoles.all() } : {}),
           filters: toQuery(f),
           sort: f.sort,
           offset,

@@ -9,13 +9,16 @@ interface ExportableCard {
   name: string;
   /** `layout` de Scryfall: Arena y MTGO escriben distinto las cartas de varias caras. */
   layout?: string | undefined;
+  /** Etiquetas para el formato `moxfield` (`#Ramp`). */
+  tags?: readonly string[] | undefined;
 }
 
 /** Solo los campos de exportación (a veces llega una CardDTO entera). */
-const pick = ({ oracleId, name, layout }: ExportableCard): ExportableCard => ({
+const pick = ({ oracleId, name, layout, tags }: ExportableCard): ExportableCard => ({
   oracleId,
   name,
   ...(layout === undefined ? {} : { layout }),
+  ...(tags === undefined ? {} : { tags }),
 });
 
 export interface AcceptedSwap {
@@ -69,8 +72,9 @@ export function exportDecklist(deck: ExportableDeck): string {
  *   frontal.
  * - `mtgo`: Magic Online. Sin secciones: las 99 y, tras una línea en blanco, el comandante en el
  *   banquillo. Las split se escriben `A/B`.
+ * - `moxfield`: el texto estándar con las etiquetas de cada carta (`1 Sol Ring #Ramp #wincon`).
  */
-export const EXPORT_FORMATS = ["text", "arena", "mtgo"] as const;
+export const EXPORT_FORMATS = ["text", "arena", "mtgo", "moxfield"] as const;
 export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 
 /** Cartas con dos mitades en la misma cara (en Arena y MTGO conservan las dos mitades). */
@@ -78,14 +82,24 @@ const SPLIT_LAYOUTS = new Set(["split"]);
 
 function nameFor(card: ExportableCard, format: ExportFormat): string {
   const [front = card.name, ...rest] = card.name.split(" // ");
-  if (format === "text" || rest.length === 0) return card.name;
+  if (format === "text" || format === "moxfield" || rest.length === 0) return card.name;
   if (card.layout !== undefined && SPLIT_LAYOUTS.has(card.layout))
     return [front, ...rest].join(format === "arena" ? " /// " : "/");
   return front;
 }
 
+/** " #Ramp #wincon" (sin espacios dentro de cada etiqueta, que cortarían la etiqueta). */
+const tagSuffix = (tags: readonly string[] | undefined) =>
+  (tags ?? []).map((t) => ` #${t.replace(/\s+/g, "")}`).join("");
+
 export function exportDeck(deck: ExportableDeck, format: ExportFormat): string {
   if (format === "text") return exportDecklist(deck);
+  if (format === "moxfield") {
+    const lines = ["Commander", ...deck.commanders.map((c) => `1 ${c.name}`), "", "Deck"];
+    const sorted = [...deck.cards].sort((a, b) => a.name.localeCompare(b.name));
+    for (const c of sorted) lines.push(`${c.quantity} ${c.name}${tagSuffix(c.tags)}`);
+    return `${lines.join("\n")}\n`;
+  }
   const sorted = [...deck.cards].sort((a, b) => a.name.localeCompare(b.name));
   const main = sorted.map((c) => `${c.quantity} ${nameFor(c, format)}`);
   const commanders = deck.commanders.map((c) => `1 ${nameFor(c, format)}`);

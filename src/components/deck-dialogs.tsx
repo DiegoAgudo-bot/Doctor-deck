@@ -164,6 +164,11 @@ const FORMAT: Record<ExportFormat, { label: string; hint: string; file: string }
     hint: "Para Magic Online: el comandante va en el banquillo.",
     file: "mazo-mtgo.txt",
   },
+  moxfield: {
+    label: "Moxfield (con etiquetas)",
+    hint: "Texto con el rol de cada carta y tus etiquetas (#Ramp, #wincon); Moxfield las importa como etiquetas y aquí se vuelven a leer.",
+    file: "mazo-moxfield.txt",
+  },
 };
 
 export function ExportDialog({

@@ -132,3 +132,23 @@ describe("exportDeck", () => {
     expect(arena).toContain("1 Expansion /// Explosion");
   });
 });
+
+describe("exportDeck: moxfield con etiquetas", () => {
+  it("añade las etiquetas, sin espacios, y se vuelven a leer al importar", () => {
+    const text = exportDeck(
+      {
+        commanders: [{ oracleId: "c", name: "Teferi, Temporal Archmage" }],
+        cards: [
+          { oracleId: "s", name: "Sol Ring", quantity: 1, tags: ["Ramp", "win con"] },
+          { oracleId: "i", name: "Island", quantity: 30 },
+        ],
+      },
+      "moxfield",
+    );
+    expect(text).toBe(
+      "Commander\n1 Teferi, Temporal Archmage\n\nDeck\n30 Island\n1 Sol Ring #Ramp #wincon\n",
+    );
+    const sol = parseDecklist(text).entries.find((e) => e.name === "Sol Ring");
+    expect(sol?.tags).toEqual(["Ramp", "wincon"]);
+  });
+});

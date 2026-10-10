@@ -254,3 +254,38 @@ describe("analyzeDeck: mazos guardados y modo compra", () => {
     expect(noBuy.purchases).toBeNull();
   });
 });
+
+describe("analyzeDeck: roles corregidos y etiquetas", () => {
+  const ultros = () => fixtureCards().find((c) => c.name === "Ultros, Obnoxious Octopus")!;
+  const ok = async (req: Parameters<typeof analyzeDeck>[0]) => {
+    const r = await analyzeDeck(req, deps);
+    if (r.status !== "ok") throw new Error(r.status);
+    return r;
+  };
+
+  it("las etiquetas de la lista cambian los roles; las libres se guardan aparte", async () => {
+    const plain = await ok({ input: DECK });
+    const tagged = await ok({
+      input: DECK.replace(
+        "1 Ultros, Obnoxious Octopus",
+        "1 Ultros, Obnoxious Octopus #!Removal #wincon",
+      ),
+    });
+    expect(tagged.roles.classifier.classify(ultros()).primary).toBe("removal");
+    expect(tagged.roles.sourceOf(ultros())).toBe("list");
+    expect(tagged.tags.get(ultros().oracleId)).toEqual(["wincon"]);
+    expect(tagged.suggestions.roleCounts.removal).toBe(plain.suggestions.roleCounts.removal + 1);
+  });
+
+  it("mis correcciones mandan sobre las etiquetas de la lista", async () => {
+    const r = await ok({
+      input: DECK.replace("1 Ultros, Obnoxious Octopus", "1 Ultros, Obnoxious Octopus #!Removal"),
+      roleEdits: new Map([
+        [ultros().oracleId, { override: { roles: ["draw"], primary: "draw" }, tags: ["kraken"] }],
+      ]),
+    });
+    expect(r.roles.classifier.classify(ultros())).toEqual({ roles: ["draw"], primary: "draw" });
+    expect(r.roles.sourceOf(ultros())).toBe("mine");
+    expect(r.tags.get(ultros().oracleId)).toEqual(["kraken"]);
+  });
+});

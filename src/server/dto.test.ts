@@ -59,6 +59,8 @@ describe("analyzeResponse", () => {
       },
       purchases: null,
       bracket: estimateBracket([]),
+      roles: { classifier, sourceOf: () => "auto" },
+      tags: new Map(),
       ownership: {
         ...deckOwnership(deck.commanders, deck.cards, new Map()),
         prices: new Map([[bolt.oracleId, 0.5]]),
@@ -73,7 +75,7 @@ describe("analyzeResponse", () => {
         config: DEFAULT_ENGINE_CONFIG,
       }),
     };
-    const dto = analyzeResponse(result, classifier, DEFAULT_ENGINE_CONFIG);
+    const dto = analyzeResponse(result, DEFAULT_ENGINE_CONFIG);
     if (dto.status !== "ok") throw new Error();
     expect(dto.totalCards).toBe(2);
     expect(dto.unresolved).toEqual(["Nada"]);

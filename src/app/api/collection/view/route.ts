@@ -3,9 +3,11 @@ import { BrowserCollectionRepository, noSavedDecks } from "@/adapters/memory/ano
 import { browseMyCollection } from "@/application/collection-cards";
 import { CARD_TYPES, COLLECTION_SORTS, COLOR_FILTERS } from "@/domain/collection/browse";
 import { ROLES } from "@/domain/roles/types";
+import { withOverrides } from "@/domain/roles/overrides";
 import { getContainer } from "@/server/container";
 import { collectionCardDTO, type CollectionViewResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
+import { browserRoleEditsSchema, loadRoleEdits, overridesOf } from "@/server/role-edits";
 import { currentUser } from "@/server/session";
 
 const schema = z.object({
@@ -32,6 +34,7 @@ const schema = z.object({
   sort: z.enum(COLLECTION_SORTS).default("nombre"),
   offset: z.number().int().min(0).default(0),
   limit: z.number().int().min(0).max(200).default(48),
+  roleEdits: browserRoleEditsSchema,
 });
 
 /**
@@ -42,7 +45,9 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const user = await currentUser(request);
-    const { collection, username, ...query } = schema.parse(await request.json().catch(() => ({})));
+    const { collection, username, roleEdits, ...query } = schema.parse(
+      await request.json().catch(() => ({})),
+    );
     const c = getContainer();
     // De quién es la colección: de otro (si es pública o soy yo), la mía o la del navegador.
     let ownerId = user?.id ?? null;
@@ -60,7 +65,12 @@ export async function POST(request: Request) {
       cards: c.cards,
       collection: ownerId ? c.collectionFor(ownerId) : new BrowserCollectionRepository(collection),
       decks: ownerId ? c.decksFor(ownerId) : noSavedDecks,
-      classifier: c.classifier,
+      // Con las correcciones de roles del dueño (o, sin sesión, las del navegador).
+      classifier: withOverrides(c.classifier, {
+        mine: overridesOf(
+          ownerId ? await c.roleOverridesFor(ownerId).all() : await loadRoleEdits(null, roleEdits),
+        ),
+      }),
     });
     const body: CollectionViewResponse = {
       items: result.items.map(collectionCardDTO),

@@ -13,6 +13,8 @@ export interface DeckCard {
   quantity: number;
   /** Nº de línea(s) del texto original de donde sale la carta. */
   lines: number[];
+  /** Etiquetas que traía la lista (Moxfield / Archidekt), sin repetir. */
+  tags?: string[];
 }
 
 export type CommanderSource = "marked" | "detected" | "chosen" | "none";
@@ -43,12 +45,14 @@ export function resolveDecklist(parsed: ParsedDecklist, index: CardIndex): Resol
       prev.quantity += entry.quantity;
       prev.lines.push(entry.line);
       prev.marked ||= entry.commander;
+      for (const t of entry.tags ?? []) if (!prev.tags?.includes(t)) (prev.tags ??= []).push(t);
     } else {
       byOracle.set(card.oracleId, {
         card,
         quantity: entry.quantity,
         lines: [entry.line],
         marked: entry.commander,
+        ...(entry.tags ? { tags: [...new Set(entry.tags)] } : {}),
       });
     }
   }
@@ -58,7 +62,12 @@ export function resolveDecklist(parsed: ParsedDecklist, index: CardIndex): Resol
   const strip = (cmd: Card[]) =>
     all
       .filter((c) => !cmd.includes(c.card))
-      .map(({ card, quantity, lines }) => ({ card, quantity, lines }));
+      .map(({ card, quantity, lines, tags }) => ({
+        card,
+        quantity,
+        lines,
+        ...(tags ? { tags } : {}),
+      }));
 
   if (marked.length > 0) {
     return {

@@ -139,3 +139,22 @@ describe("parseDecklist: secciones excluidas y basura", () => {
     expect(names("1 Sol Ring #!Ramp #mana")).toEqual([[1, "Sol Ring"]]);
   });
 });
+
+describe("parseDecklist: etiquetas", () => {
+  it("guarda las de Moxfield y las categorías de Archidekt", () => {
+    const { entries } = parseDecklist(
+      [
+        "1 Sol Ring #!Ramp #wincon",
+        "1x Rhystic Study (PCY) 45 [Draw,Card Advantage{top}]",
+        "1 Teferi, Temporal Archmage [Commander{top}]",
+        "1 Island",
+      ].join("\n"),
+    );
+    expect(entries.map((e) => [e.name, e.tags])).toEqual([
+      ["Sol Ring", ["Ramp", "wincon"]],
+      ["Rhystic Study", ["Draw", "Card Advantage"]],
+      ["Teferi, Temporal Archmage", undefined],
+      ["Island", undefined],
+    ]);
+  });
+});

@@ -5,6 +5,7 @@ import { BRACKETS } from "@/domain/deck/bracket";
 import { getContainer } from "@/server/container";
 import { analyzeResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
+import { browserRoleEditsSchema, loadRoleEdits } from "@/server/role-edits";
 import { currentUser } from "@/server/session";
 
 const ids = z.array(z.string().min(1).max(64)).max(200).optional();
@@ -33,24 +34,29 @@ const analyzeRequestSchema = z.object({
     })
     .optional(),
   targetBracket: z.union(BRACKETS.map((b) => z.literal(b))).optional(),
+  /** Sin sesión: las correcciones de roles guardadas en el navegador. */
+  roleEdits: browserRoleEditsSchema,
 });
 
 export async function POST(request: Request) {
   try {
     // Sin sesión también se analiza: con la colección que manda el navegador y sin mazos guardados.
     const user = await currentUser(request);
-    const { collection, ...req } = analyzeRequestSchema.parse(await request.json());
+    const { collection, roleEdits, ...req } = analyzeRequestSchema.parse(await request.json());
     const c = getContainer();
-    const result = await analyzeDeck(req, {
-      sources: c.deckSources,
-      cards: c.cards,
-      collection: user ? c.collectionFor(user.id) : new BrowserCollectionRepository(collection),
-      recommendations: c.edhrec,
-      decks: user ? c.decksFor(user.id) : noSavedDecks,
-      classifier: c.classifier,
-      config: c.engineConfig,
-    });
-    return Response.json(analyzeResponse(result, c.classifier, c.engineConfig));
+    const result = await analyzeDeck(
+      { ...req, roleEdits: await loadRoleEdits(user?.id ?? null, roleEdits) },
+      {
+        sources: c.deckSources,
+        cards: c.cards,
+        collection: user ? c.collectionFor(user.id) : new BrowserCollectionRepository(collection),
+        recommendations: c.edhrec,
+        decks: user ? c.decksFor(user.id) : noSavedDecks,
+        classifier: c.classifier,
+        config: c.engineConfig,
+      },
+    );
+    return Response.json(analyzeResponse(result, c.engineConfig));
   } catch (err) {
     return errorResponse(err);
   }

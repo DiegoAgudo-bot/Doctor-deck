@@ -10,6 +10,8 @@ export interface DecklistEntry {
   foil: boolean;
   /** Marcada explícitamente como comandante (sección, `*CMDR*` o categoría de Archidekt). */
   commander: boolean;
+  /** Etiquetas de Moxfield (`#!Ramp`, `#wincon`) y categorías de Archidekt (`[Ramp,Draw]`). */
+  tags?: string[];
 }
 
 export interface SkippedLine {
@@ -66,7 +68,11 @@ interface Markers {
   foil: boolean;
   commander: boolean;
   excluded: boolean;
+  tags: string[];
 }
+
+/** Categorías de Archidekt que no son etiquetas del jugador. */
+const NOT_A_TAG = /^(commander|maybeboard|sideboard|considering|mainboard|deck)$/i;
 
 /** Extrae marcadores de distintos exportadores y devuelve el texto limpio. */
 function stripMarkers(input: string): Markers {
@@ -74,13 +80,19 @@ function stripMarkers(input: string): Markers {
   let foil = false;
   let commander = false;
   let excluded = false;
+  const tags: string[] = [];
 
   // Archidekt: "[Commander{top}]", "[Maybeboard{noDeck}{noPrice}]", "[Ramp,Draw]"
   for (const m of text.matchAll(CATEGORY_RE)) {
-    const cats = (m[1] ?? "").split(",").map((c) => c.trim().toLowerCase());
+    const raw = (m[1] ?? "").split(",").map((c) => c.trim());
+    const cats = raw.map((c) => c.toLowerCase());
     if (cats.some((c) => c.startsWith("commander"))) commander = true;
     if (cats.some((c) => c.includes("{nodeck}") || /^(maybeboard|sideboard)\b/.test(c))) {
       excluded = true;
+    }
+    for (const c of raw) {
+      const name = c.replace(/\{[^}]*\}/g, "").trim();
+      if (name && !NOT_A_TAG.test(name)) tags.push(name);
     }
   }
   text = text.replace(CATEGORY_RE, " ");
@@ -91,9 +103,10 @@ function stripMarkers(input: string): Markers {
   if (/\*[FE]\*/.test(text)) foil = true;
   text = text.replace(/\*(CMDR|F|E)\*/gi, " ");
   // Etiquetas Moxfield "#!Ramp #draw"
+  for (const m of text.matchAll(/\s#!?(\S+)/g)) if (m[1]) tags.push(m[1]);
   text = text.replace(/\s#!?\S+/g, " ");
 
-  return { text: text.replace(/\s+/g, " ").trim(), foil, commander, excluded };
+  return { text: text.replace(/\s+/g, " ").trim(), foil, commander, excluded, tags };
 }
 
 /**
@@ -163,6 +176,7 @@ export function parseDecklist(text: string): ParsedDecklist {
       collectorNumber,
       foil: markers.foil,
       commander: lineSection === "commander" || markers.commander,
+      ...(markers.tags.length > 0 ? { tags: markers.tags } : {}),
     });
   });
 

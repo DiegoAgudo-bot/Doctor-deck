@@ -20,7 +20,7 @@ despliegue en `main` y **parar al terminar cada fase hasta el OK del usuario**.
 | 12   | Bracket y game changers                                       | Bajo     | ✅     |
 | 13   | Comunidad: mazos que puedes montar ya, me gusta, filtros      | Medio    | ✅     |
 | 14   | Precios: histórico, lo que más sube, avisos de bajada         | Medio    | ✅     |
-| 15   | Etiquetas propias que corrigen los roles                      | Medio    |        |
+| 15   | Etiquetas propias que corrigen los roles                      | Medio    | ✅     |
 | 16   | Combos (Commander Spellbook) y bracket con combos             | Medio    |        |
 | 17   | Listas de deseos e intercambio con cruce automático           | Medio    |        |
 | 18   | Impresiones concretas (edición, foil, idioma)                 | Alto     |        |
@@ -124,7 +124,7 @@ coincide con el de la pestaña "Qué me falta".
 **Hecho cuando:** los avisos llegan como mucho una vez por carta y semana, y hay tests con
 históricos inventados.
 
-## Fase 15 · Etiquetas propias
+## Fase 15 · Etiquetas propias ✅
 
 **Objetivo:** que el usuario corrija al clasificador de roles cuando falla, lo que también mejora
 los cambios propuestos.

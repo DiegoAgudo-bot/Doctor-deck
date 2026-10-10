@@ -131,6 +131,16 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
     el mejor par válido; un par es inválido si deja algún rol por debajo de su mínimo.
   - Pesos, mínimos, umbral y nº máximo en `src/config/engine.ts` (defaults en
     `domain/suggestions/config.ts`). Motivos en español en `domain/suggestions/reason.ts`.
+- **Roles corregidos y etiquetas** (Fase 15): `withOverrides` (`domain/roles/overrides.ts`)
+  aplica, por este orden, mis correcciones (`CardRoleOverride`, por usuario y carta, valen en
+  todos mis mazos y en la colección; sin cuenta viven en el navegador, `local-roles.ts`, y se
+  mandan como `roleEdits`), las etiquetas de la lista (Moxfield `#!Ramp`/`#wincon` y categorías
+  de Archidekt `[Ramp,Draw]`, que ahora guarda el parser en `entry.tags`; `splitTags` las separa
+  en roles —alias en inglés y español— y etiquetas libres) y los roles automáticos. El motor, los
+  mínimos y el bracket usan el clasificador corregido; `DeckCardDTO` lleva `roleSource` (`auto` |
+  `list` | `mine`) y `tags`. API `GET /api/me/card-roles`, `PUT /api/me/card-roles/{oracleId}`
+  (`{roles, primary?, tags}`; vacío = volver a los automáticos). UI: en la tabla del mazo, clic en
+  el rol (`RoleEditDialog`). Exportar `moxfield` escribe `#Rol #etiqueta` y se vuelve a leer.
 - **Roles** (`domain/roles`): `HeuristicRoleClassifier` con regex sobre el oracle text (sin
   reminder text, nombre propio → "this") y el tipo de la cara frontal. Roles: land, ramp, draw,
   removal, wipe, counterspell, tutor, protection, synergy (= lo que no es nada de lo anterior).
@@ -205,8 +215,8 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   guarda. "Mis mazos" es el gestor: nuevo, importar, renombrar (`PATCH /api/decks/{id}` con
   `name`), duplicar (copia privada), público/privado y borrar.
 - **Exportar** (`exportDeck` en `domain/deck/export.ts`): `text` (Moxfield/Archidekt/ManaBox),
-  `arena` (split con `///`, dos caras solo la frontal) y `mtgo` (comandante en el banquillo, split
-  con `/`). Por eso `CardDTO` lleva `layout`.
+  `arena` (split con `///`, dos caras solo la frontal), `mtgo` (comandante en el banquillo, split
+  con `/`) y `moxfield` (texto con etiquetas `#Ramp #wincon`). Por eso `CardDTO` lleva `layout`.
 - **Mano inicial** (`domain/deck/draw-odds.ts`, pestaña Estadísticas): hipergeométrica sobre las
   99 (P de 2–4 tierras, caídas de tierra, ramp, robo; en multijugador se roba en el turno 1) y
   manos de muestra con mulligan (el primero gratis).
@@ -325,8 +335,9 @@ Purchase price currency, Added`.
 13. Comunidad: mazos que puedes montar ya (% y coste), filtros y "me gusta" ✅
 14. Precios: histórico, lo que más sube/baja de la colección, avisos de bajada; símbolos e
     imágenes servidos desde nuestro servidor ✅
+15. Roles corregidos a mano y etiquetas (Moxfield/Archidekt), en el motor y al exportar ✅
 
-Las fases siguientes (15–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
+Las fases siguientes (16–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
 diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)

@@ -5,6 +5,7 @@ import { PrismaCardRepository } from "@/adapters/db/card-repository";
 import { PrismaCollectionRepository } from "@/adapters/db/collection-repository";
 import { PrismaDeckRepository, PrismaPublicDecks } from "@/adapters/db/deck-repository";
 import { PrismaPriceHistory } from "@/adapters/db/price-history";
+import { PrismaRoleOverrideRepository } from "@/adapters/db/role-override-repository";
 import { PrismaSocialRepository } from "@/adapters/db/social-repository";
 import { PrismaResponseCache } from "@/adapters/db/response-cache";
 import { EdhrecClient } from "@/adapters/edhrec/edhrec-client";
@@ -47,6 +48,8 @@ export function createContainer() {
     /** Colección y mazos: siempre de un usuario concreto. */
     collectionFor: (userId: string) => new PrismaCollectionRepository(db, userId),
     decksFor: (userId: string) => new PrismaDeckRepository(db, userId),
+    /** Roles y etiquetas que cada usuario ha corregido a mano. */
+    roleOverridesFor: (userId: string) => new PrismaRoleOverrideRepository(db, userId),
     /** Parte social: perfiles, seguidores y notificaciones (un mismo adaptador). */
     social: new PrismaSocialRepository(db),
     publicDecks: new PrismaPublicDecks(db),
