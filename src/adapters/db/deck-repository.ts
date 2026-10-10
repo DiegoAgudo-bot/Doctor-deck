@@ -198,12 +198,14 @@ export class PrismaDeckRepository implements DeckRepository {
         quantity: 1,
         isCommander: true,
         locked: false,
+        scryfallId: c.scryfallId ?? null,
       })),
       ...data.cards.map((c) => ({
         oracleId: c.oracleId,
         quantity: c.quantity,
         isCommander: false,
         locked: locked.has(c.oracleId),
+        scryfallId: c.scryfallId ?? null,
       })),
     ];
     const fields = {

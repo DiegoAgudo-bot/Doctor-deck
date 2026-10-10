@@ -43,6 +43,13 @@ function Movers({
                   <td style={{ maxWidth: 0, width: "100%" }}>
                     <span className="block truncate">
                       <CardHover card={m.card}>{m.card.name}</CardHover>
+                      {m.card.printing && (
+                        <span className="mono subtle text-xs">
+                          {" "}
+                          {m.card.printing.setCode.toUpperCase()}
+                          {m.foil ? " foil" : ""}
+                        </span>
+                      )}
                       {m.copies > 1 && <span className="subtle"> ×{m.copies}</span>}
                     </span>
                     <span className="mono subtle block text-xs">

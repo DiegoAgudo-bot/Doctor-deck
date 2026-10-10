@@ -131,6 +131,19 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
     el mejor par válido; un par es inválido si deja algún rol por debajo de su mínimo.
   - Pesos, mínimos, umbral y nº máximo en `src/config/engine.ts` (defaults en
     `domain/suggestions/config.ts`). Motivos en español en `domain/suggestions/reason.ts`.
+- **Impresiones** (Fase 18): `Printing` guarda también `priceEurFoil`, `setName` y `releasedAt`;
+  `printingPrice(p, foil)` da el precio de una copia. El análisis sigue siendo por carta
+  (`oracleId`); la impresión es presentación y precio:
+  - Mazos: `resolveDecklist` recuerda la impresión pedida (`ResolvedDeck.printings`, por Scryfall
+    ID o `(SET) número`), `saveDeck` la guarda en `DeckCard.scryfallId` y el análisis la devuelve en
+    `CardDTO.printing` con su imagen (`cardWithPrintingDTO`). Elegirla (`PrintingDialog`, columna
+    "Edición" de la tabla, `GET /api/cards/{oracleId}/printings`) reescribe la lista con
+    `setPrinting` → `1 Sol Ring (FRC) 21`, que exportan los formatos de texto (no Arena/MTGO).
+  - Colección: `CollectionEntryRow.scryfallId`; `collectionView` calcula `value` = cada copia al
+    precio de su impresión (foil si es foil) o, si no se sabe, al de la más barata. Orden "valor".
+  - Histórico: además de `PriceSnapshot` (por carta, la más barata: avisos y lista de deseos),
+    `PrintingPriceSnapshot` (por impresión, normal y foil) de las impresiones que hay en alguna
+    colección; `collectionPrices` usa el de cada copia (`Holding`) y si no hay, el de la carta.
 - **Intercambios** (Fase 17, `application/trades.ts`, dominio en `domain/trades/lists.ts`):
   lista de deseos = cartas añadidas a mano (`WishlistItem`) + lo que falta de los mazos con
   `Deck.inWishlist` (lo que piden todos mis mazos − lo que tengo, como mucho lo que piden los
@@ -364,8 +377,9 @@ Purchase price currency, Added`.
 15. Roles corregidos a mano y etiquetas (Moxfield/Archidekt), en el motor y al exportar ✅
 16. Combos (Commander Spellbook): en el mazo, a una carta (con tu colección) y en el bracket ✅
 17. Intercambios: lista de deseos, para cambiar, cruces entre usuarios y avisos ✅
+18. Impresiones concretas: edición en los mazos, valor exacto de la colección (foil) ✅
 
-Las fases siguientes (18–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
+Las fases siguientes (19–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
 diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)

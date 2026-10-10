@@ -23,6 +23,13 @@ const card = (
   manualCount: over.manualCount ?? 0,
   inUse: over.inUse ?? 0,
   price: over.price ?? null,
+  // Por defecto, precio × copias (como si todas fueran de la impresión más barata).
+  value:
+    over.value !== undefined
+      ? over.value
+      : over.price != null
+        ? over.price * (over.quantity ?? 1)
+        : null,
   lastAdded: over.lastAdded ?? "2026-10-01T00:00:00.000Z",
 });
 
@@ -96,5 +103,18 @@ describe("browseCollection", () => {
     ]);
     expect(names(browseCollection(CARDS, {}, "coste", 0, 1))).toEqual(["Llanowar Elves"]);
     expect(browseCollection(CARDS, { q: "zzz" }, "nombre", 0, 10).total.cards).toBe(0);
+  });
+});
+
+describe("valor de las copias", () => {
+  it("suma el valor exacto y ordena por él", () => {
+    const cards = [
+      card("Barata pero muchas", { price: 1, quantity: 10 }),
+      card("Foil cara", { price: 2, quantity: 1, value: 30 }),
+    ];
+    const page = browseCollection(cards, {}, "valor", 0, 10);
+    expect(page.items.map((c) => c.card.name)).toEqual(["Foil cara", "Barata pero muchas"]);
+    expect(page.total.value).toBe(40);
+    expect(browseCollection(cards, {}, "precio", 0, 10).items[0]?.card.name).toBe("Foil cara");
   });
 });

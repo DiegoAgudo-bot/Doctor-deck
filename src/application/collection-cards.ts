@@ -1,3 +1,4 @@
+import { printingPrice } from "@/domain/cards/types";
 import { NON_GAME_LAYOUTS } from "@/domain/cards/card-index";
 import { nameKey } from "@/domain/cards/names";
 import {
@@ -110,6 +111,11 @@ export interface CollectionCard {
   lastAdded: Date;
   /** Precio de referencia (EUR) de la impresión más barata; null si no hay. */
   price: number | null;
+  /**
+   * Lo que valen mis copias: cada una al precio de su impresión (normal o foil); si no se sabe la
+   * impresión o no tiene precio, al de referencia. null si no hay ningún precio.
+   */
+  value: number | null;
   /** Mazos guardados que la usan y cuántas copias. */
   usedIn: string[];
   inUse: number;
@@ -124,12 +130,20 @@ export async function collectionView(deps: {
 }): Promise<CollectionCard[]> {
   const entries = await deps.collection.entries();
   const ids = [...new Set(entries.map((e) => e.oracleId))];
-  const [cards, prices, usage] = await Promise.all([
+  const printingIds = [...new Set(entries.flatMap((e) => (e.scryfallId ? [e.scryfallId] : [])))];
+  const [cards, prices, usage, printings] = await Promise.all([
     deps.cards.findCardsByOracleIds(ids),
     deps.cards.findMinPrices(ids),
     deps.decks.usage(),
+    printingIds.length > 0 ? deps.cards.findPrintingsByIds(printingIds) : Promise.resolve([]),
   ]);
   const byId = new Map(cards.map((c) => [c.oracleId, c]));
+  const byPrinting = new Map(printings.map((p) => [p.scryfallId.toLowerCase(), p]));
+  /** Precio de una copia: el de su impresión (normal o foil) o, si no, el de referencia. */
+  const unitPrice = (e: (typeof entries)[number]) => {
+    const p = e.scryfallId ? byPrinting.get(e.scryfallId.toLowerCase()) : undefined;
+    return (p ? printingPrice(p, e.foil) : null) ?? prices.get(e.oracleId) ?? null;
+  };
 
   const out = new Map<string, CollectionCard>();
   for (const e of entries) {
@@ -148,12 +162,15 @@ export async function collectionView(deps: {
         manual: [],
         lastAdded: e.addedAt,
         price: prices.get(e.oracleId) ?? null,
+        value: null,
         usedIn: u?.decks ?? [],
         inUse: u?.quantity ?? 0,
       };
       out.set(e.oracleId, item);
     }
     item.quantity += e.quantity;
+    const unit = unitPrice(e);
+    if (unit !== null) item.value = Math.round(((item.value ?? 0) + unit * e.quantity) * 100) / 100;
     if (e.foil) item.foilQuantity += e.quantity;
     if (e.setCode && !item.sets.includes(e.setCode.toUpperCase())) {
       item.sets.push(e.setCode.toUpperCase());

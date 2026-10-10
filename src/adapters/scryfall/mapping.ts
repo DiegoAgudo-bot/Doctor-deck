@@ -20,6 +20,8 @@ export const scryfallCardSchema = z.object({
   lang: z.string().default("en"),
   layout: z.string(),
   set: z.string(),
+  set_name: z.string().optional(),
+  released_at: z.string().optional(),
   collector_number: z.string(),
   mana_cost: z.string().optional(),
   cmc: z.number().optional(),
@@ -30,7 +32,7 @@ export const scryfallCardSchema = z.object({
   legalities: z.record(z.string(), z.string()).default({}),
   edhrec_rank: z.number().optional(),
   game_changer: z.boolean().default(false),
-  prices: z.looseObject({ eur: z.string().nullish() }).nullish(),
+  prices: z.looseObject({ eur: z.string().nullish(), eur_foil: z.string().nullish() }).nullish(),
   image_uris: imageUris,
   card_faces: z.array(face).optional(),
 });
@@ -97,6 +99,9 @@ export function toPrinting(c: ScryfallCard): Printing | null {
     lang: c.lang,
     imageUrl: imageOf(c),
     priceEur: parsePrice(c.prices?.eur),
+    priceEurFoil: parsePrice(c.prices?.eur_foil),
+    setName: c.set_name ?? null,
+    releasedAt: c.released_at ?? null,
   };
 }
 

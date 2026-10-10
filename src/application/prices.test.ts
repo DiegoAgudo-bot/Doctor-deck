@@ -7,7 +7,7 @@ import type { Db } from "@/adapters/db/prisma";
 import { PrismaSocialRepository } from "@/adapters/db/social-repository";
 import { fixtureCards, fixturePrintings } from "../../tests/helpers/scryfall-fixtures";
 import { createTestDb, createTestUser } from "../../tests/helpers/test-db";
-import { collectionPrices, notifyPriceDrops } from "./prices";
+import { collectionPrices, notifyPriceDrops, type Holding } from "./prices";
 
 let db: Db;
 let cleanup: () => Promise<void>;
@@ -105,12 +105,19 @@ describe("notifyPriceDrops", () => {
 });
 
 describe("collectionPrices", () => {
+  const holding = (name: string, quantity: number, extra: Partial<Holding> = {}): Holding => ({
+    oracleId: card(name).oracleId,
+    scryfallId: null,
+    foil: false,
+    quantity,
+    ...extra,
+  });
+
   it("valor por día y lo que más se mueve, desde el último día con precios", async () => {
-    const owned = new Map([
-      [card("Sol Ring").oracleId, 2],
-      [card("Mana Crypt").oracleId, 1],
-    ]);
-    const r = await collectionPrices({ owned, days: 30, limit: 5 }, { prices });
+    const r = await collectionPrices(
+      { holdings: [holding("Sol Ring", 2), holding("Mana Crypt", 1)], days: 30, limit: 5 },
+      { prices },
+    );
     expect(r.latest).toBe("2026-10-10");
     expect(r.since).toBe("2026-09-10");
     expect(r.value).toEqual([
@@ -119,9 +126,38 @@ describe("collectionPrices", () => {
       { date: "2026-10-10", eur: 151 },
     ]);
     expect(r.up).toEqual([]);
-    expect(r.down.map((m) => [m.oracleId, m.valueDelta])).toEqual([
+    expect(r.down.map((m) => [r.info.get(m.oracleId)?.oracleId, m.valueDelta])).toEqual([
       [card("Mana Crypt").oracleId, -50],
       [card("Sol Ring").oracleId, -1],
+    ]);
+  });
+
+  it("una copia con impresión conocida va con el precio de su impresión (y foil)", async () => {
+    const sol = fixturePrintings().find((p) => p.oracleId === card("Sol Ring").oracleId)!;
+    await db.printingPriceSnapshot.createMany({
+      data: [
+        { scryfallId: sol.scryfallId.toLowerCase(), date: "2026-09-20", eur: 3, eurFoil: 10 },
+        { scryfallId: sol.scryfallId.toLowerCase(), date: "2026-10-10", eur: 4, eurFoil: 20 },
+      ],
+    });
+    const r = await collectionPrices(
+      {
+        holdings: [
+          holding("Sol Ring", 1, { scryfallId: sol.scryfallId, foil: true }),
+          holding("Sol Ring", 1, { scryfallId: sol.scryfallId, foil: false }),
+        ],
+        days: 30,
+        limit: 5,
+      },
+      { prices },
+    );
+    expect(r.value).toEqual([
+      { date: "2026-09-20", eur: 13 },
+      { date: "2026-10-10", eur: 24 },
+    ]);
+    expect(r.up.map((m) => [r.info.get(m.oracleId)?.foil, m.valueDelta])).toEqual([
+      [true, 10],
+      [false, 1],
     ]);
   });
 });

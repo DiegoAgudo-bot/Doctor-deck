@@ -23,7 +23,7 @@ despliegue en `main` y **parar al terminar cada fase hasta el OK del usuario**.
 | 15   | Etiquetas propias que corrigen los roles                      | Medio    | ✅     |
 | 16   | Combos (Commander Spellbook) y bracket con combos             | Medio    | ✅     |
 | 17   | Listas de deseos e intercambio con cruce automático           | Medio    | ✅     |
-| 18   | Impresiones concretas (edición, foil, idioma)                 | Alto     |        |
+| 18   | Impresiones concretas (edición, foil, idioma)                 | Alto     | ✅     |
 | 19   | Calculadora de intercambio entre dos usuarios                 | Medio    |        |
 | 20   | App móvil: compartir desde ManaBox y escáner                  | Alto     |        |
 
@@ -169,7 +169,7 @@ completas con tu colección** (nadie más lo hace).
 - **Sin pagos ni mensajería** dentro de la app: se enlaza al perfil y cada uno se contacta por
   fuera. Un sistema de mensajes privados sería otra fase con moderación.
 
-## Fase 18 · Impresiones concretas
+## Fase 18 · Impresiones concretas ✅
 
 **Objetivo:** precio exacto y base para los intercambios. Hoy todo va por `oracleId`.
 

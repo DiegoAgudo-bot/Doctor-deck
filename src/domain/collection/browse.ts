@@ -10,7 +10,10 @@ export interface BrowsableCard {
   fromCsv: number;
   manualCount: number;
   inUse: number;
+  /** Precio de referencia por copia (la impresión más barata). */
   price: number | null;
+  /** Lo que valen mis copias según su impresión y si son foil (null si no hay ningún precio). */
+  value: number | null;
   /** ISO 8601 (se compara como texto). */
   lastAdded: string;
 }
@@ -30,7 +33,14 @@ export const CARD_TYPES = [
   "Battle",
 ] as const;
 export type CardType = (typeof CARD_TYPES)[number];
-export const COLLECTION_SORTS = ["nombre", "coste", "copias", "precio", "recientes"] as const;
+export const COLLECTION_SORTS = [
+  "nombre",
+  "coste",
+  "copias",
+  "precio",
+  "valor",
+  "recientes",
+] as const;
 export type CollectionSort = (typeof COLLECTION_SORTS)[number];
 
 export interface CollectionFilters {
@@ -89,6 +99,7 @@ const SORTERS: Record<CollectionSort, (a: BrowsableCard, b: BrowsableCard) => nu
   coste: (a, b) => a.card.cmc - b.card.cmc || byName(a, b),
   copias: (a, b) => b.quantity - a.quantity || byName(a, b),
   precio: (a, b) => (b.price ?? -1) - (a.price ?? -1) || byName(a, b),
+  valor: (a, b) => (b.value ?? -1) - (a.value ?? -1) || byName(a, b),
   recientes: (a, b) => b.lastAdded.localeCompare(a.lastAdded) || byName(a, b),
 };
 
@@ -98,7 +109,7 @@ export interface CollectionPage<T> {
   total: { cards: number; copies: number; value: number };
 }
 
-/** Filtra, ordena y corta una página. `value` = suma de precio × copias (lo que tiene precio). */
+/** Filtra, ordena y corta una página. `value` = lo que valen mis copias (lo que tiene precio). */
 export function browseCollection<T extends BrowsableCard>(
   cards: readonly T[],
   filters: CollectionFilters,
@@ -117,6 +128,6 @@ export function totals(cards: readonly BrowsableCard[]) {
   return {
     cards: cards.length,
     copies: cards.reduce((n, c) => n + c.quantity, 0),
-    value: Math.round(cards.reduce((n, c) => n + (c.price ?? 0) * c.quantity, 0) * 100) / 100,
+    value: Math.round(cards.reduce((n, c) => n + (c.value ?? 0), 0) * 100) / 100,
   };
 }

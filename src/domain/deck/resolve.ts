@@ -5,7 +5,7 @@ import {
   fitsColorIdentity,
   isValidCommanderPair,
 } from "../cards/commander";
-import type { Card, Color } from "../cards/types";
+import type { Card, Color, Printing } from "../cards/types";
 import type { DecklistEntry, ParsedDecklist } from "./decklist";
 
 export interface DeckCard {
@@ -27,19 +27,25 @@ export interface ResolvedDeck {
   /** Cartas de las 99 (sin los comandantes), agrupadas por oracleId. */
   cards: DeckCard[];
   unresolved: DecklistEntry[];
+  /** Impresión pedida en la lista (por Scryfall ID o edición + número), por oracleId. */
+  printings?: ReadonlyMap<string, Printing>;
 }
 
 /** Resuelve las entradas a cartas, agrupa por oracleId y determina el comandante. */
 export function resolveDecklist(parsed: ParsedDecklist, index: CardIndex): ResolvedDeck {
   const byOracle = new Map<string, DeckCard & { marked: boolean }>();
   const unresolved: DecklistEntry[] = [];
+  const printings = new Map<string, Printing>();
 
   for (const entry of parsed.entries) {
-    const card = lookup(entry, index);
-    if (!card) {
+    const found = lookup(entry, index);
+    if (!found) {
       unresolved.push(entry);
       continue;
     }
+    const { card, printing } = found;
+    // Si la misma carta sale en varias líneas, vale la primera impresión que se pida.
+    if (printing && !printings.has(card.oracleId)) printings.set(card.oracleId, printing);
     const prev = byOracle.get(card.oracleId);
     if (prev) {
       prev.quantity += entry.quantity;
@@ -76,6 +82,7 @@ export function resolveDecklist(parsed: ParsedDecklist, index: CardIndex): Resol
       commanderCandidates: [],
       cards: strip(marked),
       unresolved,
+      printings,
     };
   }
 
@@ -90,6 +97,7 @@ export function resolveDecklist(parsed: ParsedDecklist, index: CardIndex): Resol
       commanderCandidates: [],
       cards: strip([first]),
       unresolved,
+      printings,
     };
   }
   if (candidates.length === 2 && first && second && isValidCommanderPair(first, second)) {
@@ -99,6 +107,7 @@ export function resolveDecklist(parsed: ParsedDecklist, index: CardIndex): Resol
       commanderCandidates: [],
       cards: strip([first, second]),
       unresolved,
+      printings,
     };
   }
   return {
@@ -107,6 +116,7 @@ export function resolveDecklist(parsed: ParsedDecklist, index: CardIndex): Resol
     commanderCandidates: fittingCandidates(candidates, all),
     cards: strip([]),
     unresolved,
+    printings,
   };
 }
 
@@ -165,18 +175,22 @@ export function chooseCommanders(deck: ResolvedDeck, oracleIds: readonly string[
   };
 }
 
-function lookup(entry: DecklistEntry, index: CardIndex): Card | undefined {
+function lookup(
+  entry: DecklistEntry,
+  index: CardIndex,
+): { card: Card; printing?: Printing } | undefined {
   if (entry.scryfallId) {
-    const p = index.printingById(entry.scryfallId);
-    const card = p && index.card(p.oracleId);
-    if (card) return card;
+    const printing = index.printingById(entry.scryfallId);
+    const card = printing && index.card(printing.oracleId);
+    if (card) return { card, printing };
   }
   if (entry.setCode && entry.collectorNumber) {
-    const p = index.printingBySetNumber(entry.setCode, entry.collectorNumber);
-    const card = p && index.card(p.oracleId);
-    if (card) return card;
+    const printing = index.printingBySetNumber(entry.setCode, entry.collectorNumber);
+    const card = printing && index.card(printing.oracleId);
+    if (card) return { card, printing };
   }
-  return index.cardByName(entry.name);
+  const card = index.cardByName(entry.name);
+  return card ? { card } : undefined;
 }
 
 export type DeckIssue =

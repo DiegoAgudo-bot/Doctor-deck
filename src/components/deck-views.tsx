@@ -356,6 +356,7 @@ export function DeckList({
   text,
   onChangeQuantity,
   onEditRoles,
+  onEditPrinting,
   busy = false,
 }: {
   view: ListView;
@@ -368,6 +369,8 @@ export function DeckList({
   onChangeQuantity?: ((card: CardDTO, delta: number) => void) | undefined;
   /** Corregir los roles y etiquetas de una carta (desde la columna "Rol" de la tabla). */
   onEditRoles?: ((card: DeckCardDTO) => void) | undefined;
+  /** Elegir la impresión de una carta (columna "Edición"). */
+  onEditPrinting?: ((card: CardDTO) => void) | undefined;
   busy?: boolean;
 }) {
   const groups = groupByRole(cards);
@@ -392,6 +395,7 @@ export function DeckList({
               <th>Carta</th>
               <th>Coste</th>
               <th>Rol</th>
+              <th className="hide-sm">Edición</th>
               <th style={{ width: 40 }} />
               {onChangeQuantity && <th style={{ width: 70 }} />}
             </tr>
@@ -457,6 +461,24 @@ export function DeckList({
                         >
                           {c.roleSource === "mine" ? "tuyo" : "lista"}
                         </span>
+                      )}
+                    </td>
+                    <td className="mono subtle hide-sm whitespace-nowrap text-xs">
+                      {onEditPrinting ? (
+                        <button
+                          type="button"
+                          className="linkbtn"
+                          title={
+                            c.card.printing
+                              ? `${c.card.printing.setName ?? ""} #${c.card.printing.collectorNumber}. Clic para cambiarla`
+                              : "Por defecto. Clic para elegir edición"
+                          }
+                          onClick={() => onEditPrinting(c.card)}
+                        >
+                          {c.card.printing ? c.card.printing.setCode.toUpperCase() : "elegir"}
+                        </button>
+                      ) : (
+                        (c.card.printing?.setCode.toUpperCase() ?? "—")
                       )}
                     </td>
                     <td>

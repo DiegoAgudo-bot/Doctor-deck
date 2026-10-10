@@ -8,7 +8,7 @@ import type { RoleSource } from "@/domain/roles/overrides";
 import type { AnalyzeDeckResult } from "@/application/analyze-deck";
 import type { AddCardsResult, CollectionCard } from "@/application/collection-cards";
 import type { CollectionImportSummary } from "@/application/import-collection";
-import type { Card, Color } from "@/domain/cards/types";
+import type { Card, Color, Printing } from "@/domain/cards/types";
 import type { SkippedLine } from "@/domain/deck/decklist";
 import type { DeckIssue } from "@/domain/deck/resolve";
 import type { CollectionSummary } from "@/domain/ports/collection-repository";
@@ -43,6 +43,20 @@ export interface CardDTO {
   layout: string;
   /** En la lista de game changers de los brackets. */
   gameChanger: boolean;
+  /** Impresión elegida en el mazo (su imagen es la de `imageUrl`); sin ella, la de por defecto. */
+  printing?: PrintingDTO | undefined;
+}
+
+export interface PrintingDTO {
+  scryfallId: string;
+  setCode: string;
+  setName: string | null;
+  collectorNumber: string;
+  releasedAt: string | null;
+  lang: string;
+  imageUrl: string | null;
+  priceEur: number | null;
+  priceEurFoil: number | null;
 }
 
 export interface ScoredCardDTO {
@@ -326,7 +340,10 @@ export interface CardPricesDTO {
 }
 
 export interface PriceMoverDTO extends PriceChange {
+  /** Con `printing` si es una impresión concreta. */
   card: CardDTO;
+  /** Si es una impresión concreta: foil o no (null = la carta, sin impresión). */
+  foil: boolean | null;
   copies: number;
   before: number;
   delta: number;
@@ -411,7 +428,10 @@ export interface CollectionCardDTO {
   fromCsv: number;
   manual: { id: string; quantity: number; foil: boolean; addedAt: string }[];
   lastAdded: string;
+  /** Precio de referencia por copia (la impresión más barata). */
   price: number | null;
+  /** Lo que valen mis copias (cada una según su edición y si es foil). */
+  value: number | null;
   usedIn: string[];
   inUse: number;
 }
@@ -450,6 +470,28 @@ export interface ApiErrorBody {
 }
 
 // ---------- mapeadores ----------
+
+export const printingDTO = (p: Printing): PrintingDTO => ({
+  scryfallId: p.scryfallId,
+  setCode: p.setCode,
+  setName: p.setName ?? null,
+  collectorNumber: p.collectorNumber,
+  releasedAt: p.releasedAt ?? null,
+  lang: p.lang,
+  imageUrl: localImageUrl(p.imageUrl),
+  priceEur: p.priceEur ?? null,
+  priceEurFoil: p.priceEurFoil ?? null,
+});
+
+/** La carta con la imagen de la impresión elegida (si la hay). */
+export const cardWithPrintingDTO = (c: Card, p: Printing | undefined): CardDTO =>
+  p
+    ? {
+        ...cardDTO(c),
+        imageUrl: localImageUrl(p.imageUrl) ?? localImageUrl(c.imageUrl),
+        printing: printingDTO(p),
+      }
+    : cardDTO(c);
 
 export const cardDTO = (c: Card): CardDTO => ({
   oracleId: c.oracleId,
@@ -518,11 +560,11 @@ export function analyzeResponse(result: AnalyzeDeckResult, config: EngineConfig)
     status: "ok",
     source: result.source,
     deckName: result.deckName,
-    commanders: deck.commanders.map(cardDTO),
+    commanders: deck.commanders.map((c) => cardWithPrintingDTO(c, deck.printings?.get(c.oracleId))),
     cards: deck.cards.map(({ card, quantity }) => {
       const roles = result.roles.classifier.classify(card);
       return {
-        card: cardDTO(card),
+        card: cardWithPrintingDTO(card, deck.printings?.get(card.oracleId)),
         quantity,
         roles: roles.roles,
         primaryRole: roles.primary,
@@ -626,6 +668,7 @@ export const collectionCardDTO = (c: CollectionCard): CollectionCardDTO => ({
   manual: c.manual.map((m) => ({ ...m, addedAt: m.addedAt.toISOString() })),
   lastAdded: c.lastAdded.toISOString(),
   price: c.price,
+  value: c.value,
   usedIn: c.usedIn,
   inUse: c.inUse,
 });

@@ -50,7 +50,9 @@ async function main() {
     `\nListo: ${result.cards} cartas, ${result.printings} impresiones, ${result.skipped} descartadas.`,
   );
   const snapshot = await recordPriceSnapshot({ prices: c.prices });
-  console.log(`Precios del ${snapshot.date}: ${snapshot.cards} cartas de colecciones y mazos.`);
+  console.log(
+    `Precios del ${snapshot.date}: ${snapshot.cards} cartas de colecciones y mazos, ${snapshot.printings} impresiones de colecciones.`,
+  );
   const alerts = await notifyPriceDrops({
     prices: c.prices,
     profiles: c.social,

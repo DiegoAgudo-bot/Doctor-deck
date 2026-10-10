@@ -47,8 +47,16 @@ export async function saveDeck(
     input: req.input,
     source: loaded.source,
     theme: req.theme ?? null,
-    commanders: deck.commanders.map((c) => ({ oracleId: c.oracleId, name: c.name })),
-    cards: deck.cards.map((c) => ({ oracleId: c.card.oracleId, quantity: c.quantity })),
+    commanders: deck.commanders.map((c) => ({
+      oracleId: c.oracleId,
+      name: c.name,
+      scryfallId: deck.printings?.get(c.oracleId)?.scryfallId ?? null,
+    })),
+    cards: deck.cards.map((c) => ({
+      oracleId: c.card.oracleId,
+      quantity: c.quantity,
+      scryfallId: deck.printings?.get(c.card.oracleId)?.scryfallId ?? null,
+    })),
     locked: [...(req.locked ?? [])],
     excluded: [...(req.excluded ?? [])],
     visibility: req.visibility ?? (req.id === undefined ? "public" : undefined),

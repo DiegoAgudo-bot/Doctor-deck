@@ -32,4 +32,13 @@ export interface Printing {
   imageUrl: string | null;
   /** Precio de referencia en EUR (Cardmarket vía Scryfall); null si no hay. */
   priceEur?: number | null;
+  /** Lo mismo en foil. */
+  priceEurFoil?: number | null;
+  /** Nombre de la edición ("Commander 2021") y fecha de salida ("2021-04-23"). */
+  setName?: string | null;
+  releasedAt?: string | null;
 }
+
+/** Precio de una copia de esa impresión: foil o normal (si falta uno, el otro). */
+export const printingPrice = (p: Printing, foil: boolean): number | null =>
+  (foil ? (p.priceEurFoil ?? p.priceEur) : (p.priceEur ?? p.priceEurFoil)) ?? null;

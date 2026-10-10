@@ -94,6 +94,12 @@ function toQuery(f: Filters): CollectionFilters {
  * servidor filtra, ordena y pagina; aquí solo se pide la página siguiente con "Ver más".
  * `localPairs`: sin cuenta, la colección del navegador. `version` cambia cuando la colección cambia.
  */
+/** "3 copias: 12,40 € (según su edición y si son foil). Clic: histórico de precio." */
+const valueTitle = (c: CollectionCardDTO) =>
+  `${c.quantity} ${c.quantity === 1 ? "copia" : "copias"}: lo que valen según su edición y si son foil${
+    c.price !== null ? ` (la más barata, ${formatEuros(c.price)} c/u)` : ""
+  }. Clic para ver el histórico de precio.`;
+
 export function CollectionBrowser({
   loggedIn,
   localPairs,
@@ -351,7 +357,8 @@ export function CollectionBrowser({
             <option value="nombre">Ordenar: nombre</option>
             <option value="coste">Ordenar: coste</option>
             <option value="copias">Ordenar: copias</option>
-            <option value="precio">Ordenar: precio</option>
+            <option value="valor">Ordenar: valor de tus copias</option>
+            <option value="precio">Ordenar: precio por copia</option>
             {loggedIn && <option value="recientes">Ordenar: recientes</option>}
           </select>
           <div className="btn-group" role="group" aria-label="Ver como">
@@ -415,14 +422,14 @@ export function CollectionBrowser({
                     {c.inUse >= c.quantity ? "todas en mazos" : `${c.inUse} en mazos`}
                   </span>
                 )}
-                {c.price !== null && (
+                {(c.value ?? c.price) !== null && (
                   <button
                     type="button"
                     className="linkbtn mono subtle ml-auto"
-                    title="Ver el histórico de precio"
+                    title={valueTitle(c)}
                     onClick={() => setPriceCard(c.card)}
                   >
-                    {formatEuros(c.price)}
+                    {formatEuros(c.value ?? c.price ?? 0)}
                   </button>
                 )}
               </figcaption>
@@ -443,7 +450,7 @@ export function CollectionBrowser({
                 <th className="hide-sm">Rol</th>
                 <th className="hide-sm">Ediciones</th>
                 {loggedIn && <th className="hide-sm">En mazos</th>}
-                <th className="r">Precio</th>
+                <th className="r">Valor</th>
               </tr>
             </thead>
             <tbody>
@@ -476,14 +483,14 @@ export function CollectionBrowser({
                     </td>
                   )}
                   <td className="r mono">
-                    {c.price !== null ? (
+                    {(c.value ?? c.price) !== null ? (
                       <button
                         type="button"
                         className="linkbtn"
-                        title="Ver el histórico de precio"
+                        title={valueTitle(c)}
                         onClick={() => setPriceCard(c.card)}
                       >
-                        {formatEuros(c.price)}
+                        {formatEuros(c.value ?? c.price ?? 0)}
                       </button>
                     ) : (
                       "—"

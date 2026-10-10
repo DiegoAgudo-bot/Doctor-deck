@@ -3,7 +3,13 @@ import type { CollectionRepository } from "@/domain/ports/collection-repository"
 import type { DeckRepository } from "@/domain/ports/deck-repository";
 import type { PriceHistory } from "@/domain/ports/price-history";
 import type { NotificationRepository, ProfileRepository } from "@/domain/ports/social";
-import { collectionValueSeries, daysBefore, priceDrop, priceMovers } from "@/domain/prices/history";
+import {
+  collectionValueSeries,
+  daysBefore,
+  priceDrop,
+  priceMovers,
+  type PricePoint,
+} from "@/domain/prices/history";
 
 /** El día en UTC ("YYYY-MM-DD") con el que se guarda el precio. */
 export const snapshotDate = (now: Date) => now.toISOString().slice(0, 10);
@@ -11,7 +17,11 @@ export const snapshotDate = (now: Date) => now.toISOString().slice(0, 10);
 /** Guarda el precio de hoy de las cartas en colecciones y mazos (tras `scryfall:sync`). */
 export async function recordPriceSnapshot(deps: { prices: PriceHistory }, now = new Date()) {
   const date = snapshotDate(now);
-  return { date, cards: await deps.prices.recordSnapshot(date) };
+  const [cards, printings] = await Promise.all([
+    deps.prices.recordSnapshot(date),
+    deps.prices.recordPrintingSnapshot(date),
+  ]);
+  return { date, cards, printings };
 }
 
 /** Días de histórico con los que se compara para avisar de una bajada. */
@@ -19,20 +29,67 @@ export const PRICE_DROP_WINDOW_DAYS = 30;
 /** No se vuelve a avisar de la misma carta antes de estos días. */
 export const PRICE_DROP_COOLDOWN_DAYS = 7;
 
-/** Lo que ha subido y bajado mi colección en los últimos `days` días, y su valor día a día. */
+/** Copias de una carta en mi colección: con impresión (y foil) si se conocen. */
+export interface Holding {
+  oracleId: string;
+  scryfallId: string | null;
+  foil: boolean;
+  quantity: number;
+}
+
+/** Clave de una impresión concreta (normal o foil) o, si no se sabe, de la carta. */
+const holdingKey = (h: Holding) =>
+  h.scryfallId ? `p:${h.scryfallId.toLowerCase()}:${h.foil ? "f" : "n"}` : `o:${h.oracleId}`;
+
+/**
+ * Lo que ha subido y bajado mi colección en los últimos `days` días, y su valor día a día. Cada
+ * copia va con el precio de su impresión (normal o foil) si se sabe y hay histórico; si no, con el
+ * de la impresión más barata de la carta.
+ */
 export async function collectionPrices(
-  req: { owned: ReadonlyMap<string, number>; days: number; limit: number },
+  req: { holdings: readonly Holding[]; days: number; limit: number },
   deps: { prices: PriceHistory },
 ) {
   const latest = await deps.prices.latestDate();
-  if (!latest) return { since: null, latest: null, value: [], up: [], down: [] };
+  if (!latest) return { since: null, latest: null, value: [], up: [], down: [], info: new Map() };
   const since = daysBefore(latest, req.days);
-  const histories = await deps.prices.historyMany([...req.owned.keys()], since);
+  const [printingHistories, cardHistories] = await Promise.all([
+    deps.prices.printingHistoryMany(
+      req.holdings.flatMap((h) => (h.scryfallId ? [h.scryfallId] : [])),
+      since,
+    ),
+    deps.prices.historyMany([...new Set(req.holdings.map((h) => h.oracleId))], since),
+  ]);
+  const owned = new Map<string, number>();
+  const histories = new Map<string, PricePoint[]>();
+  const info = new Map<string, Holding>();
+  for (const h of req.holdings) {
+    let key = holdingKey(h);
+    let history: PricePoint[] | undefined;
+    if (h.scryfallId) {
+      history = (printingHistories.get(h.scryfallId.toLowerCase()) ?? []).flatMap((p) => {
+        const eur = h.foil ? (p.eurFoil ?? p.eur) : (p.eur ?? p.eurFoil);
+        return eur === null ? [] : [{ date: p.date, eur }];
+      });
+      if (history.length === 0) history = undefined;
+    }
+    if (!history) {
+      // Sin histórico de su impresión: el de la carta (la más barata).
+      key = `o:${h.oracleId}`;
+      history = cardHistories.get(h.oracleId) ?? [];
+    }
+    owned.set(key, (owned.get(key) ?? 0) + h.quantity);
+    histories.set(key, history);
+    if (!info.has(key))
+      info.set(key, { ...h, scryfallId: key.startsWith("p:") ? h.scryfallId : null });
+  }
   return {
     since,
     latest,
-    value: collectionValueSeries(req.owned, histories),
-    ...priceMovers(req.owned, histories, req.limit),
+    value: collectionValueSeries(owned, histories),
+    ...priceMovers(owned, histories, req.limit),
+    /** De qué carta (e impresión) es cada clave de `up`/`down`. */
+    info,
   };
 }
 

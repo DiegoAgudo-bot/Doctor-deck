@@ -33,6 +33,8 @@ export interface CollectionEntryRow {
   quantity: number;
   foil: boolean;
   setCode: string | null;
+  /** Impresión concreta (Scryfall ID), si se conoce. */
+  scryfallId: string | null;
   source: "csv" | "manual";
   addedAt: Date;
 }

@@ -35,9 +35,9 @@ export interface SaveDeckData {
   input: string;
   source: string;
   theme: string | null;
-  commanders: { oracleId: string; name: string }[];
-  /** Las 99 (sin comandantes), ya resueltas. */
-  cards: { oracleId: string; quantity: number }[];
+  commanders: { oracleId: string; name: string; scryfallId?: string | null | undefined }[];
+  /** Las 99 (sin comandantes), ya resueltas. `scryfallId`: la impresión pedida, si la hay. */
+  cards: { oracleId: string; quantity: number; scryfallId?: string | null | undefined }[];
   locked: string[];
   excluded: string[];
   /** Al crear: por defecto, público. Al actualizar, si no viene, se queda como estaba. */

@@ -38,6 +38,39 @@ export class PrismaPriceHistory implements PriceHistory {
     return result;
   }
 
+  async recordPrintingSnapshot(date: string): Promise<number> {
+    return this.db.$executeRaw`
+      INSERT INTO "PrintingPriceSnapshot" ("scryfallId", "date", "eur", "eurFoil")
+      SELECT p."scryfallId", ${date}, p."priceEur", p."priceEurFoil"
+      FROM "Printing" p
+      WHERE (p."priceEur" IS NOT NULL OR p."priceEurFoil" IS NOT NULL)
+        AND p."scryfallId" IN (
+          SELECT DISTINCT lower("scryfallId") FROM "CollectionEntry" WHERE "scryfallId" IS NOT NULL
+        )
+      ON CONFLICT ("scryfallId", "date") DO UPDATE
+        SET "eur" = excluded."eur", "eurFoil" = excluded."eurFoil"`;
+  }
+
+  async printingHistoryMany(scryfallIds: readonly string[], since: string) {
+    const result = new Map<
+      string,
+      { date: string; eur: number | null; eurFoil: number | null }[]
+    >();
+    const ids = [...new Set(scryfallIds.map((id) => id.toLowerCase()))];
+    for (let i = 0; i < ids.length; i += 500) {
+      const rows = await this.db.printingPriceSnapshot.findMany({
+        where: { scryfallId: { in: ids.slice(i, i + 500) }, date: { gte: since } },
+        orderBy: { date: "asc" },
+      });
+      for (const r of rows) {
+        const list = result.get(r.scryfallId) ?? [];
+        list.push({ date: r.date, eur: r.eur, eurFoil: r.eurFoil });
+        result.set(r.scryfallId, list);
+      }
+    }
+    return result;
+  }
+
   async latestDate() {
     return (
       (await this.db.priceSnapshot.findFirst({ orderBy: { date: "desc" }, select: { date: true } }))

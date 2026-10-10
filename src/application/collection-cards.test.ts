@@ -144,9 +144,30 @@ describe("collectionView", () => {
       inUse: 1,
     });
     expect(solView?.roles.primary).toBe("ramp");
+    // Sin impresión conocida (emparejadas por nombre), cada copia va a la más barata (0,80 €).
+    expect(solView).toMatchObject({ price: 0.8, value: 3.2 });
     const trainer = view.find((v) => v.card.name === "Thundertrap Trainer");
     expect(trainer).toMatchObject({ quantity: 1, foilQuantity: 1, fromCsv: 0 });
     expect(trainer?.manual).toHaveLength(1);
+  });
+
+  it("con impresión conocida, cada copia vale lo de su impresión (foil si es foil)", async () => {
+    const trainer = byName("Thundertrap Trainer");
+    await db.printing.updateMany({
+      where: { oracleId: trainer.oracleId },
+      data: { priceEur: 0.1, priceEurFoil: 2.5 },
+    });
+    const view = await collectionView({
+      cards,
+      collection: new PrismaCollectionRepository(db, "u1"),
+      decks: new PrismaDeckRepository(db, "u1"),
+      classifier: new HeuristicRoleClassifier(),
+    });
+    // La copia se añadió por su Scryfall ID y en foil.
+    expect(view.find((v) => v.card.oracleId === trainer.oracleId)).toMatchObject({
+      price: 0.1,
+      value: 2.5,
+    });
   });
 
   it("sin cuenta usa la colección que manda el navegador", async () => {

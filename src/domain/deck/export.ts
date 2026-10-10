@@ -11,15 +11,41 @@ interface ExportableCard {
   layout?: string | undefined;
   /** Etiquetas para el formato `moxfield` (`#Ramp`). */
   tags?: readonly string[] | undefined;
+  /** Impresión elegida: se escribe como `(SET) número` en los formatos de texto. */
+  printing?: { setCode: string; collectorNumber: string } | undefined;
 }
 
 /** Solo los campos de exportación (a veces llega una CardDTO entera). */
-const pick = ({ oracleId, name, layout, tags }: ExportableCard): ExportableCard => ({
+const pick = ({ oracleId, name, layout, tags, printing }: ExportableCard): ExportableCard => ({
   oracleId,
   name,
   ...(layout === undefined ? {} : { layout }),
   ...(tags === undefined ? {} : { tags }),
+  ...(printing === undefined ? {} : { printing }),
 });
+
+/** " (LEA) 270" si la carta tiene impresión elegida. */
+const printingSuffix = (c: ExportableCard) =>
+  c.printing ? ` (${c.printing.setCode.toUpperCase()}) ${c.printing.collectorNumber}` : "";
+
+/**
+ * Elige (o, con null, quita) la impresión de una carta del mazo (comandantes incluidos). Solo
+ * cambia cómo se escribe la lista: el análisis sigue siendo por carta.
+ */
+export function setPrinting(
+  deck: ExportableDeck,
+  oracleId: string,
+  printing: { setCode: string; collectorNumber: string } | null,
+): ExportableDeck {
+  const apply = <C extends ExportableCard>(c: C): C => {
+    if (c.oracleId !== oracleId) return c;
+    const next = { ...c };
+    if (printing) next.printing = printing;
+    else delete next.printing;
+    return next;
+  };
+  return { commanders: deck.commanders.map(apply), cards: deck.cards.map(apply) };
+}
 
 export interface AcceptedSwap {
   outOracleId: string;
@@ -59,9 +85,14 @@ export function changeCard(
 
 /** Texto en formato estándar (Moxfield/Archidekt/Arena lo importan): secciones Commander y Deck. */
 export function exportDecklist(deck: ExportableDeck): string {
-  const lines = ["Commander", ...deck.commanders.map((c) => `1 ${c.name}`), "", "Deck"];
+  const lines = [
+    "Commander",
+    ...deck.commanders.map((c) => `1 ${c.name}${printingSuffix(c)}`),
+    "",
+    "Deck",
+  ];
   const sorted = [...deck.cards].sort((a, b) => a.name.localeCompare(b.name));
-  for (const c of sorted) lines.push(`${c.quantity} ${c.name}`);
+  for (const c of sorted) lines.push(`${c.quantity} ${c.name}${printingSuffix(c)}`);
   return `${lines.join("\n")}\n`;
 }
 
@@ -95,9 +126,16 @@ const tagSuffix = (tags: readonly string[] | undefined) =>
 export function exportDeck(deck: ExportableDeck, format: ExportFormat): string {
   if (format === "text") return exportDecklist(deck);
   if (format === "moxfield") {
-    const lines = ["Commander", ...deck.commanders.map((c) => `1 ${c.name}`), "", "Deck"];
+    const lines = [
+      "Commander",
+      ...deck.commanders.map((c) => `1 ${c.name}${printingSuffix(c)}`),
+      "",
+      "Deck",
+    ];
     const sorted = [...deck.cards].sort((a, b) => a.name.localeCompare(b.name));
-    for (const c of sorted) lines.push(`${c.quantity} ${c.name}${tagSuffix(c.tags)}`);
+    for (const c of sorted) {
+      lines.push(`${c.quantity} ${c.name}${printingSuffix(c)}${tagSuffix(c.tags)}`);
+    }
     return `${lines.join("\n")}\n`;
   }
   const sorted = [...deck.cards].sort((a, b) => a.name.localeCompare(b.name));

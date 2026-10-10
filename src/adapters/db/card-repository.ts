@@ -60,6 +60,9 @@ const printingFromRow = (r: PrintingRow): Printing => ({
   lang: r.lang,
   imageUrl: r.imageUrl,
   priceEur: r.priceEur,
+  priceEurFoil: r.priceEurFoil,
+  setName: r.setName,
+  releasedAt: r.releasedAt,
 });
 
 /** No salen en el buscador: lo que no es carta de juego (tokens, emblemas, caras sueltas…). */
@@ -160,6 +163,14 @@ export class PrismaCardRepository implements CardRepository, CardCatalogWriter {
       for (const r of rows) if (r._min.priceEur !== null) prices.set(r.oracleId, r._min.priceEur);
     }
     return prices;
+  }
+
+  async findPrintingsOf(oracleId: string) {
+    const rows = await this.db.printing.findMany({
+      where: { oracleId },
+      orderBy: [{ releasedAt: "desc" }, { setCode: "asc" }, { collectorNumber: "asc" }],
+    });
+    return rows.map(printingFromRow);
   }
 
   async findBasicLandIds(oracleIds: readonly string[]) {

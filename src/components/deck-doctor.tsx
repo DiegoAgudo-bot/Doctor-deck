@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { applySwaps, changeCard, exportDecklist, type ExportableDeck } from "@/domain/deck/export";
+import {
+  applySwaps,
+  changeCard,
+  exportDecklist,
+  setPrinting,
+  type ExportableDeck,
+} from "@/domain/deck/export";
 import type { Bracket, BracketEstimate } from "@/domain/deck/bracket";
 import type { DeckVisibility } from "@/domain/deck/visibility";
 import { formatEuros } from "@/domain/suggestions/format";
@@ -13,6 +19,7 @@ import type {
   CardRoleEditDTO,
   DeckCardDTO,
   DeckCombosDTO,
+  PrintingDTO,
   DeckViewDTO,
 } from "@/server/dto";
 import { api, ApiError, storage } from "./api-client";
@@ -24,6 +31,7 @@ import { BracketPanel, BracketPill } from "./deck-bracket";
 import { CombosPanel } from "./deck-combos";
 import { OpeningHand } from "./deck-hand";
 import { localRoles } from "./local-roles";
+import { PrintingDialog } from "./printing-dialog";
 import { RoleEditDialog } from "./role-edit-dialog";
 import { OwnershipPanel } from "./deck-ownership";
 import { ExportDialog, SaveDialog } from "./deck-dialogs";
@@ -97,6 +105,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const [chosen, setChosen] = useState<string[]>([]);
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  /** Carta cuya impresión se está eligiendo. */
+  const [printingCard, setPrintingCard] = useState<CardDTO | null>(null);
   /** Carta cuyos roles se están corrigiendo. */
   const [editingRoles, setEditingRoles] = useState<DeckCardDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -308,12 +318,18 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
 
   const baseDeck: ExportableDeck | null = ok
     ? {
-        commanders: ok.commanders,
+        commanders: ok.commanders.map((c) => ({
+          oracleId: c.oracleId,
+          name: c.name,
+          layout: c.layout,
+          ...(c.printing ? { printing: c.printing } : {}),
+        })),
         cards: ok.cards.map((c) => ({
           oracleId: c.card.oracleId,
           name: c.card.name,
           layout: c.card.layout,
           quantity: c.quantity,
+          ...(c.card.printing ? { printing: c.card.printing } : {}),
           // Para exportar a Moxfield: el rol principal (si no es "sinergia") y mis etiquetas.
           tags: [
             ...(c.isBasicLand || c.primaryRole === "synergy" ? [] : [ROLE_TAGS[c.primaryRole]]),
@@ -461,36 +477,62 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     await analyze();
   }
 
-  async function editCard(card: { oracleId: string; name: string }, delta: number) {
-    if (!baseDeck) return;
-    const input = exportDecklist(changeCard(baseDeck, card, delta));
+  /**
+   * Reescribe la lista con un cambio (cartas o impresiones), la reanaliza y, si es un mazo mío
+   * guardado, lo guarda. Devuelve si se guardó.
+   */
+  async function applyDeckEdit(next: ExportableDeck): Promise<boolean | null> {
+    const input = exportDecklist(next);
     setEditNotice(null);
     await analyze({ input });
-    if (saved.deckId !== null && ok) {
-      try {
-        await api("/api/decks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: saved.deckId,
-            name: saved.name,
-            input,
-            ...(saved.theme ? { theme: saved.theme } : {}),
-            commanders: ok.commanders.map((c) => c.oracleId),
-            locked: saved.locked,
-            excluded: saved.excluded,
-          }),
-        });
-        notifyDecksChanged();
-      } catch (err) {
-        setError(err instanceof ApiError ? err.message : "No se pudo guardar el cambio");
-        return;
-      }
+    if (saved.deckId === null || !ok) return false;
+    try {
+      await api("/api/decks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: saved.deckId,
+          name: saved.name,
+          input,
+          ...(saved.theme ? { theme: saved.theme } : {}),
+          commanders: ok.commanders.map((c) => c.oracleId),
+          locked: saved.locked,
+          excluded: saved.excluded,
+        }),
+      });
+      notifyDecksChanged();
+      return true;
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo guardar el cambio");
+      return null;
     }
+  }
+
+  async function editCard(card: { oracleId: string; name: string }, delta: number) {
+    if (!baseDeck) return;
+    const savedIt = await applyDeckEdit(changeCard(baseDeck, card, delta));
+    if (savedIt === null) return;
     setEditNotice(
       delta > 0
-        ? `Añadida: ${card.name}${saved.deckId ? " (guardado)" : ""}.`
-        : `Quitada una copia de ${card.name}${saved.deckId ? " (guardado)" : ""}.`,
+        ? `Añadida: ${card.name}${savedIt ? " (guardado)" : ""}.`
+        : `Quitada una copia de ${card.name}${savedIt ? " (guardado)" : ""}.`,
+    );
+  }
+
+  /** Elige la impresión de una carta (null = la de por defecto). */
+  async function choosePrinting(card: CardDTO, printing: PrintingDTO | null) {
+    if (!baseDeck) return;
+    setPrintingCard(null);
+    const savedIt = await applyDeckEdit(
+      setPrinting(
+        baseDeck,
+        card.oracleId,
+        printing ? { setCode: printing.setCode, collectorNumber: printing.collectorNumber } : null,
+      ),
+    );
+    if (savedIt === null) return;
+    setEditNotice(
+      `${card.name}: ${printing ? `${printing.setName ?? printing.setCode.toUpperCase()} #${printing.collectorNumber}` : "impresión por defecto"}${savedIt ? " (guardado)" : ""}.`,
     );
   }
 
@@ -827,6 +869,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                   text={exportText}
                   onChangeQuantity={owner ? undefined : (card, delta) => void editCard(card, delta)}
                   onEditRoles={setEditingRoles}
+                  onEditPrinting={owner ? undefined : setPrintingCard}
                   busy={busy !== null}
                 />
               )}
@@ -891,6 +934,12 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             />
           )}
 
+          <PrintingDialog
+            card={printingCard}
+            busy={busy !== null}
+            onClose={() => setPrintingCard(null)}
+            onPick={(p) => printingCard && void choosePrinting(printingCard, p)}
+          />
           <RoleEditDialog
             card={editingRoles}
             busy={busy === "roles"}

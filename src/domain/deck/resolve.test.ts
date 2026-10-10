@@ -208,3 +208,24 @@ describe("fittingCandidates", () => {
     expect(fittingCandidates([background], deckOf(background))).toEqual([background]);
   });
 });
+
+describe("resolveDecklist: impresiones", () => {
+  it("recuerda la impresión pedida (edición y número o Scryfall ID)", async () => {
+    const { fixtureCards, fixturePrintings } =
+      await import("../../../tests/helpers/scryfall-fixtures");
+    const idx = new InMemoryCardIndex(fixtureCards(), fixturePrintings());
+    const deck = resolveDecklist(
+      parseDecklist(
+        "Commander\n1 Teferi, Temporal Archmage\n\nDeck\n1 Sol Ring (LEA) 270\n1 Island",
+      ),
+      idx,
+    );
+    const sol = deck.cards.find((c) => c.card.name === "Sol Ring")!.card;
+    expect(deck.printings?.get(sol.oracleId)).toMatchObject({
+      setCode: "lea",
+      collectorNumber: "270",
+    });
+    const island = deck.cards.find((c) => c.card.name === "Island")!.card;
+    expect(deck.printings?.has(island.oracleId)).toBe(false);
+  });
+});

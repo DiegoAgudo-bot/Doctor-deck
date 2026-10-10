@@ -11,6 +11,8 @@ export interface CardRepository {
    */
   searchByName(query: string, limit: number): Promise<Card[]>;
   findPrintingsByIds(scryfallIds: readonly string[]): Promise<Printing[]>;
+  /** Todas las impresiones de una carta, de la más nueva a la más vieja. */
+  findPrintingsOf(oracleId: string): Promise<Printing[]>;
   findPrintingsBySetNumbers(
     pairs: readonly { setCode: string; collectorNumber: string }[],
   ): Promise<Printing[]>;

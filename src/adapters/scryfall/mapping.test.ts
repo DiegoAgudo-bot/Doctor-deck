@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fixtureCards, fixturePrintings } from "../../../tests/helpers/scryfall-fixtures";
+import { printingPrice } from "@/domain/cards/types";
 import { scryfallCardSchema, toCard, toPrinting } from "./mapping";
 
 const byName = (name: string) => {
@@ -63,5 +64,43 @@ describe("toPrinting", () => {
       (x) => x.scryfallId === "9cf3af94-b7c8-415c-a5a1-d89967fd0bba",
     );
     expect(p).toMatchObject({ setCode: "blb", collectorNumber: "78", lang: "en" });
+  });
+
+  it("guarda el nombre de la edición, la fecha y los precios normal y foil", () => {
+    const raw = scryfallCardSchema.parse({
+      id: "9cf3af94-b7c8-415c-a5a1-d89967fd0bba",
+      oracle_id: "o",
+      name: "X",
+      layout: "normal",
+      set: "BLB",
+      set_name: "Bloomburrow",
+      released_at: "2024-08-02",
+      collector_number: "78",
+      prices: { eur: "0.35", eur_foil: "0.49" },
+    });
+    expect(toPrinting(raw)).toMatchObject({
+      setName: "Bloomburrow",
+      releasedAt: "2024-08-02",
+      priceEur: 0.35,
+      priceEurFoil: 0.49,
+    });
+  });
+});
+
+describe("printingPrice", () => {
+  const p = {
+    scryfallId: "x",
+    oracleId: "o",
+    setCode: "s",
+    collectorNumber: "1",
+    lang: "en",
+    imageUrl: null,
+  };
+  it("foil o normal, y si falta uno, el otro", () => {
+    expect(printingPrice({ ...p, priceEur: 1, priceEurFoil: 3 }, true)).toBe(3);
+    expect(printingPrice({ ...p, priceEur: 1, priceEurFoil: 3 }, false)).toBe(1);
+    expect(printingPrice({ ...p, priceEur: null, priceEurFoil: 3 }, false)).toBe(3);
+    expect(printingPrice({ ...p, priceEur: 1, priceEurFoil: null }, true)).toBe(1);
+    expect(printingPrice(p, true)).toBeNull();
   });
 });

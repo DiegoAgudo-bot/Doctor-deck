@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { parseDecklist } from "./decklist";
-import { applySwaps, changeCard, exportDeck, exportDecklist, type ExportableDeck } from "./export";
+import {
+  applySwaps,
+  changeCard,
+  exportDeck,
+  exportDecklist,
+  setPrinting,
+  type ExportableDeck,
+} from "./export";
 
 const deck: ExportableDeck = {
   commanders: [{ oracleId: "c", name: "Teferi, Temporal Archmage" }],
@@ -150,5 +157,26 @@ describe("exportDeck: moxfield con etiquetas", () => {
     );
     const sol = parseDecklist(text).entries.find((e) => e.name === "Sol Ring");
     expect(sol?.tags).toEqual(["Ramp", "wincon"]);
+  });
+});
+
+describe("impresiones al exportar", () => {
+  it("escribe (SET) número, se puede quitar y se vuelve a leer al importar", () => {
+    const deck: ExportableDeck = {
+      commanders: [{ oracleId: "c", name: "Teferi, Temporal Archmage" }],
+      cards: [{ oracleId: "s", name: "Sol Ring", quantity: 1, tags: ["Ramp"] }],
+    };
+    const chosen = setPrinting(deck, "s", { setCode: "lea", collectorNumber: "270" });
+    const text = exportDecklist(chosen);
+    expect(text).toContain("1 Sol Ring (LEA) 270");
+    expect(exportDeck(chosen, "moxfield")).toContain("1 Sol Ring (LEA) 270 #Ramp");
+    expect(exportDeck(chosen, "arena")).toContain("1 Sol Ring\n");
+    const entry = parseDecklist(text).entries.find((e) => e.name === "Sol Ring");
+    expect(entry).toMatchObject({ setCode: "lea", collectorNumber: "270" });
+    // Cambiar algo del mazo no la pierde; quitarla vuelve al nombre a secas.
+    expect(exportDecklist(changeCard(chosen, { oracleId: "x", name: "Island" }, 1))).toContain(
+      "(LEA) 270",
+    );
+    expect(exportDecklist(setPrinting(chosen, "s", null))).toContain("1 Sol Ring\n");
   });
 });

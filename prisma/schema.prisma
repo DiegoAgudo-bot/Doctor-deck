@@ -51,6 +51,10 @@ model Printing {
   imageUrl        String?
   /// Precio de referencia en EUR (Cardmarket, vía Scryfall `prices.eur`); null si no hay.
   priceEur        Float?
+  priceEurFoil    Float?
+  /// Nombre de la edición y fecha de salida ("YYYY-MM-DD").
+  setName         String?
+  releasedAt      String?
 
   @@index([oracleId])
   @@index([setCode, collectorNumber])
@@ -128,6 +132,8 @@ model DeckCard {
   quantity    Int     @default(1)
   isCommander Boolean @default(false)
   locked      Boolean @default(false)
+  /// Impresión elegida (Scryfall ID); null = la más barata.
+  scryfallId  String?
 
   @@unique([deckId, oracleId])
 }
@@ -328,4 +334,17 @@ model TradeKeep {
   oracleId String
 
   @@id([userId, oracleId])
+}
+
+/// Precio de cada día de las impresiones que alguien tiene en su colección (normal y foil), para
+/// el valor exacto de la colección. El de por carta (`PriceSnapshot`) sigue siendo el más barato.
+model PrintingPriceSnapshot {
+  scryfallId String
+  /// Día en UTC, "YYYY-MM-DD".
+  date       String
+  eur        Float?
+  eurFoil    Float?
+
+  @@id([scryfallId, date])
+  @@index([date])
 }
