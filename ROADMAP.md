@@ -21,7 +21,7 @@ despliegue en `main` y **parar al terminar cada fase hasta el OK del usuario**.
 | 13   | Comunidad: mazos que puedes montar ya, me gusta, filtros      | Medio    | ✅     |
 | 14   | Precios: histórico, lo que más sube, avisos de bajada         | Medio    | ✅     |
 | 15   | Etiquetas propias que corrigen los roles                      | Medio    | ✅     |
-| 16   | Combos (Commander Spellbook) y bracket con combos             | Medio    |        |
+| 16   | Combos (Commander Spellbook) y bracket con combos             | Medio    | ✅     |
 | 17   | Listas de deseos e intercambio con cruce automático           | Medio    |        |
 | 18   | Impresiones concretas (edición, foil, idioma)                 | Alto     |        |
 | 19   | Calculadora de intercambio entre dos usuarios                 | Medio    |        |
@@ -137,7 +137,7 @@ los cambios propuestos.
 - **Opcional:** usar las etiquetas `otag:` de Scryfall como segunda fuente de roles (ya está
   previsto en `CLAUDE.md`).
 
-## Fase 16 · Combos
+## Fase 16 · Combos ✅
 
 **Objetivo:** mostrar qué combos tiene el mazo, cuáles están a una carta y, sobre todo, **cuáles
 completas con tu colección** (nadie más lo hace).

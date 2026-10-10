@@ -47,12 +47,23 @@ export class HttpClient {
 
   /** GET que lanza `HttpError` si la respuesta no es 2xx. */
   async get(url: string): Promise<Response> {
+    return this.request(url);
+  }
+
+  /** POST con cuerpo JSON; lanza `HttpError` si la respuesta no es 2xx. */
+  async postJson(url: string, body: unknown): Promise<Response> {
+    return this.request(url, { method: "POST", body: JSON.stringify(body) });
+  }
+
+  private async request(url: string, init: { method: string; body: string } | null = null) {
     const res = await this.limiter.schedule(async () => {
       try {
         return await this.fetchFn(url, {
+          ...(init ?? {}),
           headers: {
             "User-Agent": this.opts.userAgent,
             Accept: this.opts.accept ?? "application/json;q=0.9,*/*;q=0.8",
+            ...(init ? { "Content-Type": "application/json" } : {}),
           },
         });
       } catch (err) {

@@ -26,3 +26,7 @@ winota-joiner-of-forces.json` (descargado el 2026-10-09, recortado a `header` y 
 - `deck-sources/*.json`: respuestas de Archidekt (`/api/decks/{id}/`) y Moxfield (v3 y v2),
   **escritas a mano** con cartas del catálogo de prueba (Teferi + Sol Ring, Dig Through Time,
   Island; Body of Knowledge en maybeboard/sideboard).
+- `spellbook/find-my-combos-jund.json`: respuesta **real** de `POST
+backend.commanderspellbook.com/find-my-combos` para un Korvold Jund de 100 cartas (descargada el
+  2026-10-11), recortada a 6 combos completos, 8 a una carta y 2 "añadiendo colores", y sin las
+  URL de imágenes ni los campos que no usamos.

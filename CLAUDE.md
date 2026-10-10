@@ -131,6 +131,18 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
     el mejor par válido; un par es inválido si deja algún rol por debajo de su mínimo.
   - Pesos, mínimos, umbral y nº máximo en `src/config/engine.ts` (defaults en
     `domain/suggestions/config.ts`). Motivos en español en `domain/suggestions/reason.ts`.
+- **Combos** (Fase 16, Commander Spellbook, **sin API oficial**): `SpellbookClient`
+  (`adapters/spellbook`, puerto `ComboSource`) hace `POST
+backend.commanderspellbook.com/find-my-combos?limit=500` con el mazo (nombres), cachea en
+  `HttpCache` por la lista de cartas (TTL `SPELLBOOK_CACHE_TTL_HOURS`), guarda solo lo que usamos
+  (`parseFindMyCombos`, zod), y si falla devuelve la copia caducada con aviso; si no,
+  `ComboSourceError` (`blocked` 403/429 sin reintentos, `unavailable`, `format`). Rate limit
+  `SPELLBOOK_MIN_INTERVAL_MS`. `deckCombos` (`application/deck-combos.ts`): completos, a una
+  carta (`oneAwayCombos`: qué carta falta y si la tengo libre, en otros mazos o hay que comprarla,
+  con precio; fuera los "B" prohibidos), `keyCards` (las que más combos abren) y el bracket
+  recalculado (`estimateBracket(cards, combos)`: etiqueta R → 4, S/P → 3). Va en `POST /api/combos`
+  aparte de `/api/analyze` (Spellbook tarda ~2,5 s la primera vez); la UI lo pide tras cada
+  análisis, pestaña "Combos", y al llegar actualiza el bracket de la cabecera.
 - **Roles corregidos y etiquetas** (Fase 15): `withOverrides` (`domain/roles/overrides.ts`)
   aplica, por este orden, mis correcciones (`CardRoleOverride`, por usuario y carta, valen en
   todos mis mazos y en la colección; sin cuenta viven en el navegador, `local-roles.ts`, y se
@@ -224,7 +236,7 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   game changers (`Card.gameChanger`, campo `game_changer` de Scryfall; 1–3 → 3, ≥4 → 4),
   destrucción masiva de tierras (regex sobre el texto: "destroy all lands", "each player
   sacrifices N lands", Blood Moon, Winter Orb…; sacrificar tus tierras como coste no cuenta) y ≥3
-  cartas de turno extra (→ 4). Tutores solo informativos; combos pendientes (fase 16). Sale en
+  cartas de turno extra (→ 4). Tutores solo informativos; los combos los añade la fase 16. Sale en
   `analyze` (`bracket`), en la cabecera y en Estadísticas. `Deck.targetBracket` (opcional): el
   motor no propone game changers por encima del límite (0 hasta el 2, 3 en el 3, contando los que
   salen) ni destrucción masiva por debajo del 4. `PATCH /api/decks/{id}` acepta `targetBracket`.
@@ -336,8 +348,9 @@ Purchase price currency, Added`.
 14. Precios: histórico, lo que más sube/baja de la colección, avisos de bajada; símbolos e
     imágenes servidos desde nuestro servidor ✅
 15. Roles corregidos a mano y etiquetas (Moxfield/Archidekt), en el motor y al exportar ✅
+16. Combos (Commander Spellbook): en el mazo, a una carta (con tu colección) y en el bracket ✅
 
-Las fases siguientes (16–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
+Las fases siguientes (17–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
 diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)

@@ -96,6 +96,7 @@ export function BracketPanel({
           />
           <CardList title="Destrucción masiva de tierras" names={bracket.massLandDenial} />
           <CardList title="Turnos extra" names={bracket.extraTurns} />
+          <CardList title="Combos que lo suben" names={bracket.combos} />
           <CardList title="Tutores" names={bracket.tutors} />
         </div>
         {over && (
@@ -110,9 +111,11 @@ export function BracketPanel({
           </p>
         )}
         <p className="subtle text-xs">
-          Es el bracket mínimo según game changers, destrucción masiva de tierras y turnos extra.
-          Los combos todavía no se comprueban, y el 1 (temático) y el 5 (cEDH) dependen de la
-          intención del mazo.
+          Es el bracket mínimo según game changers, destrucción masiva de tierras, turnos extra
+          {bracket.combosChecked
+            ? " y combos (de Commander Spellbook)"
+            : ". Los combos se están buscando o no se han podido comprobar"}
+          . El 1 (temático) y el 5 (cEDH) dependen de la intención del mazo.
         </p>
         {canSetTarget && (
           <div className="field border-t border-line pt-3">

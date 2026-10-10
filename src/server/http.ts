@@ -2,6 +2,7 @@ import { z } from "zod";
 import { DeckNotFoundError } from "@/adapters/db/deck-repository";
 import { DeckSourceError } from "@/adapters/deck-sources/errors";
 import { EdhrecError } from "@/adapters/edhrec/errors";
+import { ComboSourceError } from "@/adapters/spellbook/errors";
 import { UnsupportedDeckInputError } from "@/application/load-deck";
 import { InvalidCommanderError } from "@/application/new-deck";
 import { CannotFollowSelfError, ProfileNotFoundError, UsernameError } from "@/application/social";
@@ -42,6 +43,11 @@ export function errorResponse(err: unknown): Response {
   }
   if (err instanceof DeckNotFoundError) {
     return Response.json(body("deck_not_found", err.message), { status: 404 });
+  }
+  if (err instanceof ComboSourceError) {
+    return Response.json(body(`combos_${err.code}`, err.message), {
+      status: err.code === "format" ? 502 : 503,
+    });
   }
   if (err instanceof EdhrecError) {
     return Response.json(body(`edhrec_${err.code}`, err.message), {

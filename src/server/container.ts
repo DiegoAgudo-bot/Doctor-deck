@@ -9,6 +9,7 @@ import { PrismaRoleOverrideRepository } from "@/adapters/db/role-override-reposi
 import { PrismaSocialRepository } from "@/adapters/db/social-repository";
 import { PrismaResponseCache } from "@/adapters/db/response-cache";
 import { EdhrecClient } from "@/adapters/edhrec/edhrec-client";
+import { SpellbookClient } from "@/adapters/spellbook/spellbook-client";
 import { createDb } from "@/adapters/db/prisma";
 import { HttpClient } from "@/adapters/http/http-client";
 import { FileImageCache } from "@/adapters/images/image-cache";
@@ -32,6 +33,14 @@ export function createContainer() {
     cache: new PrismaResponseCache(db),
     ttlMs: env.EDHREC_CACHE_TTL_HOURS * 3_600_000,
   });
+  const combos = new SpellbookClient({
+    http: new HttpClient({
+      userAgent: env.HTTP_USER_AGENT,
+      minIntervalMs: env.SPELLBOOK_MIN_INTERVAL_MS,
+    }),
+    cache: new PrismaResponseCache(db),
+    ttlMs: env.SPELLBOOK_CACHE_TTL_HOURS * 3_600_000,
+  });
   const deckSourcesHttp = new HttpClient({
     userAgent: env.HTTP_USER_AGENT,
     minIntervalMs: env.DECK_SOURCES_MIN_INTERVAL_MS,
@@ -40,6 +49,8 @@ export function createContainer() {
   return {
     env,
     edhrec,
+    /** Combos de Commander Spellbook. */
+    combos,
     db,
     mailer,
     authFeatures: authFeatures(env, mailer),

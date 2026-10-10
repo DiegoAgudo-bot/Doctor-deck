@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { applySwaps, changeCard, exportDecklist, type ExportableDeck } from "@/domain/deck/export";
-import type { Bracket } from "@/domain/deck/bracket";
+import type { Bracket, BracketEstimate } from "@/domain/deck/bracket";
 import type { DeckVisibility } from "@/domain/deck/visibility";
 import { formatEuros } from "@/domain/suggestions/format";
 import { ROLE_TAGS } from "@/domain/roles/tags";
@@ -12,6 +12,7 @@ import type {
   CardDTO,
   CardRoleEditDTO,
   DeckCardDTO,
+  DeckCombosDTO,
   DeckViewDTO,
 } from "@/server/dto";
 import { api, ApiError, storage } from "./api-client";
@@ -20,6 +21,7 @@ import { CardHover, CardImage } from "./card-image";
 import { CardSearch } from "./card-search";
 import { BuyPanel, type BuyOptions } from "./deck-buy";
 import { BracketPanel, BracketPill } from "./deck-bracket";
+import { CombosPanel } from "./deck-combos";
 import { OpeningHand } from "./deck-hand";
 import { localRoles } from "./local-roles";
 import { RoleEditDialog } from "./role-edit-dialog";
@@ -79,7 +81,7 @@ const PLACEHOLDER =
   "Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n1x Arcane Signet (C21) 263\n…";
 
 type Ok = Extract<AnalyzeResponse, { status: "ok" }>;
-type Tab = "cambios" | "falta" | "lista" | "stats" | "compra";
+type Tab = "cambios" | "falta" | "lista" | "combos" | "stats" | "compra";
 type Filter = "todos" | "pendientes" | "aceptados" | "descartados";
 
 const isLink = (s: string) => /^\s*https?:\/\//i.test(s);
@@ -250,6 +252,53 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   }
 
   const ok = result?.status === "ok" ? result : null;
+
+  // Combos (Commander Spellbook): tras cada análisis, aparte porque tardan unos segundos. Al
+  // llegar, el bracket estimado pasa a contar también los combos.
+  const [combos, setCombos] = useState<{
+    data: DeckCombosDTO | null;
+    error: string | null;
+    loading: boolean;
+  }>({ data: null, error: null, loading: false });
+  useEffect(() => {
+    if (result?.status !== "ok") return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- se busca al cambiar el análisis
+    setCombos((c) => ({ ...c, loading: true, error: null }));
+    const local = loggedIn ? null : localCollection.get();
+    api<DeckCombosDTO>(
+      "/api/combos",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: saved.input,
+          ...(chosen.length > 0 ? { commanders: chosen } : {}),
+          ...(saved.deckId !== null ? { deckId: saved.deckId } : {}),
+          useOtherDecks: saved.useOtherDecks,
+          ...(local ? { collection: ownedPairs(local) } : {}),
+          ...(loggedIn ? {} : { roleEdits: localRoles.all() }),
+        }),
+      },
+      { silent: true },
+    )
+      .then((data) => !cancelled && setCombos({ data, error: null, loading: false }))
+      .catch(
+        (e: unknown) =>
+          !cancelled &&
+          setCombos({
+            data: null,
+            error: e instanceof ApiError ? e.message : "No se pudieron buscar los combos",
+            loading: false,
+          }),
+      );
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando hay un análisis nuevo
+  }, [result]);
+  const bracket =
+    ok && combos.data && !combos.loading ? combos.data.bracket : (ok?.bracket ?? null);
   const accepted = ok ? ok.swaps.filter((s) => decisions[s.id] === "accepted") : [];
   const rejected = ok ? ok.swaps.filter((s) => decisions[s.id] === "rejected") : [];
   const pending = ok ? ok.swaps.length - accepted.length - rejected.length : 0;
@@ -502,6 +551,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           )}
           <DeckHeader
             ok={ok}
+            bracket={bracket ?? ok.bracket}
             name={saved.name || ok.deckName || ok.commanders.map((c) => c.name).join(" + ")}
             owner={owner}
             onShowMissing={() => setTab("falta")}
@@ -549,6 +599,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                 ["cambios", "Cambios", pending],
                 ["falta", "Qué me falta", ok.ownership.totals.toBuy],
                 ["lista", "Lista", ok.totalCards],
+                [
+                  "combos",
+                  "Combos",
+                  combos.data && !combos.loading ? combos.data.included.length : null,
+                ],
                 ["stats", "Estadísticas", null],
                 ["compra", "Mejorar comprando", null],
               ] as const
@@ -758,6 +813,10 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             </section>
           )}
 
+          {tab === "combos" && (
+            <CombosPanel data={combos.data} error={combos.error} loading={combos.loading} />
+          )}
+
           {tab === "stats" && (
             <div
               className="grid-1-sm grid items-start gap-4"
@@ -765,7 +824,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             >
               <div style={{ gridColumn: "1 / -1" }}>
                 <BracketPanel
-                  bracket={ok.bracket}
+                  bracket={bracket ?? ok.bracket}
                   target={saved.targetBracket}
                   busy={busy !== null}
                   canSetTarget={!owner}
@@ -1111,6 +1170,7 @@ function DeckHeader({
   onBuy,
   onEdit,
   target,
+  bracket,
   onShowBracket,
   like,
   canLike,
@@ -1125,6 +1185,8 @@ function DeckHeader({
   onBuy: () => void;
   onEdit: () => void;
   target: Bracket | null;
+  /** El estimado, con los combos si ya han llegado. */
+  bracket: BracketEstimate;
   onShowBracket: () => void;
   like: { count: number; liked: boolean } | null;
   /** Solo el mazo de otro y con sesión. */
@@ -1172,7 +1234,7 @@ function DeckHeader({
             <span>{ok.commanders.map((c) => c.name).join(" + ")}</span>
           )}
           <ColorPips colors={order.filter((c) => identity.includes(c as never))} />
-          <BracketPill bracket={ok.bracket} target={target} onClick={onShowBracket} />
+          <BracketPill bracket={bracket} target={target} onClick={onShowBracket} />
         </div>
         <p className="subtle text-[13px]">
           {ok.totalCards} cartas · coste medio {averageCmc(ok.cards).toFixed(2).replace(".", ",")}

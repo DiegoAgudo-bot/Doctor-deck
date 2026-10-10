@@ -1,4 +1,6 @@
 import { localImageUrl } from "@/domain/cards/images";
+import type { MissingStatus } from "@/domain/combos/analysis";
+import type { ComboBracketTag } from "@/domain/combos/types";
 import type { DeckOwnershipSummary } from "@/domain/community/rank";
 import type { BracketEstimate } from "@/domain/deck/bracket";
 import type { PriceChange, PricePoint } from "@/domain/prices/history";
@@ -230,6 +232,46 @@ export interface MyProfileDTO extends PublicProfileDTO {
   email: string;
   /** Avisar si algo que me falta baja este % (null = no avisar). */
   priceAlertPercent: number | null;
+}
+
+export interface ComboCardDTO {
+  name: string;
+  /** La carta del catálogo (imagen, coste…), si la tenemos. */
+  card: CardDTO | null;
+  mustBeCommander: boolean;
+}
+
+export interface ComboDTO {
+  id: string;
+  cards: ComboCardDTO[];
+  produces: string[];
+  requires: string[];
+  bracketTag: ComboBracketTag | null;
+  manaValueNeeded: number;
+  popularity: number | null;
+  /** Ficha del combo en commanderspellbook.com. */
+  url: string;
+}
+
+export interface OneAwayComboDTO {
+  combo: ComboDTO;
+  missing: ComboCardDTO;
+  /** La que falta: la tengo libre, en otros mazos, o hay que comprarla. */
+  status: MissingStatus;
+  price: number | null;
+}
+
+export interface DeckCombosDTO {
+  included: ComboDTO[];
+  oneAway: OneAwayComboDTO[];
+  /** Cuántos combos a una carta hay en total (se mandan los primeros). */
+  oneAwayTotal: number;
+  /** Las cartas que más combos completan (de todos los que están a una carta). */
+  keyCards: { card: ComboCardDTO; combos: number; status: MissingStatus; price: number | null }[];
+  bracket: BracketEstimate;
+  fetchedAt: string;
+  stale: boolean;
+  warning: string | null;
 }
 
 /** Corrección de roles de una carta (roles vacíos = los automáticos). */

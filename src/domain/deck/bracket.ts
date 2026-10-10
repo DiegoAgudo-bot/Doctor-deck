@@ -1,5 +1,7 @@
 import { rulesText } from "../cards/rules-text";
 import type { Card } from "../cards/types";
+import { comboMinBracket, comboName } from "../combos/analysis";
+import type { Combo } from "../combos/types";
 import type { Role } from "../roles/types";
 
 /**
@@ -66,10 +68,12 @@ export interface BracketEstimate {
   massLandDenial: string[];
   extraTurns: string[];
   tutors: string[];
+  /** Combos completos que suben el bracket (según la etiqueta de Commander Spellbook). */
+  combos: string[];
   /** Por qué ese bracket, en español. */
   reasons: string[];
-  /** Combos de dos cartas: todavía sin comprobar. */
-  combosChecked: false;
+  /** ¿Se han tenido en cuenta los combos? (vienen de Commander Spellbook, aparte). */
+  combosChecked: boolean;
 }
 
 const list = (names: string[]) =>
@@ -77,9 +81,14 @@ const list = (names: string[]) =>
     ? names.join(", ")
     : `${names.slice(0, 3).join(", ")} y ${names.length - 3} más`;
 
-/** Estima el bracket de un mazo (comandantes incluidos). */
+/**
+ * Estima el bracket de un mazo (comandantes incluidos). Con `combos` (los completos, de Commander
+ * Spellbook) también cuenta los combos: "ruthless" (de dos cartas y tempranos) → 4; "spicy" o
+ * "powerful" → 3.
+ */
 export function estimateBracket(
   cards: readonly { card: Card; roles: readonly Role[] }[],
+  combos?: readonly Combo[],
 ): BracketEstimate {
   const names = (pred: (c: { card: Card; roles: readonly Role[] }) => boolean) =>
     [...new Set(cards.filter(pred).map((c) => c.card.name))].sort();
@@ -90,32 +99,54 @@ export function estimateBracket(
 
   const reasons: string[] = [];
   let bracket: 2 | 3 | 4 = 2;
+  const raise = (to: 3 | 4) => {
+    if (to > bracket) bracket = to;
+  };
   if (gameChangers.length > GAME_CHANGER_LIMIT[3]) {
-    bracket = 4;
+    raise(4);
     reasons.push(`${gameChangers.length} game changers (el bracket 3 admite hasta 3)`);
   } else if (gameChangers.length > 0) {
-    bracket = 3;
+    raise(3);
     reasons.push(
       `${gameChangers.length} game changer${gameChangers.length > 1 ? "s" : ""}: ${list(gameChangers)}`,
     );
   }
   if (massLandDenial.length > 0) {
-    bracket = 4;
+    raise(4);
     reasons.push(`Destrucción masiva de tierras: ${list(massLandDenial)}`);
   }
   if (extraTurns.length >= EXTRA_TURN_CHAIN) {
-    bracket = 4;
+    raise(4);
     reasons.push(`${extraTurns.length} cartas de turno extra: se pueden encadenar`);
   }
+  const raising = (combos ?? [])
+    .map((c) => ({ name: comboName(c), min: comboMinBracket(c) }))
+    .filter((x) => x.min > 2)
+    .sort((a, b) => b.min - a.min);
+  const early = raising.filter((x) => x.min === 4).map((x) => x.name);
+  const others = raising.filter((x) => x.min === 3).map((x) => x.name);
+  if (early.length > 0) {
+    raise(4);
+    reasons.push(`${early.length > 1 ? "Combos tempranos" : "Combo temprano"}: ${list(early)}`);
+  }
+  if (others.length > 0) {
+    raise(3);
+    reasons.push(`${others.length > 1 ? "Combos" : "Combo"}: ${list(others)}`);
+  }
   if (reasons.length === 0)
-    reasons.push("Sin game changers, destrucción masiva de tierras ni turnos extra encadenados");
+    reasons.push(
+      combos
+        ? "Sin game changers, destrucción masiva de tierras, turnos extra encadenados ni combos fuertes"
+        : "Sin game changers, destrucción masiva de tierras ni turnos extra encadenados",
+    );
   return {
     bracket,
     gameChangers,
     massLandDenial,
     extraTurns,
     tutors,
+    combos: raising.map((x) => x.name),
     reasons,
-    combosChecked: false,
+    combosChecked: combos !== undefined,
   };
 }

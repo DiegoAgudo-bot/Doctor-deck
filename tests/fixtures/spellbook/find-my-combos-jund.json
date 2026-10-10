@@ -1,0 +1,2003 @@
+{
+  "count": null,
+  "next": null,
+  "previous": null,
+  "results": {
+    "identity": "BRG",
+    "included": [
+      {
+        "id": "1580-2034-4871",
+        "salt": 1.18,
+        "uses": [
+          {
+            "card": {
+              "id": 4871,
+              "name": "Pitiless Plunderer",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "a784481f-eccb-4112-bb38-04a659319660",
+              "typeLine": "Creature — Human Pirate",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 2034,
+              "name": "Ashnod's Altar",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "4d18bcba-a346-445e-a182-6cc30b7e066d",
+              "typeLine": "Artifact",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 1580,
+              "name": "Reassembling Skeleton",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "9dbc3530-b278-4c8d-b2cc-a09dfac9d5e5",
+              "typeLine": "Creature — Skeleton Warrior",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["G"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "B",
+        "produces": [
+          {
+            "feature": {
+              "id": 11,
+              "name": "Infinite colorless mana",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 7,
+              "name": "Infinite death triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "Infinite creature ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "Infinite creature LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "Infinite creature sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 64264,
+        "bracketTag": "E",
+        "manaNeeded": "",
+        "variantCount": 9,
+        "saltVoteCount": 11,
+        "manaValueNeeded": 0
+      },
+      {
+        "id": "3000-4871",
+        "salt": 1.43,
+        "uses": [
+          {
+            "card": {
+              "id": 3000,
+              "name": "Chatterfang, Squirrel General",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "f15b3b76-d38a-48db-bb44-3296183c8641",
+              "typeLine": "Legendary Creature — Squirrel Warrior",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 4871,
+              "name": "Pitiless Plunderer",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "a784481f-eccb-4112-bb38-04a659319660",
+              "typeLine": "Creature — Human Pirate",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "BG",
+        "produces": [
+          {
+            "feature": {
+              "id": 2408,
+              "name": "Infinite artifact ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 2409,
+              "name": "Infinite artifact LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 2419,
+              "name": "Infinite artifact sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 587,
+              "name": "Infinite artifact tokens",
+              "status": "C",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 5,
+              "name": "Infinite colored mana",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 7,
+              "name": "Infinite death triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "Infinite creature ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "Infinite creature LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "Infinite creature sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 91,
+              "name": "Infinite Treasure tokens",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 1492,
+              "name": "Reduce the toughness of creatures opponents control to 0",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 63380,
+        "bracketTag": "S",
+        "manaNeeded": "{B}",
+        "variantCount": 1,
+        "saltVoteCount": 7,
+        "manaValueNeeded": 1
+      },
+      {
+        "id": "1580-4050-4871",
+        "salt": 1.67,
+        "uses": [
+          {
+            "card": {
+              "id": 4871,
+              "name": "Pitiless Plunderer",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "a784481f-eccb-4112-bb38-04a659319660",
+              "typeLine": "Creature — Human Pirate",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 1580,
+              "name": "Reassembling Skeleton",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "9dbc3530-b278-4c8d-b2cc-a09dfac9d5e5",
+              "typeLine": "Creature — Skeleton Warrior",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["G"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 4050,
+              "name": "Phyrexian Altar",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "8d02b297-97c4-4379-9862-0a462400f66f",
+              "typeLine": "Artifact",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "B",
+        "produces": [
+          {
+            "feature": {
+              "id": 7,
+              "name": "Infinite death triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "Infinite creature ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "Infinite creature LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "Infinite creature sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 41612,
+        "bracketTag": "E",
+        "manaNeeded": "",
+        "variantCount": 9,
+        "saltVoteCount": 6,
+        "manaValueNeeded": 0
+      },
+      {
+        "id": "1580-2842-4871-5670",
+        "salt": null,
+        "uses": [
+          {
+            "card": {
+              "id": 5670,
+              "name": "Warren Soultrader",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "ace86e56-efde-4eb7-8815-71456a4c3abe",
+              "typeLine": "Creature — Zombie Goblin Wizard",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 4871,
+              "name": "Pitiless Plunderer",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "a784481f-eccb-4112-bb38-04a659319660",
+              "typeLine": "Creature — Human Pirate",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 1580,
+              "name": "Reassembling Skeleton",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "9dbc3530-b278-4c8d-b2cc-a09dfac9d5e5",
+              "typeLine": "Creature — Skeleton Warrior",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 2842,
+              "name": "Blood Artist",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "310f141c-7f37-4729-aed6-dd9c09db448d",
+              "typeLine": "Creature — Vampire",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "B",
+        "produces": [
+          {
+            "feature": {
+              "id": 2408,
+              "name": "Infinite artifact ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 2409,
+              "name": "Infinite artifact LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 2419,
+              "name": "Infinite artifact sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "Infinite creature ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "Infinite creature LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "Infinite creature sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 7,
+              "name": "Infinite death triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 26,
+              "name": "Infinite lifeloss",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 37336,
+        "bracketTag": "E",
+        "manaNeeded": "",
+        "variantCount": 99,
+        "saltVoteCount": 4,
+        "manaValueNeeded": 0
+      },
+      {
+        "id": "1385-1580-4871-5670",
+        "salt": 1.0,
+        "uses": [
+          {
+            "card": {
+              "id": 5670,
+              "name": "Warren Soultrader",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "ace86e56-efde-4eb7-8815-71456a4c3abe",
+              "typeLine": "Creature — Zombie Goblin Wizard",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 4871,
+              "name": "Pitiless Plunderer",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "a784481f-eccb-4112-bb38-04a659319660",
+              "typeLine": "Creature — Human Pirate",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 1385,
+              "name": "Zulaport Cutthroat",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "76b003e0-15af-4f22-bdf2-1ade5430964a",
+              "typeLine": "Creature — Human Rogue Ally",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 1580,
+              "name": "Reassembling Skeleton",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "9dbc3530-b278-4c8d-b2cc-a09dfac9d5e5",
+              "typeLine": "Creature — Skeleton Warrior",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "B",
+        "produces": [
+          {
+            "feature": {
+              "id": 2408,
+              "name": "Infinite artifact ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 2409,
+              "name": "Infinite artifact LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 2419,
+              "name": "Infinite artifact sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "Infinite creature ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "Infinite creature LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "Infinite creature sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 7,
+              "name": "Infinite death triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 26,
+              "name": "Infinite lifeloss",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 36064,
+        "bracketTag": "E",
+        "manaNeeded": "",
+        "variantCount": 99,
+        "saltVoteCount": 7,
+        "manaValueNeeded": 0
+      },
+      {
+        "id": "1385-3000-5670",
+        "salt": null,
+        "uses": [
+          {
+            "card": {
+              "id": 5670,
+              "name": "Warren Soultrader",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "ace86e56-efde-4eb7-8815-71456a4c3abe",
+              "typeLine": "Creature — Zombie Goblin Wizard",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 1385,
+              "name": "Zulaport Cutthroat",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "76b003e0-15af-4f22-bdf2-1ade5430964a",
+              "typeLine": "Creature — Human Rogue Ally",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 3000,
+              "name": "Chatterfang, Squirrel General",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "f15b3b76-d38a-48db-bb44-3296183c8641",
+              "typeLine": "Legendary Creature — Squirrel Warrior",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "BG",
+        "produces": [
+          {
+            "feature": {
+              "id": 2408,
+              "name": "Infinite artifact ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 2409,
+              "name": "Infinite artifact LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 2419,
+              "name": "Infinite artifact sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 587,
+              "name": "Infinite artifact tokens",
+              "status": "C",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "Infinite creature LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "Infinite creature ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 5,
+              "name": "Infinite colored mana",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "Infinite creature sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 7,
+              "name": "Infinite death triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 14,
+              "name": "Infinite lifegain triggers",
+              "status": "C",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 26,
+              "name": "Infinite lifeloss",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 91,
+              "name": "Infinite Treasure tokens",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 27356,
+        "bracketTag": "E",
+        "manaNeeded": "",
+        "variantCount": 94,
+        "saltVoteCount": 4,
+        "manaValueNeeded": 0
+      }
+    ],
+    "includedByChangingCommanders": [],
+    "almostIncluded": [
+      {
+        "id": "2577-4050",
+        "salt": 2.18,
+        "uses": [
+          {
+            "card": {
+              "id": 2577,
+              "name": "Gravecrawler",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "09ff28b1-b6c9-48e6-b12e-2f0e644f709f",
+              "typeLine": "Creature — Zombie",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 4050,
+              "name": "Phyrexian Altar",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "8d02b297-97c4-4379-9862-0a462400f66f",
+              "typeLine": "Artifact",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "B",
+        "produces": [
+          {
+            "feature": {
+              "id": 7,
+              "name": "Infinite death triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "Infinite creature ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "Infinite creature LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "Infinite creature sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 17,
+              "name": "Infinite storm count",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 76912,
+        "bracketTag": "E",
+        "manaNeeded": "",
+        "variantCount": 1,
+        "saltVoteCount": 11,
+        "manaValueNeeded": 0
+      },
+      {
+        "id": "2577-2842-5670",
+        "salt": 1.8,
+        "uses": [
+          {
+            "card": {
+              "id": 5670,
+              "name": "Warren Soultrader",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "ace86e56-efde-4eb7-8815-71456a4c3abe",
+              "typeLine": "Creature — Zombie Goblin Wizard",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 2577,
+              "name": "Gravecrawler",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "09ff28b1-b6c9-48e6-b12e-2f0e644f709f",
+              "typeLine": "Creature — Zombie",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 2842,
+              "name": "Blood Artist",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "310f141c-7f37-4729-aed6-dd9c09db448d",
+              "typeLine": "Creature — Vampire",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "B",
+        "produces": [
+          {
+            "feature": {
+              "id": 7,
+              "name": "Infinite death triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "Infinite creature ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 14,
+              "name": "Infinite lifegain triggers",
+              "status": "C",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 26,
+              "name": "Infinite lifeloss",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "Infinite creature LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "Infinite creature sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 17,
+              "name": "Infinite storm count",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 46746,
+        "bracketTag": "E",
+        "manaNeeded": "",
+        "variantCount": 35,
+        "saltVoteCount": 5,
+        "manaValueNeeded": 0
+      },
+      {
+        "id": "1385-2577-5670",
+        "salt": 1.83,
+        "uses": [
+          {
+            "card": {
+              "id": 5670,
+              "name": "Warren Soultrader",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "ace86e56-efde-4eb7-8815-71456a4c3abe",
+              "typeLine": "Creature — Zombie Goblin Wizard",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 2577,
+              "name": "Gravecrawler",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "09ff28b1-b6c9-48e6-b12e-2f0e644f709f",
+              "typeLine": "Creature — Zombie",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 1385,
+              "name": "Zulaport Cutthroat",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "76b003e0-15af-4f22-bdf2-1ade5430964a",
+              "typeLine": "Creature — Human Rogue Ally",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "B",
+        "produces": [
+          {
+            "feature": {
+              "id": 4,
+              "name": "Infinite creature ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "Infinite creature LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "Infinite creature sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 7,
+              "name": "Infinite death triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 14,
+              "name": "Infinite lifegain triggers",
+              "status": "C",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 26,
+              "name": "Infinite lifeloss",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 17,
+              "name": "Infinite storm count",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 41757,
+        "bracketTag": "E",
+        "manaNeeded": "",
+        "variantCount": 35,
+        "saltVoteCount": 6,
+        "manaValueNeeded": 0
+      },
+      {
+        "id": "2034-2577-4871",
+        "salt": 0.83,
+        "uses": [
+          {
+            "card": {
+              "id": 2577,
+              "name": "Gravecrawler",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "09ff28b1-b6c9-48e6-b12e-2f0e644f709f",
+              "typeLine": "Creature — Zombie",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 4871,
+              "name": "Pitiless Plunderer",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "a784481f-eccb-4112-bb38-04a659319660",
+              "typeLine": "Creature — Human Pirate",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 2034,
+              "name": "Ashnod's Altar",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "4d18bcba-a346-445e-a182-6cc30b7e066d",
+              "typeLine": "Artifact",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "B",
+        "produces": [
+          {
+            "feature": {
+              "id": 11,
+              "name": "Infinite colorless mana",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 7,
+              "name": "Infinite death triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "Infinite creature ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "Infinite creature LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "Infinite creature sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 17,
+              "name": "Infinite storm count",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 39211,
+        "bracketTag": "E",
+        "manaNeeded": "",
+        "variantCount": 19,
+        "saltVoteCount": 6,
+        "manaValueNeeded": 0
+      },
+      {
+        "id": "2484-4083",
+        "salt": null,
+        "uses": [
+          {
+            "card": {
+              "id": 2484,
+              "name": "Blasphemous Act",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "7a2484a9-04fd-41a0-8224-610c1c07ed10",
+              "typeLine": "Sorcery",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["H"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 4083,
+              "name": "Repercussion",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "f6069a4f-744e-43e8-9f8b-7c13b8b0187f",
+              "typeLine": "Enchantment",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "R",
+        "produces": [
+          {
+            "feature": {
+              "id": 1227,
+              "name": "Near-infinite damage to all players",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 39133,
+        "bracketTag": "C",
+        "manaNeeded": "{8}{R} at most",
+        "variantCount": 1,
+        "saltVoteCount": 4,
+        "manaValueNeeded": 9
+      },
+      {
+        "id": "3519-3705",
+        "salt": null,
+        "uses": [
+          {
+            "card": {
+              "id": 3705,
+              "name": "Squee, the Immortal",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "481fb71a-11b9-462e-a4da-ca35ffd1bd22",
+              "typeLine": "Legendary Creature — Goblin",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 3519,
+              "name": "Food Chain",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "5c8e5092-962e-49ef-ab82-8434e475e4e7",
+              "typeLine": "Enchantment",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "RG",
+        "produces": [
+          {
+            "feature": {
+              "id": 463,
+              "name": "Infinite colored mana that can only be spent to cast creature spells",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "Infinite creature ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "Infinite creature LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 17,
+              "name": "Infinite storm count",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 35797,
+        "bracketTag": "R",
+        "manaNeeded": "",
+        "variantCount": 1,
+        "saltVoteCount": 3,
+        "manaValueNeeded": 0
+      },
+      {
+        "id": "2292-2577-4871",
+        "salt": null,
+        "uses": [
+          {
+            "card": {
+              "id": 2577,
+              "name": "Gravecrawler",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "09ff28b1-b6c9-48e6-b12e-2f0e644f709f",
+              "typeLine": "Creature — Zombie",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["G"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 4871,
+              "name": "Pitiless Plunderer",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "a784481f-eccb-4112-bb38-04a659319660",
+              "typeLine": "Creature — Human Pirate",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 2292,
+              "name": "Viscera Seer",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "f82a4e85-526d-4456-b700-7760043a31be",
+              "typeLine": "Creature — Vampire Wizard",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "B",
+        "produces": [
+          {
+            "feature": {
+              "id": 3,
+              "name": "Infinite creature LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "Infinite creature ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "Infinite creature sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 7,
+              "name": "Infinite death triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 8,
+              "name": "Infinite scry 1",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 17,
+              "name": "Infinite storm count",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 35501,
+        "bracketTag": "E",
+        "manaNeeded": "",
+        "variantCount": 19,
+        "saltVoteCount": 2,
+        "manaValueNeeded": 0
+      },
+      {
+        "id": "2842-5544-5670",
+        "salt": null,
+        "uses": [
+          {
+            "card": {
+              "id": 5670,
+              "name": "Warren Soultrader",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "ace86e56-efde-4eb7-8815-71456a4c3abe",
+              "typeLine": "Creature — Zombie Goblin Wizard",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 5544,
+              "name": "Forsaken Miner",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "d37e0127-6f68-438e-8b9e-a71bb3c34733",
+              "typeLine": "Creature — Skeleton Rogue",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 2842,
+              "name": "Blood Artist",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "310f141c-7f37-4729-aed6-dd9c09db448d",
+              "typeLine": "Creature — Vampire",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "B",
+        "produces": [
+          {
+            "feature": {
+              "id": 7,
+              "name": "Infinite death triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 4,
+              "name": "Infinite creature ETB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 3,
+              "name": "Infinite creature LTB",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 14,
+              "name": "Infinite lifegain triggers",
+              "status": "C",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 26,
+              "name": "Infinite lifeloss",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 6,
+              "name": "Infinite creature sacrifice triggers",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 29731,
+        "bracketTag": "E",
+        "manaNeeded": "{B}",
+        "variantCount": 8,
+        "saltVoteCount": 2,
+        "manaValueNeeded": 1
+      }
+    ],
+    "almostIncludedByAddingColors": [
+      {
+        "id": "513-5034--46",
+        "salt": 1.88,
+        "uses": [
+          {
+            "card": {
+              "id": 513,
+              "name": "Hullbreaker Horror",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "d4a84e78-d9b9-4c67-8a4b-4329e65f0f15",
+              "typeLine": "Creature — Kraken Horror",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 5034,
+              "name": "Sol Ring",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "6ad8011d-3471-4369-9d68-b264cc027487",
+              "typeLine": "Artifact",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "U",
+        "produces": [
+          {
+            "feature": {
+              "id": 11,
+              "name": "Infinite colorless mana",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 17,
+              "name": "Infinite storm count",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [
+          {
+            "quantity": 1,
+            "template": {
+              "id": 46,
+              "name": "Permanent Castable for {C}",
+              "scryfallApi": "https://api.scryfall.com/cards/search?q=%28mv%3C%3D1+%28mana%3D%7B0%7D+or+mana%3D%7B1%7D+or+mana%3D%7BC%7D%29+is%3Apermanent%29+legal%3Acommander",
+              "scryfallQuery": "mv<=1 (mana={0} or mana={1} or mana={C}) is:permanent"
+            },
+            "zoneLocations": ["H"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "popularity": 357898,
+        "bracketTag": "E",
+        "manaNeeded": "",
+        "variantCount": 1,
+        "saltVoteCount": 32,
+        "manaValueNeeded": 0
+      },
+      {
+        "id": "542-5034",
+        "salt": null,
+        "uses": [
+          {
+            "card": {
+              "id": 542,
+              "name": "Tidespout Tyrant",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "331b44e4-cf08-44f4-8afd-a7374e5dc5ed",
+              "typeLine": "Creature — Djinn",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["B"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          },
+          {
+            "card": {
+              "id": 5034,
+              "name": "Sol Ring",
+              "faces": 1,
+              "spoiler": false,
+              "oracleId": "6ad8011d-3471-4369-9d68-b264cc027487",
+              "typeLine": "Artifact",
+              "layoutRotationFront": null
+            },
+            "quantity": 1,
+            "usedFace": null,
+            "zoneLocations": ["H"],
+            "exileCardState": "",
+            "mustBeCommander": false,
+            "libraryCardState": "",
+            "graveyardCardState": "",
+            "battlefieldCardState": ""
+          }
+        ],
+        "status": "OK",
+        "spoiler": false,
+        "identity": "U",
+        "produces": [
+          {
+            "feature": {
+              "id": 11,
+              "name": "Infinite colorless mana",
+              "status": "S",
+              "uncountable": true
+            },
+            "quantity": 1
+          },
+          {
+            "feature": {
+              "id": 17,
+              "name": "Infinite storm count",
+              "status": "H",
+              "uncountable": true
+            },
+            "quantity": 1
+          }
+        ],
+        "requires": [],
+        "popularity": 37412,
+        "bracketTag": "S",
+        "manaNeeded": "{1}",
+        "variantCount": 6,
+        "saltVoteCount": 0,
+        "manaValueNeeded": 1
+      }
+    ],
+    "almostIncludedByChangingCommanders": [],
+    "almostIncludedByAddingColorsAndChangingCommanders": []
+  }
+}
