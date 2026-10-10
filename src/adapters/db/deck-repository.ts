@@ -6,7 +6,13 @@ import type {
   SavedDeck,
   SavedDeckSummary,
 } from "@/domain/ports/deck-repository";
-import type { PublicDecks } from "@/domain/ports/social";
+import type { DeckFacts } from "@/domain/deck/facts";
+import type {
+  CommunityDeckRow,
+  CommunityFilters,
+  DeckForFacts,
+  PublicDecks,
+} from "@/domain/ports/social";
 import type { CardUsage } from "@/domain/suggestions/engine";
 import type { Db } from "./prisma";
 
@@ -58,14 +64,94 @@ export class PrismaPublicDecks implements PublicDecks {
     return { deck: savedDeckFromRow(d), ownerId: d.userId };
   }
 
-  async recent(limit: number) {
+  async search(filters: CommunityFilters, limit: number): Promise<CommunityDeckRow[]> {
+    const q = filters.q?.trim();
     const decks = await this.db.deck.findMany({
-      where: { visibility: "public", user: { username: { not: null } } },
+      where: {
+        visibility: "public",
+        user: { username: { not: null } },
+        ...(q ? { OR: [{ name: { contains: q } }, { commanderNames: { contains: q } }] } : {}),
+        ...(filters.colors !== undefined ? { colorIdentity: filters.colors } : {}),
+        ...(filters.bracket !== undefined ? { bracket: filters.bracket } : {}),
+        ...(filters.ownerIds ? { userId: { in: [...filters.ownerIds] } } : {}),
+      },
       orderBy: { createdAt: "desc" },
       take: limit,
-      include: { cards: true },
+      include: {
+        cards: { select: { oracleId: true, quantity: true, isCommander: true, locked: true } },
+        _count: { select: { likes: true } },
+      },
     });
-    return decks.flatMap((d) => (d.userId ? [{ ...savedDeckFromRow(d), ownerId: d.userId }] : []));
+    return decks.flatMap((d) =>
+      d.userId
+        ? [
+            {
+              ...savedDeckFromRow(d),
+              ownerId: d.userId,
+              createdAt: d.createdAt,
+              likes: d._count.likes,
+              bracket: d.bracket,
+              cards: d.cards.map((c) => ({ oracleId: c.oracleId, quantity: c.quantity })),
+            },
+          ]
+        : [],
+    );
+  }
+
+  async likedBy(viewerId: string, deckIds: readonly string[]) {
+    const rows = await this.db.deckLike.findMany({
+      where: { userId: viewerId, deck: { publicId: { in: [...deckIds] } } },
+      select: { deck: { select: { publicId: true } } },
+    });
+    return new Set(rows.map((r) => r.deck.publicId));
+  }
+
+  async setLike(viewerId: string, deckId: string, like: boolean) {
+    const d = await this.db.deck.findUnique({
+      where: { publicId: deckId },
+      select: { id: true, userId: true, visibility: true },
+    });
+    if (
+      !d?.userId ||
+      d.userId === viewerId ||
+      !canOpenDeck(toDeckVisibility(d.visibility), d.userId, viewerId)
+    )
+      return null;
+    const key = { userId_deckId: { userId: viewerId, deckId: d.id } };
+    if (like) await this.db.deckLike.upsert({ where: key, create: key.userId_deckId, update: {} });
+    else await this.db.deckLike.deleteMany({ where: key.userId_deckId });
+    return { likes: await this.db.deckLike.count({ where: { deckId: d.id } }) };
+  }
+
+  async likes(deckId: string) {
+    return this.db.deckLike.count({ where: { deck: { publicId: deckId } } });
+  }
+
+  async withoutFacts(all: boolean, limit: number, offset: number): Promise<DeckForFacts[]> {
+    const decks = await this.db.deck.findMany({
+      where: all ? {} : { OR: [{ colorIdentity: null }, { bracket: null }] },
+      orderBy: { id: "asc" },
+      skip: offset,
+      take: limit,
+      select: {
+        publicId: true,
+        cards: { select: { oracleId: true, quantity: true, isCommander: true } },
+      },
+    });
+    return decks.map((d) => ({
+      id: d.publicId,
+      commanders: d.cards.filter((c) => c.isCommander).map((c) => c.oracleId),
+      cards: d.cards
+        .filter((c) => !c.isCommander)
+        .map(({ oracleId, quantity }) => ({ oracleId, quantity })),
+    }));
+  }
+
+  async setFacts(deckId: string, facts: DeckFacts) {
+    // SQL directo: con `update` Prisma cambiaría `updatedAt` y el mazo parecería editado.
+    await this.db.$executeRaw`
+      UPDATE "Deck" SET "colorIdentity" = ${facts.colorIdentity}, "bracket" = ${facts.bracket}
+      WHERE "publicId" = ${deckId}`;
   }
 }
 
@@ -121,6 +207,7 @@ export class PrismaDeckRepository implements DeckRepository {
     const fields = {
       ...(data.visibility !== undefined ? { visibility: data.visibility } : {}),
       ...(data.targetBracket !== undefined ? { targetBracket: data.targetBracket } : {}),
+      ...(data.facts ? data.facts : {}),
       name: data.name,
       input: data.input,
       source: data.source,

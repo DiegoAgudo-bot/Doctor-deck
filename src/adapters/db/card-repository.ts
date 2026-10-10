@@ -162,6 +162,18 @@ export class PrismaCardRepository implements CardRepository, CardCatalogWriter {
     return prices;
   }
 
+  async findBasicLandIds(oracleIds: readonly string[]) {
+    const basics = new Set<string>();
+    for (const ids of chunks([...new Set(oracleIds)])) {
+      const rows = await this.db.oracleCard.findMany({
+        where: { oracleId: { in: ids }, isBasicLand: true },
+        select: { oracleId: true },
+      });
+      for (const r of rows) basics.add(r.oracleId);
+    }
+    return basics;
+  }
+
   async counts() {
     const [cards, printings] = await Promise.all([
       this.db.oracleCard.count(),

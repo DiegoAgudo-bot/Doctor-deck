@@ -2,23 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { CommunityDeckDTO, UserSummaryDTO } from "@/server/dto";
-import { api, ApiError } from "./api-client";
-import { DeckTile } from "./deck-tile";
-import { Banner, EmptyState, Loading, fmt } from "./ui";
+import type { UserSummaryDTO } from "@/server/dto";
+import { api } from "./api-client";
+import { CommunityDecks } from "./community-decks";
+import { Loading, fmt } from "./ui";
 
-/** /comunidad: buscar gente y los últimos mazos públicos. */
+/** /comunidad: buscar gente y mazos públicos (con cuánto tienes de cada uno). */
 export function CommunityPage() {
   const [q, setQ] = useState("");
   const [users, setUsers] = useState<UserSummaryDTO[] | null>(null);
-  const [decks, setDecks] = useState<CommunityDeckDTO[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api<CommunityDeckDTO[]>("/api/community/decks")
-      .then(setDecks)
-      .catch((e: unknown) => setError(e instanceof ApiError ? e.message : "Error al cargar"));
-  }, []);
 
   // Buscar con un respiro mientras se escribe; sin texto, los más activos.
   useEffect(() => {
@@ -46,7 +38,6 @@ export function CommunityPage() {
           publiquen un mazo o consigan una carta gorda.
         </p>
       </div>
-      {error && <Banner tone="out">{error}</Banner>}
 
       <section className="panel">
         <div className="panel-h">
@@ -97,29 +88,7 @@ export function CommunityPage() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="h2" style={{ fontSize: 17 }}>
-          Mazos recientes
-        </h2>
-        {decks === null ? (
-          <Loading>Cargando mazos…</Loading>
-        ) : decks.length === 0 ? (
-          <div className="panel">
-            <EmptyState title="Aún no hay mazos públicos">
-              Guarda uno de los tuyos y será el primero.
-            </EmptyState>
-          </div>
-        ) : (
-          <div
-            className="grid-1-sm grid gap-2.5"
-            style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
-          >
-            {decks.map((d, i) => (
-              <DeckTile key={d.id} deck={d} owner={d.owner} delay={i * 30} />
-            ))}
-          </div>
-        )}
-      </section>
+      <CommunityDecks />
     </main>
   );
 }

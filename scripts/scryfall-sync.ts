@@ -5,6 +5,7 @@
 import "dotenv/config";
 import { ensureBulkFile, readBulkFile } from "@/adapters/scryfall/bulk";
 import { safeMappers } from "@/adapters/scryfall/mapping";
+import { refreshDeckFacts } from "@/application/community";
 import { recordPriceSnapshot } from "@/application/prices";
 import { syncScryfallCatalog } from "@/application/sync-scryfall";
 import { createContainer } from "@/server/container";
@@ -49,6 +50,12 @@ async function main() {
   );
   const snapshot = await recordPriceSnapshot({ prices: c.prices });
   console.log(`Precios del ${snapshot.date}: ${snapshot.cards} cartas de colecciones y mazos.`);
+  // La lista de game changers puede cambiar: se recalcula el bracket de todos los mazos.
+  const facts = await refreshDeckFacts(
+    { publicDecks: c.publicDecks, cards: c.cards },
+    { all: true },
+  );
+  console.log(`Bracket e identidad recalculados en ${facts} mazos.`);
   await c.db.$disconnect();
 }
 

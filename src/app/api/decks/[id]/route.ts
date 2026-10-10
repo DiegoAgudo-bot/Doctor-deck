@@ -3,7 +3,7 @@ import { z } from "zod";
 import { BRACKETS } from "@/domain/deck/bracket";
 import { DECK_VISIBILITIES } from "@/domain/deck/visibility";
 import { getContainer } from "@/server/container";
-import { savedDeckDTO } from "@/server/dto";
+import { savedDeckDTO, type DeckViewDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
 import { currentUser, requireUser } from "@/server/session";
 
@@ -25,12 +25,19 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">
     const c = getContainer();
     const found = id === null ? null : await c.publicDecks.find(id, user?.id ?? null);
     if (!found) return notFound();
-    const owner = await c.social.byId(found.ownerId);
-    return Response.json({
+    const [owner, likes, liked] = await Promise.all([
+      c.social.byId(found.ownerId),
+      c.publicDecks.likes(found.deck.id),
+      user ? c.publicDecks.likedBy(user.id, [found.deck.id]) : Promise.resolve(new Set<string>()),
+    ]);
+    const body: DeckViewDTO = {
       ...savedDeckDTO(found.deck),
       isMine: user?.id === found.ownerId,
       owner: { username: owner?.username ?? null, name: owner?.name ?? "" },
-    });
+      likes,
+      liked: liked.has(found.deck.id),
+    };
+    return Response.json(body);
   } catch (err) {
     return errorResponse(err);
   }

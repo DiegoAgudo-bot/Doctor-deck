@@ -27,7 +27,7 @@ import {
   type Decision,
   type ListView,
 } from "./deck-views";
-import { IconCart, IconWarn } from "./icons";
+import { IconCart, IconHeart, IconWarn } from "./icons";
 import {
   LOCAL_COLLECTION_EVENT,
   localCollection,
@@ -106,6 +106,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const [editNotice, setEditNotice] = useState<string | null>(null);
   /** Si el mazo abierto es de otro (público): de quién. Se analiza con MI colección. */
   const [owner, setOwner] = useState<DeckViewDTO["owner"] | null>(null);
+  /** "Me gusta" del mazo guardado abierto (mío o de otro). */
+  const [like, setLike] = useState<{ id: string; count: number; liked: boolean } | null>(null);
   // Colección en este navegador (sin cuenta). Se lee tras montar: el servidor no tiene localStorage.
   const [hasLocal, setHasLocal] = useState(false);
   useEffect(() => {
@@ -145,6 +147,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             visibility: d.isMine ? d.visibility : "public",
             targetBracket: d.isMine ? d.targetBracket : null,
           };
+          setLike({ id: d.id, count: d.likes, liked: d.liked });
           if (!d.isMine) {
             setOwner(d.owner);
             // El mazo de otro: lo primero es ver qué me falta para montarlo.
@@ -319,6 +322,21 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
    * Añade (delta > 0) o quita (delta < 0) copias de una carta: rehace la lista, vuelve a analizar y,
    * si es uno de mis mazos guardados, lo guarda.
    */
+  async function toggleLike() {
+    if (!like || !owner) return;
+    const liked = !like.liked;
+    setLike({ ...like, liked, count: like.count + (liked ? 1 : -1) });
+    try {
+      const res = await api<{ likes: number; liked: boolean }>(`/api/decks/${like.id}/like`, {
+        method: liked ? "POST" : "DELETE",
+      });
+      setLike({ ...like, liked: res.liked, count: res.likes });
+    } catch (err) {
+      setLike(like);
+      setError(err instanceof ApiError ? err.message : "No se pudo guardar el «me gusta»");
+    }
+  }
+
   /** Cambia el bracket objetivo: reanaliza y, si es un mazo mío guardado, lo guarda. */
   async function changeTarget(targetBracket: Bracket | null) {
     await analyze({ targetBracket });
@@ -453,6 +471,9 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             onEdit={() => setEditing(true)}
             target={saved.targetBracket}
             onShowBracket={() => setTab("stats")}
+            like={like && (owner || saved.deckId === like.id) ? like : null}
+            canLike={Boolean(owner) && loggedIn}
+            onLike={() => void toggleLike()}
           />
 
           {ok.edhrec.themes.length > 0 && (
@@ -1044,6 +1065,9 @@ function DeckHeader({
   onEdit,
   target,
   onShowBracket,
+  like,
+  canLike,
+  onLike,
 }: {
   ok: Ok;
   name: string;
@@ -1055,6 +1079,10 @@ function DeckHeader({
   onEdit: () => void;
   target: Bracket | null;
   onShowBracket: () => void;
+  like: { count: number; liked: boolean } | null;
+  /** Solo el mazo de otro y con sesión. */
+  canLike: boolean;
+  onLike: () => void;
 }) {
   const identity = [...new Set(ok.commanders.flatMap((c) => c.colorIdentity))];
   const order = ["W", "U", "B", "R", "G"];
@@ -1123,6 +1151,31 @@ function DeckHeader({
         <button type="button" className="btn btn-ghost" onClick={onEdit}>
           Cambiar lista
         </button>
+        {like &&
+          (canLike ? (
+            <button
+              type="button"
+              className="btn"
+              aria-pressed={like.liked}
+              aria-label={like.liked ? "Quitar «me gusta»" : "Me gusta"}
+              title={like.liked ? "Quitar «me gusta»" : "Me gusta"}
+              onClick={onLike}
+              style={like.liked ? { color: "var(--color-out)" } : undefined}
+            >
+              <IconHeart size={15} filled={like.liked} />
+              {like.count}
+            </button>
+          ) : owner ? (
+            <Link className="btn" href="/entrar" title="Entra para darle «me gusta»">
+              <IconHeart size={15} />
+              {like.count}
+            </Link>
+          ) : (
+            <span className="btn btn-ghost" title="«Me gusta» de otros jugadores">
+              <IconHeart size={15} />
+              {like.count}
+            </span>
+          ))}
       </div>
     </section>
   );

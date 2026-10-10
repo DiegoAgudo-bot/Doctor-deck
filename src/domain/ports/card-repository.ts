@@ -16,6 +16,8 @@ export interface CardRepository {
   ): Promise<Printing[]>;
   /** Precio más barato (EUR) entre las impresiones de cada carta; las que no tienen precio no salen. */
   findMinPrices(oracleIds: readonly string[]): Promise<Map<string, number>>;
+  /** De estas cartas, las que son tierras básicas. */
+  findBasicLandIds(oracleIds: readonly string[]): Promise<Set<string>>;
   counts(): Promise<{ cards: number; printings: number }>;
 }
 

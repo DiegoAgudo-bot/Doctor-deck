@@ -187,7 +187,7 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   colección es pública (`src/config/social.ts`). Solo avisos en la web (campana, cada minuto).
   Rutas: `/comunidad`, `/u/[username]`, `/notificaciones`, `/ajustes`; API `GET|PATCH
 /api/me/profile`, `GET /api/users?q=`, `GET /api/users/{u}`, `POST|DELETE /api/users/{u}/follow`,
-  `GET /api/notifications`, `POST /api/notifications/read`, `GET /api/community/decks`,
+  `GET /api/notifications`, `POST /api/notifications/read`, `POST /api/community/decks`,
   `PATCH /api/decks/{id}` (`{visibility}`), `POST /api/collection/view` con `username`.
 - **Crear mazos** (`application/new-deck.ts`, página `/mazos/nuevo`): eliges el comandante
   (buscador con `commander=1`) y `newDeckFromCommander` monta el **mazo medio de EDHREC**
@@ -217,6 +217,18 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   `analyze` (`bracket`), en la cabecera y en Estadísticas. `Deck.targetBracket` (opcional): el
   motor no propone game changers por encima del límite (0 hasta el 2, 3 en el 3, contando los que
   salen) ni destrucción masiva por debajo del 4. `PATCH /api/decks/{id}` acepta `targetBracket`.
+- **Comunidad** (Fase 13, `application/community.ts`): `browseCommunity` busca los mazos públicos
+  (`PublicDecks.search`, como mucho los 500 últimos que cumplen los filtros: texto en nombre o
+  comandantes, identidad exacta `colors`, `bracket`, `following`, `username`), calcula para cada uno
+  cuánto tengo (`summarizeOwnership` → `ownershipTotals`, mismos totales que `deckOwnership`; % =
+  copias libres / cartas sin básicas) y el coste de lo que falta, ordena (`recent` | `likes` |
+  `owned`) y pagina. Filtrar sin cargar cartas: `Deck.colorIdentity` y `Deck.bracket`
+  (`deckFacts`), calculados al guardar; si faltan se rellenan al buscar y `scryfall:sync` los
+  recalcula todos (`refreshDeckFacts`; con SQL directo para no tocar `updatedAt`). API `POST
+/api/community/decks` (`{filters, sort, offset, limit, collection?}`; sin sesión, la colección
+  del navegador). "Me gusta": tabla `DeckLike`, `POST|DELETE /api/decks/{id}/like` (no a los
+  propios ni a los privados); `GET /api/decks/{id}` devuelve `likes` y `liked`. Los perfiles de
+  otros piden lo mismo con `username` para enseñar el % en cada mazo.
 - **Histórico de precios** (`PriceSnapshot`, `PrismaPriceHistory`): `scryfall:sync` guarda cada
   día (`recordPriceSnapshot`, fecha UTC) el precio más barato de las cartas que están en alguna
   colección o mazo. Aún sin pantalla: la usará la fase 14.
@@ -292,8 +304,9 @@ Purchase price currency, Added`.
 10. Crear mazos desde el comandante (mazo medio de EDHREC o desde cero) y gestor de mazos ✅
 11. Exportar a Arena/MTGO, mazos ocultos, mano inicial y empezar a guardar precios ✅
 12. Bracket estimado, game changers y bracket objetivo en el motor ✅
+13. Comunidad: mazos que puedes montar ya (% y coste), filtros y "me gusta" ✅
 
-Las fases siguientes (13–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
+Las fases siguientes (14–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
 diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)

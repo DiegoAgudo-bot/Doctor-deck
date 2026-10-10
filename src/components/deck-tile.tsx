@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import type { DeckOwnershipSummary } from "@/domain/community/rank";
+import { formatEuros } from "@/domain/suggestions/format";
 import type { SavedDeckSummaryDTO } from "@/server/dto";
 import { CardImage } from "./card-image";
 import { nextVisibility, VISIBILITY } from "./deck-visibility";
-import { IconCopy, IconPencil, IconTrash } from "./icons";
+import { IconCopy, IconHeart, IconPencil, IconTrash } from "./icons";
 import { ColorPips } from "./mana";
 import { ago } from "./ui";
 
@@ -25,6 +27,9 @@ export function DeckTile({
   onDelete,
   onRename,
   onDuplicate,
+  ownership,
+  likes,
+  bracket,
   delay = 0,
 }: {
   deck: SavedDeckSummaryDTO;
@@ -33,6 +38,10 @@ export function DeckTile({
   onDelete?: (() => void) | undefined;
   onRename?: (() => void) | undefined;
   onDuplicate?: (() => void) | undefined;
+  /** Cuánto del mazo tengo yo (Comunidad, perfiles de otros). */
+  ownership?: DeckOwnershipSummary | undefined;
+  likes?: number | undefined;
+  bracket?: number | null | undefined;
   delay?: number;
 }) {
   const mine = Boolean(onToggleVisibility || onDelete);
@@ -63,7 +72,15 @@ export function DeckTile({
             <span>{SOURCE_LABEL[d.source] ?? d.source}</span>
             <span>{d.cardCount} cartas</span>
             <span>{ago(d.updatedAt)}</span>
+            {bracket != null && <span>Bracket {bracket}</span>}
+            {likes !== undefined && likes > 0 && (
+              <span className="inline-flex items-center gap-1">
+                <IconHeart size={11} filled />
+                {likes}
+              </span>
+            )}
           </span>
+          {ownership && <OwnershipBar o={ownership} />}
           {mine && d.visibility !== "public" && (
             <span className="pill subtle mt-auto">
               <Vis size={12} />
@@ -124,5 +141,26 @@ export function DeckTile({
         </div>
       )}
     </div>
+  );
+}
+
+/** "Tienes el 72 % · faltan 12 (≈ 35,40 €)" con una barra. */
+function OwnershipBar({ o }: { o: DeckOwnershipSummary }) {
+  return (
+    <span className="mt-auto flex flex-col gap-1 pt-1">
+      <span className="text-xs">
+        <b style={{ color: o.toBuy ? undefined : "var(--color-in)" }}>Tienes el {o.percent} %</b>
+        <span className="subtle">
+          {o.toBuy
+            ? ` · faltan ${o.toBuy}${o.cost ? ` (≈ ${formatEuros(o.cost)}${o.unpriced ? "+" : ""})` : ""}`
+            : o.fromOtherDecks
+              ? ` · ${o.fromOtherDecks} en otros mazos`
+              : " · ¡lo puedes montar ya!"}
+        </span>
+      </span>
+      <span className="role-bar" style={{ height: 4 }}>
+        <i style={{ width: `${o.percent}%` }} />
+      </span>
+    </span>
   );
 }

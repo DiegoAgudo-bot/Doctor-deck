@@ -1,4 +1,5 @@
 import type { Bracket } from "../deck/bracket";
+import type { DeckFacts } from "../deck/facts";
 import type { DeckVisibility } from "../deck/visibility";
 import type { CardUsage } from "../suggestions/engine";
 
@@ -41,6 +42,8 @@ export interface SaveDeckData {
   visibility?: DeckVisibility | undefined;
   /** Si no viene, al crear queda sin objetivo y al actualizar no cambia. */
   targetBracket?: Bracket | null | undefined;
+  /** Identidad y bracket para filtrar en Comunidad. */
+  facts?: DeckFacts | undefined;
 }
 
 export interface DeckRepository {

@@ -109,6 +109,14 @@ export class PrismaSocialRepository
     return rows.map((r) => r.followerId);
   }
 
+  async followingIds(userId: string) {
+    const rows = await this.db.follow.findMany({
+      where: { followerId: userId },
+      select: { followedId: true },
+    });
+    return rows.map((r) => r.followedId);
+  }
+
   // ---------- notificaciones ----------
 
   async create(items: readonly NewNotification[]) {

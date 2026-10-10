@@ -97,7 +97,7 @@ describe("mazos públicos y perfiles", () => {
     expect(await decks.find(priv, "beto")).toBeNull();
     expect((await decks.find(priv, "ana"))?.deck.name).toBe("Privado");
     expect((await decks.find(hidden, null))?.deck.name).toBe("Oculto");
-    expect((await decks.recent(10)).map((d) => d.name)).toEqual(["Público"]);
+    expect((await decks.search({}, 10)).map((d) => d.name)).toEqual(["Público"]);
 
     expect((await profileView("ana", "beto", deps())).decks.map((d) => d.name)).toEqual([
       "Público",

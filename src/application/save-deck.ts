@@ -1,3 +1,4 @@
+import { deckFacts } from "@/domain/deck/facts";
 import { chooseCommanders } from "@/domain/deck/resolve";
 import type { Bracket } from "@/domain/deck/bracket";
 import type { DeckVisibility } from "@/domain/deck/visibility";
@@ -52,6 +53,7 @@ export async function saveDeck(
     excluded: [...(req.excluded ?? [])],
     visibility: req.visibility ?? (req.id === undefined ? "public" : undefined),
     targetBracket: req.targetBracket,
+    facts: deckFacts(deck.commanders, deck.cards),
   });
   return { id, name };
 }

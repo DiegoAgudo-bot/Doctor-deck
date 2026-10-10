@@ -103,6 +103,12 @@ model Deck {
   visibility     String         @default("public")
   /// Bracket al que apunta el mazo (1–5); null = sin objetivo.
   targetBracket  Int?
+  /// Datos para filtrar en Comunidad, calculados al guardar (y tras cada `scryfall:sync`):
+  /// identidad de color del comandante ("WUBRG"; "" = incolora) y bracket estimado (2–4).
+  /// null = sin calcular todavía.
+  colorIdentity  String?
+  bracket        Int?
+  likes          DeckLike[]
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   cards          DeckCard[]
@@ -167,6 +173,7 @@ model User {
   followers         Follow[]          @relation("followed")
   notifications     Notification[]    @relation("recipient")
   sentNotifications Notification[]    @relation("actor")
+  deckLikes         DeckLike[]
 
   @@map("user")
 }
@@ -262,4 +269,16 @@ model PriceSnapshot {
 
   @@id([oracleId, date])
   @@index([date])
+}
+
+/// "Me gusta" de un usuario a un mazo (público u oculto) de otro.
+model DeckLike {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deckId    Int
+  deck      Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, deckId])
+  @@index([deckId])
 }

@@ -18,7 +18,7 @@ despliegue en `main` y **parar al terminar cada fase hasta el OK del usuario**.
 | 10   | Crear mazos (comandante, mazo medio, desde cero) y gestor     | Bajo     | ✅     |
 | 11   | Exportar Arena/MTGO, mazos ocultos, manos de muestra, precios | Bajo     | ✅     |
 | 12   | Bracket y game changers                                       | Bajo     | ✅     |
-| 13   | Comunidad: mazos que puedes montar ya, me gusta, filtros      | Medio    |        |
+| 13   | Comunidad: mazos que puedes montar ya, me gusta, filtros      | Medio    | ✅     |
 | 14   | Precios: histórico, lo que más sube, avisos de bajada         | Medio    |        |
 | 15   | Etiquetas propias que corrigen los roles                      | Medio    |        |
 | 16   | Combos (Commander Spellbook) y bracket con combos             | Medio    |        |
@@ -94,7 +94,7 @@ desde que existen los brackets.
 
 **Hecho cuando:** los tests cubren un mazo de cada bracket y el motor respeta el bracket objetivo.
 
-## Fase 13 · Comunidad útil
+## Fase 13 · Comunidad útil ✅
 
 **Objetivo:** que la parte social sirva para jugar, no solo para mirar.
 

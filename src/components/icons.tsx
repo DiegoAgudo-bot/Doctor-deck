@@ -214,3 +214,11 @@ export const IconLink = (p: P) => (
     <path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1" />
   </Icon>
 );
+export const IconHeart = ({ filled = false, ...p }: P & { filled?: boolean }) => (
+  <Icon {...p}>
+    <path
+      d="M12 20s-7-4.4-9.2-9A5 5 0 0 1 12 6a5 5 0 0 1 9.2 5c-2.2 4.6-9.2 9-9.2 9z"
+      fill={filled ? "currentColor" : "none"}
+    />
+  </Icon>
+);

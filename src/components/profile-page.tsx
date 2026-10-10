@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { ProfileViewDTO } from "@/server/dto";
+import type { CommunityDeckDTO, CommunityResponse, ProfileViewDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
 import { CollectionBrowser } from "./collection-browser";
 import { DeckTile } from "./deck-tile";
+import { localCollection, ownedPairs } from "./local-collection";
 import { nextVisibility, setDeckVisibility } from "./deck-visibility";
 import { IconEyeOff, IconSettings } from "./icons";
 import { Banner, EmptyState, Loading, fmt } from "./ui";
@@ -21,6 +22,8 @@ export function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"mazos" | "coleccion">("mazos");
   const [busy, setBusy] = useState(false);
+  /** En el perfil de otro: cuánto tengo de cada uno de sus mazos públicos, "me gusta" y bracket. */
+  const [extra, setExtra] = useState<Map<string, CommunityDeckDTO>>(new Map());
 
   useEffect(() => {
     api<ProfileViewDTO>(`/api/users/${encodeURIComponent(username)}`, undefined, { silent: true })
@@ -29,6 +32,27 @@ export function ProfilePage() {
         setError(e instanceof ApiError ? e.message : "No se pudo cargar el perfil"),
       );
   }, [username, session]);
+
+  const isMe = view?.isMe ?? true;
+  useEffect(() => {
+    if (isMe) return;
+    const local = session ? null : localCollection.get();
+    api<CommunityResponse>(
+      "/api/community/decks",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filters: { username },
+          limit: 100,
+          ...(local ? { collection: ownedPairs(local) } : {}),
+        }),
+      },
+      { silent: true },
+    )
+      .then((r) => setExtra(new Map(r.items.map((d) => [d.id, d]))))
+      .catch(() => setExtra(new Map()));
+  }, [isMe, username, session]);
 
   async function toggleFollow() {
     if (!view) return;
@@ -159,6 +183,9 @@ export function ProfilePage() {
                 key={d.id}
                 deck={d}
                 delay={i * 40}
+                ownership={extra.get(d.id)?.ownership}
+                likes={extra.get(d.id)?.likes}
+                bracket={extra.get(d.id)?.bracket}
                 onToggleVisibility={
                   view.isMe
                     ? () =>

@@ -1,3 +1,4 @@
+import type { DeckOwnershipSummary } from "@/domain/community/rank";
 import type { BracketEstimate } from "@/domain/deck/bracket";
 import type { AnalyzeDeckResult } from "@/application/analyze-deck";
 import type { AddCardsResult, CollectionCard } from "@/application/collection-cards";
@@ -171,6 +172,8 @@ export interface SavedDeckDTO extends Omit<SavedDeck, "updatedAt"> {
 export interface DeckViewDTO extends SavedDeckDTO {
   isMine: boolean;
   owner: { username: string | null; name: string };
+  likes: number;
+  liked: boolean;
 }
 
 /** Lo público de un usuario (nunca el email). */
@@ -220,6 +223,18 @@ export interface MyProfileDTO extends PublicProfileDTO {
 
 export interface CommunityDeckDTO extends SavedDeckSummaryDTO {
   owner: { username: string | null; name: string };
+  likes: number;
+  /** ¿Le he dado "me gusta"? */
+  liked: boolean;
+  bracket: number | null;
+  /** Cuánto del mazo tengo yo y cuánto cuesta lo que falta. */
+  ownership: DeckOwnershipSummary;
+}
+
+export interface CommunityResponse {
+  items: CommunityDeckDTO[];
+  /** Mazos que cumplen los filtros (como mucho los últimos 500). */
+  total: number;
 }
 
 /** Para el asistente de "Nuevo mazo": el comandante, sus temas en EDHREC y el nombre propuesto. */

@@ -85,3 +85,29 @@ export function deckOwnership(
     },
   };
 }
+
+/**
+ * Los mismos totales que `deckOwnership`, sin cartas completas: basta con oracleId, copias y si es
+ * básica (para resumir muchos mazos a la vez, p. ej. en Comunidad).
+ */
+export function ownershipTotals(
+  entries: readonly { oracleId: string; quantity: number; isBasicLand: boolean }[],
+  owned: ReadonlyMap<string, number>,
+  usage?: ReadonlyMap<string, CardUsage>,
+): OwnershipTotals & { missing: { oracleId: string; toBuy: number }[] } {
+  const totals = { cards: 0, have: 0, fromOtherDecks: 0, toBuy: 0 };
+  const missing: { oracleId: string; toBuy: number }[] = [];
+  for (const { oracleId, quantity, isBasicLand } of entries) {
+    if (isBasicLand) continue;
+    const have = owned.get(oracleId) ?? 0;
+    const available = Math.max(0, have - (usage?.get(oracleId)?.quantity ?? 0));
+    const fromFree = Math.min(quantity, available);
+    const toBuy = Math.max(0, quantity - have);
+    totals.cards += quantity;
+    totals.have += fromFree;
+    totals.fromOtherDecks += Math.min(quantity, have) - fromFree;
+    totals.toBuy += toBuy;
+    if (toBuy > 0) missing.push({ oracleId, toBuy });
+  }
+  return { ...totals, missing };
+}
