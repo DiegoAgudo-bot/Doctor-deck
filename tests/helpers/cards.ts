@@ -19,6 +19,7 @@ export function makeCard(overrides: Partial<Card> & Pick<Card, "name">): Card {
     isBasicLand: false,
     edhrecRank: null,
     imageUrl: null,
+    gameChanger: false,
     ...overrides,
   };
 }
