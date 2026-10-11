@@ -503,7 +503,7 @@ model Game {
   @@index([createdById])
 }
 
-/// Un jugador de una partida: usuario de Deck Doctor o invitado (solo nombre).
+/// Un jugador de una partida: usuario de Doctor Deck o invitado (solo nombre).
 model GamePlayer {
   id             Int     @id @default(autoincrement())
   gameId         Int
@@ -531,7 +531,7 @@ model Loan {
   publicId     String    @unique @default(uuid())
   lenderId     String
   lender       User      @relation("lender", fields: [lenderId], references: [id], onDelete: Cascade)
-  /// A quién: un usuario de Deck Doctor o, si no tiene cuenta, solo su nombre.
+  /// A quién: un usuario de Doctor Deck o, si no tiene cuenta, solo su nombre.
   borrowerId   String?
   borrower     User?     @relation("borrower", fields: [borrowerId], references: [id], onDelete: SetNull)
   borrowerName String?

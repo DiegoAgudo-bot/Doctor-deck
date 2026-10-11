@@ -31,7 +31,7 @@ export const Pending = ({ what }: { what: string }) => (
 export function FanContentNotice({ className = "" }: { className?: string }) {
   return (
     <p className={`subtle text-xs ${className}`}>
-      Deck Doctor es contenido de fans no oficial permitido por la{" "}
+      Doctor Deck es contenido de fans no oficial permitido por la{" "}
       <a href="https://company.wizards.com/es/legal/fancontentpolicy" rel="noopener">
         Política de contenido de fans
       </a>

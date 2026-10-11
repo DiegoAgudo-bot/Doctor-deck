@@ -6,8 +6,8 @@ import { FanContentNotice, LegalPage, Pending } from "@/components/legal";
 import { loadEnv } from "@/config/env";
 
 export const metadata: Metadata = {
-  title: "Aviso legal · Deck Doctor",
-  description: "Titular, condiciones de uso y propiedad intelectual de Deck Doctor.",
+  title: "Aviso legal · Doctor Deck",
+  description: "Titular, condiciones de uso y propiedad intelectual de Doctor Deck.",
 };
 
 async function OwnerData() {
@@ -36,7 +36,7 @@ export default function Page() {
         <OwnerData />
       </Suspense>
 
-      <h2>Qué es Deck Doctor</h2>
+      <h2>Qué es Doctor Deck</h2>
       <p>
         Una herramienta gratuita para jugadores de Magic: The Gathering: propone mejoras para tus
         mazos de Commander con las cartas que ya tienes, lleva tu colección y te ayuda a
@@ -73,7 +73,7 @@ export default function Page() {
         <a href="https://commanderspellbook.com" rel="noopener">
           Commander Spellbook
         </a>
-        , sin relación con Deck Doctor.
+        , sin relación con Doctor Deck.
       </p>
       <FanContentNotice />
 

@@ -4,7 +4,7 @@ import { deckShare, imageDataUri } from "@/server/share";
 
 export const size = OG_SIZE;
 export const contentType = "image/png";
-export const alt = "Mazo de Commander en Deck Doctor";
+export const alt = "Mazo de Commander en Doctor Deck";
 
 /** Vista previa al compartir un mazo: arte del comandante, nombre, colores y bracket. */
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {

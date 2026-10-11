@@ -130,7 +130,7 @@ export async function ogImage({
           >
             +
           </div>
-          <span style={{ fontWeight: 700, letterSpacing: -0.5 }}>Deck Doctor</span>
+          <span style={{ fontWeight: 700, letterSpacing: -0.5 }}>Doctor Deck</span>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
