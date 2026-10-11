@@ -24,6 +24,17 @@ export interface ManualCard {
   scryfallId?: string | null | undefined;
   /** Idioma de la copia (código de Scryfall), si se sabe. */
   language?: string | null | undefined;
+  condition?: string | null | undefined;
+}
+
+/** Lo que se puede cambiar de una línea de la colección. */
+export interface CollectionLinePatch {
+  quantity?: number | undefined;
+  foil?: boolean | undefined;
+  language?: string | null | undefined;
+  condition?: string | null | undefined;
+  /** Otra impresión de la misma carta (con su edición y número). */
+  printing?: { scryfallId: string; setCode: string; collectorNumber: string } | undefined;
 }
 
 /** Una línea de la colección (del CSV o añadida suelta), ya emparejada con una carta. */
@@ -35,10 +46,13 @@ export interface CollectionEntryRow {
   quantity: number;
   foil: boolean;
   setCode: string | null;
+  collectorNumber: string | null;
   /** Impresión concreta (Scryfall ID), si se conoce. */
   scryfallId: string | null;
   /** Idioma de la copia (código de Scryfall: "en", "es"…), si se sabe. */
   language: string | null;
+  /** Estado de la copia ("near_mint"…), si se sabe. */
+  condition: string | null;
   source: "csv" | "manual";
   addedAt: Date;
 }
@@ -54,6 +68,13 @@ export interface CollectionRepository {
   entries(): Promise<CollectionEntryRow[]>;
   /** Borra una carta añadida suelta (las del CSV solo cambian reimportando). */
   removeAdded(id: string): Promise<boolean>;
+  /**
+   * Cambia una línea cualquiera (también las del CSV, que pasan a ser "a mano" para que reimportar
+   * no las pise). Devuelve false si no existe o no es mía.
+   */
+  updateLine(id: string, patch: CollectionLinePatch): Promise<boolean>;
+  /** Borra una línea cualquiera (también del CSV). */
+  removeLine(id: string): Promise<boolean>;
   summary(): Promise<CollectionSummary>;
   /** Copias que tengo de cada carta, por oracleId. */
   ownedQuantities(): Promise<Map<string, number>>;

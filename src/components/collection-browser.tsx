@@ -14,6 +14,8 @@ import type {
 import { api, ApiError } from "./api-client";
 import { CardHover, CardImage } from "./card-image";
 import { CardPriceDialog } from "./card-price-dialog";
+import { CollectionCardDialog } from "./collection-card-dialog";
+import { notifyCollectionChanged } from "./local-collection";
 import { localRoles } from "./local-roles";
 import { roleLabel } from "./deck-views";
 import { ManaCost, SYMBOL_URL } from "./mana";
@@ -134,8 +136,13 @@ export function CollectionBrowser({
 }) {
   const [f, setF] = useState<Filters>(EMPTY);
   const [view, setView] = useState<"cuadricula" | "tabla">("cuadricula");
+  /** En el móvil los filtros van plegados (solo el buscador a la vista). */
+  const [filtersOpen, setFiltersOpen] = useState(false);
   /** Carta cuyo histórico de precio se está viendo. */
   const [priceCard, setPriceCard] = useState<CardDTO | null>(null);
+  /** Carta que se está editando copia a copia (solo en mi colección, con cuenta). */
+  const [editCard, setEditCard] = useState<CardDTO | null>(null);
+  const editable = loggedIn && !username;
   const [items, setItems] = useState<CollectionCardDTO[] | null>(null);
   const [total, setTotal] = useState<CollectionTotals | null>(null);
   const [loading, setLoading] = useState(false);
@@ -219,7 +226,7 @@ export function CollectionBrowser({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="panel flex flex-col gap-3 p-3">
+      <div className={`panel filters flex flex-col gap-3 p-3 ${filtersOpen ? "is-open" : ""}`}>
         <div className="flex flex-wrap items-center gap-2">
           <input
             className="input"
@@ -229,7 +236,20 @@ export function CollectionBrowser({
             value={f.q}
             onChange={(e) => set({ q: e.target.value })}
           />
-          <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Colores">
+          <button
+            type="button"
+            className="btn filters-toggle"
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((o) => !o)}
+          >
+            Filtros{active ? " ·" : ""}
+            {active && <span className="dot" style={{ background: "var(--color-accent)" }} />}
+          </button>
+          <div
+            className="filters-extra flex flex-wrap items-center gap-1"
+            role="group"
+            aria-label="Colores"
+          >
             {COLORS.map((c) => {
               const on = f.colors.includes(c);
               return (
@@ -269,7 +289,7 @@ export function CollectionBrowser({
             </select>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="filters-extra flex flex-wrap items-center gap-2">
           <select
             className="select"
             style={{ width: "auto" }}
@@ -438,7 +458,18 @@ export function CollectionBrowser({
           {shown.map((c) => (
             <figure key={c.card.oracleId} className="m-0 flex flex-col gap-1.5">
               <div className="relative">
-                <CardImage card={c.card} />
+                {editable ? (
+                  <button
+                    type="button"
+                    className="cardbtn"
+                    title="Ver y editar tus copias"
+                    onClick={() => setEditCard(c.card)}
+                  >
+                    <CardImage card={c.card} />
+                  </button>
+                ) : (
+                  <CardImage card={c.card} />
+                )}
                 <span
                   className="qtymark"
                   style={{ top: "4%", right: -4 }}
@@ -449,7 +480,7 @@ export function CollectionBrowser({
               </div>
               <figcaption className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
                 {c.foilQuantity > 0 && (
-                  <span className="pill pill-warn">foil {c.foilQuantity}</span>
+                  <span className="pill pill-foil">foil {c.foilQuantity}</span>
                 )}
                 <LanguagePills card={c} />
                 {c.inUse > 0 && (
@@ -495,8 +526,19 @@ export function CollectionBrowser({
                   <td className="r mono">{c.quantity}</td>
                   <td>
                     <CardHover card={c.card} className="inline-flex items-center gap-2">
-                      {c.card.name}
-                      {c.foilQuantity > 0 && <span className="pill pill-warn">foil</span>}
+                      {editable ? (
+                        <button
+                          type="button"
+                          className="linkbtn"
+                          title="Ver y editar tus copias"
+                          onClick={() => setEditCard(c.card)}
+                        >
+                          {c.card.name}
+                        </button>
+                      ) : (
+                        c.card.name
+                      )}
+                      {c.foilQuantity > 0 && <span className="pill pill-foil">foil</span>}
                       <LanguagePills card={c} />
                       {c.manual.length > 0 && <span className="pill subtle">a mano</span>}
                     </CardHover>
@@ -553,6 +595,11 @@ export function CollectionBrowser({
         </div>
       )}
       <CardPriceDialog card={priceCard} onClose={() => setPriceCard(null)} />
+      <CollectionCardDialog
+        card={editCard}
+        onClose={() => setEditCard(null)}
+        onChanged={notifyCollectionChanged}
+      />
     </div>
   );
 }

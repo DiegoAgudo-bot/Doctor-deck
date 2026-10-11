@@ -515,6 +515,27 @@ export interface CollectionCardDTO {
   inUse: number;
 }
 
+/** Una línea de mi colección (unas copias iguales), para verla y editarla. */
+export interface CollectionLineDTO {
+  /** publicId de la línea. */
+  id: string;
+  card: CardDTO;
+  quantity: number;
+  foil: boolean;
+  language: string | null;
+  condition: string | null;
+  source: "csv" | "manual";
+  printing: {
+    scryfallId: string;
+    setCode: string;
+    setName: string | null;
+    collectorNumber: string;
+  } | null;
+  /** Precio de cada copia (EUR) según su edición y si es foil. */
+  unitPrice: number | null;
+  addedAt: string;
+}
+
 /** Una página de la colección y sus totales (lo filtrado y todo). */
 export interface CollectionViewResponse {
   items: CollectionCardDTO[];

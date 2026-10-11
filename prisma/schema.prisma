@@ -93,6 +93,8 @@ model CollectionEntry {
   foil            Boolean  @default(false)
   /// Idioma de la copia (código de Scryfall: "en", "es", "ja"…); null si no se sabe.
   language        String?
+  /// Estado de la copia ("near_mint", "lightly_played"… como ManaBox); null si no se sabe.
+  condition       String?
   /// "matched" | "unmatched"
   status          String
   /// Cómo se emparejó: "scryfallId" | "setNumber" | "name"; null si no se emparejó.

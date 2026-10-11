@@ -1,3 +1,4 @@
+import { normalizeCondition, type Condition } from "../cards/conditions";
 import { normalizeLanguage, type Language } from "../cards/languages";
 import { csvToRecords } from "./csv";
 
@@ -13,6 +14,8 @@ export interface CollectionRow {
   foil: boolean;
   /** Código de Scryfall ("en", "es", "ja"…); null si no viene o no se reconoce. */
   language: Language | null;
+  /** Estado ("near_mint", "lightly_played"…); null si no viene o no se reconoce. */
+  condition: Condition | null;
   raw: Record<string, string>;
 }
 
@@ -37,6 +40,7 @@ const COL = {
   quantity: "Quantity",
   scryfallId: "Scryfall ID",
   language: "Language",
+  condition: "Condition",
 } as const;
 
 const REQUIRED = [COL.name, COL.quantity] as const;
@@ -83,9 +87,81 @@ export function parseManaboxCsv(text: string): ParsedCollection {
       quantity,
       foil: foil !== "" && foil !== "normal",
       language: normalizeLanguage(raw[COL.language]),
+      condition: normalizeCondition(raw[COL.condition]),
       raw,
     });
   });
 
   return { rows, errors };
+}
+
+/** Una línea de la colección para exportarla con el formato de ManaBox. */
+export interface ManaboxExportRow {
+  name: string;
+  setCode: string | null;
+  setName: string | null;
+  collectorNumber: string | null;
+  foil: boolean;
+  quantity: number;
+  scryfallId: string | null;
+  condition: string | null;
+  language: string | null;
+  /** Precio de referencia por copia (EUR), si se sabe. */
+  price: number | null;
+  addedAt: Date;
+}
+
+export const MANABOX_HEADER = [
+  "Name",
+  "Set code",
+  "Set name",
+  "Collector number",
+  "Foil",
+  "Rarity",
+  "Quantity",
+  "ManaBox ID",
+  "Scryfall ID",
+  "Purchase price",
+  "Misprint",
+  "Altered",
+  "Signed",
+  "Condition",
+  "Language",
+  "Proxy",
+  "Purchase price currency",
+  "Added",
+] as const;
+
+const csvField = (v: string) => (/[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+
+/**
+ * La colección en el mismo CSV que exporta ManaBox (lo vuelven a leer ManaBox, Moxfield y esta
+ * misma web). Lo que no guardamos (rareza, ID de ManaBox…) va vacío o con el valor por defecto.
+ */
+export function toManaboxCsv(rows: readonly ManaboxExportRow[]): string {
+  const lines = rows.map((r) =>
+    [
+      r.name,
+      r.setCode?.toUpperCase() ?? "",
+      r.setName ?? "",
+      r.collectorNumber ?? "",
+      r.foil ? "foil" : "normal",
+      "",
+      String(r.quantity),
+      "",
+      r.scryfallId ?? "",
+      r.price !== null ? r.price.toFixed(2) : "",
+      "false",
+      "false",
+      "false",
+      r.condition ?? "near_mint",
+      r.language ?? "en",
+      "false",
+      "EUR",
+      r.addedAt.toISOString(),
+    ]
+      .map(csvField)
+      .join(","),
+  );
+  return [MANABOX_HEADER.join(","), ...lines].join("\n") + "\n";
 }

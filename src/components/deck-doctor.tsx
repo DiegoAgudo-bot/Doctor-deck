@@ -1297,8 +1297,15 @@ function DeckHeader({
   const identity = [...new Set(ok.commanders.flatMap((c) => c.colorIdentity))];
   const order = ["W", "U", "B", "R", "G"];
   const commander = ok.commanders[0];
+  // El arte recortado del comandante, de fondo (misma imagen en la carpeta art_crop de Scryfall).
+  const art = commander?.imageUrl?.startsWith("/img/")
+    ? commander.imageUrl.replace(/^\/img\/[a-z_]+\//, "/img/art_crop/").replace(/\.png$/, ".jpg")
+    : null;
   return (
-    <section className="stack-sm flex flex-wrap items-start gap-5">
+    <section
+      className="deckhero stack-sm flex flex-wrap items-start gap-5"
+      style={art ? { ["--art" as string]: `url("${art}")` } : undefined}
+    >
       {commander && (
         <div className="hide-sm flex flex-none flex-col gap-1.5" style={{ width: 132 }}>
           {ok.commanders.map((c) => (

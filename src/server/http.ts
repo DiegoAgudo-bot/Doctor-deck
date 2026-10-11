@@ -8,6 +8,8 @@ import { InvalidCommanderError } from "@/application/new-deck";
 import { CannotFollowSelfError, ProfileNotFoundError, UsernameError } from "@/application/social";
 import { DeckWithoutCommanderError } from "@/application/save-deck";
 import { EmptyCatalogError } from "@/application/import-collection";
+import { InvalidPrintingError } from "@/application/collection-cards";
+import { AccountConfirmationError } from "@/application/account";
 import { TradeProposalError } from "@/application/trade-proposals";
 import { CsvParseError } from "@/domain/collection/csv";
 import { ManaboxFormatError } from "@/domain/collection/manabox";
@@ -58,6 +60,12 @@ export function errorResponse(err: unknown): Response {
       { error: { code: `trade_${err.problem}`, message: err.message, oracleIds: err.oracleIds } },
       { status },
     );
+  }
+  if (err instanceof AccountConfirmationError) {
+    return Response.json(body("confirm_mismatch", err.message), { status: 400 });
+  }
+  if (err instanceof InvalidPrintingError) {
+    return Response.json(body("invalid_printing", err.message), { status: 400 });
   }
   if (err instanceof DeckNotFoundError) {
     return Response.json(body("deck_not_found", err.message), { status: 404 });

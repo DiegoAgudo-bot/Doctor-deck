@@ -38,12 +38,41 @@ BETTER_AUTH_SECRET="…"   # lo genera scripts/deploy.sh si falta; no lo cambies
 
 `BETTER_AUTH_URL` no hace falta: `docker-compose.yml` lo pone a `https://$DECK_DOCTOR_HOST`.
 
+Páginas legales (`/privacy` y `/legal`): sin estas dos variables salen como "pendiente".
+
+```bash
+LEGAL_OWNER="Nombre y apellidos (NIF si aplica)"
+LEGAL_EMAIL="privacidad@tu-dominio"
+```
+
 Tras cambiar `.env`: `docker compose up -d` (recrea el contenedor).
 
-Catálogo de Scryfall actualizado cada noche (crontab de root):
+Tareas diarias en el crontab de root (`scripts/deploy.sh` las añade solas si faltan):
 
 ```cron
+15 3 * * * cd /doctor-deck && docker compose exec -T deck-doctor npm run db:backup >> data/db-backup.log 2>&1
 30 4 * * * cd /doctor-deck && docker compose exec -T deck-doctor npm run scryfall:sync >> data/scryfall-sync.log 2>&1
+```
+
+## Copias de seguridad
+
+`npm run db:backup` copia la SQLite en caliente (API `backup` de SQLite, sin parar la web),
+comprueba la copia (`integrity_check`), la comprime y la deja en `data/backups/` como
+`deck-doctor-AAAA-MM-DDTHHMM.db.gz`; guarda las últimas `BACKUP_KEEP` (14 por defecto).
+
+**Están en el mismo disco que la base de datos**: protegen de errores y borrados, no de perder
+el VPS. Para tenerlas fuera, copia `data/backups/` a otro sitio (p. ej. con `rclone` a un
+almacenamiento externo) en otra línea del cron.
+
+Restaurar una copia:
+
+```bash
+cd /doctor-deck
+docker compose stop deck-doctor
+cp data/deck-doctor.db data/deck-doctor.db.antes-de-restaurar
+gunzip -c data/backups/deck-doctor-AAAA-MM-DDTHHMM.db.gz > data/deck-doctor.db
+rm -f data/deck-doctor.db-wal data/deck-doctor.db-shm
+docker compose start deck-doctor
 ```
 
 Los demás scripts CLI se ejecutan igual, p. ej.

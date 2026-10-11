@@ -7,7 +7,15 @@ import { BrowserCollectionRepository, noSavedDecks } from "@/adapters/memory/ano
 import { HeuristicRoleClassifier } from "@/domain/roles/heuristic-classifier";
 import { fixtureCards, fixturePrintings } from "../../tests/helpers/scryfall-fixtures";
 import { createTestDb, createTestUser } from "../../tests/helpers/test-db";
-import { addToCollection, collectionView } from "./collection-cards";
+import { parseManaboxCsv } from "@/domain/collection/manabox";
+import {
+  addToCollection,
+  collectionLines,
+  collectionView,
+  editCollectionLine,
+  exportCollectionCsv,
+  InvalidPrintingError,
+} from "./collection-cards";
 
 let db: Db;
 let cleanup: () => Promise<void>;
@@ -27,6 +35,7 @@ const csvRow = (name: string, quantity: number, line: number, setCode: string | 
   quantity,
   foil: false,
   language: "en" as const,
+  condition: null,
   raw: { Name: name },
 });
 
@@ -199,5 +208,77 @@ describe("búsqueda de cartas por nombre", () => {
     const ang = await cards.searchByName("angler", 5);
     expect(ang.map((c) => c.name)).toEqual(["Grizzled Angler // Grisly Anglerfish"]);
     expect(await cards.searchByName("   ", 5)).toEqual([]);
+  });
+});
+
+describe("editar la colección sin ManaBox", () => {
+  it("ver, editar (también lo del CSV), cambiar de edición, borrar y exportar", async () => {
+    await createTestUser(db, "u3");
+    const collection = new PrismaCollectionRepository(db, "u3");
+    const deps = { cards, collection };
+    const sol = byName("Sol Ring");
+    await collection.replaceCollection({
+      matched: [
+        {
+          row: csvRow("Sol Ring", 3, 2, "c21"),
+          oracleId: sol.oracleId,
+          scryfallId: null,
+          method: "name",
+        },
+      ],
+      unmatched: [],
+    });
+    const [line] = await collectionLines(sol.oracleId, deps);
+    expect(line).toMatchObject({ quantity: 3, source: "csv", language: "en" });
+
+    // Otro usuario no la puede tocar.
+    expect(
+      await editCollectionLine(
+        line!.id,
+        { quantity: 1 },
+        { cards, collection: new PrismaCollectionRepository(db, "u2") },
+      ),
+    ).toBe(false);
+
+    const solPrinting = fixturePrintings().find((p) => p.oracleId === sol.oracleId)!;
+    const other = fixturePrintings().find((p) => p.oracleId !== sol.oracleId)!;
+    await expect(
+      editCollectionLine(line!.id, { scryfallId: other.scryfallId }, deps),
+    ).rejects.toBeInstanceOf(InvalidPrintingError);
+    expect(
+      await editCollectionLine(
+        line!.id,
+        {
+          quantity: 2,
+          foil: true,
+          language: "Japanese",
+          condition: "LP",
+          scryfallId: solPrinting.scryfallId,
+        },
+        deps,
+      ),
+    ).toBe(true);
+    const [edited] = await collectionLines(sol.oracleId, deps);
+    expect(edited).toMatchObject({
+      quantity: 2,
+      foil: true,
+      language: "ja",
+      condition: "lightly_played",
+      scryfallId: solPrinting.scryfallId.toLowerCase(),
+      setCode: solPrinting.setCode,
+      // Editada aquí: ya no es del CSV, así que reimportar no la pisa.
+      source: "manual",
+    });
+    expect(edited?.printing?.scryfallId).toBe(solPrinting.scryfallId);
+
+    const { csv, lines } = await exportCollectionCsv(deps);
+    expect(lines).toBe(1);
+    const back = parseManaboxCsv(csv).rows;
+    expect(back.map((r) => [r.name, r.quantity, r.foil, r.language, r.condition])).toEqual([
+      ["Sol Ring", 2, true, "ja", "lightly_played"],
+    ]);
+
+    expect(await editCollectionLine(line!.id, { quantity: 0 }, deps)).toBe(true);
+    expect(await collectionLines(sol.oracleId, deps)).toEqual([]);
   });
 });

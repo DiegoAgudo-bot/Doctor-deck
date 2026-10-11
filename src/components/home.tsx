@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { SavedDeckSummaryDTO, StatusResponse } from "@/server/dto";
+import type { SavedDeckSummaryDTO, StatusResponse, TradeProposalSummaryDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardImage } from "./card-image";
 import { IconPlus } from "./icons";
+import { Landing } from "./landing";
 import {
   LOCAL_COLLECTION_EVENT,
   localCollection,
@@ -27,6 +28,8 @@ export function Home() {
   const { data, isPending } = authClient.useSession();
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [decks, setDecks] = useState<SavedDeckSummaryDTO[] | null>(null);
+  /** Propuestas de intercambio que me toca responder. */
+  const [myTurn, setMyTurn] = useState<number | null>(null);
   const [local, setLocal] = useState<LocalCollection | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +44,9 @@ export function Home() {
       api<SavedDeckSummaryDTO[]>("/api/decks", undefined, { silent: true })
         .then(setDecks)
         .catch(() => setDecks([]));
+      api<TradeProposalSummaryDTO[]>("/api/trades/proposals", undefined, { silent: true })
+        .then((p) => setMyTurn(p.filter((x) => x.myTurn).length))
+        .catch(() => setMyTurn(0));
     }
     const readLocal = () => setLocal(localCollection.get());
     readLocal();
@@ -65,6 +71,17 @@ export function Home() {
 
   const user = status.user;
   const collection = status.collection;
+  // Sin cuenta: la portada (con un aviso si acaba de borrar su cuenta).
+  if (!user && !isPending) {
+    const deleted =
+      typeof window !== "undefined" && window.location.search.includes("account=deleted");
+    return (
+      <main className="page max-w-[1180px]">
+        {deleted && <Banner tone="info">Tu cuenta y todos tus datos se han borrado.</Banner>}
+        <Landing />
+      </main>
+    );
+  }
   const copies = user ? (collection?.totalCards ?? 0) : localCopies(local);
   const unique = user ? (collection?.uniqueCards ?? 0) : ownedPairs(local).length;
 
@@ -167,9 +184,10 @@ export function Home() {
           />
         )}
         <Stat
-          label="Cartas en el catálogo"
-          value={fmt(status.catalog.cards)}
-          meta={`${fmt(status.catalog.printings)} impresiones`}
+          href="/trades?tab=proposals"
+          label="Intercambios"
+          value={myTurn === null ? "…" : fmt(myTurn)}
+          meta={myTurn ? "Propuestas por responder" : "Cruces con otros jugadores"}
         />
       </div>
 

@@ -1,5 +1,6 @@
 import type {
   CollectionEntryRow,
+  CollectionLinePatch,
   CollectionRepository,
   ManualCard,
   StoredCollection,
@@ -41,6 +42,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
       quantity: row.quantity,
       foil: row.foil,
       language: row.language,
+      condition: row.condition,
       line: row.line,
       raw: JSON.stringify(row.raw),
     }));
@@ -70,6 +72,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
         quantity: c.quantity,
         foil: c.foil,
         language: c.language ?? null,
+        condition: c.condition ?? null,
         status: "matched",
         matchMethod: MANUAL,
         line: 0,
@@ -89,8 +92,10 @@ export class PrismaCollectionRepository implements CollectionRepository {
         quantity: true,
         foil: true,
         setCode: true,
+        collectorNumber: true,
         scryfallId: true,
         language: true,
+        condition: true,
         matchMethod: true,
         importedAt: true,
       },
@@ -105,8 +110,10 @@ export class PrismaCollectionRepository implements CollectionRepository {
               quantity: r.quantity,
               foil: r.foil,
               setCode: r.setCode,
+              collectorNumber: r.collectorNumber,
               scryfallId: r.scryfallId,
               language: r.language,
+              condition: r.condition,
               source: r.matchMethod === MANUAL ? ("manual" as const) : ("csv" as const),
               addedAt: r.importedAt,
             },
@@ -118,6 +125,35 @@ export class PrismaCollectionRepository implements CollectionRepository {
   async removeAdded(id: string) {
     const { count } = await this.db.collectionEntry.deleteMany({
       where: { publicId: id, userId: this.userId, matchMethod: MANUAL },
+    });
+    return count > 0;
+  }
+
+  async updateLine(id: string, patch: CollectionLinePatch) {
+    const { count } = await this.db.collectionEntry.updateMany({
+      where: { publicId: id, userId: this.userId, status: "matched" },
+      data: {
+        ...(patch.quantity !== undefined ? { quantity: patch.quantity } : {}),
+        ...(patch.foil !== undefined ? { foil: patch.foil } : {}),
+        ...(patch.language !== undefined ? { language: patch.language } : {}),
+        ...(patch.condition !== undefined ? { condition: patch.condition } : {}),
+        ...(patch.printing
+          ? {
+              scryfallId: patch.printing.scryfallId,
+              setCode: patch.printing.setCode,
+              collectorNumber: patch.printing.collectorNumber,
+            }
+          : {}),
+        // Editada aquí: ya no es "lo del CSV" y reimportar no la pisa.
+        matchMethod: MANUAL,
+      },
+    });
+    return count > 0;
+  }
+
+  async removeLine(id: string) {
+    const { count } = await this.db.collectionEntry.deleteMany({
+      where: { publicId: id, userId: this.userId },
     });
     return count > 0;
   }

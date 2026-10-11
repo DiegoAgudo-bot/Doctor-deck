@@ -21,6 +21,8 @@ const schema = z.object({
           foil: z.boolean().optional(),
           /** Código de Scryfall ("es", "ja"…) o nombre en inglés ("Japanese"). */
           language: z.string().min(1).max(40).optional(),
+          /** "near_mint", "NM", "LP"… */
+          condition: z.string().min(1).max(40).optional(),
         })
         .refine((c) => c.oracleId ?? c.scryfallId ?? c.name, {
           message: "Cada carta necesita oracleId, scryfallId o name",

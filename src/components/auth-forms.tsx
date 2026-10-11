@@ -193,6 +193,10 @@ export function RegisterForm({ google }: { google: boolean }) {
         <button type="submit" disabled={busy} className="btn btn-primary btn-lg w-full">
           {busy ? "Creando cuenta…" : "Crear cuenta"}
         </button>
+        <p className="subtle text-center text-xs">
+          Al crear la cuenta aceptas el <Link href="/legal">aviso legal</Link> y la{" "}
+          <Link href="/privacy">política de privacidad</Link>.
+        </p>
       </form>
       <span className="text-[13px]">
         ¿Ya tienes cuenta? <Link href={`/login?next=${encodeURIComponent(next)}`}>Entra</Link>

@@ -156,6 +156,14 @@ export function CollectionPage() {
             </b>{" "}
             copias · {fmt(overall.cards)} cartas distintas
             {value > 0 && <> · valor aprox. {formatEuros(value)}</>}
+            {loggedIn && (
+              <>
+                {" · "}
+                <a href="/api/collection/export" download title="CSV con el formato de ManaBox">
+                  Exportar CSV
+                </a>
+              </>
+            )}
           </span>
         )}
       </div>

@@ -25,7 +25,9 @@ despliegue en `main` y **parar al terminar cada fase hasta el OK del usuario**.
 | 17   | Listas de deseos e intercambio con cruce automático           | Medio    | ✅     |
 | 18   | Impresiones concretas (edición, foil, idioma)                 | Alto     | ✅     |
 | 19   | Calculadora de intercambio entre dos usuarios                 | Medio    | ✅     |
-| 20   | App móvil: compartir desde ManaBox y escáner                  | Alto     |        |
+| 20   | Cimientos: copias, colección sin ManaBox, legal, compartir    | Medio    | ✅     |
+| 21   | Social: grupos, partidas, préstamos, feed y comentarios       | Alto     |        |
+| 22   | App móvil: compartir desde ManaBox, escáner y push            | Alto     |        |
 
 ---
 
@@ -239,15 +241,45 @@ barata. La fase 18 dejó en cada copia de la colección su impresión, foil e id
 está probado con casos inventados (foil, varias impresiones, copias en mazos) y un borrador
 compartido se abre con su enlace solo para los dos usuarios.
 
-## Fase 20 · App móvil
+## Fase 20 · Cimientos ✅
+
+Salió de la auditoría frente a la competencia (antes de la app móvil, que debe llegar cuando todo
+lo demás esté bien):
+
+- **Copias de seguridad** diarias de la SQLite (`npm run db:backup`, cron que instala
+  `deploy.sh`, 14 días). Falta copiarlas fuera del VPS (ver `DEPLOY.md`).
+- **Colección sin ManaBox**: editar cualquier copia (cantidad, edición, foil, idioma y estado),
+  borrarla y exportar la colección en el CSV de ManaBox.
+- **Legal y RGPD**: `/privacy`, `/legal` (con el aviso de la Fan Content Policy), descargar todos
+  mis datos y borrar la cuenta.
+- **Compartir**: título, descripción e imagen generada (arte del comandante) para mazos y
+  perfiles; `robots.txt` y `sitemap.xml`.
+- **Visual**: portada nueva, ficha de carta en la colección, cabecera del mazo con el arte,
+  filtros plegables y arreglos en el móvil, PWA instalable con iconos.
+
+**Pendiente del usuario** (no se puede hacer desde el código): dominio propio, SMTP para los
+emails, `LEGAL_OWNER`/`LEGAL_EMAIL` en el `.env` del VPS y copias fuera del servidor.
+
+## Fase 21 · Social
+
+Lo que convierte Deck Doctor en la red social de los jugadores de Commander:
+
+- **Grupos de juego**: miembros, sus mazos y "quién tiene qué" dentro del grupo.
+- **Partidas**: contador de vidas en el móvil, registrar quién ganó y con qué mazo, winrate por
+  mazo y ranking del grupo.
+- **Préstamos** entre amigos: la carta sigue siendo tuya, pero cuenta como ocupada.
+- **Feed** de actividad de la gente que sigues.
+- **Comentarios** en los mazos, con **moderación** (bloquear y denunciar) antes de abrirlos.
+
+## Fase 22 · App móvil
 
 El requisito ya fijado en `CLAUDE.md` se mantiene: la app debe ser destino al **compartir desde
 ManaBox** (CSV o texto) y usar la misma API, con el plugin `bearer` de Better Auth.
 
 - **Primer paso:** compartir e importar, consultar mazos y colección, y los avisos (con
-  notificaciones push, aquí sí).
+  notificaciones push, aquí sí). La PWA de la fase 20 ya se puede instalar.
 - **Segundo paso:** el escáner de cartas. El endpoint `POST /api/collection/cards` con `scryfallId`
-  ya está listo.
+  ya está listo, y las copias se pueden editar después (`PATCH /api/collection/lines/{id}`).
 
 ---
 

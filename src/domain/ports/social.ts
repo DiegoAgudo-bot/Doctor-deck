@@ -37,6 +37,8 @@ export interface ProfileRepository {
   priceAlertUsers(): Promise<{ id: string; percent: number }[]>;
   /** Por nombre o usuario (o, sin texto, los que más mazos públicos tienen). Solo con username. */
   search(query: string, limit: number): Promise<ProfileSummary[]>;
+  /** Borra la cuenta y, en cascada, todo lo suyo (colección, mazos, avisos, propuestas…). */
+  deleteAccount(userId: string): Promise<void>;
 }
 
 export interface FollowRepository {

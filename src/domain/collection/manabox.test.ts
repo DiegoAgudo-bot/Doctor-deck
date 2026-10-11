@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFixture } from "../../../tests/helpers/scryfall-fixtures";
-import { ManaboxFormatError, parseManaboxCsv } from "./manabox";
+import { ManaboxFormatError, parseManaboxCsv, toManaboxCsv } from "./manabox";
 
 const HEADER =
   "Name,Set code,Set name,Collector number,Foil,Rarity,Quantity,ManaBox ID,Scryfall ID,Purchase price,Misprint,Altered,Signed,Condition,Language,Proxy,Purchase price currency,Added";
@@ -78,5 +78,47 @@ describe("parseManaboxCsv: casos límite", () => {
 
   it("rechaza CSV que no son de ManaBox", () => {
     expect(() => parseManaboxCsv("Card,Count\nSol Ring,1")).toThrow(ManaboxFormatError);
+  });
+});
+
+describe("toManaboxCsv", () => {
+  it("escribe el formato de ManaBox y se vuelve a leer igual", () => {
+    const csv = toManaboxCsv([
+      {
+        name: "Ultros, Obnoxious Octopus",
+        setCode: "fin",
+        setName: "Final Fantasy",
+        collectorNumber: "61",
+        foil: true,
+        quantity: 2,
+        scryfallId: "9cf3af94-b7c8-415c-a5a1-d89967fd0bba",
+        condition: "lightly_played",
+        language: "ja",
+        price: 1.5,
+        addedAt: new Date("2026-10-01T00:00:00Z"),
+      },
+      {
+        name: 'Carta "rara"',
+        setCode: null,
+        setName: null,
+        collectorNumber: null,
+        foil: false,
+        quantity: 1,
+        scryfallId: null,
+        condition: null,
+        language: null,
+        price: null,
+        addedAt: new Date("2026-10-02T00:00:00Z"),
+      },
+    ]);
+    const { rows, errors } = parseManaboxCsv(csv);
+    expect(errors).toEqual([]);
+    expect(
+      rows.map((r) => [r.name, r.setCode, r.foil, r.quantity, r.language, r.condition]),
+    ).toEqual([
+      ["Ultros, Obnoxious Octopus", "fin", true, 2, "ja", "lightly_played"],
+      ['Carta "rara"', null, false, 1, "en", "near_mint"],
+    ]);
+    expect(rows[0]?.scryfallId).toBe("9cf3af94-b7c8-415c-a5a1-d89967fd0bba");
   });
 });
