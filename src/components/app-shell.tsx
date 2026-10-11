@@ -175,6 +175,7 @@ function TopBar({
   const nav = [
     { href: "/", label: "Inicio" },
     { href: "/analyze", label: "Analizar mazo" },
+    { href: "/cards", label: "Cartas" },
     { href: "/community", label: "Comunidad" },
     { href: "/play", label: "Jugar" },
   ];

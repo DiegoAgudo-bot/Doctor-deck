@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { COLORS } from "@/domain/cards/types";
 import { suggestedDeckName } from "@/domain/deck/naming";
 import type { DeckVisibility } from "@/domain/deck/visibility";
+import type { CardDetailDTO } from "@/server/card-dto";
 import type { CardDTO, CommanderInfoDTO, NewDeckResponse } from "@/server/dto";
 import { api, ApiError, storage } from "./api-client";
 import { authClient } from "./auth-client";
@@ -43,6 +44,15 @@ export function NewDeckWizard() {
   const [visibility, setVisibility] = useState<DeckVisibility>("public");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // ?commander={oracleId} (botón "Crear mazo" de la ficha de una carta): ya elegido.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("commander");
+    if (!id) return;
+    api<CardDetailDTO>(`/api/cards/${encodeURIComponent(id)}`, undefined, { silent: true })
+      .then((d) => d.commander && setCommanders([d.card]))
+      .catch(() => undefined);
+  }, []);
 
   // Al cambiar de comandante(s): sus temas en EDHREC.
   const ids = commanders.map((c) => c.oracleId).join(",");

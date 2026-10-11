@@ -2783,3 +2783,122 @@
     color: var(--color-warn);
   }
 }
+
+@layer components {
+  /* ---------- Buscador de cartas y ficha ---------- */
+  .input.input-lg {
+    height: 44px;
+    font-size: 15px;
+    padding: 0 14px;
+  }
+  .manapick {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition:
+      opacity var(--motion-150) var(--ease-out),
+      background var(--motion-150) var(--ease-out);
+  }
+  .manapick.is-on {
+    border-color: var(--color-text-2);
+    background: var(--color-hover);
+  }
+  .catalog {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 18px 14px;
+  }
+  .catalog[aria-busy="true"] {
+    opacity: 0.6;
+  }
+  .catalogtile {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+  .catalogtile .cardbtn {
+    display: block;
+  }
+  .catalogtile-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12.5px;
+  }
+  .catalogtile-meta > :first-child {
+    min-width: 0;
+  }
+  .catalogtile-meta > .mono {
+    flex: none;
+    white-space: nowrap;
+  }
+  .cardhero {
+    display: flex;
+    gap: 24px;
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-line);
+    background:
+      radial-gradient(80% 120% at 0% 0%, rgba(108, 176, 255, 0.1), transparent 60%),
+      var(--color-panel);
+  }
+  .cardhero-art {
+    flex: none;
+    width: 300px;
+  }
+  .cardhero-art .cardimg {
+    box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.7);
+  }
+  @media (max-width: 760px) {
+    .cardhero {
+      flex-direction: column;
+      align-items: center;
+      padding: 14px;
+    }
+    .cardhero-art {
+      width: min(280px, 80vw);
+    }
+  }
+  .oracle {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    background: var(--color-raised);
+    font: 400 14px/1.55 var(--font-card);
+  }
+  .manatext .mana-inline img {
+    width: 15px;
+    height: 15px;
+    vertical-align: -2px;
+  }
+  .pricebox {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 22px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-line);
+  }
+  .pricebox > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .pricebox b {
+    font-size: 22px;
+    font-weight: 500;
+  }
+  .table tr.is-on td {
+    background: var(--color-hover);
+  }
+}

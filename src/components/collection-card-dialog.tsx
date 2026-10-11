@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { CONDITIONS, conditionShort } from "@/domain/cards/conditions";
 import { LANGUAGES } from "@/domain/cards/languages";
@@ -121,6 +122,11 @@ export function CollectionCardDialog({
           >
             <IconPlus size={13} /> Añadir otra copia
           </button>
+          {card && (
+            <Link className="btn btn-ghost" href={`/cards/${card.oracleId}`}>
+              Ver ficha
+            </Link>
+          )}
           {lines && lines.length > 0 && (
             <button type="button" className="btn" onClick={() => setLending(true)}>
               Prestar

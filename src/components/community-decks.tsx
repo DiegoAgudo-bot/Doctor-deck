@@ -36,6 +36,13 @@ export function CommunityDecks() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ?q= (p. ej. desde la ficha de una carta): ese texto de entrada.
+  useEffect(() => {
+    const initial = new URLSearchParams(window.location.search).get("q");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única tras montar
+    if (initial) setQ(initial.slice(0, 100));
+  }, []);
+
   // El texto se busca con un pequeño respiro.
   useEffect(() => {
     const t = setTimeout(() => setQuery(q.trim()), 250);

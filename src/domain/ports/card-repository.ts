@@ -1,3 +1,4 @@
+import type { CatalogQuery } from "../cards/catalog-search";
 import type { Card, Printing } from "../cards/types";
 
 /** Lectura del catálogo de cartas (Scryfall volcado en local). */
@@ -10,6 +11,12 @@ export interface CardRepository {
    * las que alguna palabra empieza así y, dentro de cada grupo, las más jugadas en EDHREC.
    */
   searchByName(query: string, limit: number): Promise<Card[]>;
+  /** Buscador de cartas con filtros (nombre/tipo/texto, colores, tipo, comandante…), paginado. */
+  searchCatalog(
+    query: CatalogQuery,
+    offset: number,
+    limit: number,
+  ): Promise<{ cards: Card[]; total: number }>;
   findPrintingsByIds(scryfallIds: readonly string[]): Promise<Printing[]>;
   /** Todas las impresiones de una carta, de la más nueva a la más vieja. */
   findPrintingsOf(oracleId: string): Promise<Printing[]>;

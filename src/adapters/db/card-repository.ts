@@ -1,9 +1,10 @@
 import { NON_GAME_LAYOUTS } from "@/domain/cards/card-index";
 import { nameKey } from "@/domain/cards/names";
 import { COLORS, type Card, type Color, type Printing } from "@/domain/cards/types";
+import type { CatalogQuery } from "@/domain/cards/catalog-search";
 import type { CardCatalogWriter, CardRepository } from "@/domain/ports/card-repository";
 import type { CardTagWriter } from "@/domain/ports/tagger-source";
-import type { OracleCard, Printing as PrintingRow } from "@/generated/prisma/client";
+import type { OracleCard, Prisma, Printing as PrintingRow } from "@/generated/prisma/client";
 import type { Db } from "./prisma";
 
 /** SQLite admite ~32k parámetros por consulta; troceamos los IN para ir sobrados. */
@@ -142,6 +143,66 @@ export class PrismaCardRepository implements CardRepository, CardCatalogWriter, 
           })
         : [];
     return this.toCards([...prefix, ...rest]);
+  }
+
+  async searchCatalog(q: CatalogQuery, offset: number, limit: number) {
+    const and: Prisma.OracleCardWhereInput[] = [{ layout: { notIn: NOT_PLAYABLE } }];
+    if (q.text) {
+      const key = nameKey(q.text);
+      and.push({
+        OR: [
+          ...(key ? [{ nameKey: { contains: key } }] : []),
+          { typeLine: { contains: q.text } },
+          { oracleText: { contains: q.text } },
+        ],
+      });
+    }
+    if (q.colorless) {
+      and.push({ colorIdentity: "" });
+    } else if (q.colors.length) {
+      const picked = new Set(q.colors);
+      if (q.colorMode === "exact") {
+        and.push({ colorIdentity: COLORS.filter((c) => picked.has(c)).join("") });
+      } else if (q.colorMode === "includes") {
+        for (const c of picked) and.push({ colorIdentity: { contains: c } });
+      } else {
+        for (const c of COLORS)
+          if (!picked.has(c)) and.push({ NOT: { colorIdentity: { contains: c } } });
+      }
+    }
+    if (q.type) and.push({ typeLine: { contains: q.type } });
+    if (q.commander) {
+      and.push({ legalCommander: true });
+      and.push({
+        OR: [
+          {
+            AND: [{ typeLine: { contains: "Legendary" } }, { typeLine: { contains: "Creature" } }],
+          },
+          {
+            AND: [
+              { typeLine: { contains: "Legendary" } },
+              { typeLine: { contains: "Background" } },
+            ],
+          },
+          { oracleText: { contains: "can be your commander" } },
+        ],
+      });
+    }
+    if (q.gameChanger) and.push({ gameChanger: true });
+    if (q.cmc !== null) and.push({ cmc: q.cmc >= 7 ? { gte: 7 } : q.cmc });
+    const where: Prisma.OracleCardWhereInput = { AND: and };
+    const rank = { edhrecRank: { sort: "asc" as const, nulls: "last" as const } };
+    const orderBy: Prisma.OracleCardOrderByWithRelationInput[] =
+      q.sort === "name"
+        ? [{ name: "asc" }]
+        : q.sort === "cmc"
+          ? [{ cmc: "asc" }, rank, { name: "asc" }]
+          : [rank, { name: "asc" }];
+    const [rows, total] = await Promise.all([
+      this.db.oracleCard.findMany({ where, orderBy, skip: offset, take: limit }),
+      this.db.oracleCard.count({ where }),
+    ]);
+    return { cards: await this.toCards(rows), total };
   }
 
   async findPrintingsByIds(scryfallIds: readonly string[]) {

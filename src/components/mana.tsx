@@ -61,3 +61,25 @@ export function ColorPips({
     </span>
   );
 }
+
+/** Texto de reglas con los símbolos ({T}, {2}{U}…) dibujados y un párrafo por línea. */
+export function ManaText({ text }: { text: string }) {
+  return (
+    <>
+      {text.split("\n").map((line, i) => (
+        <p key={i} className="manatext">
+          {line.split(/(\{[^}]+\})/g).map((part, j) => {
+            const m = /^\{([^}]+)\}$/.exec(part);
+            return m ? (
+              <span key={j} className="mana mana-inline">
+                <Symbol s={(m[1] ?? "").replace(/\//g, "")} />
+              </span>
+            ) : (
+              part
+            );
+          })}
+        </p>
+      ))}
+    </>
+  );
+}
