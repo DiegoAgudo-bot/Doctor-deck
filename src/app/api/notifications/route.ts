@@ -26,6 +26,7 @@ export async function GET(request: Request) {
         price: n.price,
         prevPrice: n.prevPrice,
         tradeId: n.tradeId,
+        refId: n.refId,
         createdAt: n.createdAt.toISOString(),
         read: n.read,
       })),

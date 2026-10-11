@@ -14,5 +14,17 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/decks", "/notifications", "/settings", "/trades", "/trades/:path*"],
+  matcher: [
+    "/decks",
+    "/notifications",
+    "/settings",
+    "/trades",
+    "/trades/:path*",
+    "/groups",
+    "/groups/:id",
+    "/games/:path*",
+    "/feed",
+    "/loans",
+    "/admin/:path*",
+  ],
 };

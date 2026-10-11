@@ -217,6 +217,63 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
     manda. UI: `/trades/with/{username}` (calculadora), `/trades/proposals/{id}`
     (`TradeEditor`: dos columnas, ± por copia, "Añadir más", balance en vivo), pestaña
     "Propuestas" en `/trades` y "Proponer intercambio" en cada cruce y en el perfil.
+- **Social de la fase 21** (casos de uso en `application/{groups,games,loans,comments,feed}.ts`,
+  puertos en `domain/ports/{play,loans,moderation,feed}.ts`, adaptadores `play-repository.ts`,
+  `loan-repository.ts`, `moderation-repository.ts`, `feed-repository.ts`; errores con `AppError`
+  (`application/errors.ts`: `code` + estado HTTP, lo traduce `errorResponse`); dependencias en
+  `server/social.ts` y DTOs en `server/social-dto.ts`; la gente siempre por nombre de usuario,
+  nunca por id):
+  - **Grupos** (`PlayGroup` con `publicId` e `inviteCode` aleatorio, `GroupMember`): se entra con
+    `/groups/join/{inviteCode}` (aviso `group_join` al creador); solo los miembros ven el grupo
+    (si no, 404). El creador cambia nombre, genera otro enlace, echa a gente y lo borra (no puede
+    salir). Máx. 50 miembros y 20 grupos por persona. Los miembros ven los mazos públicos y
+    ocultos de los demás (`groupDecks`), "¿quién tiene…?" (`groupHolders`: copias y libres =
+    tengo − usadas en mazos − prestadas) y "Te lo pueden dejar" (`groupCanLend`: mi lista de
+    deseos —o, sin mazos marcados, lo que falta en todos mis mazos— ∩ copias libres del grupo).
+    API `GET|POST /api/groups`, `GET|PATCH|DELETE /api/groups/{id}` (`{name?, description?,
+newInvite?}`), `DELETE /api/groups/{id}/members/{username}`, `GET /api/groups/{id}/decks`,
+    `GET /api/groups/{id}/cards?oracleId=`, `GET /api/groups/{id}/can-lend`, `GET|POST
+/api/groups/join/{code}`.
+  - **Partidas** (`Game` + `GamePlayer`: usuario o invitado, mazo guardado o solo nombre, nombre y
+    comandantes del momento, ganador): `recordGame` valida que los usuarios sean del grupo (sin
+    grupo, solo yo y el resto invitados), que cada mazo sea de su jugador y no privado, 2–8
+    jugadores y como mucho un ganador; aviso `game_recorded` a los demás. Las ve quien jugó, quien
+    la registró y los miembros del grupo; la borra quien la registró o el creador del grupo.
+    Estadísticas en el dominio (`domain/play/stats.ts`: `playerStandings`/`deckStandings`,
+    victorias → % → partidas, y racha) sobre las 500 últimas. API `GET|POST /api/games`
+    (`?group=` | `?deck=` | sin nada = las mías), `GET|DELETE /api/games/{id}`; el perfil
+    (`GET /api/users/{u}`) trae `record` (jugadas y ganadas) y `blocked`.
+  - **Contador de vidas** (`/play`, `components/life-counter.tsx`, lógica pura en
+    `domain/play/life.ts`): 2–6 jugadores, 20/30/40 vidas, pulsar mitad izquierda/derecha (mantener
+    repite), daño de comandante por rival (resta vida; 21 elimina), veneno (10), conceder, turnos,
+    revancha. A pantalla completa (`.lifetable`, los de arriba girados 180°), estado en
+    `localStorage` y Wake Lock para que no se apague la pantalla. Al quedar uno, "Registrar
+    partida" (`RecordGameDialog`, también desde el grupo).
+  - **Préstamos** (`Loan`: a un usuario `@ana` —aviso `loan_new`— o a un nombre): solo copias
+    libres. `PrismaDeckRepository.usage()` suma los préstamos sin devolver (`withLoans`,
+    `domain/collection/loans.ts`, "Prestada a @ana"), así que cuentan como ocupadas en el motor,
+    "para cambiar", la colección y los grupos. Devuelta la marca cualquiera de los dos; borrar,
+    quien prestó. API `GET|POST /api/loans` (`?all=1` con devueltos), `PATCH
+/api/loans/{id}` (`{action: "returned"}`), `DELETE /api/loans/{id}`. UI `/loans` y "Prestar"
+    en la ficha de una carta de la colección y en "¿quién tiene…?".
+  - **Feed** (`activityFeed`, `/feed` y en la portada): de la gente que sigo y de mis compañeros de
+    grupo, sin bloqueados. Sin tabla propia: `PrismaFeedSource` lee de lo que ya hay (mazos
+    públicos nuevos, "me gusta", comentarios, partidas —una entrada por partida; el nombre del
+    grupo solo si soy miembro— e intercambios aceptados si los dos tienen las listas públicas) y
+    `mergeFeed` mezcla por fecha. Paginado con `?before=` (fecha); filtro `?types=deck,game…`.
+  - **Comentarios** (`DeckComment`) en mazos públicos y ocultos (`GET|POST|PATCH
+/api/decks/{id}/comments`, `PATCH` = `{open}` del dueño, `Deck.commentsOpen`): texto limpio
+    de 1–1000 caracteres, ≤ 2 enlaces, 15 s entre comentarios (`domain/social/comments.ts`); aviso
+    `deck_comment` al dueño. Los borra el autor, el dueño del mazo o un administrador (`DELETE
+/api/comments/{id}`). **Moderación**: `POST /api/comments/{id}/report` (`spam` | `abuse` |
+    `other`, una por persona); con 3 se oculta (`hiddenAt`; el dueño del mazo lo sigue viendo
+    marcado) hasta que un administrador (`ADMIN_EMAILS`) lo revisa en `/admin/reports` (`GET
+/api/admin/reports`, `PATCH /api/admin/reports/{id}` `{action: keep|hide|delete}`).
+    **Bloquear** (`Block`, `POST|DELETE /api/users/{u}/block`, lista en `GET /api/me/blocks` y en
+    Ajustes): rompe el seguimiento en los dos sentidos e impide seguir, comentar sus mazos,
+    proponer intercambios (`trade_blocked`), prestar y salir en sus cruces y feed; sus comentarios
+    no se ven. No se avisa al bloqueado.
+  - `GET /api/me/export` incluye grupos, partidas, préstamos, comentarios y bloqueados.
 - **Combos** (Fase 16, Commander Spellbook, **sin API oficial**): `SpellbookClient`
   (`adapters/spellbook`, puerto `ComboSource`) hace `POST
 backend.commanderspellbook.com/find-my-combos?limit=500` con el mazo (nombres), cachea en
@@ -461,7 +518,10 @@ Purchase price currency, Added`.
 20. Cimientos: copias de seguridad, colección editable y exportable sin ManaBox, legal y RGPD,
     vistas previas al compartir, portada nueva, arreglos móviles y PWA ✅
 
-Las fases siguientes (21 social, 22 app móvil) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
+21. Social: grupos de juego, contador de vidas y partidas con clasificación, préstamos, feed de
+    actividad y comentarios con moderación (bloquear y denunciar) ✅
+
+La fase siguiente (22 app móvil) está en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
 diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)

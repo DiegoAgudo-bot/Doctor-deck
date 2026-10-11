@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { DeleteAccountDialog } from "./delete-account-dialog";
 import { USERNAME_HELP } from "@/domain/social/username";
 import type { MyProfileDTO } from "@/server/dto";
+import type { MemberDTO } from "@/server/social-dto";
 import { api, ApiError, storage } from "./api-client";
 import { authClient } from "./auth-client";
 import { IconLogout } from "./icons";
@@ -203,6 +204,8 @@ export function SettingsPage() {
         </div>
       </section>
 
+      <BlockedUsers />
+
       <section className="panel">
         <div className="panel-h">
           <span className="h2">Tus datos</span>
@@ -217,8 +220,9 @@ export function SettingsPage() {
             </a>
           </div>
           <p className="subtle text-xs">
-            Tu perfil, colección, mazos, listas de intercambio, propuestas y correcciones de roles.
-            Más detalles en la <Link href="/privacy">política de privacidad</Link>.
+            Tu perfil, colección, mazos, listas de intercambio, propuestas, correcciones de roles,
+            grupos, partidas, préstamos y comentarios. Más detalles en la{" "}
+            <Link href="/privacy">política de privacidad</Link>.
           </p>
           <div className="dangerzone">
             <div>
@@ -249,5 +253,43 @@ export function SettingsPage() {
         Salir
       </button>
     </main>
+  );
+}
+
+/** La gente que he bloqueado, para desbloquearla. */
+function BlockedUsers() {
+  const [list, setList] = useState<(MemberDTO & { blockedAt: string })[] | null>(null);
+  const load = () =>
+    void api<(MemberDTO & { blockedAt: string })[]>("/api/me/blocks", undefined, { silent: true })
+      .then(setList)
+      .catch(() => setList([]));
+  useEffect(load, []);
+  if (!list || list.length === 0) return null;
+  return (
+    <section className="panel">
+      <div className="panel-h">
+        <span className="h2">Bloqueados</span>
+      </div>
+      <ul className="memberlist">
+        {list.map((m) => (
+          <li key={m.username ?? m.name}>
+            <span className="flex-1">
+              {m.username ? <Link href={`/u/${m.username}`}>@{m.username}</Link> : m.name}
+            </span>
+            {m.username && (
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() =>
+                  void api(`/api/users/${m.username}/block`, { method: "DELETE" }).then(load)
+                }
+              >
+                Desbloquear
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

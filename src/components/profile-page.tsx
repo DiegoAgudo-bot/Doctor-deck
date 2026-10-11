@@ -17,7 +17,7 @@ import { localCollection, ownedPairs } from "./local-collection";
 import { PartnerCard } from "./trades-page";
 import { nextVisibility, setDeckVisibility } from "./deck-visibility";
 import { IconEyeOff, IconSettings } from "./icons";
-import { Banner, EmptyState, Loading, fmt } from "./ui";
+import { Banner, Dialog, EmptyState, Loading, fmt } from "./ui";
 
 /** /u/{username}: perfil público con sus mazos y, si la tiene pública, su colección. */
 export function ProfilePage() {
@@ -28,6 +28,7 @@ export function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"mazos" | "coleccion">("mazos");
   const [busy, setBusy] = useState(false);
+  const [confirmBlock, setConfirmBlock] = useState(false);
   /** En el perfil de otro: cuánto tengo de cada uno de sus mazos públicos, "me gusta" y bracket. */
   const [extra, setExtra] = useState<Map<string, CommunityDeckDTO>>(new Map());
 
@@ -93,6 +94,26 @@ export function ProfilePage() {
     }
   }
 
+  async function toggleBlock() {
+    if (!view) return;
+    setBusy(true);
+    try {
+      await api(`/api/users/${encodeURIComponent(username)}/block`, {
+        method: view.blocked ? "DELETE" : "POST",
+      });
+      setView({
+        ...view,
+        blocked: !view.blocked,
+        isFollowing: view.blocked ? view.isFollowing : false,
+      });
+      setConfirmBlock(false);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "No se pudo completar");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (error) {
     return (
       <main className="page max-w-[1100px]">
@@ -139,6 +160,15 @@ export function ProfilePage() {
               </b>{" "}
               {publicCount === 1 ? "mazo público" : "mazos públicos"}
             </span>
+            {view.record.games > 0 && (
+              <span title="Partidas registradas">
+                ♛{" "}
+                <b className="mono" style={{ color: "var(--color-text)" }}>
+                  {fmt(view.record.wins)}/{fmt(view.record.games)}
+                </b>{" "}
+                {view.record.games === 1 ? "partida ganada" : "partidas ganadas"}
+              </span>
+            )}
           </span>
         </div>
         {view.isMe ? (
@@ -147,16 +177,64 @@ export function ProfilePage() {
             Editar perfil
           </Link>
         ) : (
-          <button
-            type="button"
-            className={`btn ${view.isFollowing ? "" : "btn-primary"}`}
-            disabled={busy}
-            onClick={() => void toggleFollow()}
-          >
-            {view.isFollowing ? "Siguiendo" : "Seguir"}
-          </button>
+          <div className="flex gap-2">
+            {!view.blocked && (
+              <button
+                type="button"
+                className={`btn ${view.isFollowing ? "" : "btn-primary"}`}
+                disabled={busy}
+                onClick={() => void toggleFollow()}
+              >
+                {view.isFollowing ? "Siguiendo" : "Seguir"}
+              </button>
+            )}
+            {session && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={busy}
+                onClick={() => (view.blocked ? void toggleBlock() : setConfirmBlock(true))}
+              >
+                {view.blocked ? "Desbloquear" : "Bloquear"}
+              </button>
+            )}
+          </div>
         )}
       </section>
+
+      {view.blocked && (
+        <Banner tone="warn">
+          Has bloqueado a @{profile.username}: no puede seguirte, comentar tus mazos ni proponerte
+          intercambios, y no ves su actividad.
+        </Banner>
+      )}
+      <Dialog
+        open={confirmBlock}
+        onClose={() => setConfirmBlock(false)}
+        title={`Bloquear a @${profile.username}`}
+        width={420}
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setConfirmBlock(false)}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-out"
+              disabled={busy}
+              onClick={() => void toggleBlock()}
+            >
+              Bloquear
+            </button>
+          </>
+        }
+      >
+        <p className="text-[13.5px]">
+          Dejaréis de seguiros, no podrá comentar tus mazos ni proponerte intercambios ni préstamos,
+          y no verás sus comentarios ni su actividad. No se le avisa. Puedes desbloquearle cuando
+          quieras desde aquí o desde Ajustes.
+        </p>
+      </Dialog>
 
       <nav className="tabs" aria-label="Secciones del perfil">
         <button

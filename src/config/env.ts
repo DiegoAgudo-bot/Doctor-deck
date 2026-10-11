@@ -39,6 +39,19 @@ const envSchema = z.object({
   /** Titular de la web (nombre y, si aplica, NIF) y email de contacto para privacidad. */
   LEGAL_OWNER: optionalString,
   LEGAL_EMAIL: optionalString,
+
+  // --- Moderación ---
+  /** Emails (separados por comas) de quien revisa las denuncias en /admin/reports. */
+  ADMIN_EMAILS: z.preprocess(
+    (v) =>
+      typeof v === "string"
+        ? v
+            .split(",")
+            .map((e) => e.trim().toLowerCase())
+            .filter(Boolean)
+        : [],
+    z.array(z.string()),
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -227,3 +227,25 @@ export const IconSwap = (p: P) => (
     <path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" />
   </Icon>
 );
+
+/** Corona (partidas, contador de vidas). */
+export const IconCrown = (p: P) => (
+  <Icon {...p}>
+    <path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" />
+  </Icon>
+);
+
+/** Actividad (feed). */
+export const IconActivity = (p: P) => (
+  <Icon {...p}>
+    <path d="M3 12h4l3-8 4 16 3-8h4" />
+  </Icon>
+);
+
+/** Préstamo: una carta que va y vuelve. */
+export const IconLoan = (p: P) => (
+  <Icon {...p}>
+    <rect x="4" y="3" width="10" height="14" rx="1.5" />
+    <path d="M17 8h3v13h-9v-3" />
+  </Icon>
+);

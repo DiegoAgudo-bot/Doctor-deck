@@ -13,6 +13,7 @@ import type {
   DeckForFacts,
   PublicDecks,
 } from "@/domain/ports/social";
+import { withLoans } from "@/domain/collection/loans";
 import type { CardUsage } from "@/domain/suggestions/engine";
 import type { Db } from "./prisma";
 
@@ -288,7 +289,17 @@ export class PrismaDeckRepository implements DeckRepository {
     return count > 0;
   }
 
+  /** Incluye las copias prestadas sin devolver ("Prestada a @ana"): siguen sin estar libres. */
   async usage(excludeDeckId?: string): Promise<Map<string, CardUsage>> {
+    const loans = await this.db.loan.findMany({
+      where: { lenderId: this.userId, returnedAt: null },
+      select: {
+        oracleId: true,
+        quantity: true,
+        borrowerName: true,
+        borrower: { select: { username: true, name: true } },
+      },
+    });
     const rows = await this.db.deckCard.findMany({
       where: {
         deck: {
@@ -308,6 +319,17 @@ export class PrismaDeckRepository implements DeckRepository {
       }
       usage.set(r.oracleId, u);
     }
-    return usage;
+    return withLoans(
+      usage,
+      loans.map((l) => ({
+        oracleId: l.oracleId,
+        quantity: l.quantity,
+        to: l.borrower
+          ? l.borrower.username
+            ? `@${l.borrower.username}`
+            : l.borrower.name
+          : (l.borrowerName ?? "alguien"),
+      })),
+    );
   }
 }

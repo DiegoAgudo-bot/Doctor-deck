@@ -11,6 +11,7 @@ async function handle(req: NextRequest, username: string, follow: boolean) {
     const counts = await setFollowing(user.id, username, follow, {
       profiles: c.social,
       follows: c.social,
+      blocks: c.moderation,
     });
     return Response.json({ isFollowing: follow, ...counts });
   } catch (err) {

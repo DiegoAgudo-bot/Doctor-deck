@@ -61,7 +61,12 @@ export type NotificationType =
   | "trade_counter"
   | "trade_accepted"
   | "trade_rejected"
-  | "trade_cancelled";
+  | "trade_cancelled"
+  /** Fase 21: alguien entra en mi grupo, me apuntan a una partida, comentan mi mazo, me prestan. */
+  | "group_join"
+  | "game_recorded"
+  | "deck_comment"
+  | "loan_new";
 
 export interface NewNotification {
   userId: string;
@@ -78,6 +83,8 @@ export interface NewNotification {
   prevPrice?: number | null;
   /** trade_*: publicId de la propuesta de intercambio. */
   tradeId?: string | null;
+  /** group_join: publicId del grupo. game_recorded: de la partida. loan_new: del préstamo. */
+  refId?: string | null;
 }
 
 export interface Notification extends Required<NewNotification> {

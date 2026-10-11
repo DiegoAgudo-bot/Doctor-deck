@@ -83,6 +83,33 @@ export function NotificationsPage() {
                         <Link href="/trades?tab=proposals">Ver propuestas</Link>
                       )}
                     </>
+                  ) : n.type === "group_join" ? (
+                    <>
+                      {who} ha entrado en tu grupo{" "}
+                      {n.refId ? (
+                        <Link href={`/groups/${n.refId}`}>{n.title}</Link>
+                      ) : (
+                        <b>{n.title}</b>
+                      )}
+                    </>
+                  ) : n.type === "game_recorded" ? (
+                    <>
+                      {who} ha registrado una partida en la que jugaste: {n.title} ·{" "}
+                      {n.refId && <Link href={`/games/${n.refId}`}>Ver la partida</Link>}
+                    </>
+                  ) : n.type === "deck_comment" ? (
+                    <>
+                      {who} ha comentado en tu mazo{" "}
+                      {n.deckId ? (
+                        <Link href={`/decks/${n.deckId}#comments`}>{n.title}</Link>
+                      ) : (
+                        <b>{n.title}</b>
+                      )}
+                    </>
+                  ) : n.type === "loan_new" ? (
+                    <>
+                      {who} te ha prestado <b>{n.title}</b> · <Link href="/loans">Préstamos</Link>
+                    </>
                   ) : n.type === "new_deck" ? (
                     <>
                       {who} ha publicado un mazo:{" "}

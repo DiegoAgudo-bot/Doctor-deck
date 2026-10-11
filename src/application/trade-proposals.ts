@@ -23,6 +23,7 @@ import {
   type TradeCopy,
   type TradeSides,
 } from "@/domain/trades/proposal";
+import type { BlockRepository } from "@/domain/ports/moderation";
 import { userLists, type TradeDeps } from "./trades";
 
 export type TradeProposalProblem =
@@ -34,7 +35,8 @@ export type TradeProposalProblem =
   | "closed"
   | "empty"
   | "unavailable"
-  | "missing_copies";
+  | "missing_copies"
+  | "blocked";
 
 const MESSAGES: Record<TradeProposalProblem, string> = {
   not_found: "Esa propuesta de intercambio no existe.",
@@ -45,6 +47,7 @@ const MESSAGES: Record<TradeProposalProblem, string> = {
   closed: "Esta propuesta ya está cerrada.",
   empty: "La propuesta no tiene ninguna carta.",
   unavailable: "Algunas cartas ya no están disponibles para cambiar.",
+  blocked: "No puedes proponer intercambios a esta persona.",
   missing_copies:
     "No se puede aceptar: ya no están todas las cartas en la colección de quien las da.",
 };
@@ -62,6 +65,8 @@ export class TradeProposalError extends Error {
 
 export interface ProposalDeps extends TradeDeps {
   profiles: ProfileRepository;
+  /** Si alguno de los dos ha bloqueado al otro, no hay propuestas (fase 21). */
+  blocks?: Pick<BlockRepository, "eitherBlocked"> | undefined;
   notifications: NotificationRepository;
   proposals: TradeProposalRepository;
 }
@@ -114,6 +119,9 @@ async function partnerByUsername(viewerId: string, username: string, deps: Propo
   if (!partner?.username) throw new TradeProposalError("not_found");
   if (partner.id === viewerId) throw new TradeProposalError("self");
   if (!partner.tradesPublic) throw new TradeProposalError("private");
+  if (await deps.blocks?.eitherBlocked(viewerId, partner.id)) {
+    throw new TradeProposalError("blocked");
+  }
   return partner as PublicProfile & { username: string };
 }
 

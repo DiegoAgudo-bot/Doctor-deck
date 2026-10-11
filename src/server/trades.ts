@@ -32,6 +32,7 @@ export function tradeDeps() {
     follows: c.social,
     notifications: c.social,
     proposals: c.tradeProposals,
+    blocks: c.moderation,
   };
 }
 

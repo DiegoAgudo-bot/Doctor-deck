@@ -7,6 +7,7 @@ import type {
   ProfileRepository,
   PublicProfile,
 } from "@/domain/ports/social";
+import type { BlockRepository } from "@/domain/ports/moderation";
 import type { TradeRepository } from "@/domain/ports/trades";
 import {
   buildTradelist,
@@ -66,18 +67,25 @@ export interface TradePartner {
  */
 export async function tradeMatches(
   viewerId: string,
-  deps: TradeDeps & { profiles: ProfileRepository; follows: FollowRepository },
+  deps: TradeDeps & {
+    profiles: ProfileRepository;
+    follows: FollowRepository;
+    /** Sin cruces con gente bloqueada (en un sentido u otro). */
+    blocks?: Pick<BlockRepository, "hiddenFor"> | undefined;
+  },
   opts: { username?: string | undefined } = {},
 ): Promise<{ partners: TradePartner[]; prices: Map<string, number> }> {
-  const [mine, traders, following] = await Promise.all([
+  const [mine, traders, following, hidden] = await Promise.all([
     userLists(viewerId, deps),
     deps.profiles.publicTraders(),
     deps.follows.followingIds(viewerId),
+    deps.blocks?.hiddenFor(viewerId) ?? new Set<string>(),
   ]);
   const followed = new Set(following);
   const others = traders.filter(
     (p): p is PublicProfile & { username: string } =>
       p.id !== viewerId &&
+      !hidden.has(p.id) &&
       p.username !== null &&
       (!opts.username || p.username === opts.username.toLowerCase()),
   );

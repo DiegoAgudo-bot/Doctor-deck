@@ -11,6 +11,7 @@ import { EmptyCatalogError } from "@/application/import-collection";
 import { InvalidPrintingError } from "@/application/collection-cards";
 import { AccountConfirmationError } from "@/application/account";
 import { TradeProposalError } from "@/application/trade-proposals";
+import { AppError } from "@/application/errors";
 import { CsvParseError } from "@/domain/collection/csv";
 import { ManaboxFormatError } from "@/domain/collection/manabox";
 import type { ApiErrorBody } from "./dto";
@@ -27,6 +28,9 @@ const EDHREC_STATUS: Record<EdhrecError["code"], number> = {
 /** Traduce errores conocidos a respuestas JSON con un mensaje para el usuario. */
 export function errorResponse(err: unknown): Response {
   const body = (code: string, message: string): ApiErrorBody => ({ error: { code, message } });
+  if (err instanceof AppError) {
+    return Response.json(body(err.code, err.message), { status: err.status });
+  }
   if (err instanceof UnauthorizedError) {
     return Response.json(body("unauthorized", err.message), { status: 401 });
   }
@@ -55,6 +59,7 @@ export function errorResponse(err: unknown): Response {
       empty: 400,
       unavailable: 409,
       missing_copies: 409,
+      blocked: 403,
     }[err.problem];
     return Response.json(
       { error: { code: `trade_${err.problem}`, message: err.message, oracleIds: err.oracleIds } },

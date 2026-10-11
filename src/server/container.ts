@@ -9,6 +9,10 @@ import { PrismaRoleOverrideRepository } from "@/adapters/db/role-override-reposi
 import { PrismaTradeRepository } from "@/adapters/db/trade-repository";
 import { PrismaTradeProposalRepository } from "@/adapters/db/trade-proposal-repository";
 import { PrismaSocialRepository } from "@/adapters/db/social-repository";
+import { PrismaFeedSource } from "@/adapters/db/feed-repository";
+import { PrismaLoanRepository } from "@/adapters/db/loan-repository";
+import { PrismaModerationRepository } from "@/adapters/db/moderation-repository";
+import { PrismaGameRepository, PrismaGroupRepository } from "@/adapters/db/play-repository";
 import { PrismaResponseCache } from "@/adapters/db/response-cache";
 import { EdhrecClient } from "@/adapters/edhrec/edhrec-client";
 import { SpellbookClient } from "@/adapters/spellbook/spellbook-client";
@@ -76,6 +80,12 @@ export function createContainer() {
     /** Parte social: perfiles, seguidores y notificaciones (un mismo adaptador). */
     social: new PrismaSocialRepository(db),
     publicDecks: new PrismaPublicDecks(db),
+    /** Fase 21: grupos de juego, partidas, préstamos, feed y moderación (comentarios, bloqueos). */
+    groups: new PrismaGroupRepository(db),
+    games: new PrismaGameRepository(db),
+    loans: new PrismaLoanRepository(db),
+    feed: new PrismaFeedSource(db),
+    moderation: new PrismaModerationRepository(db),
     /** Precio de cada día de las cartas en colecciones y mazos (lo rellena `scryfall:sync`). */
     prices: new PrismaPriceHistory(db),
     deckSources: [
