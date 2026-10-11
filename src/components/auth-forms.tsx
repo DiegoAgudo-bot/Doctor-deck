@@ -125,10 +125,10 @@ export function LoginForm({ google, passwordReset }: { google: boolean; password
       <div className="flex flex-col gap-1 text-[13px]">
         <span>
           ¿No tienes cuenta?{" "}
-          <Link href={`/registro?next=${encodeURIComponent(next)}`}>Regístrate</Link>
+          <Link href={`/signup?next=${encodeURIComponent(next)}`}>Regístrate</Link>
         </span>
         {passwordReset && (
-          <Link href="/recuperar" className="subtle">
+          <Link href="/forgot-password" className="subtle">
             He olvidado la contraseña
           </Link>
         )}
@@ -138,7 +138,7 @@ export function LoginForm({ google, passwordReset }: { google: boolean; password
 }
 
 export function RegisterForm({ google }: { google: boolean }) {
-  const next = safeNext(useSearchParams().get("next"), "/coleccion");
+  const next = safeNext(useSearchParams().get("next"), "/collection");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -195,7 +195,7 @@ export function RegisterForm({ google }: { google: boolean }) {
         </button>
       </form>
       <span className="text-[13px]">
-        ¿Ya tienes cuenta? <Link href={`/entrar?next=${encodeURIComponent(next)}`}>Entra</Link>
+        ¿Ya tienes cuenta? <Link href={`/login?next=${encodeURIComponent(next)}`}>Entra</Link>
       </span>
     </Card>
   );
@@ -222,7 +222,7 @@ export function ForgotPasswordForm() {
             setError(null);
             const { error } = await authClient.requestPasswordReset({
               email,
-              redirectTo: "/restablecer",
+              redirectTo: "/reset-password",
             });
             setBusy(false);
             if (error) return setError(authErrorMessage(error));
@@ -242,7 +242,7 @@ export function ForgotPasswordForm() {
           </button>
         </form>
       )}
-      <Link href="/entrar" className="text-[13px]">
+      <Link href="/login" className="text-[13px]">
         Volver a entrar
       </Link>
     </Card>
@@ -263,7 +263,7 @@ export function ResetPasswordForm() {
     <Card title="Nueva contraseña">
       {done ? (
         <Banner tone="info">
-          Contraseña cambiada. <Link href="/entrar">Entra con la nueva</Link>.
+          Contraseña cambiada. <Link href="/login">Entra con la nueva</Link>.
         </Banner>
       ) : (
         <form

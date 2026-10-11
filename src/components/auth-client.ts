@@ -30,6 +30,6 @@ export function authErrorMessage(
 }
 
 /** Solo rutas internas como destino tras entrar (evita redirecciones a otros dominios). */
-export function safeNext(next: string | null, fallback = "/mazo"): string {
+export function safeNext(next: string | null, fallback = "/analyze"): string {
   return next && next.startsWith("/") && !next.startsWith("//") ? next : fallback;
 }

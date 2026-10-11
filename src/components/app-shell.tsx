@@ -39,7 +39,7 @@ import { ColorPips } from "./mana";
 import { fmt } from "./ui";
 
 type SessionUser = { name: string; email: string; username?: string | null };
-const profileHref = (u: SessionUser) => (u.username ? `/u/${u.username}` : "/ajustes");
+const profileHref = (u: SessionUser) => (u.username ? `/u/${u.username}` : "/settings");
 
 /**
  * Lee la ruta actual dentro de su propio <Suspense>: con Cache Components, en las rutas con
@@ -167,8 +167,8 @@ function TopBar({
 }) {
   const nav = [
     { href: "/", label: "Inicio" },
-    { href: "/mazo", label: "Analizar mazo" },
-    { href: "/comunidad", label: "Comunidad" },
+    { href: "/analyze", label: "Analizar mazo" },
+    { href: "/community", label: "Comunidad" },
   ];
   return (
     <header className="topbar">
@@ -187,7 +187,7 @@ function TopBar({
         <ThemeToggle />
         {user && (
           <Link
-            href="/notificaciones"
+            href="/notifications"
             className="btn btn-ghost btn-icon relative"
             aria-label={unread > 0 ? `Notificaciones (${unread} sin leer)` : "Notificaciones"}
           >
@@ -223,7 +223,7 @@ function TopBar({
             {initial(user)}
           </Link>
         ) : (
-          <Link href={`/entrar?next=${encodeURIComponent(pathname)}`} className="btn btn-primary">
+          <Link href={`/login?next=${encodeURIComponent(pathname)}`} className="btn btn-primary">
             Entrar
           </Link>
         )}
@@ -298,13 +298,13 @@ function Sidebar({
         </Link>
       )}
       {user && (
-        <Link className={`nav ${pathname === "/mazos" ? "is-active" : ""}`} href="/mazos">
+        <Link className={`nav ${pathname === "/decks" ? "is-active" : ""}`} href="/decks">
           <IconDecks />
           Mis mazos
           {decks && <span className="count">{decks.length}</span>}
         </Link>
       )}
-      <Link className={`nav ${pathname === "/coleccion" ? "is-active" : ""}`} href="/coleccion">
+      <Link className={`nav ${pathname === "/collection" ? "is-active" : ""}`} href="/collection">
         <IconCollection />
         Mi colección
         {copies !== null && <span className="count">{fmt(copies)}</span>}
@@ -316,7 +316,7 @@ function Sidebar({
             <span className="cap">Mazos</span>
             <Link
               className="btn btn-ghost btn-icon"
-              href="/mazos/nuevo"
+              href="/decks/new"
               aria-label="Nuevo mazo"
               style={{ width: 26, height: 26 }}
             >
@@ -353,20 +353,17 @@ function Sidebar({
           </nav>
           <div className="side-foot">
             <Link
-              className={`nav ${pathname === "/comunidad" ? "is-active" : ""}`}
-              href="/comunidad"
+              className={`nav ${pathname === "/community" ? "is-active" : ""}`}
+              href="/community"
             >
               <IconUsers />
               Comunidad
             </Link>
-            <Link
-              className={`nav ${pathname === "/intercambios" ? "is-active" : ""}`}
-              href="/intercambios"
-            >
+            <Link className={`nav ${pathname === "/trades" ? "is-active" : ""}`} href="/trades">
               <IconSwap />
               Intercambios
             </Link>
-            <Link className={`nav ${pathname === "/ajustes" ? "is-active" : ""}`} href="/ajustes">
+            <Link className={`nav ${pathname === "/settings" ? "is-active" : ""}`} href="/settings">
               <IconSettings />
               Ajustes
             </Link>
@@ -383,10 +380,10 @@ function Sidebar({
               Sin cuenta puedes analizar mazos; tu colección se queda en este navegador. Crea una
               cuenta para guardar mazos y llevar tu colección a cualquier dispositivo.
             </p>
-            <Link href="/registro" className="btn btn-primary">
+            <Link href="/signup" className="btn btn-primary">
               Crear cuenta
             </Link>
-            <Link className="nav" href={`/entrar?next=${encodeURIComponent(pathname)}`}>
+            <Link className="nav" href={`/login?next=${encodeURIComponent(pathname)}`}>
               <IconLogin />
               Entrar
             </Link>
@@ -400,13 +397,13 @@ function Sidebar({
 function BottomNav({ pathname, user }: { pathname: string; user: SessionUser | null }) {
   const items = [
     { href: "/", label: "Inicio", icon: <IconHome size={20} /> },
-    { href: "/mazo", label: "Analizar", icon: <IconPlus size={20} weight={1.8} /> },
-    { href: "/comunidad", label: "Comunidad", icon: <IconUsers size={20} /> },
-    { href: "/coleccion", label: "Colección", icon: <IconCollection size={20} /> },
+    { href: "/analyze", label: "Analizar", icon: <IconPlus size={20} weight={1.8} /> },
+    { href: "/community", label: "Comunidad", icon: <IconUsers size={20} /> },
+    { href: "/collection", label: "Colección", icon: <IconCollection size={20} /> },
     user
       ? { href: profileHref(user), label: "Perfil", icon: <IconUser size={20} /> }
       : {
-          href: `/entrar?next=${encodeURIComponent(pathname)}`,
+          href: `/login?next=${encodeURIComponent(pathname)}`,
           label: "Entrar",
           icon: <IconLogin size={20} />,
         },

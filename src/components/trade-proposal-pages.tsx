@@ -23,7 +23,7 @@ export const STATUS_LABEL: Record<ProposalStatusDTO, string> = {
   cancelled: "Retirada",
 };
 
-/** /intercambios/con/{username}: la calculadora con otro usuario. */
+/** /trades/with/{username}: la calculadora con otro usuario. */
 export function TradeCalculatorPage() {
   const { username } = useParams<{ username: string }>();
   const router = useRouter();
@@ -49,7 +49,7 @@ export function TradeCalculatorPage() {
         method: "POST",
         ...json({ username, lines: linesForApi(lines), send }),
       });
-      router.push(`/intercambios/propuestas/${id}`);
+      router.push(`/trades/proposals/${id}`);
     } catch (e) {
       setError(errorText(e, "No se pudo guardar la propuesta"));
       setBusy(false);
@@ -60,7 +60,7 @@ export function TradeCalculatorPage() {
   return (
     <main className="page max-w-[1100px]" style={{ gap: 16 }}>
       <div className="flex flex-col gap-1">
-        <Link className="subtle text-[13px]" href="/intercambios">
+        <Link className="subtle text-[13px]" href="/trades">
           ← Intercambios
         </Link>
         <h1 className="h1">Intercambio con @{username}</h1>
@@ -77,7 +77,7 @@ export function TradeCalculatorPage() {
           {calc.openProposalId && (
             <Banner tone="info">
               Ya tenéis una propuesta abierta.{" "}
-              <Link href={`/intercambios/propuestas/${calc.openProposalId}`}>Ver la propuesta</Link>
+              <Link href={`/trades/proposals/${calc.openProposalId}`}>Ver la propuesta</Link>
             </Banner>
           )}
           {calc.give.length === 0 && calc.get.length === 0 && (
@@ -117,7 +117,7 @@ export function TradeCalculatorPage() {
   );
 }
 
-/** /intercambios/propuestas/{id}: ver, editar, contraproponer, aceptar o rechazar. */
+/** /trades/proposals/{id}: ver, editar, contraproponer, aceptar o rechazar. */
 export function TradeProposalPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -148,7 +148,7 @@ export function TradeProposalPage() {
         `/api/trades/proposals/${encodeURIComponent(id)}`,
         { method: "PATCH", ...json(body) },
       );
-      if ("deleted" in res) router.push("/intercambios?tab=propuestas");
+      if ("deleted" in res) router.push("/trades?tab=proposals");
       else show(res);
     } catch (e) {
       setError(errorText(e, "No se pudo completar la acción"));
@@ -175,7 +175,7 @@ export function TradeProposalPage() {
   return (
     <main className="page max-w-[1100px]" style={{ gap: 16 }}>
       <div className="flex flex-col gap-1">
-        <Link className="subtle text-[13px]" href="/intercambios?tab=propuestas">
+        <Link className="subtle text-[13px]" href="/trades?tab=proposals">
           ← Propuestas
         </Link>
         <div className="flex flex-wrap items-center gap-2">

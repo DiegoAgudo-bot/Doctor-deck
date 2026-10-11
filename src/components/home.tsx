@@ -74,10 +74,10 @@ export function Home() {
         <div className="stack-sm flex items-center justify-between gap-3">
           <h1 className="h1">Hola, {user.name}</h1>
           <div className="flex flex-wrap gap-2">
-            <Link className="btn" href="/mazo?nuevo=1">
+            <Link className="btn" href="/analyze?new=1">
               Analizar una lista
             </Link>
-            <Link className="btn btn-primary" href="/mazos/nuevo">
+            <Link className="btn btn-primary" href="/decks/new">
               <IconPlus size={14} />
               Nuevo mazo
             </Link>
@@ -94,13 +94,13 @@ export function Home() {
             colección de ManaBox.
           </p>
           <div className="mt-1 flex flex-wrap gap-2">
-            <Link className="btn btn-primary btn-lg" href="/mazo">
+            <Link className="btn btn-primary btn-lg" href="/analyze">
               Analizar un mazo
             </Link>
-            <Link className="btn btn-lg" href="/mazos/nuevo">
+            <Link className="btn btn-lg" href="/decks/new">
               Crear desde un comandante
             </Link>
-            <Link className="btn btn-lg" href="/coleccion">
+            <Link className="btn btn-lg" href="/collection">
               Importar mi colección
             </Link>
           </div>
@@ -120,7 +120,7 @@ export function Home() {
         <Banner
           tone="warn"
           action={
-            <Link className="btn btn-sm" href="/coleccion">
+            <Link className="btn btn-sm" href="/collection">
               Importar CSV de ManaBox
             </Link>
           }
@@ -135,14 +135,14 @@ export function Home() {
         style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}
       >
         <Stat
-          href="/coleccion"
+          href="/collection"
           label="Copias en tu colección"
           value={fmt(copies)}
           meta={user ? "En tu cuenta" : local ? "En este navegador" : "Sin importar"}
           first
         />
         <Stat
-          href="/coleccion"
+          href="/collection"
           label="Cartas distintas"
           value={fmt(unique)}
           meta={
@@ -153,14 +153,14 @@ export function Home() {
         />
         {user ? (
           <Stat
-            href="/mazos"
+            href="/decks"
             label="Mazos guardados"
             value={decks ? fmt(decks.length) : "…"}
             meta="Sus cartas cuentan como en uso"
           />
         ) : (
           <Stat
-            href="/registro"
+            href="/signup"
             label="Mazos guardados"
             value="—"
             meta="Crea una cuenta para guardarlos"
@@ -178,15 +178,15 @@ export function Home() {
           <div className="panel-h">
             <span className="h2">Tus mazos</span>
             {decks && decks.length > 0 && (
-              <Link href="/mazos" style={{ fontSize: 13 }}>
+              <Link href="/decks" style={{ fontSize: 13 }}>
                 Ver todos
               </Link>
             )}
           </div>
           {decks && decks.length === 0 ? (
             <p className="muted p-4 text-[13px]">
-              Aún no has guardado ningún mazo. <Link href="/mazo?nuevo=1">Analiza uno</Link> y pulsa
-              Guardar.
+              Aún no has guardado ningún mazo. <Link href="/analyze?new=1">Analiza uno</Link> y
+              pulsa Guardar.
             </p>
           ) : (
             <div className="overflow-x-auto">

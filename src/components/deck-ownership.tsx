@@ -104,7 +104,7 @@ export function OwnershipPanel({
         <Banner
           tone="warn"
           action={
-            <Link className="btn btn-sm" href="/coleccion">
+            <Link className="btn btn-sm" href="/collection">
               Importar colección
             </Link>
           }

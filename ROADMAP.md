@@ -31,7 +31,7 @@ despliegue en `main` y **parar al terminar cada fase hasta el OK del usuario**.
 
 ## Fase 10 · Crear mazos ✅
 
-Hecha. El asistente `/mazos/nuevo` crea el mazo desde el comandante, con el mazo medio de EDHREC
+Hecha. El asistente `/decks/new` crea el mazo desde el comandante, con el mazo medio de EDHREC
 (general o de un tema) o vacío. El nombre se propone solo ("Jund - Aristócratas"). El mazo se edita
 en la pestaña Lista y "Mis mazos" hace de gestor (renombrar, duplicar, visibilidad, borrar).
 Cubre la idea 2 del análisis.
@@ -119,7 +119,7 @@ coincide con el de la pestaña "Qué me falta".
 - **"Lo que más sube" de tu colección** y el valor de tu colección en el tiempo.
 - **Avisos de bajada de precio** (idea 5). Si una carta de "Qué me falta" de alguno de tus mazos
   baja un X % o por debajo de un umbral, recibes un aviso en la campana, con el mismo sistema de
-  `Notification`. El umbral se configura en `/ajustes`.
+  `Notification`. El umbral se configura en `/settings`.
 
 **Hecho cuando:** los avisos llegan como mucho una vez por carta y semana, y hay tests con
 históricos inventados.
@@ -219,9 +219,9 @@ barata. La fase 18 dejó en cada copia de la colección su impresión, foil e id
 3. **API**: `GET /api/trades/calculator?username=` (propuesta inicial ya cuadrada);
    `POST /api/trades/proposals` (guardar borrador); `GET|PATCH|DELETE /api/trades/proposals/{id}`
    (retocar copias o compartir). Una propuesta compartida la ven solo los dos usuarios.
-4. **UI**: `/intercambios/{username}` con dos columnas (doy / recibo), −/+ por copia, añadir
+4. **UI**: `/trades/{username}` con dos columnas (doy / recibo), −/+ por copia, añadir
    cualquier carta de su "para cambiar" aunque no esté en mi lista de deseos, barra de balance y
-   botones guardar / compartir. Botón "Proponer intercambio" en cada cruce de `/intercambios` y
+   botones guardar / compartir. Botón "Proponer intercambio" en cada cruce de `/trades` y
    en el perfil.
 5. **Avisos**: una `Notification` `trade_proposal` al otro usuario cuando se comparte.
 
@@ -235,7 +235,7 @@ barata. La fase 18 dejó en cada copia de la colección su impresión, foil e id
 - ¿Al marcar un intercambio como hecho se mueven las cartas entre las dos colecciones, o eso queda
   fuera (cada uno actualiza su ManaBox)? La propuesta inicial es dejarlo fuera.
 
-**Hecho cuando:** la propuesta inicial coincide con los cruces de `/intercambios`, el balance
+**Hecho cuando:** la propuesta inicial coincide con los cruces de `/trades`, el balance
 está probado con casos inventados (foil, varias impresiones, copias en mazos) y un borrador
 compartido se abre con su enlace solo para los dos usuarios.
 

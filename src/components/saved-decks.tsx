@@ -122,10 +122,10 @@ export function SavedDecks() {
           )}
         </h1>
         <div className="flex flex-wrap gap-2">
-          <Link className="btn" href="/mazo?nuevo=1">
+          <Link className="btn" href="/analyze?new=1">
             Importar lista
           </Link>
-          <Link className="btn btn-primary" href="/mazos/nuevo">
+          <Link className="btn btn-primary" href="/decks/new">
             <IconPlus size={14} />
             Nuevo mazo
           </Link>
@@ -159,10 +159,10 @@ export function SavedDecks() {
             title="Aún no tienes ningún mazo"
             action={
               <div className="flex flex-wrap justify-center gap-2">
-                <Link className="btn btn-primary" href="/mazos/nuevo">
+                <Link className="btn btn-primary" href="/decks/new">
                   Crear desde un comandante
                 </Link>
-                <Link className="btn" href="/mazo?nuevo=1">
+                <Link className="btn" href="/analyze?new=1">
                   Importar una lista
                 </Link>
               </div>

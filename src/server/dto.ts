@@ -457,7 +457,7 @@ export interface CommanderInfoDTO {
 }
 
 export interface NewDeckResponse {
-  /** Con sesión se guarda (id); sin ella hay que abrir `input` en /mazo. */
+  /** Con sesión se guarda (id); sin ella hay que abrir `input` en /analyze. */
   saved: boolean;
   id: string | null;
   name: string;

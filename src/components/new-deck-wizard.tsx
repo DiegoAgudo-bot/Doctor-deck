@@ -24,7 +24,7 @@ const compact = (n: number) =>
   n >= 1000 ? `${(n / 1000).toLocaleString("es", { maximumFractionDigits: 1 })}K` : String(n);
 
 /**
- * /mazos/nuevo: crear un mazo eligiendo el comandante (el mazo medio de EDHREC, general o de un
+ * /decks/new: crear un mazo eligiendo el comandante (el mazo medio de EDHREC, general o de un
  * tema, o vacío para montarlo desde cero) o importando una lista. El nombre se propone solo:
  * "<colores> - <de qué va>".
  */
@@ -104,7 +104,7 @@ export function NewDeckWizard() {
           visibility,
         }),
       });
-      const tab = mode === "empty" ? "lista&editar=1" : "falta";
+      const tab = mode === "empty" ? "list&edit=1" : "missing";
       if (res.saved && res.id) {
         notifyDecksChanged();
         router.push(`/decks/${res.id}?tab=${tab}`);
@@ -120,7 +120,7 @@ export function NewDeckWizard() {
           useOtherDecks: true,
           visibility: "public",
         });
-        router.push(`/mazo?analizar=1&tab=${tab}`);
+        router.push(`/analyze?analyze=1&tab=${tab}`);
       }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "No se pudo crear el mazo");
@@ -134,7 +134,7 @@ export function NewDeckWizard() {
         <h1 className="h1">Nuevo mazo</h1>
         <p className="muted text-[13px]">
           Elige el comandante y te monto el mazo con lo que juega la comunidad en EDHREC, o empieza
-          desde cero. ¿Ya tienes la lista? <Link href="/mazo?nuevo=1">Impórtala</Link>.
+          desde cero. ¿Ya tienes la lista? <Link href="/analyze?new=1">Impórtala</Link>.
         </p>
       </div>
 
@@ -288,7 +288,7 @@ export function NewDeckWizard() {
             ) : (
               <Banner tone="info">
                 Sin cuenta, el mazo se abre en el analizador y se queda en este navegador.{" "}
-                <Link href="/registro?next=/mazos/nuevo">Crea una cuenta</Link> para guardarlo.
+                <Link href="/signup?next=/decks/new">Crea una cuenta</Link> para guardarlo.
               </Banner>
             )}
 

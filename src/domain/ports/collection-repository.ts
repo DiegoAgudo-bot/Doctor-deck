@@ -28,7 +28,7 @@ export interface ManualCard {
 
 /** Una línea de la colección (del CSV o añadida suelta), ya emparejada con una carta. */
 export interface CollectionEntryRow {
-  /** Id de la línea; sirve para borrar las añadidas a mano. */
+  /** Id público (uuid) de la línea; sirve para borrar las añadidas a mano. */
   id: string;
   oracleId: string;
   name: string;

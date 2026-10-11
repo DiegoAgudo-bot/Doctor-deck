@@ -17,7 +17,7 @@ const TRADE_TEXT: Partial<Record<NotificationDTO["type"], string>> = {
   trade_cancelled: "ha retirado la propuesta de intercambio",
 };
 
-/** /notificaciones: lo que han hecho las personas a las que sigues. Al abrirla, se marcan leídas. */
+/** /notifications: lo que han hecho las personas a las que sigues. Al abrirla, se marcan leídas. */
 export function NotificationsPage() {
   const [data, setData] = useState<NotificationsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export function NotificationsPage() {
           <EmptyState
             title="Nada por aquí"
             action={
-              <Link className="btn btn-primary" href="/comunidad">
+              <Link className="btn btn-primary" href="/community">
                 Buscar a quien seguir
               </Link>
             }
@@ -78,9 +78,9 @@ export function NotificationsPage() {
                     <>
                       {who} {TRADE_TEXT[n.type] ?? "ha cambiado una propuesta de intercambio"} ·{" "}
                       {n.tradeId ? (
-                        <Link href={`/intercambios/propuestas/${n.tradeId}`}>Ver la propuesta</Link>
+                        <Link href={`/trades/proposals/${n.tradeId}`}>Ver la propuesta</Link>
                       ) : (
-                        <Link href="/intercambios?tab=propuestas">Ver propuestas</Link>
+                        <Link href="/trades?tab=proposals">Ver propuestas</Link>
                       )}
                     </>
                   ) : n.type === "new_deck" ? (
@@ -91,7 +91,7 @@ export function NotificationsPage() {
                   ) : n.type === "trade_match" ? (
                     <>
                       {who} tiene libre <b>{n.title}</b>, que está en tu lista de deseos ·{" "}
-                      <Link href="/intercambios">Ver cruces</Link>
+                      <Link href="/trades">Ver cruces</Link>
                     </>
                   ) : n.type === "price_drop" ? (
                     <>
@@ -99,7 +99,7 @@ export function NotificationsPage() {
                       {n.deckId && (
                         <>
                           {" "}
-                          para <Link href={`/decks/${n.deckId}?tab=falta`}>uno de tus mazos</Link>
+                          para <Link href={`/decks/${n.deckId}?tab=missing`}>uno de tus mazos</Link>
                         </>
                       )}
                       {n.price !== null && (

@@ -18,8 +18,8 @@ import { IconX } from "./icons";
 import { STATUS_LABEL } from "./trade-proposal-pages";
 import { Banner, EmptyState, Loading, ago, fmt } from "./ui";
 
-type Tab = "cruces" | "propuestas" | "busco" | "cambio";
-const TABS: readonly Tab[] = ["cruces", "propuestas", "busco", "cambio"];
+type Tab = "matches" | "proposals" | "wanted" | "offered";
+const TABS: readonly Tab[] = ["matches", "proposals", "wanted", "offered"];
 
 /** Lista compacta de cartas con copias y precio. */
 export function TradeCardList({
@@ -68,7 +68,7 @@ export function PartnerCard({ p }: { p: TradePartnerDTO }) {
         </span>
         <span className="flex items-center gap-3">
           <span className="subtle text-xs">{p.profile.name}</span>
-          <Link className="btn btn-sm btn-primary" href={`/intercambios/con/${p.profile.username}`}>
+          <Link className="btn btn-sm btn-primary" href={`/trades/with/${p.profile.username}`}>
             Proponer intercambio
           </Link>
         </span>
@@ -97,12 +97,12 @@ export function PartnerCard({ p }: { p: TradePartnerDTO }) {
 }
 
 /**
- * /intercambios: con quién cruzo (quién tiene lo que busco y busca lo que me sobra), mi lista de
+ * /trades: con quién cruzo (quién tiene lo que busco y busca lo que me sobra), mi lista de
  * deseos (a mano y lo que falta de los mazos que elija) y mis cartas para cambiar (copias libres).
  * Sin pagos ni mensajes: cada uno se contacta por fuera.
  */
 export function TradesPage() {
-  const [tab, setTab] = useState<Tab>("cruces");
+  const [tab, setTab] = useState<Tab>("matches");
   const [mine, setMine] = useState<MyTradesDTO | null>(null);
   const [partners, setPartners] = useState<TradePartnerDTO[] | null>(null);
   const [proposals, setProposals] = useState<TradeProposalSummaryDTO[] | null>(null);
@@ -127,8 +127,10 @@ export function TradesPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial
     void load();
-    // ?tab=propuestas (al volver de una propuesta o desde un aviso).
-    const t = new URLSearchParams(window.location.search).get("tab");
+    // ?tab=proposals (al volver de una propuesta o desde un aviso).
+    const raw = new URLSearchParams(window.location.search).get("tab");
+    // Enlaces antiguos: ?tab=propuestas.
+    const t = raw === "propuestas" ? "proposals" : raw;
     const found = TABS.find((x) => x === t);
     if (found) setTab(found);
   }, [load]);
@@ -213,10 +215,10 @@ export function TradesPage() {
       <nav className="tabs" aria-label="Secciones de intercambios">
         {(
           [
-            ["cruces", "Cruces", partners.length],
-            ["propuestas", "Propuestas", proposals.filter((x) => x.myTurn).length],
-            ["busco", "Lo que busco", mine.wishlist.length],
-            ["cambio", "Para cambiar", mine.tradelistTotal],
+            ["matches", "Cruces", partners.length],
+            ["proposals", "Propuestas", proposals.filter((x) => x.myTurn).length],
+            ["wanted", "Lo que busco", mine.wishlist.length],
+            ["offered", "Para cambiar", mine.tradelistTotal],
           ] as const
         ).map(([id, label, n]) => (
           <button
@@ -232,7 +234,7 @@ export function TradesPage() {
         ))}
       </nav>
 
-      {tab === "cruces" &&
+      {tab === "matches" &&
         (partners.length === 0 ? (
           <div className="panel">
             <EmptyState title="Todavía no hay cruces">
@@ -249,9 +251,9 @@ export function TradesPage() {
           </div>
         ))}
 
-      {tab === "propuestas" && <ProposalList items={proposals} />}
+      {tab === "proposals" && <ProposalList items={proposals} />}
 
-      {tab === "busco" && (
+      {tab === "wanted" && (
         <div
           className="grid-1-sm grid items-start gap-4"
           style={{ gridTemplateColumns: "minmax(0, 3fr) minmax(0, 2fr)" }}
@@ -320,7 +322,7 @@ export function TradesPage() {
               </p>
               {mine.decks.length === 0 ? (
                 <p className="subtle text-[13px]">
-                  No tienes mazos guardados. <Link href="/mazos/nuevo">Crea uno</Link>.
+                  No tienes mazos guardados. <Link href="/decks/new">Crea uno</Link>.
                 </p>
               ) : (
                 mine.decks.map((d) => (
@@ -345,7 +347,7 @@ export function TradesPage() {
         </div>
       )}
 
-      {tab === "cambio" && (
+      {tab === "offered" && (
         <div
           className="grid-1-sm grid items-start gap-4"
           style={{ gridTemplateColumns: "minmax(0, 3fr) minmax(0, 2fr)" }}
@@ -435,7 +437,7 @@ function ProposalList({ items }: { items: TradeProposalSummaryDTO[] }) {
           key={p.id}
           className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line px-3.5 py-2.5 text-[13.5px] last:border-b-0"
         >
-          <Link href={`/intercambios/propuestas/${p.id}`} style={{ fontWeight: 600 }}>
+          <Link href={`/trades/proposals/${p.id}`} style={{ fontWeight: 600 }}>
             @{p.partner.username}
           </Link>
           <span

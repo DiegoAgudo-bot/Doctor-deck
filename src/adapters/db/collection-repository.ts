@@ -83,7 +83,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
       where: { userId: this.userId, status: "matched", oracleId: { not: null } },
       orderBy: [{ importedAt: "desc" }, { id: "desc" }],
       select: {
-        id: true,
+        publicId: true,
         oracleId: true,
         name: true,
         quantity: true,
@@ -99,7 +99,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
       r.oracleId
         ? [
             {
-              id: String(r.id),
+              id: r.publicId,
               oracleId: r.oracleId,
               name: r.name,
               quantity: r.quantity,
@@ -116,10 +116,8 @@ export class PrismaCollectionRepository implements CollectionRepository {
   }
 
   async removeAdded(id: string) {
-    const n = Number(id);
-    if (!Number.isInteger(n) || n <= 0) return false;
     const { count } = await this.db.collectionEntry.deleteMany({
-      where: { id: n, userId: this.userId, matchMethod: MANUAL },
+      where: { publicId: id, userId: this.userId, matchMethod: MANUAL },
     });
     return count > 0;
   }

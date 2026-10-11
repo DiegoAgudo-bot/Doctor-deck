@@ -159,9 +159,9 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   (tras `scryfall:sync`): aviso `trade_match` por carta, como mucho cada 30 días. API `GET
 /api/trades`, `GET /api/trades/matches?username=`, `PUT /api/trades/wishes/{oracleId}`
   (`{quantity}`), `PUT /api/trades/keeps/{oracleId}` (`{keep}`), `PATCH /api/decks/{id}`
-  (`{inWishlist}`), `PATCH /api/me/profile` (`{tradesPublic}`). UI: `/intercambios` (cruces, lo que
+  (`{inWishlist}`), `PATCH /api/me/profile` (`{tradesPublic}`). UI: `/trades` (cruces, lo que
   busco, para cambiar), sección en el perfil de otros, botón en "Qué me falta" y ajuste en
-  `/ajustes`. Sin pagos ni mensajes. Cuentas de prueba locales en `data/test-accounts.local.json`
+  `/settings`. Sin pagos ni mensajes. Cuentas de prueba locales en `data/test-accounts.local.json`
   (gitignored).
 - **Calculadora de intercambio y propuestas** (Fase 19, `application/trade-proposals.ts`, dominio
   en `domain/trades/proposal.ts`, adaptador `PrismaTradeProposalRepository`):
@@ -191,9 +191,9 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   - API: `GET|POST /api/trades/proposals` (`{username, lines, send}`), `GET|PATCH
 /api/trades/proposals/{id}` (`{action: save|send|counter|accept|reject|cancel|delete, lines?}`);
     `lines` = `[{side: give|get, oracleId, scryfallId, foil, language, quantity}]` desde quien la
-    manda. UI: `/intercambios/con/{username}` (calculadora), `/intercambios/propuestas/{id}`
+    manda. UI: `/trades/with/{username}` (calculadora), `/trades/proposals/{id}`
     (`TradeEditor`: dos columnas, ± por copia, "Añadir más", balance en vivo), pestaña
-    "Propuestas" en `/intercambios` y "Proponer intercambio" en cada cruce y en el perfil.
+    "Propuestas" en `/trades` y "Proponer intercambio" en cada cruce y en el perfil.
 - **Combos** (Fase 16, Commander Spellbook, **sin API oficial**): `SpellbookClient`
   (`adapters/spellbook`, puerto `ComboSource`) hace `POST
 backend.commanderspellbook.com/find-my-combos?limit=500` con el mazo (nombres), cachea en
@@ -234,21 +234,26 @@ backend.commanderspellbook.com/find-my-combos?limit=500` con el mazo (nombres), 
   tienen más de 7 días (`syncOracleTags`); si Scryfall falla se avisa y se usan las de antes.
   Los nombres de las etiquetas están **pendientes de verificar** contra Scryfall real
   (`npm run otags:sync` avisa si alguna sale con 0 cartas).
-- **UI** (`src/app`, `src/components`): páginas `/` (estado), `/coleccion` (subir CSV) y `/mazo`
+- **UI** (`src/app`, `src/components`): páginas `/` (estado), `/collection` (subir CSV) y `/analyze`
   (pegar lista → curva, roles, cambios con aceptar/descartar, candados, exportar). Son componentes de
   cliente que solo hablan con la API JSON:
   - `GET /api/status`, `POST /api/collection` (cuerpo = texto del CSV), `POST /api/collection/cards`
     (`{cards: [{oracleId|scryfallId|name, quantity, foil?}]}`, máx. 500), `DELETE
-/api/collection/cards/{id}` (solo las añadidas a mano), `POST /api/collection/view`
+/api/collection/cards/{publicId}` (solo las añadidas a mano), `POST /api/collection/view`
     (`{collection?, filters, sort, offset, limit}`; `limit: 0` = solo totales), `GET /api/collection/cards`
     (las añadidas a mano), `GET /api/cards/search?q=&limit=`, `POST /api/analyze`
     (`{input, theme?, commanders?, locked?, excluded?, deckId?, useOtherDecks?, buy?: {maxCards,
 maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /api/decks/[id]`.
-  - Páginas: `/mazos` (lista, borrar) y `/decks/{publicId}` (un mazo guardado; exigen sesión). Los
+  - Páginas: `/decks` (lista, borrar) y `/decks/{publicId}` (un mazo guardado; exigen sesión). Los
     mazos se identifican fuera de la BD solo por `Deck.publicId` (uuid): API `/api/decks/{uuid}`,
     `deckId` de `/api/analyze`; el `id` numérico es interno. Rutas en grupos `(app)` (con barras) y
     `(cuenta)` (entrar, registro…, sin barras). Con Cache Components, `usePathname`/`useParams` se
     leen dentro de `<Suspense>` (si no, falla el build en rutas dinámicas).
+  - **URLs siempre en inglés** (páginas, parámetros y valores: `?new=1`, `?analyze=1`, `?edit=1`,
+    `?tab=changes|missing|list|combos|stats|buy` en los mazos, `?tab=matches|proposals|wanted|offered`
+    en `/trades`) y **nunca con IDs internos**: lo que se identifica en una URL usa un uuid aleatorio
+    (`Deck.publicId`, `TradeProposal.publicId`, `CollectionEntry.publicId`) o el nombre de usuario.
+    Las URL antiguas en español redirigen a las nuevas (`next.config.ts`).
   - Tipos y mapeadores de la API en `src/server/dto.ts` (los componentes solo hacen `import type`);
     errores → JSON `{error: {code, message}}` en `src/server/http.ts`.
   - Las rutas GET llaman a `await connection()` (better-sqlite3 es síncrono y si no, Next las
@@ -265,15 +270,14 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     (`container.collectionFor(userId)`, `decksFor(userId)`) y filtran todas sus consultas por él; el
     catálogo y la caché de EDHREC son globales. Dominio y casos de uso no saben de usuarios.
   - Cada ruta de la API llama a `requireUser(request)` (`src/server/session.ts`) → 401 si no hay
-    sesión; `/api/status` funciona sin sesión. `src/proxy.ts` redirige a `/entrar?next=…` las páginas
+    sesión; `/api/status` funciona sin sesión. `src/proxy.ts` redirige a `/login?next=…` las páginas
     privadas si no hay cookie (comprobación optimista; la real es `requireUser`).
-  - UI: `/entrar`, `/registro`, `/recuperar`, `/restablecer`; `UserMenu` en la cabecera. Tras entrar
+  - UI: `/login`, `/signup`, `/forgot-password`, `/reset-password`; `UserMenu` en la cabecera. Tras entrar
     se navega con recarga completa (la caché del router puede tener la redirección de antes).
   - Filas con `userId` vacío = datos de antes de los usuarios → `npm run users:claim`.
   - En producción `loadEnv` exige `BETTER_AUTH_SECRET`; `BETTER_AUTH_URL` debe ser la URL pública.
     En el VPS, `scripts/deploy.sh` genera el secreto en `.env` si falta y `docker-compose.yml` pone
-    `BETTER_AUTH_URL=https://$DECK_DOCTOR_HOST`. `/login` (el antiguo login de contraseña única)
-    redirige a `/entrar`.
+    `BETTER_AUTH_URL=https://$DECK_DOCTOR_HOST`.
 - **Social** (Fase 9, `application/social.ts`, puertos en `domain/ports/social.ts`, adaptador
   `PrismaSocialRepository`): `User.username` (perfil `/u/{username}`; `ensureUsername` lo genera
   la primera vez desde el nombre o el email, reglas en `domain/social/username.ts`) y
@@ -284,11 +288,11 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   `Follow` (seguir) y `Notification` (fan-out al escribir): `announceNewDeck` al crear un mazo
   público y `announceBigCards` al añadir cartas de ≥ `socialConfig.bigCardEur` (20 €) si la
   colección es pública (`src/config/social.ts`). Solo avisos en la web (campana, cada minuto).
-  Rutas: `/comunidad`, `/u/[username]`, `/notificaciones`, `/ajustes`; API `GET|PATCH
+  Rutas: `/community`, `/u/[username]`, `/notifications`, `/settings`; API `GET|PATCH
 /api/me/profile`, `GET /api/users?q=`, `GET /api/users/{u}`, `POST|DELETE /api/users/{u}/follow`,
   `GET /api/notifications`, `POST /api/notifications/read`, `POST /api/community/decks`,
   `PATCH /api/decks/{id}` (`{visibility}`), `POST /api/collection/view` con `username`.
-- **Crear mazos** (`application/new-deck.ts`, página `/mazos/nuevo`): eliges el comandante
+- **Crear mazos** (`application/new-deck.ts`, página `/decks/new`): eliges el comandante
   (buscador con `commander=1`) y `newDeckFromCommander` monta el **mazo medio de EDHREC**
   (`EdhrecClient.getAverageDeck`, `/average-decks/{slug}[/{tema}]`, parser en
   `adapters/edhrec/average-deck.ts`; mismas reglas de caché y errores) o un mazo **vacío** para
@@ -296,7 +300,7 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   Nombre propuesto (`domain/deck/naming.ts`): "<colores> - <de qué va>", p. ej. "Jund -
   Aristócratas" (combinaciones Boros/Jund/… y temas de EDHREC traducidos). API: `GET
 /api/commanders?ids=` (temas y nombre) y `POST /api/decks/new` (con sesión guarda y devuelve
-  `id`; sin ella devuelve la lista para abrirla en `/mazo?analizar=1`).
+  `id`; sin ella devuelve la lista para abrirla en `/analyze?analyze=1`).
   Editor: en la pestaña Lista de un mazo propio o sin guardar, "Añadir cartas" (buscador con
   `identity=` de los colores del comandante y recomendadas de tu colección) y −/+ en la tabla;
   cada cambio (`changeCard` en `domain/deck/export.ts`) reanaliza y, si es un mazo guardado, lo
@@ -340,7 +344,7 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   `POST /api/collection/prices` (`{days, collection?}`: valor día a día y lo que más sube/baja),
   `PATCH /api/me/profile` con `priceAlertPercent`. UI: pulsar un precio (colección, "Qué me falta")
   abre el histórico (`CardPriceDialog`, gráfica `PriceChart`), pestaña "Precios" en la colección y
-  el ajuste en `/ajustes`.
+  el ajuste en `/settings`.
 - **Sin depender de Scryfall/Cloudflare en el navegador** (en España se bloquean IPs de Cloudflare
   durante los partidos de LaLiga): el navegador solo habla con nuestro servidor. Los símbolos de
   maná están en `public/symbols/` (`npm run symbols:sync`, se suben al repo) y las imágenes de

@@ -56,10 +56,10 @@ export function SaveDialog({
         width={380}
         footer={
           <>
-            <Link className="btn" href="/registro?next=/mazo">
+            <Link className="btn" href="/signup?next=/analyze">
               Crear cuenta
             </Link>
-            <Link className="btn btn-primary" href="/entrar?next=/mazo">
+            <Link className="btn btn-primary" href="/login?next=/analyze">
               Entrar
             </Link>
           </>

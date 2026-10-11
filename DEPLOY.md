@@ -4,7 +4,7 @@ La app corre en el VPS (`37.27.32.222`, carpeta `/doctor-deck`) como contenedor 
 (`docker-compose.yml`), detrás del **Traefik** que ya existe allí (proyecto pulsestack: red
 `pulsestack_proxy`, certificados de Let's Encrypt con el resolver `le`).
 
-- URL: **https://deckdoctor.37.27.32.222.nip.io**. Cada persona se crea su cuenta (`/registro`,
+- URL: **https://deckdoctor.37.27.32.222.nip.io**. Cada persona se crea su cuenta (`/signup`,
   email + contraseña o Google) y solo ve su colección y sus mazos.
 - Datos (SQLite + bulk de Scryfall) en `/doctor-deck/data`, montado en el contenedor; los
   despliegues no lo tocan.
