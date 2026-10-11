@@ -274,6 +274,18 @@ newInvite?}`), `DELETE /api/groups/{id}/members/{username}`, `GET /api/groups/{i
     proponer intercambios (`trade_blocked`), prestar y salir en sus cruces y feed; sus comentarios
     no se ven. No se avisa al bloqueado.
   - `GET /api/me/export` incluye grupos, partidas, préstamos, comentarios y bloqueados.
+- **Buscador de cartas y ficha** (`/cards`, `/cards/{oracleId}`; `application/card-catalog.ts`):
+  `CatalogQuery` (`domain/cards/catalog-search.ts`, se lee y escribe en la URL: `q` en nombre, tipo
+  o texto, `colors` + `mode` within|exact|includes o `C` incoloras, `type`, `commander=1`, `gc=1`,
+  `cmc` 0–7, `sort` popular|name|cmc) → `CardRepository.searchCatalog` (SQL sobre `OracleCard`, sin
+  tokens; "puede ser comandante" aproximado en SQL: legendaria criatura/background o "can be your
+  commander") con el precio más barato de cada una. API pública `GET /api/cards` y `GET
+/api/cards/{oracleId}` (`cardDetail`: texto, roles, impresiones con precio normal/foil, mínimos,
+  con sesión mis copias —libres, en qué mazos, deseada— y hasta 6 mazos públicos con ella de
+  comandante). La ficha enseña el histórico (`PriceChart`), enlaza a Cardmarket, añade a la
+  colección o a la lista de deseos y, si puede ser comandante, "Crear mazo" →
+  `/decks/new?commander={oracleId}` (el asistente la deja elegida). `/community?q=` rellena el
+  buscador de Comunidad. La ficha también se abre desde la colección ("Ver ficha").
 - **Combos** (Fase 16, Commander Spellbook, **sin API oficial**): `SpellbookClient`
   (`adapters/spellbook`, puerto `ComboSource`) hace `POST
 backend.commanderspellbook.com/find-my-combos?limit=500` con el mazo (nombres), cachea en

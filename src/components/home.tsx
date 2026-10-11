@@ -7,7 +7,7 @@ import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardImage } from "./card-image";
 import { ActivityFeed } from "./feed-page";
-import { IconCrown, IconDecks, IconLoan, IconPlus, IconUsers } from "./icons";
+import { IconCollection, IconCrown, IconDecks, IconLoan, IconPlus, IconUsers } from "./icons";
 import { Landing } from "./landing";
 import {
   LOCAL_COLLECTION_EVENT,
@@ -290,6 +290,11 @@ export function Home() {
                 <IconDecks size={20} />
                 <b>Comunidad</b>
                 <span>Mazos que ya puedes montar</span>
+              </Link>
+              <Link href="/cards" className="quicklink">
+                <IconCollection size={20} />
+                <b>Buscar cartas</b>
+                <span>Precios, ediciones y crear mazos</span>
               </Link>
             </div>
           </section>
