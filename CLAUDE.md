@@ -163,6 +163,37 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   busco, para cambiar), sección en el perfil de otros, botón en "Qué me falta" y ajuste en
   `/ajustes`. Sin pagos ni mensajes. Cuentas de prueba locales en `data/test-accounts.local.json`
   (gitignored).
+- **Calculadora de intercambio y propuestas** (Fase 19, `application/trade-proposals.ts`, dominio
+  en `domain/trades/proposal.ts`, adaptador `PrismaTradeProposalRepository`):
+  - "Para cambiar" por copias (`buildTradeCopies`): de cada carta de la lista "para cambiar", qué
+    copias concretas (impresión, foil, idioma) con su precio (`printingPrice`, si no, la más
+    barata); se supone que en los mazos están las más baratas, así que se ofrecen las de más valor.
+    `copyKey` identifica una copia (`oracleId|scryfallId|f|idioma`).
+  - `tradeCalculator` (`GET /api/trades/calculator?username=`): `proposeTrade` cruza las listas
+    (cada uno da sus copias más baratas de cada carta) y `balanceTrade` cuadra: mientras la
+    diferencia pase la tolerancia (`tradeTolerance`: 5 % del lado que más vale o 1 €), quita del
+    lado que vale más la copia más cara que no haga pasarse al otro lado; nunca deja un lado vacío.
+    Solo con usuarios con `tradesPublic`, nunca consigo mismo.
+  - Propuestas (`TradeProposal` con `publicId`, `TradeProposalItem` por versión con `giverId` y el
+    precio del momento): `draft` (solo la ve quien la crea) → `pending` (le toca a `turnUserId`:
+    aceptar, rechazar o **contraproponer**, que crea una versión nueva y pasa el turno; las
+    versiones anteriores quedan como historial) → `accepted` | `rejected` | `cancelled` (cualquiera
+    de los dos retira una pendiente). Las líneas se validan con `priceItems` contra lo que cada uno
+    tiene para cambiar (`TradeProposalError` `unavailable`).
+  - **Aceptar mueve las cartas** entre las dos colecciones de Deck Doctor (la idea es dejar ManaBox):
+    en una transacción, `accept` quita las copias a quien las da (primero las de esa impresión, foil
+    e idioma; si no, otras de la carta) y se las añade a quien las recibe como cartas sueltas
+    (`matchMethod = "manual"`, sobreviven a reimportar el CSV); si a alguien le faltan copias no
+    cambia nada (`MissingCopiesError` → `trade_missing_copies`). Lo recibido sale de la lista de
+    deseos manual. Reimportar un CSV antiguo de ManaBox devolvería las cartas dadas (se avisa).
+  - Avisos `trade_proposal`, `trade_counter`, `trade_accepted`, `trade_rejected`,
+    `trade_cancelled` (`Notification.tradeId`).
+  - API: `GET|POST /api/trades/proposals` (`{username, lines, send}`), `GET|PATCH
+/api/trades/proposals/{id}` (`{action: save|send|counter|accept|reject|cancel|delete, lines?}`);
+    `lines` = `[{side: give|get, oracleId, scryfallId, foil, language, quantity}]` desde quien la
+    manda. UI: `/intercambios/con/{username}` (calculadora), `/intercambios/propuestas/{id}`
+    (`TradeEditor`: dos columnas, ± por copia, "Añadir más", balance en vivo), pestaña
+    "Propuestas" en `/intercambios` y "Proponer intercambio" en cada cruce y en el perfil.
 - **Combos** (Fase 16, Commander Spellbook, **sin API oficial**): `SpellbookClient`
   (`adapters/spellbook`, puerto `ComboSource`) hace `POST
 backend.commanderspellbook.com/find-my-combos?limit=500` con el mazo (nombres), cachea en
@@ -398,8 +429,10 @@ Purchase price currency, Added`.
 17. Intercambios: lista de deseos, para cambiar, cruces entre usuarios y avisos ✅
 18. Impresiones concretas: edición en los mazos, valor exacto de la colección (foil) e idioma de
     cada copia ✅
+19. Calculadora de intercambio: propuesta cuadrada por valor, borradores, contrapropuestas y, al
+    aceptar, las cartas se mueven entre las colecciones ✅
 
-Las fases siguientes (19–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
+La fase siguiente (20) está en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
 diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)

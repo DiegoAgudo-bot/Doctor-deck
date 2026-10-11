@@ -14,6 +14,11 @@ const NOTIFICATION_TYPES: readonly NotificationType[] = [
   "big_card",
   "price_drop",
   "trade_match",
+  "trade_proposal",
+  "trade_counter",
+  "trade_accepted",
+  "trade_rejected",
+  "trade_cancelled",
 ];
 
 const PROFILE = {
@@ -176,6 +181,7 @@ export class PrismaSocialRepository
         title: n.title,
         price: n.price ?? null,
         prevPrice: n.prevPrice ?? null,
+        tradeId: n.tradeId ?? null,
       })),
     });
   }
@@ -198,6 +204,7 @@ export class PrismaSocialRepository
       title: r.title,
       price: r.price,
       prevPrice: r.prevPrice,
+      tradeId: r.tradeId,
       createdAt: r.createdAt,
       read: r.readAt !== null,
     }));

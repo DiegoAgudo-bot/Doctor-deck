@@ -24,7 +24,7 @@ despliegue en `main` y **parar al terminar cada fase hasta el OK del usuario**.
 | 16   | Combos (Commander Spellbook) y bracket con combos             | Medio    | ✅     |
 | 17   | Listas de deseos e intercambio con cruce automático           | Medio    | ✅     |
 | 18   | Impresiones concretas (edición, foil, idioma)                 | Alto     | ✅     |
-| 19   | Calculadora de intercambio entre dos usuarios                 | Medio    |        |
+| 19   | Calculadora de intercambio entre dos usuarios                 | Medio    | ✅     |
 | 20   | App móvil: compartir desde ManaBox y escáner                  | Alto     |        |
 
 ---
@@ -185,7 +185,13 @@ completas con tu colección** (nadie más lo hace).
 - El motor sigue trabajando por `oracleId`: la impresión es solo presentación y precio.
 - ✅ (después) El idioma de cada copia (`CollectionEntry.language`), con filtro en la colección.
 
-## Fase 19 · Calculadora de intercambio
+## Fase 19 · Calculadora de intercambio ✅
+
+Hecha con estas decisiones del usuario: tolerancia del 5 % o 1 €; precio de Cardmarket vía
+Scryfall según la copia (normal o foil); se puede **contraproponer** (versiones de la misma
+propuesta, con el turno pasando de uno a otro); y al **aceptar se mueven las cartas** entre las dos
+colecciones de Deck Doctor (la idea es dejar de usar ManaBox). Detalles en `CLAUDE.md`. El plan con
+el que se empezó:
 
 **Objetivo:** con otro usuario, una propuesta de intercambio cuadrada por valor que se pueda
 guardar, retocar y compartir. Sin pagos ni transacciones en la app.

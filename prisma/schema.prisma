@@ -209,6 +209,8 @@ model User {
   cardRoles         CardRoleOverride[]
   wishlist          WishlistItem[]
   tradeKeeps        TradeKeep[]
+  proposalsSent     TradeProposal[]    @relation("proposalFrom")
+  proposalsReceived TradeProposal[]    @relation("proposalTo")
 
   @@map("user")
 }
@@ -241,6 +243,8 @@ model Notification {
   price     Float?
   /// price_drop: precio de referencia (máximo de los 30 días anteriores).
   prevPrice Float?
+  /// trade_*: publicId de la propuesta de intercambio.
+  tradeId   String?
   createdAt DateTime  @default(now())
   readAt    DateTime?
 
@@ -369,6 +373,53 @@ model TradeKeep {
   oracleId String
 
   @@id([userId, oracleId])
+}
+
+/// Propuesta de intercambio entre dos usuarios (fase 19). Cada contrapropuesta es una versión
+/// nueva; las líneas de las versiones anteriores se conservan como historial.
+model TradeProposal {
+  id         Int                 @id @default(autoincrement())
+  /// Identificador público (URL /intercambios/propuestas/{publicId} y API).
+  publicId   String              @unique @default(uuid())
+  /// Quien la creó.
+  fromUserId String
+  fromUser   User                @relation("proposalFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId   String
+  toUser     User                @relation("proposalTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  /// "draft" | "pending" | "accepted" | "rejected" | "cancelled"
+  status     String              @default("draft")
+  /// pending: a quién le toca aceptar, rechazar o contraproponer.
+  turnUserId String?
+  /// Versión actual (1 = la propuesta original; cada contrapropuesta suma 1).
+  version    Int                 @default(1)
+  /// Quién hizo la versión actual.
+  lastById   String
+  /// Cuándo se aceptó, rechazó o canceló.
+  closedAt   DateTime?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  items      TradeProposalItem[]
+
+  @@index([fromUserId])
+  @@index([toUserId])
+}
+
+/// Una línea de una versión de una propuesta: copias iguales que da `giverId`, con su precio
+/// por copia en el momento de proponerla.
+model TradeProposalItem {
+  id         Int           @id @default(autoincrement())
+  proposalId Int
+  proposal   TradeProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  version    Int
+  giverId    String
+  oracleId   String
+  scryfallId String?
+  foil       Boolean       @default(false)
+  language   String?
+  quantity   Int
+  unitPrice  Float?
+
+  @@index([proposalId, version])
 }
 
 /// Precio de cada día de las impresiones que alguien tiene en su colección (normal y foil), para

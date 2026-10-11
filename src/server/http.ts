@@ -8,6 +8,7 @@ import { InvalidCommanderError } from "@/application/new-deck";
 import { CannotFollowSelfError, ProfileNotFoundError, UsernameError } from "@/application/social";
 import { DeckWithoutCommanderError } from "@/application/save-deck";
 import { EmptyCatalogError } from "@/application/import-collection";
+import { TradeProposalError } from "@/application/trade-proposals";
 import { CsvParseError } from "@/domain/collection/csv";
 import { ManaboxFormatError } from "@/domain/collection/manabox";
 import type { ApiErrorBody } from "./dto";
@@ -40,6 +41,23 @@ export function errorResponse(err: unknown): Response {
   }
   if (err instanceof CannotFollowSelfError) {
     return Response.json(body("follow_self", err.message), { status: 400 });
+  }
+  if (err instanceof TradeProposalError) {
+    const status = {
+      not_found: 404,
+      private: 403,
+      self: 400,
+      forbidden: 403,
+      not_your_turn: 409,
+      closed: 409,
+      empty: 400,
+      unavailable: 409,
+      missing_copies: 409,
+    }[err.problem];
+    return Response.json(
+      { error: { code: `trade_${err.problem}`, message: err.message, oracleIds: err.oracleIds } },
+      { status },
+    );
   }
   if (err instanceof DeckNotFoundError) {
     return Response.json(body("deck_not_found", err.message), { status: 404 });

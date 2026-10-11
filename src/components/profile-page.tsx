@@ -234,7 +234,10 @@ export function ProfilePage() {
           ) : (
             <p className="muted text-[13px]">
               No tiene libre nada de tu lista de deseos ni busca nada de lo que te sobra.{" "}
-              <Link href="/intercambios">Tus listas</Link>
+              <Link href="/intercambios">Tus listas</Link> ·{" "}
+              <Link href={`/intercambios/con/${profile.username}`}>
+                Proponer un intercambio a mano
+              </Link>
             </p>
           )}
         </section>
