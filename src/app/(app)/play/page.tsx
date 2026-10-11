@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { LifeCounter } from "@/components/life-counter";
 
 export const metadata: Metadata = {
-  title: "Contador de vidas · Deck Doctor",
+  title: "Contador de vidas · Doctor Deck",
   robots: { index: false },
 };
 

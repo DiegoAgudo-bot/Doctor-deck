@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     return new Response(csv, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="deck-doctor-coleccion-${date}.csv"`,
+        "Content-Disposition": `attachment; filename="doctor-deck-coleccion-${date}.csv"`,
       },
     });
   } catch (err) {

@@ -223,7 +223,7 @@ export function GroupPage() {
   async function copyInvite() {
     try {
       if (navigator.share && /Mobi/i.test(navigator.userAgent)) {
-        await navigator.share({ title: `Únete a ${group!.name} en Deck Doctor`, url: invite });
+        await navigator.share({ title: `Únete a ${group!.name} en Doctor Deck`, url: invite });
       } else {
         await navigator.clipboard.writeText(invite);
         setCopied(true);

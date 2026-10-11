@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { RegisterForm } from "@/components/auth-forms";
 import { getContainer } from "@/server/container";
 
-export const metadata: Metadata = { title: "Crear cuenta · Deck Doctor" };
+export const metadata: Metadata = { title: "Crear cuenta · Doctor Deck" };
 
 async function Register() {
   await connection();

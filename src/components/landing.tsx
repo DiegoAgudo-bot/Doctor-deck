@@ -68,7 +68,7 @@ function Feature({
   );
 }
 
-/** Portada para quien llega sin cuenta: qué hace Deck Doctor, enseñado más que contado. */
+/** Portada para quien llega sin cuenta: qué hace Doctor Deck, enseñado más que contado. */
 export function Landing() {
   return (
     <div className="landing">
@@ -79,7 +79,7 @@ export function Landing() {
             Mejora tus mazos con las cartas <em>que ya tienes</em>
           </h1>
           <p>
-            Deck Doctor cruza tus mazos con tu colección y con los datos de EDHREC: te dice qué
+            Doctor Deck cruza tus mazos con tu colección y con los datos de EDHREC: te dice qué
             carta sacar y cuál meter, qué te falta y cuánto cuesta, y con quién de la comunidad
             puedes cambiarla.
           </p>

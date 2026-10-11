@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { JoinGroupPage } from "@/components/groups-pages";
 
 export const metadata: Metadata = {
-  title: "Invitación a un grupo · Deck Doctor",
+  title: "Invitación a un grupo · Doctor Deck",
   robots: { index: false },
 };
 

@@ -210,7 +210,7 @@ export function TradeProposalPage() {
       )}
       {p.status === "accepted" && (
         <Banner tone="in">
-          Intercambio hecho: las cartas ya se han movido entre vuestras colecciones de Deck Doctor.
+          Intercambio hecho: las cartas ya se han movido entre vuestras colecciones de Doctor Deck.
         </Banner>
       )}
 
@@ -342,7 +342,7 @@ export function TradeProposalPage() {
         </p>
         <p className="subtle text-xs">
           Si después vuelves a importar un CSV de ManaBox antiguo, las cartas que has dado volverían
-          a aparecer: a partir de ahora, lleva tu colección en Deck Doctor.
+          a aparecer: a partir de ahora, lleva tu colección en Doctor Deck.
         </p>
       </Dialog>
     </main>

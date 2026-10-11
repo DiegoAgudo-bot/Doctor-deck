@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     return new Response(JSON.stringify(data, null, 2), {
       headers: {
         "Content-Type": "application/json; charset=utf-8",
-        "Content-Disposition": `attachment; filename="deck-doctor-mis-datos-${date}.json"`,
+        "Content-Disposition": `attachment; filename="doctor-deck-mis-datos-${date}.json"`,
       },
     });
   } catch (err) {

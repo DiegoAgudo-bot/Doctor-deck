@@ -29,7 +29,7 @@ export function createAuth({ db, env, mailer }: { db: Db; env: Env; mailer: Mail
       : {};
 
   return betterAuth({
-    appName: "Deck Doctor",
+    appName: "Doctor Deck",
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET ?? DEV_SECRET,
     database: prismaAdapter(db, { provider: "sqlite" }),
@@ -43,7 +43,7 @@ export function createAuth({ db, env, mailer }: { db: Db; env: Env; mailer: Mail
             sendResetPassword: async ({ user, url }) => {
               await mailer.send({
                 to: user.email,
-                subject: "Deck Doctor · Restablecer la contraseña",
+                subject: "Doctor Deck · Restablecer la contraseña",
                 text: `Hola ${user.name},\n\nPara elegir una contraseña nueva abre este enlace (caduca en 1 hora):\n${url}\n\nSi no lo has pedido tú, ignora este mensaje.`,
               });
             },

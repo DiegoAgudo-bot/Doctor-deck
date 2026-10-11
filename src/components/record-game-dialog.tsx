@@ -19,7 +19,7 @@ export interface SeatInput {
 }
 
 interface Row {
-  /** "@usuario" (de Deck Doctor) o "" = invitado. */
+  /** "@usuario" (de Doctor Deck) o "" = invitado. */
   who: string;
   guestName: string;
   deckId: string;

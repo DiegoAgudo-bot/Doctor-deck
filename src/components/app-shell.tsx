@@ -115,7 +115,7 @@ export function BareShell({ children }: { children: ReactNode }) {
       <div className="flex w-full max-w-[340px] flex-col gap-5">
         <Link href="/" className="brand fade justify-center" style={{ fontSize: 20 }}>
           <Logo size={30} />
-          Deck Doctor
+          Doctor Deck
         </Link>
         {children}
         <p className="subtle fade text-center text-xs" style={{ ["--d" as string]: "160ms" }}>
@@ -182,7 +182,7 @@ function TopBar({
     <header className="topbar">
       <Link className="brand" href="/">
         <Logo />
-        <span className="hide-sm">Deck Doctor</span>
+        <span className="hide-sm">Doctor Deck</span>
       </Link>
       <nav className="topnav hide-sm" aria-label="Explorar">
         {nav.map((n) => (

@@ -4,7 +4,7 @@ import { imageDataUri, profileShare } from "@/server/share";
 
 export const size = OG_SIZE;
 export const contentType = "image/png";
-export const alt = "Perfil en Deck Doctor";
+export const alt = "Perfil en Doctor Deck";
 
 /** Vista previa al compartir un perfil: arte de su último mazo, nombre y mazos públicos. */
 export default async function Image({ params }: { params: Promise<{ username: string }> }) {
@@ -14,7 +14,7 @@ export default async function Image({ params }: { params: Promise<{ username: st
     return ogImage({
       art: null,
       kicker: "Perfil",
-      title: "Deck Doctor",
+      title: "Doctor Deck",
       subtitle: "Mejora tus mazos con las cartas que ya tienes",
     });
   }

@@ -192,7 +192,7 @@ completas con tu colección** (nadie más lo hace).
 Hecha con estas decisiones del usuario: tolerancia del 5 % o 1 €; precio de Cardmarket vía
 Scryfall según la copia (normal o foil); se puede **contraproponer** (versiones de la misma
 propuesta, con el turno pasando de uno a otro); y al **aceptar se mueven las cartas** entre las dos
-colecciones de Deck Doctor (la idea es dejar de usar ManaBox). Detalles en `CLAUDE.md`. El plan con
+colecciones de Doctor Deck (la idea es dejar de usar ManaBox). Detalles en `CLAUDE.md`. El plan con
 el que se empezó:
 
 **Objetivo:** con otro usuario, una propuesta de intercambio cuadrada por valor que se pueda
@@ -262,7 +262,7 @@ emails, `LEGAL_OWNER`/`LEGAL_EMAIL` en el `.env` del VPS y copias fuera del serv
 
 ## Fase 21 · Social ✅
 
-Lo que convierte Deck Doctor en la red social de los jugadores de Commander (detalles en
+Lo que convierte Doctor Deck en la red social de los jugadores de Commander (detalles en
 `CLAUDE.md`):
 
 - **Grupos de juego** (`/groups`): se entra con un enlace de invitación; los miembros ven los

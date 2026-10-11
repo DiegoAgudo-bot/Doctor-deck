@@ -32,8 +32,8 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: optionalString,
   /** SMTP para "olvidé mi contraseña", p. ej. smtps://usuario:clave@smtp.ejemplo.com:465. Si falta, no se ofrece. */
   SMTP_URL: optionalString,
-  /** Remitente de los emails, p. ej. "Deck Doctor <no-reply@ejemplo.com>". */
-  MAIL_FROM: z.string().default("Deck Doctor <no-reply@localhost>"),
+  /** Remitente de los emails, p. ej. "Doctor Deck <no-reply@ejemplo.com>". */
+  MAIL_FROM: z.string().default("Doctor Deck <no-reply@localhost>"),
 
   // --- Páginas legales (/privacy, /legal) ---
   /** Titular de la web (nombre y, si aplica, NIF) y email de contacto para privacidad. */

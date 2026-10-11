@@ -6,8 +6,8 @@ import { LegalPage, Pending } from "@/components/legal";
 import { loadEnv } from "@/config/env";
 
 export const metadata: Metadata = {
-  title: "Privacidad · Deck Doctor",
-  description: "Qué datos guarda Deck Doctor, para qué, cuánto tiempo y cómo borrarlos.",
+  title: "Privacidad · Doctor Deck",
+  description: "Qué datos guarda Doctor Deck, para qué, cuánto tiempo y cómo borrarlos.",
 };
 
 /** Titular y contacto: se leen al servir la página (vienen del .env del servidor). */

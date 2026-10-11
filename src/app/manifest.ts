@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 /** PWA: se puede instalar desde el navegador del móvil ("Añadir a pantalla de inicio"). */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Deck Doctor",
-    short_name: "Deck Doctor",
+    name: "Doctor Deck",
+    short_name: "Doctor Deck",
     description: "Mejora tus mazos de Commander con las cartas que ya tienes",
     lang: "es",
     start_url: "/",

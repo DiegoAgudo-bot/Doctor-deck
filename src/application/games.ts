@@ -16,7 +16,7 @@ export interface GameDeps {
 }
 
 export interface GamePlayerInput {
-  /** Usuario de Deck Doctor (en una partida de grupo, miembro del grupo) o invitado. */
+  /** Usuario de Doctor Deck (en una partida de grupo, miembro del grupo) o invitado. */
   username?: string | undefined;
   guestName?: string | undefined;
   /** Mazo guardado del jugador (id público), o solo el nombre del mazo / comandante. */

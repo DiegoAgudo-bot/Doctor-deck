@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * Deck Doctor v3 — herramienta de jugador (densidad de Archidekt/Moxfield, datos de EDHREC, ficha de
+ * Doctor Deck v3 — herramienta de jugador (densidad de Archidekt/Moxfield, datos de EDHREC, ficha de
  * carta de Scryfall). Tema oscuro por defecto; claro con <html data-theme="light">.
  * Los tokens de color, fuente y radio están en @theme: también son utilidades de Tailwind
  * (bg-panel, text-text-2, border-line, rounded-mtg…).

@@ -1,4 +1,4 @@
-# Deck Doctor
+# Doctor Deck
 
 App web que sugiere mejoras 1×1 ("quita X → mete Y") para mazos de Commander usando
 recomendaciones de EDHREC, priorizando cartas de la colección del usuario (export de ManaBox).
@@ -203,7 +203,7 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
     versiones anteriores quedan como historial) → `accepted` | `rejected` | `cancelled` (cualquiera
     de los dos retira una pendiente). Las líneas se validan con `priceItems` contra lo que cada uno
     tiene para cambiar (`TradeProposalError` `unavailable`).
-  - **Aceptar mueve las cartas** entre las dos colecciones de Deck Doctor (la idea es dejar ManaBox):
+  - **Aceptar mueve las cartas** entre las dos colecciones de Doctor Deck (la idea es dejar ManaBox):
     en una transacción, `accept` quita las copias a quien las da (primero las de esa impresión, foil
     e idioma; si no, otras de la carta) y se las añade a quien las recibe como cartas sueltas
     (`matchMethod = "manual"`, sobreviven a reimportar el CSV); si a alguien le faltan copias no
@@ -471,6 +471,9 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
 - **Nunca se propone meter** una carta fuera de la identidad de color del comandante.
 - **Mínimos por defecto**: 36 tierras, 10 ramp, 10 robo, 8 removal, 2 wipes.
 - **Idioma**: textos de la UI en español; código e identificadores en inglés.
+- **Nombre**: **Doctor Deck** (antes "Deck Doctor") en todo lo que se ve. Lo interno conserva
+  `deck-doctor` (BD `data/deck-doctor.db`, contenedor, claves de `localStorage`, copias de
+  seguridad): cambiarlo no aporta nada y podría perder datos.
 - **Formatos de lista admitidos**: `1 X`, `1x X`, `X`, `1 X (SET) 123`, `*F*`/`*E*`, `*CMDR*`,
   `SB:`, secciones Commander/Deck/Sideboard/Maybeboard/Companion/About, categorías y etiquetas de
   Archidekt (`[Commander{top}]`, `{noDeck}`, `^…^`) y etiquetas de Moxfield (`#!Ramp`).
