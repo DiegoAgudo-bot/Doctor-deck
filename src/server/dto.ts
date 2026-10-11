@@ -217,6 +217,10 @@ export interface ProfileViewDTO {
   following: number;
   isMe: boolean;
   isFollowing: boolean;
+  /** Lo he bloqueado yo. */
+  blocked: boolean;
+  /** Partidas registradas en las que ha jugado y cuántas ha ganado. */
+  record: { games: number; wins: number };
   decks: SavedDeckSummaryDTO[];
 }
 
@@ -237,6 +241,8 @@ export interface NotificationDTO {
   prevPrice: number | null;
   /** trade_*: publicId de la propuesta de intercambio. */
   tradeId: string | null;
+  /** group_join: id del grupo. game_recorded: de la partida. loan_new: del préstamo. */
+  refId: string | null;
   createdAt: string;
   read: boolean;
 }

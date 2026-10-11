@@ -18,6 +18,11 @@ export async function GET(req: NextRequest) {
       trades: c.tradesFor(user.id),
       roleOverrides: c.roleOverridesFor(user.id),
       proposals: c.tradeProposals,
+      groups: c.groups,
+      games: c.games,
+      loans: c.loans,
+      comments: c.moderation,
+      blocks: c.moderation,
     });
     const date = new Date().toISOString().slice(0, 10);
     return new Response(JSON.stringify(data, null, 2), {

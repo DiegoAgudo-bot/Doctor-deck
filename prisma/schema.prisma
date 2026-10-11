@@ -138,6 +138,10 @@ model Deck {
   /// Lo que me falta para este mazo entra en mi lista de deseos.
   inWishlist     Boolean            @default(false)
   likes          DeckLike[]
+  /// Si se puede comentar (públicos y ocultos; el dueño puede cerrarlos).
+  commentsOpen   Boolean            @default(true)
+  comments       DeckComment[]
+  gamePlayers    GamePlayer[]
   roleOverrides  DeckRoleOverride[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
@@ -215,6 +219,16 @@ model User {
   tradeKeeps        TradeKeep[]
   proposalsSent     TradeProposal[]    @relation("proposalFrom")
   proposalsReceived TradeProposal[]    @relation("proposalTo")
+  groupsOwned       PlayGroup[]
+  groups            GroupMember[]
+  gamesCreated      Game[]
+  gamesPlayed       GamePlayer[]
+  loansGiven        Loan[]             @relation("lender")
+  loansReceived     Loan[]             @relation("borrower")
+  comments          DeckComment[]
+  blocking          Block[]            @relation("blocker")
+  blockedBy         Block[]            @relation("blocked")
+  reports           CommentReport[]
 
   @@map("user")
 }
@@ -249,6 +263,8 @@ model Notification {
   prevPrice Float?
   /// trade_*: publicId de la propuesta de intercambio.
   tradeId   String?
+  /// group_join: publicId del grupo. game: de la partida. loan: del préstamo.
+  refId     String?
   createdAt DateTime  @default(now())
   readAt    DateTime?
 
@@ -437,4 +453,140 @@ model PrintingPriceSnapshot {
 
   @@id([scryfallId, date])
   @@index([date])
+}
+
+// ---------- Fase 21: social ----------
+
+/// Grupo de juego (los amigos con los que juegas). Se entra con el enlace de invitación.
+model PlayGroup {
+  id          Int           @id @default(autoincrement())
+  /// Identificador público (URL /groups/{publicId}).
+  publicId    String        @unique @default(uuid())
+  name        String
+  description String        @default("")
+  /// Código del enlace de invitación (/groups/join/{inviteCode}); el dueño lo puede cambiar.
+  inviteCode  String        @unique
+  ownerId     String
+  owner       User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  members     GroupMember[]
+  games       Game[]
+}
+
+model GroupMember {
+  groupId  Int
+  group    PlayGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime  @default(now())
+
+  @@id([groupId, userId])
+  @@index([userId])
+}
+
+/// Una partida jugada (de un grupo o suelta), con quién jugó, con qué mazo y quién ganó.
+model Game {
+  id          Int          @id @default(autoincrement())
+  publicId    String       @unique @default(uuid())
+  groupId     Int?
+  group       PlayGroup?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  playedAt    DateTime
+  /// Turnos que duró (opcional).
+  turns       Int?
+  notes       String       @default("")
+  createdAt   DateTime     @default(now())
+  players     GamePlayer[]
+
+  @@index([groupId, playedAt])
+  @@index([createdById])
+}
+
+/// Un jugador de una partida: usuario de Deck Doctor o invitado (solo nombre).
+model GamePlayer {
+  id             Int     @id @default(autoincrement())
+  gameId         Int
+  game           Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  seat           Int
+  userId         String?
+  user           User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestName      String?
+  /// Mazo guardado con el que jugó (si lo borra, queda el nombre).
+  deckId         Int?
+  deck           Deck?   @relation(fields: [deckId], references: [id], onDelete: SetNull)
+  /// Nombre del mazo y comandantes en el momento de la partida.
+  deckName       String  @default("")
+  commanderNames String  @default("")
+  winner         Boolean @default(false)
+
+  @@index([gameId])
+  @@index([userId])
+  @@index([deckId])
+}
+
+/// Copias de una carta que presto: siguen siendo mías pero cuentan como ocupadas.
+model Loan {
+  id           Int       @id @default(autoincrement())
+  publicId     String    @unique @default(uuid())
+  lenderId     String
+  lender       User      @relation("lender", fields: [lenderId], references: [id], onDelete: Cascade)
+  /// A quién: un usuario de Deck Doctor o, si no tiene cuenta, solo su nombre.
+  borrowerId   String?
+  borrower     User?     @relation("borrower", fields: [borrowerId], references: [id], onDelete: SetNull)
+  borrowerName String?
+  oracleId     String
+  name         String
+  quantity     Int
+  note         String    @default("")
+  createdAt    DateTime  @default(now())
+  returnedAt   DateTime?
+
+  @@index([lenderId, returnedAt])
+  @@index([borrowerId, returnedAt])
+}
+
+/// Comentario en un mazo público u oculto.
+model DeckComment {
+  id        Int             @id @default(autoincrement())
+  publicId  String          @unique @default(uuid())
+  deckId    Int
+  deck      Deck            @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime        @default(now())
+  /// Oculto por denuncias (hasta que lo revise un administrador) o por un administrador.
+  hiddenAt  DateTime?
+  reports   CommentReport[]
+
+  @@index([deckId, createdAt])
+  @@index([authorId, createdAt])
+}
+
+/// `blockerId` ha bloqueado a `blockedId`: no le sigue, no comenta sus mazos ni le propone nada.
+model Block {
+  blockerId String
+  blocker   User     @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+/// Denuncia de un comentario (una por persona y comentario).
+model CommentReport {
+  commentId  Int
+  comment    DeckComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reporterId String
+  reporter   User        @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  /// "spam" | "abuse" | "other"
+  reason     String
+  createdAt  DateTime    @default(now())
+  /// Cuándo lo revisó un administrador (null = pendiente).
+  reviewedAt DateTime?
+
+  @@id([commentId, reporterId])
 }

@@ -6,6 +6,9 @@ import { PrismaRoleOverrideRepository } from "@/adapters/db/role-override-reposi
 import { PrismaSocialRepository } from "@/adapters/db/social-repository";
 import { PrismaTradeProposalRepository } from "@/adapters/db/trade-proposal-repository";
 import { PrismaTradeRepository } from "@/adapters/db/trade-repository";
+import { PrismaLoanRepository } from "@/adapters/db/loan-repository";
+import { PrismaModerationRepository } from "@/adapters/db/moderation-repository";
+import { PrismaGameRepository, PrismaGroupRepository } from "@/adapters/db/play-repository";
 import { createTestDb, createTestUser } from "../../tests/helpers/test-db";
 import { AccountConfirmationError, deleteAccount, exportMyData } from "./account";
 import { ensureUsername } from "./social";
@@ -71,6 +74,11 @@ const deps = (u: string) => ({
   trades: new PrismaTradeRepository(db, u),
   roleOverrides: new PrismaRoleOverrideRepository(db, u),
   proposals: new PrismaTradeProposalRepository(db),
+  groups: new PrismaGroupRepository(db),
+  games: new PrismaGameRepository(db),
+  loans: new PrismaLoanRepository(db),
+  comments: new PrismaModerationRepository(db),
+  blocks: new PrismaModerationRepository(db),
 });
 
 describe("mis datos", () => {
@@ -93,6 +101,7 @@ describe("mis datos", () => {
     expect(data.tradeProposals[0]).toMatchObject({ from: "yo", to: "beto", status: "pending" });
     expect(data.tradeProposals[0]?.items[0]).toMatchObject({ gives: "yo", oracleId: "sol" });
     expect(JSON.stringify(data)).not.toContain('"giverId"');
+    expect(data).toMatchObject({ groups: [], games: [], loans: [], comments: [], blocked: [] });
   });
 });
 

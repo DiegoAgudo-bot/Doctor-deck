@@ -26,7 +26,7 @@ despliegue en `main` y **parar al terminar cada fase hasta el OK del usuario**.
 | 18   | Impresiones concretas (edición, foil, idioma)                 | Alto     | ✅     |
 | 19   | Calculadora de intercambio entre dos usuarios                 | Medio    | ✅     |
 | 20   | Cimientos: copias, colección sin ManaBox, legal, compartir    | Medio    | ✅     |
-| 21   | Social: grupos, partidas, préstamos, feed y comentarios       | Alto     |        |
+| 21   | Social: grupos, partidas, préstamos, feed y comentarios       | Alto     | ✅     |
 | 22   | App móvil: compartir desde ManaBox, escáner y push            | Alto     |        |
 
 ---
@@ -260,16 +260,26 @@ lo demás esté bien):
 **Pendiente del usuario** (no se puede hacer desde el código): dominio propio, SMTP para los
 emails, `LEGAL_OWNER`/`LEGAL_EMAIL` en el `.env` del VPS y copias fuera del servidor.
 
-## Fase 21 · Social
+## Fase 21 · Social ✅
 
-Lo que convierte Deck Doctor en la red social de los jugadores de Commander:
+Lo que convierte Deck Doctor en la red social de los jugadores de Commander (detalles en
+`CLAUDE.md`):
 
-- **Grupos de juego**: miembros, sus mazos y "quién tiene qué" dentro del grupo.
-- **Partidas**: contador de vidas en el móvil, registrar quién ganó y con qué mazo, winrate por
-  mazo y ranking del grupo.
-- **Préstamos** entre amigos: la carta sigue siendo tuya, pero cuenta como ocupada.
-- **Feed** de actividad de la gente que sigues.
-- **Comentarios** en los mazos, con **moderación** (bloquear y denunciar) antes de abrirlos.
+- **Grupos de juego** (`/groups`): se entra con un enlace de invitación; los miembros ven los
+  mazos públicos y ocultos de los demás, buscan "¿quién del grupo tiene…?" y ven qué les falta
+  que alguien del grupo tiene libre ("Te lo pueden dejar"). Como mucho 50 miembros.
+- **Partidas**: contador de vidas a pantalla completa (`/play`: 2–6 jugadores, daño de
+  comandante, veneno, turnos, revancha, la pantalla no se apaga) y registrar la partida (quién
+  jugó, con qué mazo y quién ganó). Clasificación del grupo por jugador y por mazo con podio y
+  rachas, partidas del mazo en su página y victorias en el perfil.
+- **Préstamos** (`/loans`): a un usuario o a alguien sin cuenta; la carta sigue siendo tuya pero
+  cuenta como ocupada (motor, "para cambiar", otros mazos) hasta que se devuelve.
+- **Feed** (`/feed` y en la portada): mazos publicados, partidas, comentarios, "me gusta" e
+  intercambios de la gente que sigues y de tus grupos.
+- **Comentarios** en los mazos públicos y ocultos, con **moderación**: bloquear (rompe el
+  seguimiento y corta comentarios, intercambios y préstamos), denunciar (con 3 denuncias se oculta
+  hasta revisarlo en `/admin/reports`, `ADMIN_EMAILS`), el dueño borra y puede cerrarlos, 15 s
+  entre comentarios y 2 enlaces como mucho.
 
 ## Fase 22 · App móvil
 
@@ -290,7 +300,7 @@ ManaBox** (CSV o texto) y usar la misma API, con el plugin `bearer` de Better Au
 - **Comprar directamente en una tienda** (como Moxfield con Mana Pool): Cardmarket no tiene una API
   pública para meter cosas en el carrito. Se mantiene la lista para Wants y los enlaces. Se
   reevaluaría si alguna tienda europea ofrece integración.
-- **Comentarios y mensajes privados:** exigen moderación y denuncias. Se valorará si la comunidad
-  crece.
+- **Mensajes privados:** exigen más moderación que los comentarios públicos. Se valorará si la
+  comunidad crece (los comentarios en mazos ya están, fase 21).
 - **Binders** (carpetas de la colección): con los filtros, la lista de deseos y la de intercambio
   cubrimos casi todo su uso. Se añadirían como etiquetas de colección si alguien los pide.

@@ -45,6 +45,12 @@ LEGAL_OWNER="Nombre y apellidos (NIF si aplica)"
 LEGAL_EMAIL="privacidad@tu-dominio"
 ```
 
+Moderación de comentarios (`/admin/reports`): los emails de quien revisa las denuncias.
+
+```bash
+ADMIN_EMAILS="tu-email@ejemplo.com"
+```
+
 Tras cambiar `.env`: `docker compose up -d` (recrea el contenedor).
 
 Tareas diarias en el crontab de root (`scripts/deploy.sh` las añade solas si faltan):

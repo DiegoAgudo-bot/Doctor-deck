@@ -4,6 +4,9 @@ import type { RoleOverrideRepository } from "@/domain/ports/role-overrides";
 import type { FollowRepository, ProfileRepository } from "@/domain/ports/social";
 import type { TradeProposalRepository } from "@/domain/ports/trade-proposals";
 import type { TradeRepository } from "@/domain/ports/trades";
+import type { LoanRepository } from "@/domain/ports/loans";
+import type { BlockRepository, CommentRepository } from "@/domain/ports/moderation";
+import type { GameRepository, GroupRepository } from "@/domain/ports/play";
 
 export class AccountConfirmationError extends Error {
   constructor() {
@@ -35,6 +38,12 @@ export interface ExportDeps {
   trades: TradeRepository;
   roleOverrides: RoleOverrideRepository;
   proposals: TradeProposalRepository;
+  /** Fase 21: grupos, partidas, préstamos, comentarios y bloqueos. */
+  groups: GroupRepository;
+  games: GameRepository;
+  loans: LoanRepository;
+  comments: CommentRepository;
+  blocks: BlockRepository;
 }
 
 /**
@@ -55,7 +64,16 @@ export async function exportMyData(userId: string, deps: ExportDeps, now = new D
       deps.proposals.listFor(userId),
       deps.follows.followingIds(userId),
     ]);
-  const decks = await Promise.all(summaries.map((d) => deps.decks.get(d.id)));
+  const [decks, groups, games, loans, comments, blocked] = await Promise.all([
+    Promise.all(summaries.map((d) => deps.decks.get(d.id))),
+    deps.groups.forUser(userId),
+    deps.games.list({ userId }, 10_000),
+    deps.loans.forUser(userId, true),
+    deps.comments.byAuthor(userId),
+    deps.blocks.blocked(userId),
+  ]);
+  const member = (m: { username: string | null; name: string } | null) =>
+    m ? (m.username ? `@${m.username}` : m.name) : null;
   const people = new Map<string, string | null>();
   for (const id of new Set([
     ...following,
@@ -125,5 +143,40 @@ export async function exportMyData(userId: string, deps: ExportDeps, now = new D
       createdAt: p.createdAt.toISOString(),
     })),
     following: following.map((id) => people.get(id)).filter((u): u is string => Boolean(u)),
+    blocked: blocked.flatMap((b) => (b.username ? [b.username] : [])),
+    groups: groups.map((g) => ({
+      id: g.id,
+      name: g.name,
+      description: g.description,
+      owner: g.ownerId === userId,
+    })),
+    games: games.map((g) => ({
+      id: g.id,
+      group: g.group?.name ?? null,
+      playedAt: g.playedAt.toISOString(),
+      turns: g.turns,
+      notes: g.notes,
+      players: g.players.map((p) => ({
+        player: p.userId === userId ? "yo" : (member(p.user) ?? p.guestName),
+        deck: p.deckName,
+        winner: p.winner,
+      })),
+    })),
+    loans: [...loans.lent, ...loans.borrowed].map((l) => ({
+      id: l.id,
+      card: l.name,
+      quantity: l.quantity,
+      from: l.lenderId === userId ? "yo" : member(l.lender),
+      to: l.borrower?.id === userId ? "yo" : (member(l.borrower) ?? l.borrowerName),
+      note: l.note,
+      createdAt: l.createdAt.toISOString(),
+      returnedAt: l.returnedAt?.toISOString() ?? null,
+    })),
+    comments: comments.map((c) => ({
+      id: c.id,
+      deck: c.deckId,
+      body: c.body,
+      createdAt: c.createdAt.toISOString(),
+    })),
   };
 }

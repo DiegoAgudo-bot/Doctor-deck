@@ -8,6 +8,7 @@ import type { CardDTO, CollectionLineDTO, PrintingDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { CardImage } from "./card-image";
 import { IconMinus, IconPlus, IconTrash } from "./icons";
+import { LendDialog } from "./loans-page";
 import { Banner, Dialog, Loading } from "./ui";
 
 const json = (body: unknown) => ({
@@ -35,6 +36,7 @@ export function CollectionCardDialog({
   const [busy, setBusy] = useState<string | null>(null);
   /** La copia cuya imagen se enseña (la primera, o la última que se ha tocado). */
   const [focus, setFocus] = useState<string | null>(null);
+  const [lending, setLending] = useState(false);
 
   const load = useCallback(async (oracleId: string) => {
     try {
@@ -119,6 +121,11 @@ export function CollectionCardDialog({
           >
             <IconPlus size={13} /> Añadir otra copia
           </button>
+          {lines && lines.length > 0 && (
+            <button type="button" className="btn" onClick={() => setLending(true)}>
+              Prestar
+            </button>
+          )}
           <button type="button" className="btn btn-primary" onClick={onClose}>
             Hecho
           </button>
@@ -266,6 +273,14 @@ export function CollectionCardDialog({
           </div>
         </div>
       )}
+      <LendDialog
+        card={lending ? card : null}
+        onClose={() => setLending(false)}
+        onDone={() => {
+          setLending(false);
+          onChanged();
+        }}
+      />
     </Dialog>
   );
 }

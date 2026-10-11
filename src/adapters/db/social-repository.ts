@@ -19,6 +19,10 @@ const NOTIFICATION_TYPES: readonly NotificationType[] = [
   "trade_accepted",
   "trade_rejected",
   "trade_cancelled",
+  "group_join",
+  "game_recorded",
+  "deck_comment",
+  "loan_new",
 ];
 
 const PROFILE = {
@@ -186,6 +190,7 @@ export class PrismaSocialRepository
         price: n.price ?? null,
         prevPrice: n.prevPrice ?? null,
         tradeId: n.tradeId ?? null,
+        refId: n.refId ?? null,
       })),
     });
   }
@@ -209,6 +214,7 @@ export class PrismaSocialRepository
       price: r.price,
       prevPrice: r.prevPrice,
       tradeId: r.tradeId,
+      refId: r.refId,
       createdAt: r.createdAt,
       read: r.readAt !== null,
     }));

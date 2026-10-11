@@ -1,6 +1,7 @@
 import { isListedDeck, type DeckVisibility } from "@/domain/deck/visibility";
 import type { CardRepository } from "@/domain/ports/card-repository";
 import type { DeckRepository, SavedDeckSummary } from "@/domain/ports/deck-repository";
+import type { BlockRepository } from "@/domain/ports/moderation";
 import type {
   FollowRepository,
   NotificationRepository,
@@ -116,11 +117,19 @@ export async function setFollowing(
   viewerId: string,
   username: string,
   follow: boolean,
-  deps: { profiles: ProfileRepository; follows: FollowRepository },
+  deps: {
+    profiles: ProfileRepository;
+    follows: FollowRepository;
+    /** Si hay un bloqueo entre los dos, no se puede seguir (fase 21). */
+    blocks?: Pick<BlockRepository, "eitherBlocked"> | undefined;
+  },
 ) {
   const target = await deps.profiles.byUsername(username.toLowerCase());
   if (!target) throw new ProfileNotFoundError();
   if (target.id === viewerId) throw new CannotFollowSelfError();
+  if (follow && (await deps.blocks?.eitherBlocked(viewerId, target.id))) {
+    throw new ProfileNotFoundError();
+  }
   if (follow) await deps.follows.follow(viewerId, target.id);
   else await deps.follows.unfollow(viewerId, target.id);
   return deps.follows.counts(target.id);

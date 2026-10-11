@@ -12,7 +12,10 @@ import type {
 import { api, storage } from "./api-client";
 import { authClient } from "./auth-client";
 import {
+  IconActivity,
   IconBell,
+  IconCrown,
+  IconLoan,
   IconSettings,
   IconUser,
   IconSwap,
@@ -173,6 +176,7 @@ function TopBar({
     { href: "/", label: "Inicio" },
     { href: "/analyze", label: "Analizar mazo" },
     { href: "/community", label: "Comunidad" },
+    { href: "/play", label: "Jugar" },
   ];
   return (
     <header className="topbar">
@@ -356,6 +360,17 @@ function Sidebar({
             ))}
           </nav>
           <div className="side-foot">
+            <Link className={`nav ${pathname === "/feed" ? "is-active" : ""}`} href="/feed">
+              <IconActivity />
+              Actividad
+            </Link>
+            <Link
+              className={`nav ${pathname.startsWith("/groups") ? "is-active" : ""}`}
+              href="/groups"
+            >
+              <IconCrown />
+              Grupos y partidas
+            </Link>
             <Link
               className={`nav ${pathname === "/community" ? "is-active" : ""}`}
               href="/community"
@@ -366,6 +381,10 @@ function Sidebar({
             <Link className={`nav ${pathname === "/trades" ? "is-active" : ""}`} href="/trades">
               <IconSwap />
               Intercambios
+            </Link>
+            <Link className={`nav ${pathname === "/loans" ? "is-active" : ""}`} href="/loans">
+              <IconLoan />
+              Préstamos
             </Link>
             <Link className={`nav ${pathname === "/settings" ? "is-active" : ""}`} href="/settings">
               <IconSettings />
@@ -402,7 +421,7 @@ function BottomNav({ pathname, user }: { pathname: string; user: SessionUser | n
   const items = [
     { href: "/", label: "Inicio", icon: <IconHome size={20} /> },
     { href: "/analyze", label: "Analizar", icon: <IconPlus size={20} weight={1.8} /> },
-    { href: "/community", label: "Comunidad", icon: <IconUsers size={20} /> },
+    { href: "/play", label: "Jugar", icon: <IconCrown size={20} /> },
     { href: "/collection", label: "Colección", icon: <IconCollection size={20} /> },
     user
       ? { href: profileHref(user), label: "Perfil", icon: <IconUser size={20} /> }

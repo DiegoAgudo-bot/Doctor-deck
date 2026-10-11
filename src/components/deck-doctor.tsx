@@ -22,6 +22,7 @@ import type {
   PrintingDTO,
   DeckViewDTO,
 } from "@/server/dto";
+import { DeckComments } from "./deck-comments";
 import { api, ApiError, storage } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardHover, CardImage } from "./card-image";
@@ -988,6 +989,9 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             changes={changesText}
           />
         </>
+      )}
+      {deckId && saved.visibility !== "private" && (
+        <DeckComments deckId={deckId} loggedIn={loggedIn} />
       )}
     </main>
   );

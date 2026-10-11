@@ -6,7 +6,8 @@ import type { SavedDeckSummaryDTO, StatusResponse, TradeProposalSummaryDTO } fro
 import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardImage } from "./card-image";
-import { IconPlus } from "./icons";
+import { ActivityFeed } from "./feed-page";
+import { IconCrown, IconDecks, IconLoan, IconPlus, IconUsers } from "./icons";
 import { Landing } from "./landing";
 import {
   LOCAL_COLLECTION_EVENT,
@@ -251,7 +252,51 @@ export function Home() {
             </div>
           )}
         </section>
-      ) : (
+      ) : null}
+
+      {user && (
+        <div
+          className="grid-1-sm grid gap-4"
+          style={{ gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)" }}
+        >
+          <section className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="h2">Actividad</span>
+              <Link href="/feed" style={{ fontSize: 13 }}>
+                Ver todo
+              </Link>
+            </div>
+            <ActivityFeed compact />
+          </section>
+          <section className="flex flex-col gap-2">
+            <span className="h2">Tu mesa</span>
+            <div className="quicklinks">
+              <Link href="/play" className="quicklink ql-play">
+                <IconCrown size={20} />
+                <b>Contador de vidas</b>
+                <span>Vidas, comandante y veneno</span>
+              </Link>
+              <Link href="/groups" className="quicklink">
+                <IconUsers size={20} />
+                <b>Grupos</b>
+                <span>Partidas, ranking y quién tiene qué</span>
+              </Link>
+              <Link href="/loans" className="quicklink">
+                <IconLoan size={20} />
+                <b>Préstamos</b>
+                <span>Lo que has dejado y te han dejado</span>
+              </Link>
+              <Link href="/community" className="quicklink">
+                <IconDecks size={20} />
+                <b>Comunidad</b>
+                <span>Mazos que ya puedes montar</span>
+              </Link>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {!user && (
         <section
           className="grid-1-sm grid gap-3"
           style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
