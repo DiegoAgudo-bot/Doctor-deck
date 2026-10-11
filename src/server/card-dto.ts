@@ -1,4 +1,5 @@
 import type { CardDetail } from "@/application/card-catalog";
+import type { ThemeLink } from "@/domain/recommendations/types";
 import type { Card } from "@/domain/cards/types";
 import { ROLE_LABELS, type Role } from "@/domain/roles/types";
 import {
@@ -63,4 +64,28 @@ export function cardDetailDTO(
     mine: d.mine,
     commanderDecks: decks,
   };
+}
+
+/** Una carta de las listas de EDHREC de un comandante. */
+export interface StapleDTO {
+  card: CardDTO;
+  /** % de los mazos del comandante que la llevan (0..1). */
+  inclusion: number | null;
+  /** Sinergia (+0.12 = se juega un 12 % más con este comandante que en sus colores). */
+  synergy: number | null;
+  numDecks: number | null;
+  price: number | null;
+  /** Con sesión: cuántas tengo y cuántas libres (null = ninguna o sin sesión). */
+  mine: { owned: number; free: number } | null;
+}
+
+export interface CommanderStaplesDTO {
+  theme: string | null;
+  themes: ThemeLink[];
+  totalDecks: number | null;
+  /** Slug de EDHREC (para enlazar a su página). */
+  slug: string;
+  sections: { key: string; label: string; cards: StapleDTO[] }[];
+  /** Si EDHREC falló y se usa una copia antigua. */
+  warning: string | null;
 }

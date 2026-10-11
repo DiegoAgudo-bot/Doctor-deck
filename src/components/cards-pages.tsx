@@ -21,6 +21,7 @@ import type { CardPricesDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardImage } from "./card-image";
+import { CommanderStaples } from "./commander-staples";
 import { DeckTile } from "./deck-tile";
 import { IconPlus } from "./icons";
 import { notifyCollectionChanged } from "./local-collection";
@@ -535,6 +536,10 @@ export function CardDetailPage() {
           </div>
         </section>
       </div>
+
+      {d.commander && (
+        <CommanderStaples oracleId={d.card.oracleId} name={d.card.name} loggedIn={loggedIn} />
+      )}
 
       {d.commander && (
         <section className="flex flex-col gap-2">

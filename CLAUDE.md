@@ -286,6 +286,14 @@ newInvite?}`), `DELETE /api/groups/{id}/members/{username}`, `GET /api/groups/{i
   colección o a la lista de deseos y, si puede ser comandante, "Crear mazo" →
   `/decks/new?commander={oracleId}` (el asistente la deja elegida). `/community?q=` rellena el
   buscador de Comunidad. La ficha también se abre desde la colección ("Ver ficha").
+  En la ficha de un comandante, **"Lo que se juega con X"** (`CommanderStaples`, `GET
+/api/cards/{oracleId}/edhrec?theme=`, `commanderStaples`): la página de EDHREC del comandante
+  (general o de un tema) agrupada por sus listas como en su web (`recommendationSections`,
+  `domain/recommendations/sections.ts`: alta sinergia, las más jugadas, novedades, game changers,
+  criaturas, instantáneos, conjuros, artefactos, encantamientos, planeswalkers, tierras…; como
+  mucho 30 por lista, por inclusión), con % de mazos, sinergia, precio y, con sesión, "La tienes" /
+  "En tus mazos" y filtro de las que tengo o me faltan. Mismo `EdhrecClient` (caché, errores con
+  aviso).
 - **Combos** (Fase 16, Commander Spellbook, **sin API oficial**): `SpellbookClient`
   (`adapters/spellbook`, puerto `ComboSource`) hace `POST
 backend.commanderspellbook.com/find-my-combos?limit=500` con el mazo (nombres), cachea en

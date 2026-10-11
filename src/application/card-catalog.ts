@@ -7,7 +7,10 @@ import type { DeckRepository } from "@/domain/ports/deck-repository";
 import type { CommunityDeckRow, PublicDecks } from "@/domain/ports/social";
 import type { TradeRepository } from "@/domain/ports/trades";
 import type { RoleClassifier, RoleSet } from "@/domain/roles/types";
-import { notFound } from "./errors";
+import type { RecommendationSource } from "@/domain/ports/recommendation-source";
+import { recommendationSections } from "@/domain/recommendations/sections";
+import { AppError, notFound } from "./errors";
+import { loadRecommendations } from "./load-recommendations";
 
 export const CATALOG_PAGE = 36;
 
@@ -110,5 +113,65 @@ async function myCopies(
     free: Math.max(0, n - (u?.quantity ?? 0)),
     usedIn: u?.decks ?? [],
     wished: wishes.find((w) => w.oracleId === oracleId)?.quantity ?? 0,
+  };
+}
+
+/** Como mucho tantas cartas por lista (EDHREC da muchas más en "Criaturas" o "Tierras"). */
+export const STAPLES_PER_SECTION = 30;
+
+/**
+ * Lo que se juega con un comandante en EDHREC (general o de un tema), por listas como en su web:
+ * alta sinergia, las más jugadas, criaturas, instantáneos, conjuros… con el precio de cada carta y,
+ * con sesión, cuántas tengo libres. Si EDHREC falla se propaga su error (con aviso al usuario).
+ */
+export async function commanderStaples(
+  oracleId: string,
+  theme: string | null,
+  viewerId: string | null,
+  deps: {
+    cards: CardRepository;
+    recommendations: RecommendationSource;
+    collectionFor: (userId: string) => CollectionRepository;
+    decksFor: (userId: string) => DeckRepository;
+  },
+) {
+  const [card] = await deps.cards.findCardsByOracleIds([oracleId]);
+  if (!card) throw notFound("Esa carta no existe.");
+  if (!canBeCommander(card)) {
+    throw new AppError("not_commander", "Esa carta no puede ser comandante.");
+  }
+  const recs = await loadRecommendations(
+    { commanders: [card.name], ...(theme ? { theme } : {}) },
+    { source: deps.recommendations, cards: deps.cards },
+  );
+  const sections = recommendationSections(
+    recs.cards.filter((r) => r.card.oracleId !== card.oracleId),
+  ).map((s) => ({ ...s, cards: s.cards.slice(0, STAPLES_PER_SECTION) }));
+  const ids = [...new Set(sections.flatMap((s) => s.cards.map((c) => c.card.oracleId)))];
+  const [prices, owned, usage] = await Promise.all([
+    deps.cards.findMinPrices(ids),
+    viewerId ? deps.collectionFor(viewerId).ownedQuantities() : Promise.resolve(null),
+    viewerId ? deps.decksFor(viewerId).usage() : Promise.resolve(null),
+  ]);
+  const mine = owned
+    ? new Map(
+        ids.flatMap((id) => {
+          const n = owned.get(id) ?? 0;
+          return n
+            ? [[id, { owned: n, free: Math.max(0, n - (usage?.get(id)?.quantity ?? 0)) }] as const]
+            : [];
+        }),
+      )
+    : null;
+  return {
+    commander: card,
+    theme: recs.theme,
+    themes: recs.themes,
+    totalDecks: recs.totalDecks,
+    slug: recs.commanderSlug,
+    sections,
+    prices,
+    mine,
+    warning: recs.warning,
   };
 }
