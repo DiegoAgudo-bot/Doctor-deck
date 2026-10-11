@@ -1080,32 +1080,29 @@
   .hov {
     position: relative;
   }
-  .hov .pv {
-    position: absolute;
-    z-index: 50;
-    left: calc(100% + 10px);
-    top: 50%;
+  /* Carta grande al pasar el ratón: en la capa superior (popover) con posición fija. */
+  .pv {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    overflow: visible;
     width: 230px;
     pointer-events: none;
-    opacity: 0;
-    transform: translate(0, -50%) translateX(-4px);
-    transition:
-      opacity var(--motion-150) var(--ease-in),
-      transform var(--motion-150) var(--ease-in);
+    z-index: 1000;
   }
-  .hov:hover .pv {
-    opacity: 1;
-    transform: translate(0, -50%);
-    transition:
-      opacity var(--motion-150) var(--ease-out) 60ms,
-      transform var(--motion-150) var(--ease-out) 60ms;
+  .pv[popover]:not(:popover-open) {
+    display: none;
   }
-  .hov .pv .cardimg {
+  .pv:popover-open,
+  .pv-portal {
+    display: block;
+    animation: dd-pv var(--motion-150) var(--ease-out) 60ms both;
+  }
+  .pv .cardimg {
     box-shadow: var(--shadow-pop);
-  }
-  .diff-row.hov .pv {
-    left: auto;
-    right: 90px;
   }
 
   /* ---------- Estadísticas ---------- */
@@ -2342,6 +2339,17 @@
     .gamerow > :nth-child(n + 3):not(:last-child) {
       grid-column: 2 / 3;
     }
+  }
+}
+
+@keyframes dd-pv {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
