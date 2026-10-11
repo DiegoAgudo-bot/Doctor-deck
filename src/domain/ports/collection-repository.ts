@@ -22,11 +22,13 @@ export interface ManualCard {
   quantity: number;
   foil: boolean;
   scryfallId?: string | null | undefined;
+  /** Idioma de la copia (código de Scryfall), si se sabe. */
+  language?: string | null | undefined;
 }
 
 /** Una línea de la colección (del CSV o añadida suelta), ya emparejada con una carta. */
 export interface CollectionEntryRow {
-  /** Id de la línea; sirve para borrar las añadidas a mano. */
+  /** Id público (uuid) de la línea; sirve para borrar las añadidas a mano. */
   id: string;
   oracleId: string;
   name: string;
@@ -35,6 +37,8 @@ export interface CollectionEntryRow {
   setCode: string | null;
   /** Impresión concreta (Scryfall ID), si se conoce. */
   scryfallId: string | null;
+  /** Idioma de la copia (código de Scryfall: "en", "es"…), si se sabe. */
+  language: string | null;
   source: "csv" | "manual";
   addedAt: Date;
 }

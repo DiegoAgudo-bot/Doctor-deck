@@ -3,13 +3,21 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { formatEuros } from "@/domain/suggestions/format";
-import type { NotificationsResponse } from "@/server/dto";
+import type { NotificationDTO, NotificationsResponse } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { IconBell } from "./icons";
 import { notifyNotificationsChanged } from "./local-collection";
 import { Banner, EmptyState, Loading, ago } from "./ui";
 
-/** /notificaciones: lo que han hecho las personas a las que sigues. Al abrirla, se marcan leídas. */
+const TRADE_TEXT: Partial<Record<NotificationDTO["type"], string>> = {
+  trade_proposal: "te ha propuesto un intercambio",
+  trade_counter: "te ha hecho una contrapropuesta",
+  trade_accepted: "ha aceptado vuestro intercambio: las cartas ya están en vuestras colecciones",
+  trade_rejected: "ha rechazado tu propuesta de intercambio",
+  trade_cancelled: "ha retirado la propuesta de intercambio",
+};
+
+/** /notifications: lo que han hecho las personas a las que sigues. Al abrirla, se marcan leídas. */
 export function NotificationsPage() {
   const [data, setData] = useState<NotificationsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +44,7 @@ export function NotificationsPage() {
           <EmptyState
             title="Nada por aquí"
             action={
-              <Link className="btn btn-primary" href="/comunidad">
+              <Link className="btn btn-primary" href="/community">
                 Buscar a quien seguir
               </Link>
             }
@@ -66,7 +74,16 @@ export function NotificationsPage() {
                   <IconBell size={15} />
                 </span>
                 <span className="flex-1 text-[13.5px]">
-                  {n.type === "new_deck" ? (
+                  {n.type.startsWith("trade_") && n.type !== "trade_match" ? (
+                    <>
+                      {who} {TRADE_TEXT[n.type] ?? "ha cambiado una propuesta de intercambio"} ·{" "}
+                      {n.tradeId ? (
+                        <Link href={`/trades/proposals/${n.tradeId}`}>Ver la propuesta</Link>
+                      ) : (
+                        <Link href="/trades?tab=proposals">Ver propuestas</Link>
+                      )}
+                    </>
+                  ) : n.type === "new_deck" ? (
                     <>
                       {who} ha publicado un mazo:{" "}
                       {n.deckId ? <Link href={`/decks/${n.deckId}`}>{n.title}</Link> : n.title}
@@ -74,7 +91,7 @@ export function NotificationsPage() {
                   ) : n.type === "trade_match" ? (
                     <>
                       {who} tiene libre <b>{n.title}</b>, que está en tu lista de deseos ·{" "}
-                      <Link href="/intercambios">Ver cruces</Link>
+                      <Link href="/trades">Ver cruces</Link>
                     </>
                   ) : n.type === "price_drop" ? (
                     <>
@@ -82,7 +99,7 @@ export function NotificationsPage() {
                       {n.deckId && (
                         <>
                           {" "}
-                          para <Link href={`/decks/${n.deckId}?tab=falta`}>uno de tus mazos</Link>
+                          para <Link href={`/decks/${n.deckId}?tab=missing`}>uno de tus mazos</Link>
                         </>
                       )}
                       {n.price !== null && (

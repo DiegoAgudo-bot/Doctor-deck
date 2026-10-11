@@ -20,6 +20,7 @@ recomendaciones de EDHREC, priorizando cartas de la colección del usuario (expo
 | `npm run build`                                                                                   | Build de producción                                                       |
 | `npm run scryfall:sync [-- --force \| --skip-download]`                                           | Descarga los bulk de Scryfall (si hay versión nueva) y los vuelca a la BD |
 | `npm run symbols:sync`                                                                            | Descarga los símbolos de maná de Scryfall a `public/symbols/`             |
+| `npm run otags:sync [-- --force \| --tag ramp]`                                                   | Descarga las etiquetas `otag:` de Scryfall Tagger (roles)                 |
 | `npm run collection:import -- "export.csv" [--user email]`                                        | Importa un CSV de ManaBox (a la cuenta indicada) y muestra el resumen     |
 | `npm run users:claim -- --user email`                                                             | Pasa a esa cuenta la colección y los mazos de antes de haber usuarios     |
 | `npm run deck:check -- "lista.txt" \| "https://…"`                                                | Parsea y resuelve una lista de mazo contra el catálogo                    |
@@ -85,9 +86,13 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   Además, cartas sueltas (`addToCollection`, `application/collection-cards.ts`): se resuelven por
   `oracleId` (buscador web), `scryfallId` (lo que dará el escáner de la app móvil) o nombre, y se
   guardan con `matchMethod = "manual"`; reimportar el CSV **no** las borra. `collectionView` agrupa
-  la colección por carta con catálogo, precio, roles y mazos que la usan; `browseMyCollection` filtra,
+  la colección por carta con catálogo, precio, roles, idiomas y mazos que la usan; `browseMyCollection` filtra,
   ordena y pagina en el servidor (`domain/collection/browse.ts`; la web pide 48 por página).
-  `summary.totalCards` = copias identificadas (sin las filas sin emparejar). Sin cuenta, todo vive
+  `summary.totalCards` = copias identificadas (sin las filas sin emparejar). Cada copia guarda su
+  idioma (`CollectionEntry.language`, código de Scryfall: `en`, `es`, `ja`…; `normalizeLanguage` en
+  `domain/cards/languages.ts` acepta también "Japanese"…): sale del `Language` del CSV o del campo
+  `language` de `POST /api/collection/cards`, se ve como etiqueta (`ES ×2`) y hay filtro por idioma.
+  Solo es presentación: el análisis sigue siendo por carta. Sin cuenta, todo vive
   en el navegador (`local-collection.ts`: `{import, added}`) y se manda como pares
   `[oracleId, copias]`.
 - **Recomendaciones**: `EdhrecClient` (puerto `RecommendationSource`) → caché `ResponseCache`
@@ -154,10 +159,41 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   (tras `scryfall:sync`): aviso `trade_match` por carta, como mucho cada 30 días. API `GET
 /api/trades`, `GET /api/trades/matches?username=`, `PUT /api/trades/wishes/{oracleId}`
   (`{quantity}`), `PUT /api/trades/keeps/{oracleId}` (`{keep}`), `PATCH /api/decks/{id}`
-  (`{inWishlist}`), `PATCH /api/me/profile` (`{tradesPublic}`). UI: `/intercambios` (cruces, lo que
+  (`{inWishlist}`), `PATCH /api/me/profile` (`{tradesPublic}`). UI: `/trades` (cruces, lo que
   busco, para cambiar), sección en el perfil de otros, botón en "Qué me falta" y ajuste en
-  `/ajustes`. Sin pagos ni mensajes. Cuentas de prueba locales en `data/test-accounts.local.json`
+  `/settings`. Sin pagos ni mensajes. Cuentas de prueba locales en `data/test-accounts.local.json`
   (gitignored).
+- **Calculadora de intercambio y propuestas** (Fase 19, `application/trade-proposals.ts`, dominio
+  en `domain/trades/proposal.ts`, adaptador `PrismaTradeProposalRepository`):
+  - "Para cambiar" por copias (`buildTradeCopies`): de cada carta de la lista "para cambiar", qué
+    copias concretas (impresión, foil, idioma) con su precio (`printingPrice`, si no, la más
+    barata); se supone que en los mazos están las más baratas, así que se ofrecen las de más valor.
+    `copyKey` identifica una copia (`oracleId|scryfallId|f|idioma`).
+  - `tradeCalculator` (`GET /api/trades/calculator?username=`): `proposeTrade` cruza las listas
+    (cada uno da sus copias más baratas de cada carta) y `balanceTrade` cuadra: mientras la
+    diferencia pase la tolerancia (`tradeTolerance`: 5 % del lado que más vale o 1 €), quita del
+    lado que vale más la copia más cara que no haga pasarse al otro lado; nunca deja un lado vacío.
+    Solo con usuarios con `tradesPublic`, nunca consigo mismo.
+  - Propuestas (`TradeProposal` con `publicId`, `TradeProposalItem` por versión con `giverId` y el
+    precio del momento): `draft` (solo la ve quien la crea) → `pending` (le toca a `turnUserId`:
+    aceptar, rechazar o **contraproponer**, que crea una versión nueva y pasa el turno; las
+    versiones anteriores quedan como historial) → `accepted` | `rejected` | `cancelled` (cualquiera
+    de los dos retira una pendiente). Las líneas se validan con `priceItems` contra lo que cada uno
+    tiene para cambiar (`TradeProposalError` `unavailable`).
+  - **Aceptar mueve las cartas** entre las dos colecciones de Deck Doctor (la idea es dejar ManaBox):
+    en una transacción, `accept` quita las copias a quien las da (primero las de esa impresión, foil
+    e idioma; si no, otras de la carta) y se las añade a quien las recibe como cartas sueltas
+    (`matchMethod = "manual"`, sobreviven a reimportar el CSV); si a alguien le faltan copias no
+    cambia nada (`MissingCopiesError` → `trade_missing_copies`). Lo recibido sale de la lista de
+    deseos manual. Reimportar un CSV antiguo de ManaBox devolvería las cartas dadas (se avisa).
+  - Avisos `trade_proposal`, `trade_counter`, `trade_accepted`, `trade_rejected`,
+    `trade_cancelled` (`Notification.tradeId`).
+  - API: `GET|POST /api/trades/proposals` (`{username, lines, send}`), `GET|PATCH
+/api/trades/proposals/{id}` (`{action: save|send|counter|accept|reject|cancel|delete, lines?}`);
+    `lines` = `[{side: give|get, oracleId, scryfallId, foil, language, quantity}]` desde quien la
+    manda. UI: `/trades/with/{username}` (calculadora), `/trades/proposals/{id}`
+    (`TradeEditor`: dos columnas, ± por copia, "Añadir más", balance en vivo), pestaña
+    "Propuestas" en `/trades` y "Proponer intercambio" en cada cruce y en el perfil.
 - **Combos** (Fase 16, Commander Spellbook, **sin API oficial**): `SpellbookClient`
   (`adapters/spellbook`, puerto `ComboSource`) hace `POST
 backend.commanderspellbook.com/find-my-combos?limit=500` con el mazo (nombres), cachea en
@@ -171,35 +207,53 @@ backend.commanderspellbook.com/find-my-combos?limit=500` con el mazo (nombres), 
   aparte de `/api/analyze` (Spellbook tarda ~2,5 s la primera vez); la UI lo pide tras cada
   análisis, pestaña "Combos", y al llegar actualiza el bracket de la cabecera.
 - **Roles corregidos y etiquetas** (Fase 15): `withOverrides` (`domain/roles/overrides.ts`)
-  aplica, por este orden, mis correcciones (`CardRoleOverride`, por usuario y carta, valen en
-  todos mis mazos y en la colección; sin cuenta viven en el navegador, `local-roles.ts`, y se
+  aplica, por este orden, mis correcciones solo para ese mazo (`DeckRoleOverride`, por mazo y
+  carta, solo las del dueño y solo al analizar ese mazo guardado con `deckId`; `PUT
+/api/decks/{id}/card-roles/{oracleId}`, mismo cuerpo), mis correcciones (`CardRoleOverride`, por
+  usuario y carta, valen en todos mis mazos y en la colección; sin cuenta viven en el navegador, `local-roles.ts`, y se
   mandan como `roleEdits`), las etiquetas de la lista (Moxfield `#!Ramp`/`#wincon` y categorías
   de Archidekt `[Ramp,Draw]`, que ahora guarda el parser en `entry.tags`; `splitTags` las separa
-  en roles —alias en inglés y español— y etiquetas libres) y los roles automáticos. El motor, los
+  en roles —alias en inglés y español— y etiquetas libres) y los roles automáticos. Las etiquetas
+  libres de todas las capas se suman. El motor, los
   mínimos y el bracket usan el clasificador corregido; `DeckCardDTO` lleva `roleSource` (`auto` |
-  `list` | `mine`) y `tags`. API `GET /api/me/card-roles`, `PUT /api/me/card-roles/{oracleId}`
+  `list` | `mine` | `deck`) y `tags`. API `GET /api/me/card-roles`, `PUT /api/me/card-roles/{oracleId}`
   (`{roles, primary?, tags}`; vacío = volver a los automáticos). UI: en la tabla del mazo, clic en
-  el rol (`RoleEditDialog`). Exportar `moxfield` escribe `#Rol #etiqueta` y se vuelve a leer.
+  el rol (`RoleEditDialog`; en un mazo guardado propio, "En todos mis mazos" o "Solo en este mazo"). Exportar `moxfield` escribe `#Rol #etiqueta` y se vuelve a leer.
 - **Roles** (`domain/roles`): `HeuristicRoleClassifier` con regex sobre el oracle text (sin
   reminder text, nombre propio → "this") y el tipo de la cara frontal. Roles: land, ramp, draw,
   removal, wipe, counterspell, tutor, protection, synergy (= lo que no es nada de lo anterior).
   Una carta cuenta en todos sus roles; el principal sale de un orden de prioridad. Limitaciones
   conocidas: overload/escalate no cuentan como wipe; "protection" exige conceder a otros.
-- **UI** (`src/app`, `src/components`): páginas `/` (estado), `/coleccion` (subir CSV) y `/mazo`
+  Segunda fuente: las etiquetas de **Scryfall Tagger** (`otag:`). `withTaggerRoles`
+  (`domain/roles/otags.ts`) suma a los heurísticos los roles de `OTAG_ROLES` (`ramp`, `draw`,
+  `removal`, `board-wipe` → wipe, `counterspell`, `tutor`; protección solo heurística), sin cambiar
+  el principal salvo que fuera "synergy" y sin tocar las tierras. Se descargan con la búsqueda de la
+  API (`ScryfallTagger`, `adapters/scryfall/tagger.ts`, `otag:<tag>`, paginada, errores
+  `TaggerError`) a `CardOtag` (sin FK: sobrevive a vaciar el catálogo) y `OtagSync`;
+  `PrismaCardRepository` devuelve cada `Card` con sus `otags`. `scryfall:sync` las actualiza si
+  tienen más de 7 días (`syncOracleTags`); si Scryfall falla se avisa y se usan las de antes.
+  Los nombres de las etiquetas están **pendientes de verificar** contra Scryfall real
+  (`npm run otags:sync` avisa si alguna sale con 0 cartas).
+- **UI** (`src/app`, `src/components`): páginas `/` (estado), `/collection` (subir CSV) y `/analyze`
   (pegar lista → curva, roles, cambios con aceptar/descartar, candados, exportar). Son componentes de
   cliente que solo hablan con la API JSON:
   - `GET /api/status`, `POST /api/collection` (cuerpo = texto del CSV), `POST /api/collection/cards`
     (`{cards: [{oracleId|scryfallId|name, quantity, foil?}]}`, máx. 500), `DELETE
-/api/collection/cards/{id}` (solo las añadidas a mano), `POST /api/collection/view`
+/api/collection/cards/{publicId}` (solo las añadidas a mano), `POST /api/collection/view`
     (`{collection?, filters, sort, offset, limit}`; `limit: 0` = solo totales), `GET /api/collection/cards`
     (las añadidas a mano), `GET /api/cards/search?q=&limit=`, `POST /api/analyze`
     (`{input, theme?, commanders?, locked?, excluded?, deckId?, useOtherDecks?, buy?: {maxCards,
 maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /api/decks/[id]`.
-  - Páginas: `/mazos` (lista, borrar) y `/decks/{publicId}` (un mazo guardado; exigen sesión). Los
+  - Páginas: `/decks` (lista, borrar) y `/decks/{publicId}` (un mazo guardado; exigen sesión). Los
     mazos se identifican fuera de la BD solo por `Deck.publicId` (uuid): API `/api/decks/{uuid}`,
     `deckId` de `/api/analyze`; el `id` numérico es interno. Rutas en grupos `(app)` (con barras) y
     `(cuenta)` (entrar, registro…, sin barras). Con Cache Components, `usePathname`/`useParams` se
     leen dentro de `<Suspense>` (si no, falla el build en rutas dinámicas).
+  - **URLs siempre en inglés** (páginas, parámetros y valores: `?new=1`, `?analyze=1`, `?edit=1`,
+    `?tab=changes|missing|list|combos|stats|buy` en los mazos, `?tab=matches|proposals|wanted|offered`
+    en `/trades`) y **nunca con IDs internos**: lo que se identifica en una URL usa un uuid aleatorio
+    (`Deck.publicId`, `TradeProposal.publicId`, `CollectionEntry.publicId`) o el nombre de usuario.
+    Las URL antiguas en español redirigen a las nuevas (`next.config.ts`).
   - Tipos y mapeadores de la API en `src/server/dto.ts` (los componentes solo hacen `import type`);
     errores → JSON `{error: {code, message}}` en `src/server/http.ts`.
   - Las rutas GET llaman a `await connection()` (better-sqlite3 es síncrono y si no, Next las
@@ -216,15 +270,14 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     (`container.collectionFor(userId)`, `decksFor(userId)`) y filtran todas sus consultas por él; el
     catálogo y la caché de EDHREC son globales. Dominio y casos de uso no saben de usuarios.
   - Cada ruta de la API llama a `requireUser(request)` (`src/server/session.ts`) → 401 si no hay
-    sesión; `/api/status` funciona sin sesión. `src/proxy.ts` redirige a `/entrar?next=…` las páginas
+    sesión; `/api/status` funciona sin sesión. `src/proxy.ts` redirige a `/login?next=…` las páginas
     privadas si no hay cookie (comprobación optimista; la real es `requireUser`).
-  - UI: `/entrar`, `/registro`, `/recuperar`, `/restablecer`; `UserMenu` en la cabecera. Tras entrar
+  - UI: `/login`, `/signup`, `/forgot-password`, `/reset-password`; `UserMenu` en la cabecera. Tras entrar
     se navega con recarga completa (la caché del router puede tener la redirección de antes).
   - Filas con `userId` vacío = datos de antes de los usuarios → `npm run users:claim`.
   - En producción `loadEnv` exige `BETTER_AUTH_SECRET`; `BETTER_AUTH_URL` debe ser la URL pública.
     En el VPS, `scripts/deploy.sh` genera el secreto en `.env` si falta y `docker-compose.yml` pone
-    `BETTER_AUTH_URL=https://$DECK_DOCTOR_HOST`. `/login` (el antiguo login de contraseña única)
-    redirige a `/entrar`.
+    `BETTER_AUTH_URL=https://$DECK_DOCTOR_HOST`.
 - **Social** (Fase 9, `application/social.ts`, puertos en `domain/ports/social.ts`, adaptador
   `PrismaSocialRepository`): `User.username` (perfil `/u/{username}`; `ensureUsername` lo genera
   la primera vez desde el nombre o el email, reglas en `domain/social/username.ts`) y
@@ -235,11 +288,11 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   `Follow` (seguir) y `Notification` (fan-out al escribir): `announceNewDeck` al crear un mazo
   público y `announceBigCards` al añadir cartas de ≥ `socialConfig.bigCardEur` (20 €) si la
   colección es pública (`src/config/social.ts`). Solo avisos en la web (campana, cada minuto).
-  Rutas: `/comunidad`, `/u/[username]`, `/notificaciones`, `/ajustes`; API `GET|PATCH
+  Rutas: `/community`, `/u/[username]`, `/notifications`, `/settings`; API `GET|PATCH
 /api/me/profile`, `GET /api/users?q=`, `GET /api/users/{u}`, `POST|DELETE /api/users/{u}/follow`,
   `GET /api/notifications`, `POST /api/notifications/read`, `POST /api/community/decks`,
   `PATCH /api/decks/{id}` (`{visibility}`), `POST /api/collection/view` con `username`.
-- **Crear mazos** (`application/new-deck.ts`, página `/mazos/nuevo`): eliges el comandante
+- **Crear mazos** (`application/new-deck.ts`, página `/decks/new`): eliges el comandante
   (buscador con `commander=1`) y `newDeckFromCommander` monta el **mazo medio de EDHREC**
   (`EdhrecClient.getAverageDeck`, `/average-decks/{slug}[/{tema}]`, parser en
   `adapters/edhrec/average-deck.ts`; mismas reglas de caché y errores) o un mazo **vacío** para
@@ -247,7 +300,7 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   Nombre propuesto (`domain/deck/naming.ts`): "<colores> - <de qué va>", p. ej. "Jund -
   Aristócratas" (combinaciones Boros/Jund/… y temas de EDHREC traducidos). API: `GET
 /api/commanders?ids=` (temas y nombre) y `POST /api/decks/new` (con sesión guarda y devuelve
-  `id`; sin ella devuelve la lista para abrirla en `/mazo?analizar=1`).
+  `id`; sin ella devuelve la lista para abrirla en `/analyze?analyze=1`).
   Editor: en la pestaña Lista de un mazo propio o sin guardar, "Añadir cartas" (buscador con
   `identity=` de los colores del comandante y recomendadas de tu colección) y −/+ en la tabla;
   cada cambio (`changeCard` en `domain/deck/export.ts`) reanaliza y, si es un mazo guardado, lo
@@ -291,7 +344,7 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   `POST /api/collection/prices` (`{days, collection?}`: valor día a día y lo que más sube/baja),
   `PATCH /api/me/profile` con `priceAlertPercent`. UI: pulsar un precio (colección, "Qué me falta")
   abre el histórico (`CardPriceDialog`, gráfica `PriceChart`), pestaña "Precios" en la colección y
-  el ajuste en `/ajustes`.
+  el ajuste en `/settings`.
 - **Sin depender de Scryfall/Cloudflare en el navegador** (en España se bloquean IPs de Cloudflare
   durante los partidos de LaLiga): el navegador solo habla con nuestro servidor. Los símbolos de
   maná están en `public/symbols/` (`npm run symbols:sync`, se suben al repo) y las imágenes de
@@ -330,8 +383,8 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     `DECK_SOURCES_MIN_INTERVAL_MS`. Sin caché (los mazos cambian). Esquemas zod tolerantes; los
     fixtures están escritos a mano (verificar con `deck:check -- <link>`).
   - Las entradas de mazo pueden traer `scryfallId`; al resolver se prueba id → set+nº → nombre.
-- **Clasificador de roles** intercambiable (`RoleClassifier`): primero heurísticas sobre oracle text
-  y tipo; más adelante `otag:` de Scryfall. Una carta puede tener varios roles.
+- **Clasificador de roles** intercambiable (`RoleClassifier`): heurísticas sobre oracle text y tipo
+  más las etiquetas `otag:` de Scryfall Tagger (se suman). Una carta puede tener varios roles.
 - **Scoring**: `score = a·synergy + b·inclusion + c·bonus_rol`; pesos y mínimos por rol
   configurables en `src/config`.
 - **Nunca se propone cortar**: comandante(s), tierras básicas, cartas bloqueadas.
@@ -374,12 +427,16 @@ Purchase price currency, Added`.
 13. Comunidad: mazos que puedes montar ya (% y coste), filtros y "me gusta" ✅
 14. Precios: histórico, lo que más sube/baja de la colección, avisos de bajada; símbolos e
     imágenes servidos desde nuestro servidor ✅
-15. Roles corregidos a mano y etiquetas (Moxfield/Archidekt), en el motor y al exportar ✅
+15. Roles corregidos a mano (en todos mis mazos o solo en uno) y etiquetas (Moxfield/Archidekt),
+    en el motor y al exportar; etiquetas `otag:` de Scryfall como segunda fuente de roles ✅
 16. Combos (Commander Spellbook): en el mazo, a una carta (con tu colección) y en el bracket ✅
 17. Intercambios: lista de deseos, para cambiar, cruces entre usuarios y avisos ✅
-18. Impresiones concretas: edición en los mazos, valor exacto de la colección (foil) ✅
+18. Impresiones concretas: edición en los mazos, valor exacto de la colección (foil) e idioma de
+    cada copia ✅
+19. Calculadora de intercambio: propuesta cuadrada por valor, borradores, contrapropuestas y, al
+    aceptar, las cartas se mueven entre las colecciones ✅
 
-Las fases siguientes (19–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
+La fase siguiente (20) está en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
 diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)

@@ -1,0 +1,22 @@
+{
+  "object": "list",
+  "total_cards": 4,
+  "has_more": true,
+  "next_page": "https://api.scryfall.com/cards/search?format=json&include_extras=false&include_multilingual=false&include_variations=false&order=name&page=2&q=otag%3Aramp&unique=cards",
+  "data": [
+    {
+      "object": "card",
+      "id": "0afa0e33-4804-4b00-b625-c2d6b61090fc",
+      "oracle_id": "00000000-0000-4000-8000-00000000a001",
+      "name": "Cultivate",
+      "type_line": "Sorcery"
+    },
+    {
+      "object": "card",
+      "id": "0afa0e33-4804-4b00-b625-c2d6b61090fd",
+      "oracle_id": "00000000-0000-4000-8000-00000000a002",
+      "name": "Sol Ring",
+      "type_line": "Artifact"
+    }
+  ]
+}

@@ -288,4 +288,19 @@ describe("analyzeDeck: roles corregidos y etiquetas", () => {
     expect(r.roles.sourceOf(ultros())).toBe("mine");
     expect(r.tags.get(ultros().oracleId)).toEqual(["kraken"]);
   });
+
+  it("las de este mazo mandan sobre las de todos mis mazos y suman etiquetas", async () => {
+    const r = await ok({
+      input: DECK,
+      roleEdits: new Map([
+        [ultros().oracleId, { override: { roles: ["draw"], primary: "draw" }, tags: ["kraken"] }],
+      ]),
+      deckRoleEdits: new Map([
+        [ultros().oracleId, { override: { roles: ["ramp"], primary: "ramp" }, tags: ["mono-u"] }],
+      ]),
+    });
+    expect(r.roles.classifier.classify(ultros()).primary).toBe("ramp");
+    expect(r.roles.sourceOf(ultros())).toBe("deck");
+    expect(r.tags.get(ultros().oracleId)).toEqual(["kraken", "mono-u"]);
+  });
 });

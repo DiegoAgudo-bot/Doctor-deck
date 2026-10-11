@@ -24,14 +24,14 @@ despliegue en `main` y **parar al terminar cada fase hasta el OK del usuario**.
 | 16   | Combos (Commander Spellbook) y bracket con combos             | Medio    | ✅     |
 | 17   | Listas de deseos e intercambio con cruce automático           | Medio    | ✅     |
 | 18   | Impresiones concretas (edición, foil, idioma)                 | Alto     | ✅     |
-| 19   | Calculadora de intercambio entre dos usuarios                 | Medio    |        |
+| 19   | Calculadora de intercambio entre dos usuarios                 | Medio    | ✅     |
 | 20   | App móvil: compartir desde ManaBox y escáner                  | Alto     |        |
 
 ---
 
 ## Fase 10 · Crear mazos ✅
 
-Hecha. El asistente `/mazos/nuevo` crea el mazo desde el comandante, con el mazo medio de EDHREC
+Hecha. El asistente `/decks/new` crea el mazo desde el comandante, con el mazo medio de EDHREC
 (general o de un tema) o vacío. El nombre se propone solo ("Jund - Aristócratas"). El mazo se edita
 en la pestaña Lista y "Mis mazos" hace de gestor (renombrar, duplicar, visibilidad, borrar).
 Cubre la idea 2 del análisis.
@@ -119,7 +119,7 @@ coincide con el de la pestaña "Qué me falta".
 - **"Lo que más sube" de tu colección** y el valor de tu colección en el tiempo.
 - **Avisos de bajada de precio** (idea 5). Si una carta de "Qué me falta" de alguno de tus mazos
   baja un X % o por debajo de un umbral, recibes un aviso en la campana, con el mismo sistema de
-  `Notification`. El umbral se configura en `/ajustes`.
+  `Notification`. El umbral se configura en `/settings`.
 
 **Hecho cuando:** los avisos llegan como mucho una vez por carta y semana, y hay tests con
 históricos inventados.
@@ -134,8 +134,11 @@ los cambios propuestos.
 - El motor usa los roles corregidos para los mínimos y para el bonus de rol.
 - Se leen y escriben las etiquetas `#!Ramp` de Moxfield al importar y exportar (el parser ya las
   reconoce).
-- **Opcional:** usar las etiquetas `otag:` de Scryfall como segunda fuente de roles (ya está
-  previsto en `CLAUDE.md`).
+- ✅ (después) Corrección de roles solo para un mazo (tabla `DeckRoleOverride`), que manda sobre
+  las de todos mis mazos.
+- ✅ (después) Las etiquetas `otag:` de Scryfall Tagger como segunda fuente de roles
+  (`npm run otags:sync`; los nombres de las etiquetas están pendientes de verificar contra
+  Scryfall real).
 
 ## Fase 16 · Combos ✅
 
@@ -180,13 +183,61 @@ completas con tu colección** (nadie más lo hace).
 - El valor de la colección y el histórico de precios pasan a calcularse por impresión. El
   histórico pasa de `oracleId` a `scryfallId` con una migración.
 - El motor sigue trabajando por `oracleId`: la impresión es solo presentación y precio.
+- ✅ (después) El idioma de cada copia (`CollectionEntry.language`), con filtro en la colección.
 
-## Fase 19 · Calculadora de intercambio
+## Fase 19 · Calculadora de intercambio ✅
 
-- Sobre las fases 17 y 18: eliges a otro usuario, se proponen cartas de su lista "para cambiar"
-  que están en tu lista de deseos y viceversa, y se cuadra el valor por los precios de cada
-  impresión.
-- Se puede guardar como borrador y compartir el enlace. No hay pagos ni transacciones en la app.
+Hecha con estas decisiones del usuario: tolerancia del 5 % o 1 €; precio de Cardmarket vía
+Scryfall según la copia (normal o foil); se puede **contraproponer** (versiones de la misma
+propuesta, con el turno pasando de uno a otro); y al **aceptar se mueven las cartas** entre las dos
+colecciones de Deck Doctor (la idea es dejar de usar ManaBox). Detalles en `CLAUDE.md`. El plan con
+el que se empezó:
+
+**Objetivo:** con otro usuario, una propuesta de intercambio cuadrada por valor que se pueda
+guardar, retocar y compartir. Sin pagos ni transacciones en la app.
+
+**Punto de partida (ya hecho):** `tradeMatches` (fase 17) ya cruza mi lista de deseos con su
+"para cambiar" y al revés, pero por carta (`oracleId`) y con el precio de la impresión más
+barata. La fase 18 dejó en cada copia de la colección su impresión, foil e idioma, y
+`printingPrice(p, foil)` da el precio de una copia.
+
+**Plan:**
+
+1. **Dominio** (`domain/trades/proposal.ts`, puro y con tests):
+   - "Para cambiar" por copias: `buildTradeCopies` parte de las líneas de la colección (impresión,
+     foil, idioma) y descuenta las usadas en mis mazos (primero las de la impresión elegida en el
+     mazo, `DeckCard.scryfallId`; después las más baratas, para ofrecer las de más valor).
+   - `proposeTrade(mine, theirs, prices)`: lo que me da (su "para cambiar" ∩ mi lista de deseos) y
+     lo que le doy (al revés), cada copia con su precio exacto.
+   - `balanceTrade`: si un lado vale más, quita copias de ese lado (de la más cara a la más
+     barata, sin pasarse) hasta que la diferencia quede dentro de la tolerancia; devuelve la
+     diferencia que queda para que la cuadren a mano.
+2. **BD**: `TradeProposal` (`publicId` uuid, `fromUserId`, `toUserId`, `status` `draft` |
+   `shared`, fechas) y `TradeProposalItem` (`side` `give` | `get`, `oracleId`, `scryfallId`,
+   `foil`, `language`, `quantity` y el precio unitario del momento, para que el borrador no cambie
+   solo).
+3. **API**: `GET /api/trades/calculator?username=` (propuesta inicial ya cuadrada);
+   `POST /api/trades/proposals` (guardar borrador); `GET|PATCH|DELETE /api/trades/proposals/{id}`
+   (retocar copias o compartir). Una propuesta compartida la ven solo los dos usuarios.
+4. **UI**: `/trades/{username}` con dos columnas (doy / recibo), −/+ por copia, añadir
+   cualquier carta de su "para cambiar" aunque no esté en mi lista de deseos, barra de balance y
+   botones guardar / compartir. Botón "Proponer intercambio" en cada cruce de `/trades` y
+   en el perfil.
+5. **Avisos**: una `Notification` `trade_proposal` al otro usuario cuando se comparte.
+
+**Decisiones para el usuario antes de empezar:**
+
+- Tolerancia del cuadre (propuesta: 5 % del total o 1 €, lo que sea mayor).
+- Precio de referencia: tendencia de Cardmarket vía Scryfall, normal o foil según la copia (como
+  el valor de la colección).
+- ¿Puede el otro usuario contestar con una contrapropuesta (otra versión del mismo borrador) o
+  basta con compartir y hablar por fuera?
+- ¿Al marcar un intercambio como hecho se mueven las cartas entre las dos colecciones, o eso queda
+  fuera (cada uno actualiza su ManaBox)? La propuesta inicial es dejarlo fuera.
+
+**Hecho cuando:** la propuesta inicial coincide con los cruces de `/trades`, el balance
+está probado con casos inventados (foil, varias impresiones, copias en mazos) y un borrador
+compartido se abre con su enlace solo para los dos usuarios.
 
 ## Fase 20 · App móvil
 

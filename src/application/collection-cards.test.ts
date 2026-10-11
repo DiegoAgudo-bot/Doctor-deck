@@ -26,7 +26,7 @@ const csvRow = (name: string, quantity: number, line: number, setCode: string | 
   scryfallId: null,
   quantity,
   foil: false,
-  language: "en",
+  language: "en" as const,
   raw: { Name: name },
 });
 
@@ -49,7 +49,12 @@ describe("addToCollection", () => {
     const res = await addToCollection(
       [
         { oracleId: byName("Dig Through Time").oracleId, quantity: 2 },
-        { scryfallId: trainer?.scryfallId.toUpperCase(), quantity: 1, foil: true },
+        {
+          scryfallId: trainer?.scryfallId.toUpperCase(),
+          quantity: 1,
+          foil: true,
+          language: "Japanese",
+        },
         { name: "sol ring", quantity: 1 },
         { name: "Grizzled Angler", quantity: 1 },
         { name: "Carta Que No Existe", quantity: 1 },
@@ -64,6 +69,7 @@ describe("addToCollection", () => {
     ]);
     // "Sol Ring" también es un token: se elige la carta de juego.
     expect(res.added[2]?.card.layout).toBe("normal");
+    expect(res.added.map((a) => a.language)).toEqual([null, "ja", null, null]);
     expect(res.notFound).toEqual(["Carta Que No Existe"]);
     expect((await collection.ownedQuantities()).get(byName("Dig Through Time").oracleId)).toBe(2);
   });
@@ -149,6 +155,10 @@ describe("collectionView", () => {
     const trainer = view.find((v) => v.card.name === "Thundertrap Trainer");
     expect(trainer).toMatchObject({ quantity: 1, foilQuantity: 1, fromCsv: 0 });
     expect(trainer?.manual).toHaveLength(1);
+    // El idioma de cada copia: el CSV trae "en"; la del escáner se añadió en japonés.
+    expect(solView?.languages).toEqual([{ language: "en", quantity: 3 }]);
+    expect(trainer?.languages).toEqual([{ language: "ja", quantity: 1 }]);
+    expect(trainer?.manual[0]?.language).toBe("ja");
   });
 
   it("con impresión conocida, cada copia vale lo de su impresión (foil si es foil)", async () => {

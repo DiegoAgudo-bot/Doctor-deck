@@ -27,6 +27,19 @@ describe("correcciones de roles", () => {
     expect(c.sourceOf(third)).toBe("auto");
   });
 
+  it("las de este mazo mandan sobre las de todos mis mazos", () => {
+    const c = withOverrides(base, {
+      deck: new Map([[card.oracleId, { roles: ["removal"], primary: "removal" }]]),
+      mine: new Map([
+        [card.oracleId, { roles: ["ramp"], primary: "ramp" }],
+        [other.oracleId, { roles: ["draw"], primary: "draw" }],
+      ]),
+    });
+    expect(c.classify(card).primary).toBe("removal");
+    expect(c.sourceOf(card)).toBe("deck");
+    expect(c.sourceOf(other)).toBe("mine");
+  });
+
   it("normaliza roles y principal", () => {
     expect(normalizeOverride(["draw", "ramp", "nada", "draw"], "draw")).toEqual({
       roles: ["ramp", "draw"],

@@ -32,7 +32,7 @@ export async function api<T>(
     // Sesión caducada o inexistente: a la página de entrar, volviendo luego aquí. Recarga completa a
     // propósito: se descarta el estado del cliente.
     const next = encodeURIComponent(window.location.pathname + window.location.search);
-    window.location.assign(new URL(`/entrar?next=${next}`, window.location.origin));
+    window.location.assign(new URL(`/login?next=${next}`, window.location.origin));
   }
   if (!res.ok) {
     const err = (body as ApiErrorBody | null)?.error;

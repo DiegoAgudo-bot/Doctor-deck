@@ -22,6 +22,8 @@ export interface LocalAdded {
   name: string;
   quantity: number;
   foil: boolean;
+  /** Código de Scryfall ("es", "ja"…); ausente en lo guardado antes de que se pidiera. */
+  language?: string | null;
   addedAt: string;
 }
 

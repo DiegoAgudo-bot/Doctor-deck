@@ -22,7 +22,7 @@ const schema = z.object({
 
 /**
  * Crea un mazo a partir del comandante: el mazo medio de EDHREC o vacío (para montarlo desde
- * cero). Con sesión se guarda en "Mis mazos"; sin ella se devuelve la lista para abrirla en /mazo.
+ * cero). Con sesión se guarda en "Mis mazos"; sin ella se devuelve la lista para abrirla en /analyze.
  */
 export async function POST(request: Request) {
   try {

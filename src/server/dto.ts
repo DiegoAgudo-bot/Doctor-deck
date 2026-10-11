@@ -25,6 +25,7 @@ import type {
   SwapSuggestion,
 } from "@/domain/suggestions/engine";
 import type { SavedDeck, SavedDeckSummary } from "@/domain/ports/deck-repository";
+import type { NotificationType } from "@/domain/ports/social";
 
 /*
  * Formas JSON de la API (/api/*). Las consumen la UI web y, en el futuro, la app móvil.
@@ -226,7 +227,7 @@ export interface UserSummaryDTO extends PublicProfileDTO {
 
 export interface NotificationDTO {
   id: string;
-  type: "new_deck" | "big_card" | "price_drop" | "trade_match";
+  type: NotificationType;
   actor: { username: string | null; name: string };
   deckId: string | null;
   cardId: string | null;
@@ -234,6 +235,8 @@ export interface NotificationDTO {
   price: number | null;
   /** price_drop: el precio de referencia (máximo de los 30 días anteriores). */
   prevPrice: number | null;
+  /** trade_*: publicId de la propuesta de intercambio. */
+  tradeId: string | null;
   createdAt: string;
   read: boolean;
 }
@@ -326,6 +329,74 @@ export interface TradePartnerDTO {
   wantValue: number;
 }
 
+/** Unas copias iguales para cambiar (misma carta, impresión, foil e idioma) con su precio. */
+export interface TradeCopyDTO {
+  /** Identifica la copia (carta|impresión|foil|idioma) para sumar y restar en la UI. */
+  key: string;
+  card: CardDTO;
+  scryfallId: string | null;
+  foil: boolean;
+  language: string | null;
+  quantity: number;
+  /** Precio por copia (EUR), según su impresión y si es foil; null si no hay. */
+  unitPrice: number | null;
+  /** Edición de esa impresión, si se sabe. */
+  printing: { setCode: string; setName: string | null; collectorNumber: string } | null;
+}
+
+export interface TradeBalanceDTO {
+  giveValue: number;
+  getValue: number;
+  /** Lo que recibo − lo que doy. */
+  diff: number;
+  tolerance: number;
+  balanced: boolean;
+}
+
+/** Calculadora con otro usuario: propuesta inicial cuadrada y lo que cada uno tiene para cambiar. */
+export interface TradeCalculatorDTO {
+  partner: PublicProfileDTO;
+  give: TradeCopyDTO[];
+  get: TradeCopyDTO[];
+  balance: TradeBalanceDTO;
+  myCopies: TradeCopyDTO[];
+  theirCopies: TradeCopyDTO[];
+  /** Ya hay una propuesta abierta entre los dos. */
+  openProposalId: string | null;
+}
+
+export type ProposalStatusDTO = "draft" | "pending" | "accepted" | "rejected" | "cancelled";
+
+export interface TradeProposalSummaryDTO {
+  id: string;
+  status: ProposalStatusDTO;
+  version: number;
+  partner: PublicProfileDTO;
+  /** La creé yo. */
+  isMine: boolean;
+  /** Pendiente y me toca responder. */
+  myTurn: boolean;
+  giveCount: number;
+  getCount: number;
+  balance: TradeBalanceDTO;
+  updatedAt: string;
+}
+
+export interface TradeProposalDTO extends TradeProposalSummaryDTO {
+  give: TradeCopyDTO[];
+  get: TradeCopyDTO[];
+  /** La versión actual la hice yo. */
+  lastByMe: boolean;
+  actions: { edit: boolean; respond: boolean; cancel: boolean };
+  /** Si puedo editarla: lo que cada uno tiene para cambiar. */
+  myCopies: TradeCopyDTO[] | null;
+  theirCopies: TradeCopyDTO[] | null;
+  /** Cartas de la propuesta que ya no están disponibles (oracleId). */
+  unavailable: string[];
+  createdAt: string;
+  closedAt: string | null;
+}
+
 /** Corrección de roles de una carta (roles vacíos = los automáticos). */
 export interface CardRoleEditDTO {
   roles: Role[];
@@ -386,7 +457,7 @@ export interface CommanderInfoDTO {
 }
 
 export interface NewDeckResponse {
-  /** Con sesión se guarda (id); sin ella hay que abrir `input` en /mazo. */
+  /** Con sesión se guarda (id); sin ella hay que abrir `input` en /analyze. */
   saved: boolean;
   id: string | null;
   name: string;
@@ -425,8 +496,16 @@ export interface CollectionCardDTO {
   quantity: number;
   foilQuantity: number;
   sets: string[];
+  /** Copias por idioma (código de Scryfall), de las que se sabe. */
+  languages: { language: string; quantity: number }[];
   fromCsv: number;
-  manual: { id: string; quantity: number; foil: boolean; addedAt: string }[];
+  manual: {
+    id: string;
+    quantity: number;
+    foil: boolean;
+    language: string | null;
+    addedAt: string;
+  }[];
   lastAdded: string;
   /** Precio de referencia por copia (la impresión más barata). */
   price: number | null;
@@ -455,11 +534,12 @@ export interface AddedCardDTO {
   card: CardDTO;
   quantity: number;
   foil: boolean;
+  language: string | null;
   addedAt: string;
 }
 
 export interface AddCardsResponse {
-  added: { card: CardDTO; quantity: number; foil: boolean }[];
+  added: { card: CardDTO; quantity: number; foil: boolean; language: string | null }[];
   notFound: string[];
   /** Si se ha guardado en la cuenta (con sesión); sin ella, el navegador lo guarda. */
   saved: boolean;
@@ -664,6 +744,7 @@ export const collectionCardDTO = (c: CollectionCard): CollectionCardDTO => ({
   quantity: c.quantity,
   foilQuantity: c.foilQuantity,
   sets: c.sets,
+  languages: c.languages,
   fromCsv: c.fromCsv,
   manual: c.manual.map((m) => ({ ...m, addedAt: m.addedAt.toISOString() })),
   lastAdded: c.lastAdded.toISOString(),
@@ -674,7 +755,12 @@ export const collectionCardDTO = (c: CollectionCard): CollectionCardDTO => ({
 });
 
 export const addCardsResponse = (r: AddCardsResult, saved: boolean): AddCardsResponse => ({
-  added: r.added.map((a) => ({ card: cardDTO(a.card), quantity: a.quantity, foil: a.foil })),
+  added: r.added.map((a) => ({
+    card: cardDTO(a.card),
+    quantity: a.quantity,
+    foil: a.foil,
+    language: a.language,
+  })),
   notFound: r.notFound,
   saved,
 });

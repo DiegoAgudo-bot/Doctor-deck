@@ -10,6 +10,8 @@ export interface BrowsableCard {
   fromCsv: number;
   manualCount: number;
   inUse: number;
+  /** Idiomas de las copias que se saben (códigos de Scryfall). */
+  languages?: readonly string[] | undefined;
   /** Precio de referencia por copia (la impresión más barata). */
   price: number | null;
   /** Lo que valen mis copias según su impresión y si son foil (null si no hay ningún precio). */
@@ -55,6 +57,8 @@ export interface CollectionFilters {
   origin?: "csv" | "manual" | undefined;
   use?: "libres" | "en-mazos" | undefined;
   foil?: boolean | undefined;
+  /** Con alguna copia en este idioma (código de Scryfall). */
+  language?: string | undefined;
 }
 
 const norm = (s: string) => s.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
@@ -90,6 +94,7 @@ export function matchesFilters(c: BrowsableCard, f: CollectionFilters): boolean 
   if (f.use === "libres" && c.quantity <= c.inUse) return false;
   if (f.use === "en-mazos" && c.inUse === 0) return false;
   if (f.foil && c.foilQuantity === 0) return false;
+  if (f.language && !(c.languages ?? []).includes(f.language)) return false;
   return true;
 }
 

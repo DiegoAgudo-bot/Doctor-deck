@@ -28,7 +28,7 @@ import { Banner, EmptyState, Loading, fmt } from "./ui";
 
 type Tab = "cartas" | "precios" | "anadir" | "importar";
 
-/** /coleccion: ver la colección con filtros, añadir cartas sueltas e importar el CSV de ManaBox. */
+/** /collection: ver la colección con filtros, añadir cartas sueltas e importar el CSV de ManaBox. */
 export function CollectionPage() {
   const { data, isPending } = authClient.useSession();
   const loggedIn = Boolean(data);
@@ -102,6 +102,7 @@ export function CollectionPage() {
               oracleId: a.oracleId,
               quantity: a.quantity,
               foil: a.foil,
+              ...(a.language ? { language: a.language } : {}),
             })),
           }),
         });
@@ -163,7 +164,7 @@ export function CollectionPage() {
         <Banner
           tone="info"
           action={
-            <Link className="btn btn-sm" href="/registro?next=/coleccion">
+            <Link className="btn btn-sm" href="/signup?next=/collection">
               Crear cuenta
             </Link>
           }

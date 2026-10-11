@@ -20,6 +20,11 @@ export interface Card {
   imageUrl: string | null;
   /** En la lista de "game changers" de los brackets de Commander (Scryfall `game_changer`). */
   gameChanger: boolean;
+  /**
+   * Etiquetas de Scryfall Tagger (`otag:`) que tiene la carta, de las que sincronizamos
+   * (`npm run otags:sync`). Ausente si no se han cargado.
+   */
+  otags?: readonly string[];
 }
 
 /** Impresión concreta de una carta. */

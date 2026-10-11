@@ -9,7 +9,7 @@ import { authClient } from "./auth-client";
 import { IconLogout } from "./icons";
 import { Banner, Loading } from "./ui";
 
-/** /ajustes: nombre de usuario, privacidad de la colección, avisos de precio y salir. */
+/** /settings: nombre de usuario, privacidad de la colección, avisos de precio y salir. */
 export function SettingsPage() {
   const [me, setMe] = useState<MyProfileDTO | null>(null);
   const [username, setUsername] = useState("");
@@ -153,13 +153,13 @@ export function SettingsPage() {
               Listas de intercambio públicas
               <span className="subtle block text-xs">
                 Tu lista de deseos y tus cartas para cambiar salen en tu perfil y en los cruces de{" "}
-                <Link href="/intercambios">Intercambios</Link>.
+                <Link href="/trades">Intercambios</Link>.
               </span>
             </span>
           </label>
           <p className="subtle text-xs">
             Cada mazo tiene su propio interruptor público/privado en{" "}
-            <Link href="/mazos">Mis mazos</Link>.
+            <Link href="/decks">Mis mazos</Link>.
           </p>
         </div>
       </section>

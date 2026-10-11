@@ -1,3 +1,4 @@
+import { normalizeLanguage, type Language } from "../cards/languages";
 import { csvToRecords } from "./csv";
 
 /** Fila del export de ManaBox, ya tipada. */
@@ -10,7 +11,8 @@ export interface CollectionRow {
   scryfallId: string | null;
   quantity: number;
   foil: boolean;
-  language: string | null;
+  /** Código de Scryfall ("en", "es", "ja"…); null si no viene o no se reconoce. */
+  language: Language | null;
   raw: Record<string, string>;
 }
 
@@ -80,7 +82,7 @@ export function parseManaboxCsv(text: string): ParsedCollection {
       scryfallId: scryfallId && UUID_RE.test(scryfallId) ? scryfallId.toLowerCase() : null,
       quantity,
       foil: foil !== "" && foil !== "normal",
-      language: blankToNull(raw[COL.language]),
+      language: normalizeLanguage(raw[COL.language]),
       raw,
     });
   });

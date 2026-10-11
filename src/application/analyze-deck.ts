@@ -55,6 +55,8 @@ export interface AnalyzeDeckInput {
   targetBracket?: Bracket | undefined;
   /** Roles y etiquetas que el usuario ha corregido a mano (mandan sobre todo lo demás). */
   roleEdits?: ReadonlyMap<string, CardRoleEdit> | undefined;
+  /** Las que el usuario ha corregido solo para este mazo (mandan sobre `roleEdits`). */
+  deckRoleEdits?: ReadonlyMap<string, CardRoleEdit> | undefined;
 }
 
 export interface AnalyzeDeckDeps {
@@ -99,7 +101,8 @@ export type AnalyzeDeckResult =
       /** Bracket estimado (mínimo) y por qué. */
       bracket: BracketEstimate;
       /**
-       * Clasificador con las correcciones aplicadas (mías > etiquetas de la lista > automático) y
+       * Clasificador con las correcciones aplicadas (mías en este mazo > mías > etiquetas de la
+       * lista > automático) y
        * de dónde sale cada rol, y las etiquetas libres de cada carta (de la lista y mías).
        */
       roles: { classifier: RoleClassifier; sourceOf: (card: Card) => RoleSource };
@@ -134,7 +137,8 @@ export async function analyzeDeck(
     };
   }
 
-  // Roles: mis correcciones > las etiquetas que trae la lista > los automáticos.
+  // Roles: mis correcciones de este mazo > las de todos mis mazos > las etiquetas que trae la
+  // lista > los automáticos. Las etiquetas libres se suman.
   const listOverrides = new Map<string, RoleOverride>();
   const tags = new Map<string, string[]>();
   for (const c of deck.cards) {
@@ -143,12 +147,19 @@ export async function analyzeDeck(
     if (override) listOverrides.set(c.card.oracleId, override);
     if (split.free.length > 0) tags.set(c.card.oracleId, split.free);
   }
-  const mine = new Map<string, RoleOverride>();
-  for (const [id, edit] of req.roleEdits ?? []) {
-    if (edit.override) mine.set(id, edit.override);
-    if (edit.tags.length > 0) tags.set(id, [...new Set([...(tags.get(id) ?? []), ...edit.tags])]);
-  }
-  const classifier = withOverrides(deps.classifier, { mine, list: listOverrides });
+  const collect = (edits: ReadonlyMap<string, CardRoleEdit> | undefined) => {
+    const out = new Map<string, RoleOverride>();
+    for (const [id, edit] of edits ?? []) {
+      if (edit.override) out.set(id, edit.override);
+      if (edit.tags.length > 0) {
+        tags.set(id, [...new Set([...(tags.get(id) ?? []), ...edit.tags])]);
+      }
+    }
+    return out;
+  };
+  const mine = collect(req.roleEdits);
+  const inDeck = collect(req.deckRoleEdits);
+  const classifier = withOverrides(deps.classifier, { deck: inDeck, mine, list: listOverrides });
 
   const recs = await loadRecommendations(
     { commanders: deck.commanders.map((c) => c.name), theme: req.theme },

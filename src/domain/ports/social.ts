@@ -49,7 +49,17 @@ export interface FollowRepository {
   followingIds(userId: string): Promise<string[]>;
 }
 
-export type NotificationType = "new_deck" | "big_card" | "price_drop" | "trade_match";
+export type NotificationType =
+  | "new_deck"
+  | "big_card"
+  | "price_drop"
+  | "trade_match"
+  /** Propuestas de intercambio (fase 19): me la mandan, contrapropuesta, aceptada… */
+  | "trade_proposal"
+  | "trade_counter"
+  | "trade_accepted"
+  | "trade_rejected"
+  | "trade_cancelled";
 
 export interface NewNotification {
   userId: string;
@@ -64,6 +74,8 @@ export interface NewNotification {
   price?: number | null;
   /** price_drop: precio de referencia (el máximo de antes). */
   prevPrice?: number | null;
+  /** trade_*: publicId de la propuesta de intercambio. */
+  tradeId?: string | null;
 }
 
 export interface Notification extends Required<NewNotification> {

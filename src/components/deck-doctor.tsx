@@ -32,7 +32,7 @@ import { CombosPanel } from "./deck-combos";
 import { OpeningHand } from "./deck-hand";
 import { localRoles } from "./local-roles";
 import { PrintingDialog } from "./printing-dialog";
-import { RoleEditDialog } from "./role-edit-dialog";
+import { RoleEditDialog, type RoleEditScope } from "./role-edit-dialog";
 import { OwnershipPanel } from "./deck-ownership";
 import { ExportDialog, SaveDialog } from "./deck-dialogs";
 import {
@@ -89,13 +89,13 @@ const PLACEHOLDER =
   "Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n1x Arcane Signet (C21) 263\n…";
 
 type Ok = Extract<AnalyzeResponse, { status: "ok" }>;
-type Tab = "cambios" | "falta" | "lista" | "combos" | "stats" | "compra";
+type Tab = "changes" | "missing" | "list" | "combos" | "stats" | "buy";
 type Filter = "todos" | "pendientes" | "aceptados" | "descartados";
 
 const isLink = (s: string) => /^\s*https?:\/\//i.test(s);
 const shortName = (name: string) => name.split(/,| \/\/ /)[0] ?? name;
 
-/** Con `deckId` abre ese mazo guardado (/decks/{uuid}); sin él, el analizador (/mazo). */
+/** Con `deckId` abre ese mazo guardado (/decks/{uuid}); sin él, el analizador (/analyze). */
 export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const { data: session } = authClient.useSession();
   const loggedIn = Boolean(session);
@@ -120,7 +120,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
    */
   const [opening, setOpening] = useState(Boolean(deckId));
   const [mode, setMode] = useState<"texto" | "enlace">("texto");
-  const [tab, setTab] = useState<Tab>("cambios");
+  const [tab, setTab] = useState<Tab>("changes");
   const [filter, setFilter] = useState<Filter>("todos");
   const [view, setView] = useState<ListView>("pilas");
   const [dialog, setDialog] = useState<"save" | "export" | null>(null);
@@ -143,17 +143,32 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   }, []);
   const hasCollection = loggedIn || hasLocal;
 
-  // Abrir el mazo guardado, empezar uno nuevo (?nuevo=1) o restaurar el último analizado.
-  // ?tab=… abre esa pestaña; ?editar=1, la lista con el editor; ?analizar=1 analiza lo restaurado
+  // Abrir el mazo guardado, empezar uno nuevo (?new=1) o restaurar el último analizado.
+  // ?tab=… abre esa pestaña; ?edit=1, la lista con el editor; ?analyze=1 analiza lo restaurado
   // (lo usa el asistente de "Nuevo mazo" sin cuenta).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const startTab = params.get("tab");
-    if (startTab && ["cambios", "falta", "lista", "stats", "compra"].includes(startTab)) {
+    // Los enlaces antiguos usaban parámetros en español (?nuevo=1, ?tab=falta…).
+    for (const [old, now] of [
+      ["nuevo", "new"],
+      ["analizar", "analyze"],
+      ["editar", "edit"],
+    ]) {
+      if (params.has(old!)) params.set(now!, "1");
+    }
+    const LEGACY_TABS: Record<string, string> = {
+      cambios: "changes",
+      falta: "missing",
+      lista: "list",
+      compra: "buy",
+    };
+    const tabParam = params.get("tab");
+    const startTab = tabParam ? (LEGACY_TABS[tabParam] ?? tabParam) : null;
+    if (startTab && ["changes", "missing", "list", "combos", "stats", "buy"].includes(startTab)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única tras montar
       setTab(startTab as Tab);
     }
-    if (params.has("editar")) {
+    if (params.has("edit")) {
       setView("lista");
       setAdding(true);
     }
@@ -177,7 +192,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           if (!d.isMine) {
             setOwner(d.owner);
             // El mazo de otro: lo primero es ver qué me falta para montarlo.
-            setTab("falta");
+            setTab("missing");
           }
           setSaved(next);
           setMode(isLink(d.input) ? "enlace" : "texto");
@@ -192,8 +207,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
         });
       return;
     }
-    if (params.has("nuevo")) {
-      window.history.replaceState(null, "", "/mazo");
+    if (params.has("new")) {
+      window.history.replaceState(null, "", "/analyze");
       setSaved(EMPTY);
     } else {
       const stored = storage.get<Partial<Saved>>(KEY, {});
@@ -205,8 +220,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       };
       setSaved(restored);
       setMode(isLink(restored.input) ? "enlace" : "texto");
-      if (params.has("analizar") && restored.input.trim()) {
-        window.history.replaceState(null, "", "/mazo");
+      if (params.has("analyze") && restored.input.trim()) {
+        window.history.replaceState(null, "", "/analyze");
         setOpening(true);
         void analyze(restored, []).finally(() => setOpening(false));
       }
@@ -455,11 +470,18 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   }
 
   /** Guarda la corrección de roles de una carta (en la cuenta o en el navegador) y reanaliza. */
-  async function saveRoles(card: DeckCardDTO, edit: CardRoleEditDTO) {
+  async function saveRoles(card: DeckCardDTO, edit: CardRoleEditDTO, scope: RoleEditScope) {
     setBusy("roles");
+    const id = encodeURIComponent(card.card.oracleId);
     try {
-      if (loggedIn) {
-        await api(`/api/me/card-roles/${encodeURIComponent(card.card.oracleId)}`, {
+      if (loggedIn && scope === "deck" && saved.deckId !== null) {
+        await api(`/api/decks/${encodeURIComponent(saved.deckId)}/card-roles/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(edit),
+        });
+      } else if (loggedIn) {
+        await api(`/api/me/card-roles/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(edit),
@@ -577,14 +599,14 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           onCancel={ok ? () => setEditing(false) : null}
           onSubmit={() => {
             setChosen([]);
-            setTab("cambios");
+            setTab("changes");
             void analyze({}, []);
           }}
           openDeck={saved.deckId !== null ? saved.name : null}
           onCloseDeck={() => {
             setSaved({ ...EMPTY, input: saved.input });
             setResult(null);
-            window.history.replaceState(null, "", "/mazo");
+            window.history.replaceState(null, "", "/analyze");
           }}
         />
       )}
@@ -616,10 +638,10 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             bracket={bracket ?? ok.bracket}
             name={saved.name || ok.deckName || ok.commanders.map((c) => c.name).join(" + ")}
             owner={owner}
-            onShowMissing={() => setTab("falta")}
+            onShowMissing={() => setTab("missing")}
             onSave={() => setDialog("save")}
             onExport={() => setDialog("export")}
-            onBuy={() => setTab("compra")}
+            onBuy={() => setTab("buy")}
             onEdit={() => setEditing(true)}
             target={saved.targetBracket}
             onShowBracket={() => setTab("stats")}
@@ -658,16 +680,16 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           <nav className="tabs" aria-label="Secciones del mazo">
             {(
               [
-                ["cambios", "Cambios", pending],
-                ["falta", "Qué me falta", ok.ownership.totals.toBuy],
-                ["lista", "Lista", ok.totalCards],
+                ["changes", "Cambios", pending],
+                ["missing", "Qué me falta", ok.ownership.totals.toBuy],
+                ["list", "Lista", ok.totalCards],
                 [
                   "combos",
                   "Combos",
                   combos.data && !combos.loading ? combos.data.included.length : null,
                 ],
                 ["stats", "Estadísticas", null],
-                ["compra", "Mejorar comprando", null],
+                ["buy", "Mejorar comprando", null],
               ] as const
             ).map(([id, label, n]) => (
               <button
@@ -683,7 +705,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             ))}
           </nav>
 
-          {tab === "cambios" && (
+          {tab === "changes" && (
             <div
               className="grid-1-sm grid items-start gap-5"
               style={{ gridTemplateColumns: "minmax(0, 1fr) 300px" }}
@@ -790,7 +812,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             </div>
           )}
 
-          {tab === "lista" && (
+          {tab === "list" && (
             <section className="flex flex-col gap-3">
               <div className="stack-sm flex flex-wrap items-center justify-between gap-2.5">
                 <h2 className="h2" style={{ fontSize: 17 }}>
@@ -905,7 +927,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             </div>
           )}
 
-          {tab === "falta" && (
+          {tab === "missing" && (
             <OwnershipPanel
               ownership={ok.ownership}
               hasCollection={hasCollection}
@@ -922,7 +944,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             />
           )}
 
-          {tab === "compra" && (
+          {tab === "buy" && (
             <BuyPanel
               purchases={ok.purchases}
               options={buy}
@@ -944,7 +966,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             card={editingRoles}
             busy={busy === "roles"}
             onClose={() => setEditingRoles(null)}
-            onSave={(edit) => editingRoles && void saveRoles(editingRoles, edit)}
+            canScopeToDeck={loggedIn && saved.deckId !== null}
+            onSave={(edit, scope) => editingRoles && void saveRoles(editingRoles, edit, scope)}
           />
           <SaveDialog
             open={dialog === "save"}
@@ -1127,7 +1150,7 @@ function EntryForm({
             {!hasCollection && (
               <Banner tone="warn">
                 Sin colección solo puedo proponerte compras.{" "}
-                <Link href="/coleccion">Importa tu CSV de ManaBox</Link>.
+                <Link href="/collection">Importa tu CSV de ManaBox</Link>.
               </Banner>
             )}
           </div>
@@ -1353,7 +1376,7 @@ function DeckHeader({
               {like.count}
             </button>
           ) : owner ? (
-            <Link className="btn" href="/entrar" title="Entra para darle «me gusta»">
+            <Link className="btn" href="/login" title="Entra para darle «me gusta»">
               <IconHeart size={15} />
               {like.count}
             </Link>
@@ -1550,7 +1573,7 @@ function NoSwaps({ hasCollection }: { hasCollection: boolean }) {
           : "Sin tu colección no sé qué cartas tienes. Impórtala, o mira el modo compra."}
       </span>
       {!hasCollection && (
-        <Link className="btn btn-primary" href="/coleccion">
+        <Link className="btn btn-primary" href="/collection">
           Importar colección
         </Link>
       )}

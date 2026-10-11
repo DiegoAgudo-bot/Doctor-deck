@@ -7,7 +7,7 @@ import { api } from "./api-client";
 import { CommunityDecks } from "./community-decks";
 import { Loading, fmt } from "./ui";
 
-/** /comunidad: buscar gente y mazos públicos (con cuánto tienes de cada uno). */
+/** /community: buscar gente y mazos públicos (con cuánto tienes de cada uno). */
 export function CommunityPage() {
   const [q, setQ] = useState("");
   const [users, setUsers] = useState<UserSummaryDTO[] | null>(null);

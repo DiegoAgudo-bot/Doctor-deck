@@ -36,3 +36,30 @@ describe("PrismaRoleOverrideRepository", () => {
     expect((await ana.all()).has("tag")).toBe(false);
   });
 });
+
+describe("correcciones solo en un mazo", () => {
+  it("solo el dueño del mazo las guarda y las lee; se borran con el mazo", async () => {
+    const deck = await db.deck.create({ data: { userId: "ana", name: "Mazo de Ana" } });
+    const ana = new PrismaRoleOverrideRepository(db, "ana");
+    const beto = new PrismaRoleOverrideRepository(db, "beto");
+    const edit = {
+      override: { roles: ["removal" as const], primary: "removal" as const },
+      tags: [],
+    };
+
+    expect(await beto.setForDeck(deck.publicId, "sol", edit)).toBe(false);
+    expect(await ana.setForDeck("no-existe", "sol", edit)).toBe(false);
+    expect(await ana.setForDeck(deck.publicId, "sol", edit)).toBe(true);
+    expect(await ana.forDeck(deck.publicId)).toEqual(new Map([["sol", edit]]));
+    expect((await beto.forDeck(deck.publicId)).size).toBe(0);
+    // No se mezclan con las de todos mis mazos.
+    expect((await ana.all()).get("sol")?.override?.primary).not.toBe("removal");
+
+    await ana.setForDeck(deck.publicId, "sol", { override: null, tags: [] });
+    expect((await ana.forDeck(deck.publicId)).size).toBe(0);
+
+    await ana.setForDeck(deck.publicId, "sol", edit);
+    await db.deck.delete({ where: { id: deck.id } });
+    expect(await db.deckRoleOverride.count()).toBe(0);
+  });
+});

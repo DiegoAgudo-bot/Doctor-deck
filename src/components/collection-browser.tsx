@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LANGUAGES, languageBadge, languageLabel } from "@/domain/cards/languages";
 import type { CollectionFilters, CollectionSort } from "@/domain/collection/browse";
 import { ROLES, type Role } from "@/domain/roles/types";
 import { formatEuros } from "@/domain/suggestions/format";
@@ -55,6 +56,7 @@ interface Filters {
   origin: "" | "csv" | "manual";
   use: "" | "libres" | "en-mazos";
   foil: boolean;
+  language: string;
   sort: Sort;
 }
 
@@ -68,6 +70,7 @@ const EMPTY: Filters = {
   origin: "",
   use: "",
   foil: false,
+  language: "",
   sort: "nombre",
 };
 
@@ -86,6 +89,7 @@ function toQuery(f: Filters): CollectionFilters {
     ...(f.origin ? { origin: f.origin } : {}),
     ...(f.use ? { use: f.use } : {}),
     ...(f.foil ? { foil: true } : {}),
+    ...(f.language ? { language: f.language } : {}),
   };
 }
 
@@ -99,6 +103,22 @@ const valueTitle = (c: CollectionCardDTO) =>
   `${c.quantity} ${c.quantity === 1 ? "copia" : "copias"}: lo que valen según su edición y si son foil${
     c.price !== null ? ` (la más barata, ${formatEuros(c.price)} c/u)` : ""
   }. Clic para ver el histórico de precio.`;
+
+/** Idiomas de las copias que no son en inglés ("ES ×2"); en inglés no se marca nada. */
+function LanguagePills({ card }: { card: CollectionCardDTO }) {
+  return card.languages
+    .filter((l) => l.language !== "en")
+    .map((l) => (
+      <span
+        key={l.language}
+        className="pill"
+        title={`${l.quantity} en ${languageLabel(l.language)}`}
+      >
+        {languageBadge(l.language)}
+        {card.quantity > 1 ? ` ×${l.quantity}` : ""}
+      </span>
+    ));
+}
 
 export function CollectionBrowser({
   loggedIn,
@@ -194,7 +214,8 @@ export function CollectionBrowser({
     f.cmc !== null ||
     f.origin !== "" ||
     f.use !== "" ||
-    f.foil;
+    f.foil ||
+    f.language !== "";
 
   return (
     <div className="flex flex-col gap-3">
@@ -315,6 +336,20 @@ export function CollectionBrowser({
                 <option value="libres">Con copias libres</option>
                 <option value="en-mazos">En algún mazo</option>
               </select>
+              <select
+                className="select"
+                style={{ width: "auto" }}
+                aria-label="Idioma"
+                value={f.language}
+                onChange={(e) => set({ language: e.target.value })}
+              >
+                <option value="">Cualquier idioma</option>
+                {Object.entries(LANGUAGES).map(([code, label]) => (
+                  <option key={code} value={code}>
+                    En {label}
+                  </option>
+                ))}
+              </select>
               <label className="check" style={{ alignItems: "center" }}>
                 <input
                   type="checkbox"
@@ -416,6 +451,7 @@ export function CollectionBrowser({
                 {c.foilQuantity > 0 && (
                   <span className="pill pill-warn">foil {c.foilQuantity}</span>
                 )}
+                <LanguagePills card={c} />
                 {c.inUse > 0 && (
                   <span className="pill" title={c.usedIn.join(", ")}>
                     <span className="dot dot-inuse" />
@@ -461,6 +497,7 @@ export function CollectionBrowser({
                     <CardHover card={c.card} className="inline-flex items-center gap-2">
                       {c.card.name}
                       {c.foilQuantity > 0 && <span className="pill pill-warn">foil</span>}
+                      <LanguagePills card={c} />
                       {c.manual.length > 0 && <span className="pill subtle">a mano</span>}
                     </CardHover>
                   </td>

@@ -9,14 +9,17 @@ import type {
   MyTradesDTO,
   TradeCardDTO,
   TradePartnerDTO,
+  TradeProposalSummaryDTO,
 } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { CardHover } from "./card-image";
 import { CardSearch } from "./card-search";
 import { IconX } from "./icons";
-import { Banner, EmptyState, Loading, fmt } from "./ui";
+import { STATUS_LABEL } from "./trade-proposal-pages";
+import { Banner, EmptyState, Loading, ago, fmt } from "./ui";
 
-type Tab = "cruces" | "busco" | "cambio";
+type Tab = "matches" | "proposals" | "wanted" | "offered";
+const TABS: readonly Tab[] = ["matches", "proposals", "wanted", "offered"];
 
 /** Lista compacta de cartas con copias y precio. */
 export function TradeCardList({
@@ -63,7 +66,12 @@ export function PartnerCard({ p }: { p: TradePartnerDTO }) {
           </Link>
           {p.following && <span className="pill subtle">le sigues</span>}
         </span>
-        <span className="subtle text-xs">{p.profile.name}</span>
+        <span className="flex items-center gap-3">
+          <span className="subtle text-xs">{p.profile.name}</span>
+          <Link className="btn btn-sm btn-primary" href={`/trades/with/${p.profile.username}`}>
+            Proponer intercambio
+          </Link>
+        </span>
       </div>
       <div
         className="grid-1-sm grid gap-4 p-3.5"
@@ -89,25 +97,28 @@ export function PartnerCard({ p }: { p: TradePartnerDTO }) {
 }
 
 /**
- * /intercambios: con quién cruzo (quién tiene lo que busco y busca lo que me sobra), mi lista de
+ * /trades: con quién cruzo (quién tiene lo que busco y busca lo que me sobra), mi lista de
  * deseos (a mano y lo que falta de los mazos que elija) y mis cartas para cambiar (copias libres).
  * Sin pagos ni mensajes: cada uno se contacta por fuera.
  */
 export function TradesPage() {
-  const [tab, setTab] = useState<Tab>("cruces");
+  const [tab, setTab] = useState<Tab>("matches");
   const [mine, setMine] = useState<MyTradesDTO | null>(null);
   const [partners, setPartners] = useState<TradePartnerDTO[] | null>(null);
+  const [proposals, setProposals] = useState<TradeProposalSummaryDTO[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [m, p] = await Promise.all([
+      const [m, p, props] = await Promise.all([
         api<MyTradesDTO>("/api/trades"),
         api<TradePartnerDTO[]>("/api/trades/matches"),
+        api<TradeProposalSummaryDTO[]>("/api/trades/proposals"),
       ]);
       setMine(m);
       setPartners(p);
+      setProposals(props);
       setError(null);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "No se pudieron cargar tus listas");
@@ -116,6 +127,12 @@ export function TradesPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial
     void load();
+    // ?tab=proposals (al volver de una propuesta o desde un aviso).
+    const raw = new URLSearchParams(window.location.search).get("tab");
+    // Enlaces antiguos: ?tab=propuestas.
+    const t = raw === "propuestas" ? "proposals" : raw;
+    const found = TABS.find((x) => x === t);
+    if (found) setTab(found);
   }, [load]);
 
   async function run(action: () => Promise<unknown>) {
@@ -156,7 +173,7 @@ export function TradesPage() {
       }),
     );
 
-  if (!mine || !partners) {
+  if (!mine || !partners || !proposals) {
     return (
       <main className="page max-w-[1100px]">
         <h1 className="h1">Intercambios</h1>
@@ -198,9 +215,10 @@ export function TradesPage() {
       <nav className="tabs" aria-label="Secciones de intercambios">
         {(
           [
-            ["cruces", "Cruces", partners.length],
-            ["busco", "Lo que busco", mine.wishlist.length],
-            ["cambio", "Para cambiar", mine.tradelistTotal],
+            ["matches", "Cruces", partners.length],
+            ["proposals", "Propuestas", proposals.filter((x) => x.myTurn).length],
+            ["wanted", "Lo que busco", mine.wishlist.length],
+            ["offered", "Para cambiar", mine.tradelistTotal],
           ] as const
         ).map(([id, label, n]) => (
           <button
@@ -216,7 +234,7 @@ export function TradesPage() {
         ))}
       </nav>
 
-      {tab === "cruces" &&
+      {tab === "matches" &&
         (partners.length === 0 ? (
           <div className="panel">
             <EmptyState title="Todavía no hay cruces">
@@ -233,7 +251,9 @@ export function TradesPage() {
           </div>
         ))}
 
-      {tab === "busco" && (
+      {tab === "proposals" && <ProposalList items={proposals} />}
+
+      {tab === "wanted" && (
         <div
           className="grid-1-sm grid items-start gap-4"
           style={{ gridTemplateColumns: "minmax(0, 3fr) minmax(0, 2fr)" }}
@@ -302,7 +322,7 @@ export function TradesPage() {
               </p>
               {mine.decks.length === 0 ? (
                 <p className="subtle text-[13px]">
-                  No tienes mazos guardados. <Link href="/mazos/nuevo">Crea uno</Link>.
+                  No tienes mazos guardados. <Link href="/decks/new">Crea uno</Link>.
                 </p>
               ) : (
                 mine.decks.map((d) => (
@@ -327,7 +347,7 @@ export function TradesPage() {
         </div>
       )}
 
-      {tab === "cambio" && (
+      {tab === "offered" && (
         <div
           className="grid-1-sm grid items-start gap-4"
           style={{ gridTemplateColumns: "minmax(0, 3fr) minmax(0, 2fr)" }}
@@ -394,5 +414,48 @@ export function TradesPage() {
         </div>
       )}
     </main>
+  );
+}
+
+/** Mis propuestas de intercambio: primero las que me toca responder. */
+function ProposalList({ items }: { items: TradeProposalSummaryDTO[] }) {
+  if (items.length === 0) {
+    return (
+      <div className="panel">
+        <EmptyState title="Ninguna propuesta">
+          Desde un cruce o desde el perfil de alguien con listas públicas, pulsa &laquo;Proponer
+          intercambio&raquo;: la calculadora te propone qué cambiar, cuadrado por valor.
+        </EmptyState>
+      </div>
+    );
+  }
+  const sorted = [...items].sort((a, b) => Number(b.myTurn) - Number(a.myTurn));
+  return (
+    <ul className="panel m-0 flex list-none flex-col p-0">
+      {sorted.map((p) => (
+        <li
+          key={p.id}
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line px-3.5 py-2.5 text-[13.5px] last:border-b-0"
+        >
+          <Link href={`/trades/proposals/${p.id}`} style={{ fontWeight: 600 }}>
+            @{p.partner.username}
+          </Link>
+          <span
+            className={`pill ${p.status === "accepted" ? "pill-in" : p.myTurn ? "pill-warn" : ""}`}
+          >
+            {p.myTurn ? "Te toca" : STATUS_LABEL[p.status]}
+          </span>
+          <span className="muted">
+            das {p.giveCount} · recibes {p.getCount}
+          </span>
+          <span className="mono subtle">
+            {formatEuros(p.balance.giveValue)} ↔ {formatEuros(p.balance.getValue)}
+          </span>
+          <span className="subtle ml-auto text-xs">
+            {p.isMine ? "enviada por ti" : "recibida"} · {ago(p.updatedAt)}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -9,6 +9,8 @@ import { refreshDeckFacts } from "@/application/community";
 import { notifyPriceDrops, recordPriceSnapshot } from "@/application/prices";
 import { notifyTradeMatches } from "@/application/trades";
 import { syncScryfallCatalog } from "@/application/sync-scryfall";
+import { syncOracleTags } from "@/application/sync-otags";
+import { OTAGS } from "@/domain/roles/otags";
 import { createContainer } from "@/server/container";
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -48,6 +50,17 @@ async function main() {
   );
   console.log(
     `\nListo: ${result.cards} cartas, ${result.printings} impresiones, ${result.skipped} descartadas.`,
+  );
+  // Etiquetas de Tagger (segunda fuente de roles): solo las que tienen más de una semana. Si
+  // Scryfall falla se avisa y se siguen usando las de antes; no para el resto del sync.
+  const tags = await syncOracleTags(OTAGS, { source: c.tagger, writer: c.cards });
+  for (const t of tags) {
+    if (t.status === "failed") console.warn(`  otag:${t.tag}: no se pudo actualizar (${t.error})`);
+  }
+  console.log(
+    `Etiquetas de Tagger: ${tags.filter((t) => t.status === "synced").length} actualizadas, ` +
+      `${tags.filter((t) => t.status === "fresh").length} al día, ` +
+      `${tags.filter((t) => t.status === "failed").length} con error.`,
   );
   const snapshot = await recordPriceSnapshot({ prices: c.prices });
   console.log(

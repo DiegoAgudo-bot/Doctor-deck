@@ -76,7 +76,7 @@ export function ProfilePage() {
   async function toggleFollow() {
     if (!view) return;
     if (!session) {
-      router.push(`/entrar?next=${encodeURIComponent(`/u/${username}`)}`);
+      router.push(`/login?next=${encodeURIComponent(`/u/${username}`)}`);
       return;
     }
     setBusy(true);
@@ -142,7 +142,7 @@ export function ProfilePage() {
           </span>
         </div>
         {view.isMe ? (
-          <Link className="btn" href="/ajustes">
+          <Link className="btn" href="/settings">
             <IconSettings size={14} />
             Editar perfil
           </Link>
@@ -185,7 +185,7 @@ export function ProfilePage() {
               }
               action={
                 view.isMe ? (
-                  <Link className="btn btn-primary" href="/mazo?nuevo=1">
+                  <Link className="btn btn-primary" href="/analyze?new=1">
                     Analizar mazo
                   </Link>
                 ) : undefined
@@ -234,7 +234,8 @@ export function ProfilePage() {
           ) : (
             <p className="muted text-[13px]">
               No tiene libre nada de tu lista de deseos ni busca nada de lo que te sobra.{" "}
-              <Link href="/intercambios">Tus listas</Link>
+              <Link href="/trades">Tus listas</Link> ·{" "}
+              <Link href={`/trades/with/${profile.username}`}>Proponer un intercambio a mano</Link>
             </p>
           )}
         </section>
@@ -247,7 +248,7 @@ export function ProfilePage() {
               <Banner
                 tone="info"
                 action={
-                  <Link className="btn btn-sm" href="/ajustes">
+                  <Link className="btn btn-sm" href="/settings">
                     Hacerla pública
                   </Link>
                 }

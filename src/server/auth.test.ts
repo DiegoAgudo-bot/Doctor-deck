@@ -76,7 +76,7 @@ describe("restablecer contraseña", () => {
   it("envía un enlace por email y permite poner una contraseña nueva", async () => {
     await signUp("olvido@example.com", "antigua-123");
     await auth.api.requestPasswordReset({
-      body: { email: "olvido@example.com", redirectTo: "/restablecer" },
+      body: { email: "olvido@example.com", redirectTo: "/reset-password" },
     });
     const mail = sent.find((m) => m.to === "olvido@example.com");
     expect(mail?.text).toMatch(/\/api\/auth\/reset-password\//);

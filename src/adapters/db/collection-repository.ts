@@ -40,6 +40,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
       collectorNumber: row.collectorNumber,
       quantity: row.quantity,
       foil: row.foil,
+      language: row.language,
       line: row.line,
       raw: JSON.stringify(row.raw),
     }));
@@ -68,6 +69,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
         name: c.name,
         quantity: c.quantity,
         foil: c.foil,
+        language: c.language ?? null,
         status: "matched",
         matchMethod: MANUAL,
         line: 0,
@@ -81,13 +83,14 @@ export class PrismaCollectionRepository implements CollectionRepository {
       where: { userId: this.userId, status: "matched", oracleId: { not: null } },
       orderBy: [{ importedAt: "desc" }, { id: "desc" }],
       select: {
-        id: true,
+        publicId: true,
         oracleId: true,
         name: true,
         quantity: true,
         foil: true,
         setCode: true,
         scryfallId: true,
+        language: true,
         matchMethod: true,
         importedAt: true,
       },
@@ -96,13 +99,14 @@ export class PrismaCollectionRepository implements CollectionRepository {
       r.oracleId
         ? [
             {
-              id: String(r.id),
+              id: r.publicId,
               oracleId: r.oracleId,
               name: r.name,
               quantity: r.quantity,
               foil: r.foil,
               setCode: r.setCode,
               scryfallId: r.scryfallId,
+              language: r.language,
               source: r.matchMethod === MANUAL ? ("manual" as const) : ("csv" as const),
               addedAt: r.importedAt,
             },
@@ -112,10 +116,8 @@ export class PrismaCollectionRepository implements CollectionRepository {
   }
 
   async removeAdded(id: string) {
-    const n = Number(id);
-    if (!Number.isInteger(n) || n <= 0) return false;
     const { count } = await this.db.collectionEntry.deleteMany({
-      where: { id: n, userId: this.userId, matchMethod: MANUAL },
+      where: { publicId: id, userId: this.userId, matchMethod: MANUAL },
     });
     return count > 0;
   }

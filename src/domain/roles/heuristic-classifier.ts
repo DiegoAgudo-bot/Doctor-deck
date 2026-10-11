@@ -3,7 +3,7 @@ import type { Card } from "../cards/types";
 import { ROLES, type Role, type RoleClassifier, type RoleSet } from "./types";
 
 /** Orden de preferencia para elegir el rol principal cuando una carta cumple varios. */
-const PRIMARY_ORDER: readonly Role[] = [
+export const PRIMARY_ORDER: readonly Role[] = [
   "land",
   "wipe",
   "counterspell",

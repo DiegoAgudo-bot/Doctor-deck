@@ -46,6 +46,7 @@ export class BrowserCollectionRepository implements CollectionRepository {
       foil: false,
       setCode: null,
       scryfallId: null,
+      language: null,
       source: "csv",
       addedAt: at,
     }));

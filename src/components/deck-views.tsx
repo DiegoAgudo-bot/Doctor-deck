@@ -13,6 +13,15 @@ const pct = (x: number) => `${Math.round(x * 100)} %`;
 const signedPct = (x: number) => `${x >= 0 ? "+" : "−"}${Math.round(Math.abs(x) * 100)} %`;
 /** Mejora de la puntuación del motor, con un decimal ("4,4"). */
 export const points = (score: number) => score.toFixed(1).replace(".", ",");
+/** De dónde salen los roles (la etiqueta pequeña junto al rol en la tabla). */
+const ROLE_SOURCE_PILL = { auto: "", list: "lista", mine: "tuyo", deck: "este mazo" } as const;
+const ROLE_SOURCE_TITLE = {
+  auto: "",
+  list: "De la lista",
+  mine: "Corregido por ti (en todos tus mazos)",
+  deck: "Corregido por ti solo en este mazo",
+} as const;
+
 /** Las etiquetas de rol van en minúscula (se usan dentro de frases); en la interfaz, con mayúscula. */
 export const roleLabel = (role: Role) => {
   const l = ROLE_LABELS[role];
@@ -438,11 +447,13 @@ export function DeckList({
                           type="button"
                           className="linkbtn"
                           title={
-                            c.roleSource === "mine"
-                              ? "Roles corregidos por ti. Clic para cambiarlos"
-                              : c.roleSource === "list"
-                                ? "Roles de las etiquetas de la lista. Clic para cambiarlos"
-                                : "Roles automáticos. Clic para corregirlos"
+                            c.roleSource === "deck"
+                              ? "Roles corregidos por ti solo en este mazo. Clic para cambiarlos"
+                              : c.roleSource === "mine"
+                                ? "Roles corregidos por ti. Clic para cambiarlos"
+                                : c.roleSource === "list"
+                                  ? "Roles de las etiquetas de la lista. Clic para cambiarlos"
+                                  : "Roles automáticos. Clic para corregirlos"
                           }
                           onClick={() => onEditRoles(c)}
                         >
@@ -457,9 +468,9 @@ export function DeckList({
                       {c.roleSource !== "auto" && (
                         <span
                           className="pill subtle ml-1.5"
-                          title={c.roleSource === "mine" ? "Corregido por ti" : "De la lista"}
+                          title={ROLE_SOURCE_TITLE[c.roleSource]}
                         >
-                          {c.roleSource === "mine" ? "tuyo" : "lista"}
+                          {ROLE_SOURCE_PILL[c.roleSource]}
                         </span>
                       )}
                     </td>
