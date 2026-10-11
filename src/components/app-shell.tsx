@@ -35,6 +35,7 @@ import {
   localCollection,
   localCopies,
 } from "./local-collection";
+import { LegalFooter } from "./legal";
 import { ColorPips } from "./mana";
 import { fmt } from "./ui";
 
@@ -96,6 +97,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <WithPath>{(p) => <Sidebar user={user} pending={isPending} pathname={p} />}</WithPath>
         <div className="main">
           {children}
+          <LegalFooter />
           <WithPath>{(p) => <BottomNav pathname={p} user={user} />}</WithPath>
         </div>
       </div>
@@ -117,6 +119,8 @@ export function BareShell({ children }: { children: ReactNode }) {
           Datos de cartas de Scryfall · Recomendaciones de EDHREC
           <br />
           Contenido no oficial bajo la Fan Content Policy de Wizards of the Coast.
+          <br />
+          <Link href="/privacy">Privacidad</Link> · <Link href="/legal">Aviso legal</Link>
         </p>
       </div>
     </div>

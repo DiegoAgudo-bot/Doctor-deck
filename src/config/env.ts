@@ -34,6 +34,11 @@ const envSchema = z.object({
   SMTP_URL: optionalString,
   /** Remitente de los emails, p. ej. "Deck Doctor <no-reply@ejemplo.com>". */
   MAIL_FROM: z.string().default("Deck Doctor <no-reply@localhost>"),
+
+  // --- Páginas legales (/privacy, /legal) ---
+  /** Titular de la web (nombre y, si aplica, NIF) y email de contacto para privacidad. */
+  LEGAL_OWNER: optionalString,
+  LEGAL_EMAIL: optionalString,
 });
 
 export type Env = z.infer<typeof envSchema>;

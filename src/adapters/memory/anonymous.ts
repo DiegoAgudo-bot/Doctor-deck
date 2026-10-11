@@ -45,14 +45,25 @@ export class BrowserCollectionRepository implements CollectionRepository {
       quantity,
       foil: false,
       setCode: null,
+      collectorNumber: null,
       scryfallId: null,
       language: null,
+      condition: null,
       source: "csv",
       addedAt: at,
     }));
   }
 
   async removeAdded() {
+    return false;
+  }
+
+  /** Sin cuenta las líneas viven en el navegador: no se editan en el servidor. */
+  async updateLine() {
+    return false;
+  }
+
+  async removeLine() {
     return false;
   }
 

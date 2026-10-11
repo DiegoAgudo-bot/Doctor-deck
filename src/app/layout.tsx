@@ -22,12 +22,24 @@ const spectral = Spectral({
 
 export const metadata: Metadata = {
   title: "Deck Doctor",
-  description: "Mejoras para tus mazos de Commander usando tu colección",
+  description:
+    "Mejora tus mazos de Commander con las cartas que ya tienes: cambios 1×1 con EDHREC, tu colección, combos e intercambios con otros jugadores.",
+  applicationName: "Deck Doctor",
+  icons: {
+    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  appleWebApp: { capable: true, title: "Deck Doctor", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#131313" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f3f1" },
+  ],
 };
 
 // Tema antes de pintar (sin parpadeo): el elegido, o el del sistema.

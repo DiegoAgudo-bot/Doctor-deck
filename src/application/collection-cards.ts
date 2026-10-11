@@ -1,4 +1,5 @@
-import { printingPrice } from "@/domain/cards/types";
+import { normalizeCondition } from "@/domain/cards/conditions";
+import { printingPrice, type Printing } from "@/domain/cards/types";
 import { NON_GAME_LAYOUTS } from "@/domain/cards/card-index";
 import { normalizeLanguage } from "@/domain/cards/languages";
 import { nameKey } from "@/domain/cards/names";
@@ -10,7 +11,11 @@ import {
 } from "@/domain/collection/browse";
 import type { Card } from "@/domain/cards/types";
 import type { CardRepository } from "@/domain/ports/card-repository";
-import type { CollectionRepository } from "@/domain/ports/collection-repository";
+import type {
+  CollectionEntryRow,
+  CollectionRepository,
+} from "@/domain/ports/collection-repository";
+import { toManaboxCsv } from "@/domain/collection/manabox";
 import type { DeckRepository } from "@/domain/ports/deck-repository";
 import type { RoleClassifier, RoleSet } from "@/domain/roles/types";
 import { EmptyCatalogError } from "./import-collection";
@@ -27,6 +32,8 @@ export interface AddCardInput {
   foil?: boolean | undefined;
   /** Idioma de la copia (código de Scryfall o nombre en inglés). */
   language?: string | undefined;
+  /** Estado de la copia ("near_mint", "NM", "LP"…). */
+  condition?: string | undefined;
 }
 
 export interface AddCardsResult {
@@ -36,6 +43,7 @@ export interface AddCardsResult {
     foil: boolean;
     scryfallId: string | null;
     language: string | null;
+    condition: string | null;
   }[];
   /** Las entradas que no corresponden a ninguna carta (su nombre o id, tal cual). */
   notFound: string[];
@@ -93,6 +101,7 @@ export async function addToCollection(
       foil: item.foil ?? false,
       scryfallId: item.scryfallId?.toLowerCase() ?? null,
       language: normalizeLanguage(item.language),
+      condition: normalizeCondition(item.condition),
     });
   }
   await deps.collection.addCards(
@@ -103,6 +112,7 @@ export async function addToCollection(
       foil: a.foil,
       scryfallId: a.scryfallId,
       language: a.language,
+      condition: a.condition,
     })),
   );
   return result;
@@ -272,4 +282,122 @@ export async function addedCards(deps: {
     const card = cards.get(m.oracleId);
     return card ? [{ ...m, card }] : [];
   });
+}
+
+/** Una línea de mi colección con su carta, su impresión (si se sabe) y lo que vale cada copia. */
+export interface CollectionLine extends CollectionEntryRow {
+  card: Card;
+  printing: Printing | null;
+  unitPrice: number | null;
+}
+
+/** Todas mis líneas de una carta (CSV y a mano), para verlas y editarlas una a una. */
+export async function collectionLines(
+  oracleId: string,
+  deps: { cards: CardRepository; collection: CollectionRepository },
+): Promise<CollectionLine[]> {
+  const entries = (await deps.collection.entries()).filter((e) => e.oracleId === oracleId);
+  const [card] = await deps.cards.findCardsByOracleIds([oracleId]);
+  if (!card || entries.length === 0) return [];
+  const ids = [...new Set(entries.flatMap((e) => (e.scryfallId ? [e.scryfallId] : [])))];
+  const [printings, prices] = await Promise.all([
+    ids.length > 0 ? deps.cards.findPrintingsByIds(ids) : Promise.resolve([]),
+    deps.cards.findMinPrices([oracleId]),
+  ]);
+  const byId = new Map(printings.map((p) => [p.scryfallId.toLowerCase(), p]));
+  return entries
+    .map((e) => {
+      const printing = (e.scryfallId && byId.get(e.scryfallId.toLowerCase())) || null;
+      return {
+        ...e,
+        card,
+        printing,
+        unitPrice:
+          (printing ? printingPrice(printing, e.foil) : null) ?? prices.get(oracleId) ?? null,
+      };
+    })
+    .sort((a, b) => a.addedAt.getTime() - b.addedAt.getTime());
+}
+
+export class InvalidPrintingError extends Error {
+  constructor() {
+    super("Esa edición no es de esta carta");
+  }
+}
+
+export interface EditLineInput {
+  /** 0 = quitar la línea. */
+  quantity?: number | undefined;
+  foil?: boolean | undefined;
+  language?: string | null | undefined;
+  condition?: string | null | undefined;
+  /** Otra impresión de la misma carta. */
+  scryfallId?: string | undefined;
+}
+
+/**
+ * Edita una línea de mi colección (también las del CSV): copias, foil, idioma, estado o edición.
+ * Con 0 copias se borra. Devuelve false si la línea no existe o no es mía.
+ */
+export async function editCollectionLine(
+  lineId: string,
+  input: EditLineInput,
+  deps: { cards: CardRepository; collection: CollectionRepository },
+): Promise<boolean> {
+  if (input.quantity === 0) return deps.collection.removeLine(lineId);
+  const line = (await deps.collection.entries()).find((e) => e.id === lineId);
+  if (!line) return false;
+  let printing: { scryfallId: string; setCode: string; collectorNumber: string } | undefined;
+  if (input.scryfallId) {
+    const [p] = await deps.cards.findPrintingsByIds([input.scryfallId]);
+    if (!p || p.oracleId !== line.oracleId) throw new InvalidPrintingError();
+    printing = {
+      scryfallId: p.scryfallId.toLowerCase(),
+      setCode: p.setCode,
+      collectorNumber: p.collectorNumber,
+    };
+  }
+  return deps.collection.updateLine(lineId, {
+    quantity: input.quantity,
+    foil: input.foil,
+    language: input.language === undefined ? undefined : normalizeLanguage(input.language),
+    condition: input.condition === undefined ? undefined : normalizeCondition(input.condition),
+    printing,
+  });
+}
+
+/** Mi colección entera en un CSV con el formato de ManaBox. */
+export async function exportCollectionCsv(deps: {
+  cards: CardRepository;
+  collection: CollectionRepository;
+}): Promise<{ csv: string; lines: number }> {
+  const entries = await deps.collection.entries();
+  const oracleIds = [...new Set(entries.map((e) => e.oracleId))];
+  const printingIds = [...new Set(entries.flatMap((e) => (e.scryfallId ? [e.scryfallId] : [])))];
+  const [cards, printings, prices] = await Promise.all([
+    deps.cards.findCardsByOracleIds(oracleIds),
+    printingIds.length > 0 ? deps.cards.findPrintingsByIds(printingIds) : Promise.resolve([]),
+    deps.cards.findMinPrices(oracleIds),
+  ]);
+  const byCard = new Map(cards.map((c) => [c.oracleId, c]));
+  const byPrinting = new Map(printings.map((p) => [p.scryfallId.toLowerCase(), p]));
+  const rows = [...entries]
+    .sort((a, b) => a.addedAt.getTime() - b.addedAt.getTime())
+    .map((e) => {
+      const p = e.scryfallId ? byPrinting.get(e.scryfallId.toLowerCase()) : undefined;
+      return {
+        name: byCard.get(e.oracleId)?.name ?? e.name,
+        setCode: p?.setCode ?? e.setCode,
+        setName: p?.setName ?? null,
+        collectorNumber: p?.collectorNumber ?? e.collectorNumber,
+        foil: e.foil,
+        quantity: e.quantity,
+        scryfallId: e.scryfallId,
+        condition: e.condition,
+        language: e.language,
+        price: (p ? printingPrice(p, e.foil) : null) ?? prices.get(e.oracleId) ?? null,
+        addedAt: e.addedAt,
+      };
+    });
+  return { csv: toManaboxCsv(rows), lines: rows.length };
 }

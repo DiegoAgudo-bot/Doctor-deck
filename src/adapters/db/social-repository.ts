@@ -47,6 +47,10 @@ export class PrismaSocialRepository
     return this.db.user.findUnique({ where: { username }, select: PROFILE });
   }
 
+  async deleteAccount(userId: string) {
+    await this.db.user.deleteMany({ where: { id: userId } });
+  }
+
   async emailOf(id: string) {
     return (
       (await this.db.user.findUnique({ where: { id }, select: { email: true } }))?.email ?? null

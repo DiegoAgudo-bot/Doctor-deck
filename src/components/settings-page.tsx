@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { DeleteAccountDialog } from "./delete-account-dialog";
 import { USERNAME_HELP } from "@/domain/social/username";
 import type { MyProfileDTO } from "@/server/dto";
 import { api, ApiError, storage } from "./api-client";
@@ -15,6 +16,7 @@ export function SettingsPage() {
   const [username, setUsername] = useState("");
   const [message, setMessage] = useState<{ tone: "in" | "out"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     api<MyProfileDTO>("/api/me/profile")
@@ -200,6 +202,39 @@ export function SettingsPage() {
           </div>
         </div>
       </section>
+
+      <section className="panel">
+        <div className="panel-h">
+          <span className="h2">Tus datos</span>
+        </div>
+        <div className="flex flex-col gap-3 p-3.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <a className="btn" href="/api/me/export" download>
+              Descargar todos mis datos (JSON)
+            </a>
+            <a className="btn" href="/api/collection/export" download>
+              Exportar mi colección (CSV de ManaBox)
+            </a>
+          </div>
+          <p className="subtle text-xs">
+            Tu perfil, colección, mazos, listas de intercambio, propuestas y correcciones de roles.
+            Más detalles en la <Link href="/privacy">política de privacidad</Link>.
+          </p>
+          <div className="dangerzone">
+            <div>
+              <b>Borrar mi cuenta</b>
+              <span className="subtle block text-xs">
+                Se borran para siempre tu colección, tus mazos, tus listas y tus propuestas. No se
+                puede deshacer.
+              </span>
+            </div>
+            <button type="button" className="btn btn-out" onClick={() => setDeleting(true)}>
+              Borrar mi cuenta
+            </button>
+          </div>
+        </div>
+      </section>
+      <DeleteAccountDialog open={deleting} email={me.email} onClose={() => setDeleting(false)} />
 
       <button
         type="button"

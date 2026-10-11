@@ -26,6 +26,18 @@ echo "→ Build y reinicio del contenedor (aplica migraciones al arrancar)"
 docker compose up -d --build --remove-orphans
 docker image prune -f >/dev/null
 
+# Tareas diarias en el crontab del VPS (se añaden solo si faltan; no se duplican):
+#   03:15 copia de seguridad de la base de datos · 04:30 catálogo de Scryfall.
+APP_DIR="$(pwd)"
+add_cron() {
+  if command -v crontab >/dev/null && ! crontab -l 2>/dev/null | grep -qF "$2"; then
+    echo "→ Añadiendo al cron: $2"
+    (crontab -l 2>/dev/null; echo "$1 cd $APP_DIR && docker compose exec -T deck-doctor npm run $2 >> data/${2//:/-}.log 2>&1") | crontab -
+  fi
+}
+add_cron "15 3 * * *" "db:backup"
+add_cron "30 4 * * *" "scryfall:sync"
+
 echo "✓ Desplegado $(git rev-parse --short HEAD)"
 exit
 }

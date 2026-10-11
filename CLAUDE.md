@@ -21,6 +21,7 @@ recomendaciones de EDHREC, priorizando cartas de la colección del usuario (expo
 | `npm run scryfall:sync [-- --force \| --skip-download]`                                           | Descarga los bulk de Scryfall (si hay versión nueva) y los vuelca a la BD |
 | `npm run symbols:sync`                                                                            | Descarga los símbolos de maná de Scryfall a `public/symbols/`             |
 | `npm run otags:sync [-- --force \| --tag ramp]`                                                   | Descarga las etiquetas `otag:` de Scryfall Tagger (roles)                 |
+| `npm run db:backup`                                                                               | Copia de seguridad de la SQLite en `data/backups/` (ver `DEPLOY.md`)      |
 | `npm run collection:import -- "export.csv" [--user email]`                                        | Importa un CSV de ManaBox (a la cuenta indicada) y muestra el resumen     |
 | `npm run users:claim -- --user email`                                                             | Pasa a esa cuenta la colección y los mazos de antes de haber usuarios     |
 | `npm run deck:check -- "lista.txt" \| "https://…"`                                                | Parsea y resuelve una lista de mazo contra el catálogo                    |
@@ -95,6 +96,28 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   Solo es presentación: el análisis sigue siendo por carta. Sin cuenta, todo vive
   en el navegador (`local-collection.ts`: `{import, added}`) y se manda como pares
   `[oracleId, copias]`.
+- **Editar la colección sin ManaBox** (Fase 20): `CollectionEntry.condition` (estado como en
+  ManaBox: `near_mint`, `lightly_played`…; `domain/cards/conditions.ts`) y `publicId` por línea.
+  `collectionLines` (`GET /api/collection/lines?oracleId=`) da mis copias de una carta con su
+  impresión y precio; `editCollectionLine` (`PATCH /api/collection/lines/{publicId}`: `quantity`
+  (0 = borrar), `foil`, `language`, `condition`, `scryfallId` de otra impresión de la misma carta)
+  vale también para las del CSV, que pasan a `matchMethod = "manual"` para que reimportar no las
+  pise; `DELETE /api/collection/lines/{publicId}` borra cualquiera. `exportCollectionCsv`
+  (`GET /api/collection/export`) escribe el CSV de ManaBox (`toManaboxCsv`, se vuelve a leer igual).
+  UI: pulsar una carta de la colección abre `CollectionCardDialog` (imagen + cada copia editable).
+- **Cuenta y RGPD** (Fase 20, `application/account.ts`): `GET /api/me/export` (todos mis datos en
+  JSON, sin ids internos) y `DELETE /api/me` (`{confirm: email}`; borra en cascada). Páginas
+  `/privacy` y `/legal` (titular y contacto de `LEGAL_OWNER`/`LEGAL_EMAIL`), pie `LegalFooter` con el
+  aviso de la Fan Content Policy, sección "Tus datos" en `/settings`.
+- **Compartir y SEO** (Fase 20, `server/share.ts`, `server/og.tsx`): `generateMetadata` y
+  `opengraph-image` en `/decks/[id]` (solo públicos u ocultos; los ocultos con `noindex`) y
+  `/u/[username]`: imagen 1200×630 con el arte del comandante (`art_crop` de la caché de imágenes),
+  fuente Instrument Sans (`assets/fonts`, OFL). `metadataBase` = `BETTER_AUTH_URL`. `robots.ts` y
+  `sitemap.ts` (mazos públicos y perfiles) se generan al pedirlos.
+- **PWA** (Fase 20): `app/manifest.ts`, iconos en `public/icons/` (`npx tsx scripts/make-icons.tsx`
+  los regenera), `themeColor` y márgenes `safe-area` en las barras.
+- **Copias de seguridad** (Fase 20): `backupDatabase` (`adapters/db/backup.ts`, API `backup` de
+  SQLite + `integrity_check` + gzip, rotación `BACKUP_KEEP`); cron diario que añade `deploy.sh`.
 - **Recomendaciones**: `EdhrecClient` (puerto `RecommendationSource`) → caché `ResponseCache`
   (`PrismaResponseCache`, tabla `HttpCache`) → `parseEdhrecPage` (zod, único sitio que conoce el
   JSON de EDHREC) → `CommanderRecommendations` (synergy e inclusión como fracciones 0..1, cartas
@@ -435,8 +458,10 @@ Purchase price currency, Added`.
     cada copia ✅
 19. Calculadora de intercambio: propuesta cuadrada por valor, borradores, contrapropuestas y, al
     aceptar, las cartas se mueven entre las colecciones ✅
+20. Cimientos: copias de seguridad, colección editable y exportable sin ManaBox, legal y RGPD,
+    vistas previas al compartir, portada nueva, arreglos móviles y PWA ✅
 
-La fase siguiente (20) está en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
+Las fases siguientes (21 social, 22 app móvil) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
 diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)
