@@ -6,25 +6,33 @@ import type { CardRoleEditDTO, DeckCardDTO } from "@/server/dto";
 import { roleLabel } from "./deck-views";
 import { Dialog } from "./ui";
 
+/** Dónde vale la corrección: en todos mis mazos (y la colección) o solo en este mazo. */
+export type RoleEditScope = "all" | "deck";
+
 /**
- * Corregir los roles de una carta (y ponerle etiquetas libres). Vale para todos tus mazos y para
- * la colección; los mínimos por rol y los cambios propuestos usan los roles corregidos.
+ * Corregir los roles de una carta (y ponerle etiquetas libres). Por defecto vale para todos tus
+ * mazos y para la colección; en un mazo guardado tuyo se puede limitar a ese mazo. Los mínimos
+ * por rol y los cambios propuestos usan los roles corregidos.
  */
 export function RoleEditDialog({
   card,
   busy,
+  canScopeToDeck,
   onClose,
   onSave,
 }: {
   card: DeckCardDTO | null;
   busy: boolean;
+  /** Es un mazo guardado mío: se puede guardar solo para él. */
+  canScopeToDeck: boolean;
   onClose: () => void;
-  /** Roles vacíos = volver a los automáticos. */
-  onSave: (edit: CardRoleEditDTO) => void;
+  /** Roles vacíos = quitar la corrección (de este mazo o de todos). */
+  onSave: (edit: CardRoleEditDTO, scope: RoleEditScope) => void;
 }) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [primary, setPrimary] = useState<Role | null>(null);
   const [tags, setTags] = useState("");
+  const [scope, setScope] = useState<RoleEditScope>("all");
 
   useEffect(() => {
     if (!card) return;
@@ -32,7 +40,8 @@ export function RoleEditDialog({
     setRoles(card.roles);
     setPrimary(card.primaryRole);
     setTags(card.tags.join(", "));
-  }, [card]);
+    setScope(card.roleSource === "deck" && canScopeToDeck ? "deck" : "all");
+  }, [card, canScopeToDeck]);
 
   function toggle(r: Role) {
     const next = ROLES.filter((x) => (x === r ? !roles.includes(r) : roles.includes(x)));
@@ -52,12 +61,23 @@ export function RoleEditDialog({
       width={460}
       footer={
         <>
+          {card?.roleSource === "deck" && canScopeToDeck && (
+            <button
+              type="button"
+              className="btn mr-auto"
+              disabled={busy}
+              title="Vuelve a los roles de todos tus mazos (o a los automáticos)"
+              onClick={() => onSave({ roles: [], primary: null, tags: [] }, "deck")}
+            >
+              Quitar la de este mazo
+            </button>
+          )}
           {card?.roleSource === "mine" && (
             <button
               type="button"
               className="btn mr-auto"
               disabled={busy}
-              onClick={() => onSave({ roles: [], primary: null, tags: tagList })}
+              onClick={() => onSave({ roles: [], primary: null, tags: tagList }, "all")}
             >
               Volver a los automáticos
             </button>
@@ -69,7 +89,7 @@ export function RoleEditDialog({
             type="button"
             className="btn btn-primary"
             disabled={busy || roles.length === 0}
-            onClick={() => onSave({ roles, primary, tags: tagList })}
+            onClick={() => onSave({ roles, primary, tags: tagList }, scope)}
           >
             {busy ? "Guardando…" : "Guardar"}
           </button>
@@ -81,9 +101,34 @@ export function RoleEditDialog({
           ? "Estos roles los ha puesto el clasificador automático. Si se equivoca, corrígelos:"
           : card?.roleSource === "list"
             ? "Estos roles vienen de las etiquetas de tu lista. Puedes cambiarlos:"
-            : "Ya los habías corregido. Puedes cambiarlos o volver a los automáticos."}{" "}
-        valen para todos tus mazos y cuentan para los mínimos y los cambios propuestos.
+            : card?.roleSource === "deck"
+              ? "Ya los habías corregido para este mazo. Puedes cambiarlos o quitar la corrección:"
+              : "Ya los habías corregido. Puedes cambiarlos o volver a los automáticos."}{" "}
+        cuentan para los mínimos y los cambios propuestos.
       </p>
+      {canScopeToDeck && (
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="label mb-1">Dónde vale</legend>
+          <label className="check text-[13.5px]">
+            <input
+              type="radio"
+              name="role-scope"
+              checked={scope === "all"}
+              onChange={() => setScope("all")}
+            />
+            En todos mis mazos y en la colección
+          </label>
+          <label className="check text-[13.5px]">
+            <input
+              type="radio"
+              name="role-scope"
+              checked={scope === "deck"}
+              onChange={() => setScope("deck")}
+            />
+            Solo en este mazo
+          </label>
+        </fieldset>
+      )}
       <fieldset className="flex flex-col gap-1.5">
         <legend className="label mb-1">Roles (el principal decide su grupo)</legend>
         {ROLES.map((r) => (

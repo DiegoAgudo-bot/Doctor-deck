@@ -19,6 +19,8 @@ const schema = z.object({
           name: z.string().min(1).max(200).optional(),
           quantity: z.number().int().min(1).max(999),
           foil: z.boolean().optional(),
+          /** Código de Scryfall ("es", "ja"…) o nombre en inglés ("Japanese"). */
+          language: z.string().min(1).max(40).optional(),
         })
         .refine((c) => c.oracleId ?? c.scryfallId ?? c.name, {
           message: "Cada carta necesita oracleId, scryfallId o name",
@@ -68,6 +70,7 @@ export async function GET(request: Request) {
       card: cardDTO(a.card),
       quantity: a.quantity,
       foil: a.foil,
+      language: a.language,
       addedAt: a.addedAt.toISOString(),
     }));
     return Response.json(body);

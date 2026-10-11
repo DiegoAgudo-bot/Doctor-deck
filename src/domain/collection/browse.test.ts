@@ -22,6 +22,7 @@ const card = (
   fromCsv: over.fromCsv ?? 1,
   manualCount: over.manualCount ?? 0,
   inUse: over.inUse ?? 0,
+  languages: over.languages ?? ["en"],
   price: over.price ?? null,
   // Por defecto, precio × copias (como si todas fueran de la impresión más barata).
   value:
@@ -41,6 +42,7 @@ const CARDS = [
     typeLine: "Instant",
     colors: ["U"],
     foilQuantity: 1,
+    languages: ["en", "ja"],
     manualCount: 1,
     fromCsv: 0,
   }),
@@ -67,7 +69,7 @@ describe("colorMatch", () => {
 });
 
 describe("browseCollection", () => {
-  it("filtra por texto (nombre o tipo, sin tildes), tipo, rol, coste, origen, uso y foil", () => {
+  it("filtra por texto (nombre o tipo, sin tildes), tipo, rol, coste, origen, uso, foil e idioma", () => {
     const run = (f: Parameters<typeof browseCollection>[1]) =>
       names(browseCollection(CARDS, f, "nombre", 0, 50));
     expect(run({ q: "ELDRAZI" })).toEqual(["Ulamog, the Ceaseless Hunger"]);
@@ -83,6 +85,7 @@ describe("browseCollection", () => {
     expect(run({ use: "en-mazos" })).toEqual(["Mayhem Devil"]);
     expect(run({ use: "libres" })).not.toContain("Mayhem Devil");
     expect(run({ foil: true })).toEqual(["Counterspell"]);
+    expect(run({ language: "ja" })).toEqual(["Counterspell"]);
     expect(run({ colors: ["G"], colorMode: "dentro" })).toEqual([
       "Llanowar Elves",
       "Sol Ring",

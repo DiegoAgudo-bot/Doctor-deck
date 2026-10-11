@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { LANGUAGES, languageBadge, languageLabel } from "@/domain/cards/languages";
 import type { AddCardsResponse, CardDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { CardSearch } from "./card-search";
@@ -17,6 +18,7 @@ export interface AddedRow {
   name: string;
   quantity: number;
   foil: boolean;
+  language?: string | null | undefined;
   addedAt: string;
 }
 
@@ -35,6 +37,7 @@ export function AddCards({
   const [searchKey, setSearchKey] = useState(0);
   const [quantity, setQuantity] = useState("1");
   const [foil, setFoil] = useState(false);
+  const [language, setLanguage] = useState("en");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "in" | "out"; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -49,7 +52,9 @@ export function AddCards({
       const res = await api<AddCardsResponse>("/api/collection/cards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cards: [{ oracleId: card.oracleId, quantity: qty, foil }] }),
+        body: JSON.stringify({
+          cards: [{ oracleId: card.oracleId, quantity: qty, foil, language }],
+        }),
       });
       if (res.saved) {
         notifyCollectionChanged();
@@ -60,6 +65,7 @@ export function AddCards({
             name: a.card.name,
             quantity: a.quantity,
             foil: a.foil,
+            language: a.language,
           })),
         );
       }
@@ -93,7 +99,7 @@ export function AddCards({
         >
           <div
             className="grid-1-sm grid items-end gap-3"
-            style={{ gridTemplateColumns: "minmax(0, 1fr) 90px auto auto" }}
+            style={{ gridTemplateColumns: "minmax(0, 1fr) 90px 130px auto auto" }}
           >
             <CardSearch
               key={searchKey}
@@ -115,6 +121,23 @@ export function AddCards({
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value.replace(/\D/g, "").slice(0, 3))}
               />
+            </div>
+            <div className="field">
+              <label className="label" htmlFor="add-lang">
+                Idioma
+              </label>
+              <select
+                id="add-lang"
+                className="select"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+              >
+                {Object.entries(LANGUAGES).map(([code, label]) => (
+                  <option key={code} value={code}>
+                    {label}
+                  </option>
+                ))}
+              </select>
             </div>
             <label className="check" style={{ height: 34, alignItems: "center" }}>
               <input
@@ -161,7 +184,7 @@ export function AddCards({
                   <tr>
                     <th>Carta</th>
                     <th className="r">Copias</th>
-                    <th className="hide-sm">Foil</th>
+                    <th className="hide-sm">Copia</th>
                     <th className="r hide-sm">Añadida</th>
                     <th style={{ width: 40 }} />
                   </tr>
@@ -181,7 +204,14 @@ export function AddCards({
                       </td>
                       <td className="r mono">{a.quantity}</td>
                       <td className="hide-sm">
-                        {a.foil ? <span className="pill pill-warn">foil</span> : ""}
+                        <span className="inline-flex gap-1">
+                          {a.foil && <span className="pill pill-warn">foil</span>}
+                          {a.language && a.language !== "en" && (
+                            <span className="pill" title={languageLabel(a.language)}>
+                              {languageBadge(a.language)}
+                            </span>
+                          )}
+                        </span>
                       </td>
                       <td className="r mono subtle hide-sm">{ago(a.addedAt)}</td>
                       <td>

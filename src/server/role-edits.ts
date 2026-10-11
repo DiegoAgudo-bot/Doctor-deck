@@ -31,6 +31,15 @@ export async function loadRoleEdits(
   return new Map((browser ?? []).map(([id, e]) => [id, toRoleEdit(e)]));
 }
 
+/** Mis correcciones solo para uno de mis mazos (vacío sin sesión, sin mazo o si no es mío). */
+export async function loadDeckRoleEdits(
+  userId: string | null,
+  deckId: string | undefined,
+): Promise<Map<string, CardRoleEdit>> {
+  if (!userId || !deckId) return new Map();
+  return getContainer().roleOverridesFor(userId).forDeck(deckId);
+}
+
 /** Solo los roles corregidos (para `withOverrides`). */
 export const overridesOf = (edits: ReadonlyMap<string, CardRoleEdit>) =>
   new Map(

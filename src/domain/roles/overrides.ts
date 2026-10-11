@@ -7,8 +7,11 @@ export interface RoleOverride {
   primary: Role;
 }
 
-/** De dónde salen los roles de una carta. */
-export type RoleSource = "auto" | "list" | "mine";
+/**
+ * De dónde salen los roles de una carta: corregidos por mí solo en este mazo (`deck`), por mí
+ * en todos mis mazos (`mine`), de las etiquetas de la lista (`list`) o automáticos (`auto`).
+ */
+export type RoleSource = "auto" | "list" | "mine" | "deck";
 
 /** Normaliza: roles válidos sin repetir (en el orden de ROLES) y un principal que esté entre ellos. */
 export function normalizeOverride(
@@ -22,14 +25,21 @@ export function normalizeOverride(
 }
 
 /**
- * Clasificador que respeta correcciones: primero las mías, después las de la lista del mazo y,
- * si no hay ninguna, el automático. `sourceOf` dice cuál se usó para cada carta.
+ * Clasificador que respeta correcciones: primero las mías de este mazo, luego las mías de todos
+ * mis mazos, después las de la lista del mazo y, si no hay ninguna, el automático. `sourceOf`
+ * dice cuál se usó para cada carta.
  */
 export function withOverrides(
   base: RoleClassifier,
-  layers: { mine?: ReadonlyMap<string, RoleOverride>; list?: ReadonlyMap<string, RoleOverride> },
+  layers: {
+    deck?: ReadonlyMap<string, RoleOverride>;
+    mine?: ReadonlyMap<string, RoleOverride>;
+    list?: ReadonlyMap<string, RoleOverride>;
+  },
 ): RoleClassifier & { sourceOf(card: Card): RoleSource } {
   const find = (card: Card): [RoleOverride, RoleSource] | null => {
+    const deck = layers.deck?.get(card.oracleId);
+    if (deck) return [deck, "deck"];
     const mine = layers.mine?.get(card.oracleId);
     if (mine) return [mine, "mine"];
     const list = layers.list?.get(card.oracleId);

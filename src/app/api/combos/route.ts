@@ -8,7 +8,12 @@ import { withOverrides } from "@/domain/roles/overrides";
 import { getContainer } from "@/server/container";
 import { cardDTO, type ComboCardDTO, type ComboDTO, type DeckCombosDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
-import { browserRoleEditsSchema, loadRoleEdits, overridesOf } from "@/server/role-edits";
+import {
+  browserRoleEditsSchema,
+  loadDeckRoleEdits,
+  loadRoleEdits,
+  overridesOf,
+} from "@/server/role-edits";
 import { currentUser } from "@/server/session";
 
 /** Combos a una carta que se mandan (los primeros, ya ordenados). */
@@ -42,6 +47,7 @@ export async function POST(request: Request) {
       decks: user ? c.decksFor(user.id) : noSavedDecks,
       combos: c.combos,
       classifier: withOverrides(c.classifier, {
+        deck: overridesOf(await loadDeckRoleEdits(user?.id ?? null, req.deckId)),
         mine: overridesOf(await loadRoleEdits(user?.id ?? null, roleEdits)),
       }),
     });

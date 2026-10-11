@@ -20,6 +20,7 @@ recomendaciones de EDHREC, priorizando cartas de la colección del usuario (expo
 | `npm run build`                                                                                   | Build de producción                                                       |
 | `npm run scryfall:sync [-- --force \| --skip-download]`                                           | Descarga los bulk de Scryfall (si hay versión nueva) y los vuelca a la BD |
 | `npm run symbols:sync`                                                                            | Descarga los símbolos de maná de Scryfall a `public/symbols/`             |
+| `npm run otags:sync [-- --force \| --tag ramp]`                                                   | Descarga las etiquetas `otag:` de Scryfall Tagger (roles)                 |
 | `npm run collection:import -- "export.csv" [--user email]`                                        | Importa un CSV de ManaBox (a la cuenta indicada) y muestra el resumen     |
 | `npm run users:claim -- --user email`                                                             | Pasa a esa cuenta la colección y los mazos de antes de haber usuarios     |
 | `npm run deck:check -- "lista.txt" \| "https://…"`                                                | Parsea y resuelve una lista de mazo contra el catálogo                    |
@@ -85,9 +86,13 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   Además, cartas sueltas (`addToCollection`, `application/collection-cards.ts`): se resuelven por
   `oracleId` (buscador web), `scryfallId` (lo que dará el escáner de la app móvil) o nombre, y se
   guardan con `matchMethod = "manual"`; reimportar el CSV **no** las borra. `collectionView` agrupa
-  la colección por carta con catálogo, precio, roles y mazos que la usan; `browseMyCollection` filtra,
+  la colección por carta con catálogo, precio, roles, idiomas y mazos que la usan; `browseMyCollection` filtra,
   ordena y pagina en el servidor (`domain/collection/browse.ts`; la web pide 48 por página).
-  `summary.totalCards` = copias identificadas (sin las filas sin emparejar). Sin cuenta, todo vive
+  `summary.totalCards` = copias identificadas (sin las filas sin emparejar). Cada copia guarda su
+  idioma (`CollectionEntry.language`, código de Scryfall: `en`, `es`, `ja`…; `normalizeLanguage` en
+  `domain/cards/languages.ts` acepta también "Japanese"…): sale del `Language` del CSV o del campo
+  `language` de `POST /api/collection/cards`, se ve como etiqueta (`ES ×2`) y hay filtro por idioma.
+  Solo es presentación: el análisis sigue siendo por carta. Sin cuenta, todo vive
   en el navegador (`local-collection.ts`: `{import, added}`) y se manda como pares
   `[oracleId, copias]`.
 - **Recomendaciones**: `EdhrecClient` (puerto `RecommendationSource`) → caché `ResponseCache`
@@ -171,20 +176,33 @@ backend.commanderspellbook.com/find-my-combos?limit=500` con el mazo (nombres), 
   aparte de `/api/analyze` (Spellbook tarda ~2,5 s la primera vez); la UI lo pide tras cada
   análisis, pestaña "Combos", y al llegar actualiza el bracket de la cabecera.
 - **Roles corregidos y etiquetas** (Fase 15): `withOverrides` (`domain/roles/overrides.ts`)
-  aplica, por este orden, mis correcciones (`CardRoleOverride`, por usuario y carta, valen en
-  todos mis mazos y en la colección; sin cuenta viven en el navegador, `local-roles.ts`, y se
+  aplica, por este orden, mis correcciones solo para ese mazo (`DeckRoleOverride`, por mazo y
+  carta, solo las del dueño y solo al analizar ese mazo guardado con `deckId`; `PUT
+/api/decks/{id}/card-roles/{oracleId}`, mismo cuerpo), mis correcciones (`CardRoleOverride`, por
+  usuario y carta, valen en todos mis mazos y en la colección; sin cuenta viven en el navegador, `local-roles.ts`, y se
   mandan como `roleEdits`), las etiquetas de la lista (Moxfield `#!Ramp`/`#wincon` y categorías
   de Archidekt `[Ramp,Draw]`, que ahora guarda el parser en `entry.tags`; `splitTags` las separa
-  en roles —alias en inglés y español— y etiquetas libres) y los roles automáticos. El motor, los
+  en roles —alias en inglés y español— y etiquetas libres) y los roles automáticos. Las etiquetas
+  libres de todas las capas se suman. El motor, los
   mínimos y el bracket usan el clasificador corregido; `DeckCardDTO` lleva `roleSource` (`auto` |
-  `list` | `mine`) y `tags`. API `GET /api/me/card-roles`, `PUT /api/me/card-roles/{oracleId}`
+  `list` | `mine` | `deck`) y `tags`. API `GET /api/me/card-roles`, `PUT /api/me/card-roles/{oracleId}`
   (`{roles, primary?, tags}`; vacío = volver a los automáticos). UI: en la tabla del mazo, clic en
-  el rol (`RoleEditDialog`). Exportar `moxfield` escribe `#Rol #etiqueta` y se vuelve a leer.
+  el rol (`RoleEditDialog`; en un mazo guardado propio, "En todos mis mazos" o "Solo en este mazo"). Exportar `moxfield` escribe `#Rol #etiqueta` y se vuelve a leer.
 - **Roles** (`domain/roles`): `HeuristicRoleClassifier` con regex sobre el oracle text (sin
   reminder text, nombre propio → "this") y el tipo de la cara frontal. Roles: land, ramp, draw,
   removal, wipe, counterspell, tutor, protection, synergy (= lo que no es nada de lo anterior).
   Una carta cuenta en todos sus roles; el principal sale de un orden de prioridad. Limitaciones
   conocidas: overload/escalate no cuentan como wipe; "protection" exige conceder a otros.
+  Segunda fuente: las etiquetas de **Scryfall Tagger** (`otag:`). `withTaggerRoles`
+  (`domain/roles/otags.ts`) suma a los heurísticos los roles de `OTAG_ROLES` (`ramp`, `draw`,
+  `removal`, `board-wipe` → wipe, `counterspell`, `tutor`; protección solo heurística), sin cambiar
+  el principal salvo que fuera "synergy" y sin tocar las tierras. Se descargan con la búsqueda de la
+  API (`ScryfallTagger`, `adapters/scryfall/tagger.ts`, `otag:<tag>`, paginada, errores
+  `TaggerError`) a `CardOtag` (sin FK: sobrevive a vaciar el catálogo) y `OtagSync`;
+  `PrismaCardRepository` devuelve cada `Card` con sus `otags`. `scryfall:sync` las actualiza si
+  tienen más de 7 días (`syncOracleTags`); si Scryfall falla se avisa y se usan las de antes.
+  Los nombres de las etiquetas están **pendientes de verificar** contra Scryfall real
+  (`npm run otags:sync` avisa si alguna sale con 0 cartas).
 - **UI** (`src/app`, `src/components`): páginas `/` (estado), `/coleccion` (subir CSV) y `/mazo`
   (pegar lista → curva, roles, cambios con aceptar/descartar, candados, exportar). Son componentes de
   cliente que solo hablan con la API JSON:
@@ -330,8 +348,8 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     `DECK_SOURCES_MIN_INTERVAL_MS`. Sin caché (los mazos cambian). Esquemas zod tolerantes; los
     fixtures están escritos a mano (verificar con `deck:check -- <link>`).
   - Las entradas de mazo pueden traer `scryfallId`; al resolver se prueba id → set+nº → nombre.
-- **Clasificador de roles** intercambiable (`RoleClassifier`): primero heurísticas sobre oracle text
-  y tipo; más adelante `otag:` de Scryfall. Una carta puede tener varios roles.
+- **Clasificador de roles** intercambiable (`RoleClassifier`): heurísticas sobre oracle text y tipo
+  más las etiquetas `otag:` de Scryfall Tagger (se suman). Una carta puede tener varios roles.
 - **Scoring**: `score = a·synergy + b·inclusion + c·bonus_rol`; pesos y mínimos por rol
   configurables en `src/config`.
 - **Nunca se propone cortar**: comandante(s), tierras básicas, cartas bloqueadas.
@@ -374,10 +392,12 @@ Purchase price currency, Added`.
 13. Comunidad: mazos que puedes montar ya (% y coste), filtros y "me gusta" ✅
 14. Precios: histórico, lo que más sube/baja de la colección, avisos de bajada; símbolos e
     imágenes servidos desde nuestro servidor ✅
-15. Roles corregidos a mano y etiquetas (Moxfield/Archidekt), en el motor y al exportar ✅
+15. Roles corregidos a mano (en todos mis mazos o solo en uno) y etiquetas (Moxfield/Archidekt),
+    en el motor y al exportar; etiquetas `otag:` de Scryfall como segunda fuente de roles ✅
 16. Combos (Commander Spellbook): en el mazo, a una carta (con tu colección) y en el bracket ✅
 17. Intercambios: lista de deseos, para cambiar, cruces entre usuarios y avisos ✅
-18. Impresiones concretas: edición en los mazos, valor exacto de la colección (foil) ✅
+18. Impresiones concretas: edición en los mazos, valor exacto de la colección (foil) e idioma de
+    cada copia ✅
 
 Las fases siguientes (19–20) están en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
 diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.

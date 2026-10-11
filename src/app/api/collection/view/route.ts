@@ -29,6 +29,10 @@ const schema = z.object({
       origin: z.enum(["csv", "manual"]).optional(),
       use: z.enum(["libres", "en-mazos"]).optional(),
       foil: z.boolean().optional(),
+      language: z
+        .string()
+        .regex(/^[a-z]{2,3}$/)
+        .optional(),
     })
     .default({}),
   sort: z.enum(COLLECTION_SORTS).default("nombre"),

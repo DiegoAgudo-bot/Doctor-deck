@@ -60,6 +60,23 @@ model Printing {
   @@index([setCode, collectorNumber])
 }
 
+/// Etiquetas de Scryfall Tagger (`otag:`) de cada carta (las de `OTAG_ROLES`). Sin clave ajena a
+/// OracleCard: el catálogo se vacía y se vuelve a llenar en cada `scryfall:sync`.
+model CardOtag {
+  oracleId String
+  tag      String
+
+  @@id([oracleId, tag])
+  @@index([tag])
+}
+
+/// Cuándo se sincronizó por última vez cada etiqueta de Tagger y cuántas cartas tenía.
+model OtagSync {
+  tag      String   @id
+  syncedAt DateTime
+  cards    Int
+}
+
 model CollectionEntry {
   id              Int      @id @default(autoincrement())
   /// Dueño. null = datos de antes de que hubiera usuarios (ver scripts/claim-orphans.ts).
@@ -72,6 +89,8 @@ model CollectionEntry {
   collectorNumber String?
   quantity        Int
   foil            Boolean  @default(false)
+  /// Idioma de la copia (código de Scryfall: "en", "es", "ja"…); null si no se sabe.
+  language        String?
   /// "matched" | "unmatched"
   status          String
   /// Cómo se emparejó: "scryfallId" | "setNumber" | "name"; null si no se emparejó.
@@ -87,24 +106,24 @@ model CollectionEntry {
 }
 
 model Deck {
-  id             Int            @id @default(autoincrement())
+  id             Int                @id @default(autoincrement())
   /// Identificador público (URL /decks/{publicId} y API). El `id` numérico no sale de la BD.
-  publicId       String         @unique @default(uuid())
+  publicId       String             @unique @default(uuid())
   /// Dueño. null = datos de antes de que hubiera usuarios (ver scripts/claim-orphans.ts).
   userId         String?
-  user           User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
   name           String
   theme          String?
   /// Lo que pegó el usuario (lista o link), para volver a analizarlo.
-  input          String         @default("")
+  input          String             @default("")
   /// "text" | "archidekt" | "moxfield"
-  source         String         @default("text")
+  source         String             @default("text")
   /// Nombres de los comandantes, para listar sin consultar el catálogo.
-  commanderNames String         @default("")
+  commanderNames String             @default("")
   /// Array JSON de oracleIds descartados para entrar.
-  excluded       String         @default("[]")
+  excluded       String             @default("[]")
   /// "public" (perfil, Comunidad y avisos) | "unlisted" (solo con el enlace) | "private".
-  visibility     String         @default("public")
+  visibility     String             @default("public")
   /// Bracket al que apunta el mazo (1–5); null = sin objetivo.
   targetBracket  Int?
   /// Datos para filtrar en Comunidad, calculados al guardar (y tras cada `scryfall:sync`):
@@ -113,10 +132,11 @@ model Deck {
   colorIdentity  String?
   bracket        Int?
   /// Lo que me falta para este mazo entra en mi lista de deseos.
-  inWishlist     Boolean        @default(false)
+  inWishlist     Boolean            @default(false)
   likes          DeckLike[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  roleOverrides  DeckRoleOverride[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
   cards          DeckCard[]
   decisions      SwapDecision[]
 
@@ -314,6 +334,21 @@ model CardRoleOverride {
   updatedAt DateTime @updatedAt
 
   @@id([userId, oracleId])
+}
+
+/// Correcciones de roles de una carta que valen solo en un mazo (del dueño del mazo).
+model DeckRoleOverride {
+  deckId    Int
+  deck      Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  oracleId  String
+  /// Array JSON de roles (vacío = no cambia los roles, solo etiquetas).
+  roles     String   @default("[]")
+  primary   String?
+  /// Array JSON de etiquetas libres.
+  tags      String   @default("[]")
+  updatedAt DateTime @updatedAt
+
+  @@id([deckId, oracleId])
 }
 
 /// Cartas que he añadido a mano a mi lista de deseos.

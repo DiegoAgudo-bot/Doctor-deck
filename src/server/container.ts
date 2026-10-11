@@ -14,10 +14,12 @@ import { SpellbookClient } from "@/adapters/spellbook/spellbook-client";
 import { createDb } from "@/adapters/db/prisma";
 import { HttpClient } from "@/adapters/http/http-client";
 import { FileImageCache } from "@/adapters/images/image-cache";
+import { ScryfallTagger } from "@/adapters/scryfall/tagger";
 import { smtpMailer } from "@/adapters/mail/mailer";
 import { engineConfig } from "@/config/engine";
 import { loadEnv } from "@/config/env";
 import { HeuristicRoleClassifier } from "@/domain/roles/heuristic-classifier";
+import { withTaggerRoles } from "@/domain/roles/otags";
 import { authFeatures, createAuth, type Auth } from "./auth";
 
 export type Container = ReturnType<typeof createContainer>;
@@ -45,6 +47,10 @@ export function createContainer() {
   const deckSourcesHttp = new HttpClient({
     userAgent: env.HTTP_USER_AGENT,
     minIntervalMs: env.DECK_SOURCES_MIN_INTERVAL_MS,
+  });
+  const scryfallHttp = new HttpClient({
+    userAgent: env.HTTP_USER_AGENT,
+    minIntervalMs: env.SCRYFALL_MIN_INTERVAL_MS,
   });
   const mailer = env.SMTP_URL ? smtpMailer(env.SMTP_URL, env.MAIL_FROM) : null;
   return {
@@ -74,12 +80,12 @@ export function createContainer() {
       moxfieldDeckSource(deckSourcesHttp),
       textDeckSource,
     ],
-    classifier: new HeuristicRoleClassifier(),
+    /** Roles: heurísticas sobre el texto + etiquetas de Scryfall Tagger (`otags:sync`). */
+    classifier: withTaggerRoles(new HeuristicRoleClassifier()),
     engineConfig,
-    scryfallHttp: new HttpClient({
-      userAgent: env.HTTP_USER_AGENT,
-      minIntervalMs: env.SCRYFALL_MIN_INTERVAL_MS,
-    }),
+    scryfallHttp,
+    /** Etiquetas `otag:` de Scryfall Tagger (búsqueda de la API, mismo rate limit). */
+    tagger: new ScryfallTagger(scryfallHttp),
     /** Imágenes de cartas: de disco o de cards.scryfall.io (que no tiene límite de peticiones). */
     images: new FileImageCache(
       env.IMAGE_CACHE_DIR,

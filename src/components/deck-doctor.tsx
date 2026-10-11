@@ -32,7 +32,7 @@ import { CombosPanel } from "./deck-combos";
 import { OpeningHand } from "./deck-hand";
 import { localRoles } from "./local-roles";
 import { PrintingDialog } from "./printing-dialog";
-import { RoleEditDialog } from "./role-edit-dialog";
+import { RoleEditDialog, type RoleEditScope } from "./role-edit-dialog";
 import { OwnershipPanel } from "./deck-ownership";
 import { ExportDialog, SaveDialog } from "./deck-dialogs";
 import {
@@ -455,11 +455,18 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   }
 
   /** Guarda la corrección de roles de una carta (en la cuenta o en el navegador) y reanaliza. */
-  async function saveRoles(card: DeckCardDTO, edit: CardRoleEditDTO) {
+  async function saveRoles(card: DeckCardDTO, edit: CardRoleEditDTO, scope: RoleEditScope) {
     setBusy("roles");
+    const id = encodeURIComponent(card.card.oracleId);
     try {
-      if (loggedIn) {
-        await api(`/api/me/card-roles/${encodeURIComponent(card.card.oracleId)}`, {
+      if (loggedIn && scope === "deck" && saved.deckId !== null) {
+        await api(`/api/decks/${encodeURIComponent(saved.deckId)}/card-roles/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(edit),
+        });
+      } else if (loggedIn) {
+        await api(`/api/me/card-roles/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(edit),
@@ -944,7 +951,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             card={editingRoles}
             busy={busy === "roles"}
             onClose={() => setEditingRoles(null)}
-            onSave={(edit) => editingRoles && void saveRoles(editingRoles, edit)}
+            canScopeToDeck={loggedIn && saved.deckId !== null}
+            onSave={(edit, scope) => editingRoles && void saveRoles(editingRoles, edit, scope)}
           />
           <SaveDialog
             open={dialog === "save"}

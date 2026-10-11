@@ -30,3 +30,6 @@ winota-joiner-of-forces.json` (descargado el 2026-10-09, recortado a `header` y 
 backend.commanderspellbook.com/find-my-combos` para un Korvold Jund de 100 cartas (descargada el
   2026-10-11), recortada a 6 combos completos, 8 a una carta y 2 "añadiendo colores", y sin las
   URL de imágenes ni los campos que no usamos.
+- `scryfall/search-otag-page{1,2}.json`: dos páginas de `api.scryfall.com/cards/search?q=otag:ramp`,
+  **escritas a mano** (sin acceso a Scryfall desde el entorno de desarrollo), con un `next_page`,
+  una carta repetida entre páginas y una `reversible_card` con el `oracle_id` en las caras.

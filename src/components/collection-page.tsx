@@ -102,6 +102,7 @@ export function CollectionPage() {
               oracleId: a.oracleId,
               quantity: a.quantity,
               foil: a.foil,
+              ...(a.language ? { language: a.language } : {}),
             })),
           }),
         });

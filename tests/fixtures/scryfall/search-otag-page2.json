@@ -1,0 +1,32 @@
+{
+  "object": "list",
+  "total_cards": 4,
+  "has_more": false,
+  "data": [
+    {
+      "object": "card",
+      "id": "0afa0e33-4804-4b00-b625-c2d6b61090fe",
+      "name": "Zndrsplt, Eye of Wisdom",
+      "layout": "reversible_card",
+      "card_faces": [
+        {
+          "object": "card_face",
+          "oracle_id": "00000000-0000-4000-8000-00000000a003",
+          "name": "Zndrsplt, Eye of Wisdom"
+        },
+        {
+          "object": "card_face",
+          "oracle_id": "00000000-0000-4000-8000-00000000a003",
+          "name": "Zndrsplt, Eye of Wisdom"
+        }
+      ]
+    },
+    {
+      "object": "card",
+      "id": "0afa0e33-4804-4b00-b625-c2d6b61090ff",
+      "oracle_id": "00000000-0000-4000-8000-00000000a002",
+      "name": "Sol Ring",
+      "type_line": "Artifact"
+    }
+  ]
+}

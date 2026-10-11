@@ -72,7 +72,7 @@ describe("PrismaCollectionRepository", () => {
       scryfallId: null,
       quantity,
       foil: false,
-      language: "en",
+      language: "en" as const,
       raw: { Name: name },
     });
     await repo.replaceCollection({

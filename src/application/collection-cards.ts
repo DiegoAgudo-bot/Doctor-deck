@@ -1,5 +1,6 @@
 import { printingPrice } from "@/domain/cards/types";
 import { NON_GAME_LAYOUTS } from "@/domain/cards/card-index";
+import { normalizeLanguage } from "@/domain/cards/languages";
 import { nameKey } from "@/domain/cards/names";
 import {
   browseCollection,
@@ -24,10 +25,18 @@ export interface AddCardInput {
   name?: string | undefined;
   quantity: number;
   foil?: boolean | undefined;
+  /** Idioma de la copia (código de Scryfall o nombre en inglés). */
+  language?: string | undefined;
 }
 
 export interface AddCardsResult {
-  added: { card: Card; quantity: number; foil: boolean; scryfallId: string | null }[];
+  added: {
+    card: Card;
+    quantity: number;
+    foil: boolean;
+    scryfallId: string | null;
+    language: string | null;
+  }[];
   /** Las entradas que no corresponden a ninguna carta (su nombre o id, tal cual). */
   notFound: string[];
 }
@@ -83,6 +92,7 @@ export async function addToCollection(
       quantity: item.quantity,
       foil: item.foil ?? false,
       scryfallId: item.scryfallId?.toLowerCase() ?? null,
+      language: normalizeLanguage(item.language),
     });
   }
   await deps.collection.addCards(
@@ -92,6 +102,7 @@ export async function addToCollection(
       quantity: a.quantity,
       foil: a.foil,
       scryfallId: a.scryfallId,
+      language: a.language,
     })),
   );
   return result;
@@ -105,9 +116,17 @@ export interface CollectionCard {
   foilQuantity: number;
   /** Ediciones (códigos de set) de las copias, si se conocen. */
   sets: string[];
+  /** Copias por idioma (código de Scryfall), de las que se sabe; las de más copias primero. */
+  languages: { language: string; quantity: number }[];
   /** Copias que vinieron del CSV y las añadidas sueltas (con su id para poder quitarlas). */
   fromCsv: number;
-  manual: { id: string; quantity: number; foil: boolean; addedAt: Date }[];
+  manual: {
+    id: string;
+    quantity: number;
+    foil: boolean;
+    language: string | null;
+    addedAt: Date;
+  }[];
   lastAdded: Date;
   /** Precio de referencia (EUR) de la impresión más barata; null si no hay. */
   price: number | null;
@@ -158,6 +177,7 @@ export async function collectionView(deps: {
         quantity: 0,
         foilQuantity: 0,
         sets: [],
+        languages: [],
         fromCsv: 0,
         manual: [],
         lastAdded: e.addedAt,
@@ -175,13 +195,26 @@ export async function collectionView(deps: {
     if (e.setCode && !item.sets.includes(e.setCode.toUpperCase())) {
       item.sets.push(e.setCode.toUpperCase());
     }
+    const language = normalizeLanguage(e.language) ?? e.language;
+    if (language) {
+      const l = item.languages.find((x) => x.language === language);
+      if (l) l.quantity += e.quantity;
+      else item.languages.push({ language, quantity: e.quantity });
+    }
     if (e.source === "manual") {
-      item.manual.push({ id: e.id, quantity: e.quantity, foil: e.foil, addedAt: e.addedAt });
+      item.manual.push({
+        id: e.id,
+        quantity: e.quantity,
+        foil: e.foil,
+        language,
+        addedAt: e.addedAt,
+      });
     } else {
       item.fromCsv += e.quantity;
     }
     if (e.addedAt > item.lastAdded) item.lastAdded = e.addedAt;
   }
+  for (const item of out.values()) item.languages.sort((a, b) => b.quantity - a.quantity);
   return [...out.values()];
 }
 
@@ -212,6 +245,7 @@ export async function browseMyCollection(
     ...c,
     roles: c.roles.roles,
     manualCount: c.manual.length,
+    languages: c.languages.map((l) => l.language),
     lastAdded: c.lastAdded.toISOString(),
     source: c,
   }));

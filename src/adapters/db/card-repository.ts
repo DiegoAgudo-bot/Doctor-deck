@@ -2,6 +2,7 @@ import { NON_GAME_LAYOUTS } from "@/domain/cards/card-index";
 import { nameKey } from "@/domain/cards/names";
 import { COLORS, type Card, type Color, type Printing } from "@/domain/cards/types";
 import type { CardCatalogWriter, CardRepository } from "@/domain/ports/card-repository";
+import type { CardTagWriter } from "@/domain/ports/tagger-source";
 import type { OracleCard, Printing as PrintingRow } from "@/generated/prisma/client";
 import type { Db } from "./prisma";
 
@@ -68,27 +69,43 @@ const printingFromRow = (r: PrintingRow): Printing => ({
 /** No salen en el buscador: lo que no es carta de juego (tokens, emblemas, caras sueltas…). */
 const NOT_PLAYABLE = [...NON_GAME_LAYOUTS];
 
-export class PrismaCardRepository implements CardRepository, CardCatalogWriter {
+export class PrismaCardRepository implements CardRepository, CardCatalogWriter, CardTagWriter {
   constructor(private readonly db: Db) {}
 
-  async findCardsByOracleIds(oracleIds: readonly string[]) {
-    const out: Card[] = [];
-    for (const ids of chunks([...new Set(oracleIds)])) {
-      const rows = await this.db.oracleCard.findMany({ where: { oracleId: { in: ids } } });
-      out.push(...rows.map(fromRow));
+  /**
+   * Cartas con sus etiquetas de Tagger (`otags`). Las etiquetas van en otra tabla, sin clave
+   * ajena, para que sobrevivan a vaciar y volver a llenar el catálogo en cada `scryfall:sync`.
+   */
+  private async toCards(rows: readonly OracleCard[]): Promise<Card[]> {
+    const tags = new Map<string, string[]>();
+    for (const ids of chunks(rows.map((r) => r.oracleId))) {
+      const found = await this.db.cardOtag.findMany({ where: { oracleId: { in: ids } } });
+      for (const t of found) tags.set(t.oracleId, [...(tags.get(t.oracleId) ?? []), t.tag]);
     }
-    return out;
+    return rows.map((r) => {
+      const card = fromRow(r);
+      const otags = tags.get(r.oracleId);
+      return otags ? { ...card, otags: otags.sort() } : card;
+    });
+  }
+
+  async findCardsByOracleIds(oracleIds: readonly string[]) {
+    const rows: OracleCard[] = [];
+    for (const ids of chunks([...new Set(oracleIds)])) {
+      rows.push(...(await this.db.oracleCard.findMany({ where: { oracleId: { in: ids } } })));
+    }
+    return this.toCards(rows);
   }
 
   async findCardsByNameKeys(keys: readonly string[]) {
-    const out = new Map<string, Card>();
+    const out = new Map<string, OracleCard>();
     for (const ks of chunks([...new Set(keys)])) {
       const rows = await this.db.oracleCard.findMany({
         where: { OR: [{ nameKey: { in: ks } }, { frontFaceKey: { in: ks } }] },
       });
-      for (const r of rows) out.set(r.oracleId, fromRow(r));
+      for (const r of rows) out.set(r.oracleId, r);
     }
-    return [...out.values()];
+    return this.toCards([...out.values()]);
   }
 
   async searchByName(query: string, limit: number) {
@@ -124,7 +141,7 @@ export class PrismaCardRepository implements CardRepository, CardCatalogWriter {
             take: limit - prefix.length,
           })
         : [];
-    return [...prefix, ...rest].map(fromRow);
+    return this.toCards([...prefix, ...rest]);
   }
 
   async findPrintingsByIds(scryfallIds: readonly string[]) {
@@ -201,6 +218,23 @@ export class PrismaCardRepository implements CardRepository, CardCatalogWriter {
     for (const batch of chunks(cards)) {
       await this.db.oracleCard.createMany({ data: batch.map(toRow) });
     }
+  }
+
+  async replaceTag(tag: string, oracleIds: readonly string[], syncedAt: Date) {
+    const ids = [...new Set(oracleIds)];
+    await this.db.$transaction(async (tx) => {
+      await tx.cardOtag.deleteMany({ where: { tag } });
+      for (const batch of chunks(ids)) {
+        await tx.cardOtag.createMany({ data: batch.map((oracleId) => ({ oracleId, tag })) });
+      }
+      const sync = { syncedAt, cards: ids.length };
+      await tx.otagSync.upsert({ where: { tag }, create: { tag, ...sync }, update: sync });
+    });
+  }
+
+  async tagSyncs() {
+    const rows = await this.db.otagSync.findMany();
+    return new Map(rows.map((r) => [r.tag, { syncedAt: r.syncedAt, cards: r.cards }]));
   }
 
   async insertPrintings(printings: readonly Printing[]) {

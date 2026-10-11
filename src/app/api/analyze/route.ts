@@ -5,7 +5,7 @@ import { BRACKETS } from "@/domain/deck/bracket";
 import { getContainer } from "@/server/container";
 import { analyzeResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
-import { browserRoleEditsSchema, loadRoleEdits } from "@/server/role-edits";
+import { browserRoleEditsSchema, loadDeckRoleEdits, loadRoleEdits } from "@/server/role-edits";
 import { currentUser } from "@/server/session";
 
 const ids = z.array(z.string().min(1).max(64)).max(200).optional();
@@ -45,7 +45,11 @@ export async function POST(request: Request) {
     const { collection, roleEdits, ...req } = analyzeRequestSchema.parse(await request.json());
     const c = getContainer();
     const result = await analyzeDeck(
-      { ...req, roleEdits: await loadRoleEdits(user?.id ?? null, roleEdits) },
+      {
+        ...req,
+        roleEdits: await loadRoleEdits(user?.id ?? null, roleEdits),
+        deckRoleEdits: await loadDeckRoleEdits(user?.id ?? null, req.deckId),
+      },
       {
         sources: c.deckSources,
         cards: c.cards,

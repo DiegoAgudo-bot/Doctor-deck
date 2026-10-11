@@ -425,8 +425,16 @@ export interface CollectionCardDTO {
   quantity: number;
   foilQuantity: number;
   sets: string[];
+  /** Copias por idioma (código de Scryfall), de las que se sabe. */
+  languages: { language: string; quantity: number }[];
   fromCsv: number;
-  manual: { id: string; quantity: number; foil: boolean; addedAt: string }[];
+  manual: {
+    id: string;
+    quantity: number;
+    foil: boolean;
+    language: string | null;
+    addedAt: string;
+  }[];
   lastAdded: string;
   /** Precio de referencia por copia (la impresión más barata). */
   price: number | null;
@@ -455,11 +463,12 @@ export interface AddedCardDTO {
   card: CardDTO;
   quantity: number;
   foil: boolean;
+  language: string | null;
   addedAt: string;
 }
 
 export interface AddCardsResponse {
-  added: { card: CardDTO; quantity: number; foil: boolean }[];
+  added: { card: CardDTO; quantity: number; foil: boolean; language: string | null }[];
   notFound: string[];
   /** Si se ha guardado en la cuenta (con sesión); sin ella, el navegador lo guarda. */
   saved: boolean;
@@ -664,6 +673,7 @@ export const collectionCardDTO = (c: CollectionCard): CollectionCardDTO => ({
   quantity: c.quantity,
   foilQuantity: c.foilQuantity,
   sets: c.sets,
+  languages: c.languages,
   fromCsv: c.fromCsv,
   manual: c.manual.map((m) => ({ ...m, addedAt: m.addedAt.toISOString() })),
   lastAdded: c.lastAdded.toISOString(),
@@ -674,7 +684,12 @@ export const collectionCardDTO = (c: CollectionCard): CollectionCardDTO => ({
 });
 
 export const addCardsResponse = (r: AddCardsResult, saved: boolean): AddCardsResponse => ({
-  added: r.added.map((a) => ({ card: cardDTO(a.card), quantity: a.quantity, foil: a.foil })),
+  added: r.added.map((a) => ({
+    card: cardDTO(a.card),
+    quantity: a.quantity,
+    foil: a.foil,
+    language: a.language,
+  })),
   notFound: r.notFound,
   saved,
 });

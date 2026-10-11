@@ -46,6 +46,14 @@ describe("parseManaboxCsv: casos límite", () => {
     ]);
   });
 
+  it("normaliza el idioma (código de Scryfall o nombre en inglés)", () => {
+    const { rows } = parseManaboxCsv(
+      `${HEADER}\nSol Ring,C21,,263,normal,,1,,,,,,,,ES,,,\nSol Ring,C21,,263,normal,,1,,,,,,,,Japanese,,,\n` +
+        `Sol Ring,C21,,263,normal,,1,,,,,,,,,,,`,
+    );
+    expect(rows.map((r) => r.language)).toEqual(["es", "ja", null]);
+  });
+
   it("devuelve errores por fila con su número de línea", () => {
     const { rows, errors } = parseManaboxCsv(
       `${HEADER}\n,C21,,263,normal,,1,,,,,,,,,,,\nSol Ring,C21,,263,normal,,0,,,,,,,,,,,\nSol Ring,C21,,263,normal,,abc,,,,,,,,,,,`,
