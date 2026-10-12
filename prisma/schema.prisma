@@ -607,3 +607,21 @@ model UserPref {
 
   @@id([userId, key])
 }
+
+/// Errores de la app (del servidor y del navegador), agrupados por huella: se ven en /admin/errors.
+model ErrorLog {
+  id          Int      @id @default(autoincrement())
+  /// source + mensaje normalizado + ruta: el mismo error repetido suma `count`.
+  fingerprint String   @unique
+  /// "server" | "client"
+  source      String
+  message     String
+  stack       String?
+  path        String?
+  userAgent   String?
+  count       Int      @default(1)
+  firstAt     DateTime @default(now())
+  lastAt      DateTime @default(now())
+
+  @@index([lastAt])
+}

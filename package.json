@@ -24,7 +24,8 @@
     "deck:check": "tsx scripts/check-deck.ts",
     "edhrec:fetch": "tsx scripts/edhrec-fetch.ts",
     "deck:suggest": "tsx scripts/suggest.ts",
-    "users:claim": "tsx scripts/claim-orphans.ts"
+    "users:claim": "tsx scripts/claim-orphans.ts",
+    "e2e": "tsx scripts/e2e-db.ts data/e2e.db && playwright test"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.10.0",
@@ -39,6 +40,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/turbopack": "^4",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.20.5",

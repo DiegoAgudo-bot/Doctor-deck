@@ -16,6 +16,7 @@ import { AppError } from "@/application/errors";
 import { CsvParseError } from "@/domain/collection/csv";
 import { ManaboxFormatError } from "@/domain/collection/manabox";
 import type { ApiErrorBody } from "./dto";
+import { reportServerError } from "./error-log";
 import { UnauthorizedError } from "./session";
 
 const EDHREC_STATUS: Record<EdhrecError["code"], number> = {
@@ -108,6 +109,7 @@ export function errorResponse(err: unknown): Response {
     return Response.json(body("invalid_commanders", err.message), { status: 400 });
   }
   console.error(err);
+  void reportServerError(err);
   return Response.json(body("internal", "Error inesperado en el servidor"), { status: 500 });
 }
 

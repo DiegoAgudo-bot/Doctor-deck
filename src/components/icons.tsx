@@ -249,3 +249,9 @@ export const IconLoan = (p: P) => (
     <path d="M17 8h3v13h-9v-3" />
   </Icon>
 );
+export const IconSearch = (p: P) => (
+  <Icon {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="M16 16l4.5 4.5" />
+  </Icon>
+);

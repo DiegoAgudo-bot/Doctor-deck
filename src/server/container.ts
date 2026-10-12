@@ -7,6 +7,7 @@ import { PrismaDeckRepository, PrismaPublicDecks } from "@/adapters/db/deck-repo
 import { PrismaPriceHistory } from "@/adapters/db/price-history";
 import { MemoCache } from "./memo-cache";
 import type { CollectionCard } from "@/application/collection-cards";
+import { PrismaErrorLog } from "@/adapters/db/error-log";
 import { PrismaPrefsRepository } from "@/adapters/db/prefs-repository";
 import { PrismaRoleOverrideRepository } from "@/adapters/db/role-override-repository";
 import { PrismaTradeRepository } from "@/adapters/db/trade-repository";
@@ -78,6 +79,8 @@ export function createContainer() {
     roleOverridesFor: (userId: string) => new PrismaRoleOverrideRepository(db, userId),
     /** Filtros, orden y vista de cada página (para que sigan en otro navegador o en la app). */
     prefsFor: (userId: string) => new PrismaPrefsRepository(db, userId),
+    /** Errores del servidor y del navegador (/admin/errors). */
+    errorLog: new PrismaErrorLog(db),
     /**
      * La colección calculada de cada usuario (cartas, precios, roles y uso en mazos): se rehace
      * solo si algo cambia (`dataEpoch`) o cada 10 minutos (precios de `scryfall:sync`).

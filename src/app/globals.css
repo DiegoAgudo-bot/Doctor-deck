@@ -339,6 +339,97 @@
     background: var(--color-panel);
     border-bottom: 1px solid var(--color-line);
   }
+  /* Buscador de la cabecera. */
+  .gsearch {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: clamp(220px, 24vw, 360px);
+  }
+  .gsearch-glyph {
+    position: absolute;
+    left: 10px;
+    color: var(--color-text-3);
+    pointer-events: none;
+  }
+  .gsearch .gsearch-input {
+    height: 32px;
+    padding-left: 30px;
+    padding-right: 28px;
+    font-size: 13px;
+  }
+  .gsearch-kbd {
+    position: absolute;
+    right: 8px;
+    padding: 1px 6px;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 4px;
+    font: 500 11px/1.4 var(--font-mono);
+    color: var(--color-text-3);
+    pointer-events: none;
+  }
+  .gsearch-pop {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    width: max(100%, 380px);
+    max-height: min(70vh, 520px);
+    overflow-y: auto;
+    z-index: 40;
+    box-shadow: var(--shadow-pop);
+    padding: 4px;
+  }
+  .gsearch-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .gsearch-section {
+    display: block;
+    padding: 8px 8px 4px;
+  }
+  .gsearch-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: var(--radius-md, 6px);
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 13.5px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .gsearch-item:hover,
+  .gsearch-item.is-active {
+    background: var(--color-hover);
+  }
+  .gsearch-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 24px;
+    color: var(--color-text-2);
+  }
+  .gsearch-icon .cardimg-missing {
+    font-size: 0;
+    aspect-ratio: 488 / 680;
+  }
+  .gsearch-sheet {
+    width: min(560px, calc(100vw - 16px));
+  }
+  @media (max-width: 760px) {
+    .gsearch-sheet {
+      margin: 0 !important;
+      max-height: 100dvh !important;
+      height: 100dvh;
+      border-radius: 0 !important;
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+  }
   .avatar {
     width: 30px;
     height: 30px;
@@ -381,6 +472,64 @@
     }
     .grid-1-sm {
       grid-template-columns: minmax(0, 1fr) !important;
+    }
+    /*
+     * Tablas que en el móvil pasan a tarjetas (`.rtable`): primera línea copias (`rt-qty`), nombre
+     * (`rt-main`) y lo de la derecha (`rt-end`); debajo, el resto de columnas en pequeño.
+     */
+    .rtable thead {
+      display: none;
+    }
+    .rtable,
+    .rtable tbody {
+      display: block;
+    }
+    .rtable tr {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      column-gap: 10px;
+      row-gap: 3px;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--color-line);
+    }
+    .rtable tr::after {
+      content: "";
+      order: 3;
+      flex-basis: 100%;
+    }
+    .rtable td {
+      display: block;
+      padding: 0 !important;
+      border: 0 !important;
+      order: 4;
+      font-size: 12px;
+      max-width: none !important;
+    }
+    .rtable td:empty {
+      display: none;
+    }
+    .rtable td.rt-qty {
+      order: 0;
+      min-width: 18px;
+      font-size: 13px;
+    }
+    .rtable td.rt-main {
+      order: 1;
+      flex: 1 1 0;
+      min-width: 0;
+      font-size: 13.5px;
+    }
+    .rtable td.rt-main > * {
+      flex-wrap: wrap;
+    }
+    .rtable td.rt-end {
+      order: 2;
+      margin-left: auto;
+      font-size: 13px;
+    }
+    .rtable td.hide-sm {
+      display: none;
     }
     .page {
       padding-left: 14px !important;
@@ -1310,6 +1459,20 @@
   }
   .dialog::backdrop {
     background: rgba(0, 0, 0, 0.55);
+  }
+  /* En el móvil, todos los diálogos salen desde abajo (como hojas) y ocupan el ancho. */
+  @media (max-width: 760px) {
+    .dialog {
+      width: 100vw !important;
+      max-width: 100vw;
+      max-height: 92dvh;
+      margin: auto 0 0 !important;
+      overflow-y: auto;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      border-bottom: 0;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      animation: dd-sheet var(--motion-200) var(--ease-out) both;
+    }
   }
   .skel {
     border-radius: 3px;

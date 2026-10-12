@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, Spectral } from "next/font/google";
 import Script from "next/script";
+import { ErrorReporter } from "@/components/error-reporter";
 import "./globals.css";
 
 const plexSans = IBM_Plex_Sans({
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Script id="theme" strategy="beforeInteractive">
           {THEME_SCRIPT}
         </Script>
+        <ErrorReporter />
         {children}
       </body>
     </html>
