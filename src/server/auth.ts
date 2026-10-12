@@ -40,6 +40,13 @@ export function createAuth({ db, env, mailer }: { db: Db; env: Env; mailer: Mail
       ...(mailer
         ? {
             revokeSessionsOnPasswordReset: true,
+            // Quien restablece la contraseña con el enlace del correo demuestra que el email es
+            // suyo: queda verificado (y entrar con Google con ese email ya enlaza las cuentas).
+            onPasswordReset: async ({ user }) => {
+              if (!user.emailVerified) {
+                await db.user.update({ where: { id: user.id }, data: { emailVerified: true } });
+              }
+            },
             sendResetPassword: async ({ user, url }) => {
               await mailer.send({
                 to: user.email,
@@ -50,10 +57,36 @@ export function createAuth({ db, env, mailer }: { db: Db; env: Env; mailer: Mail
           }
         : {}),
     },
+    // Con correo configurado, al registrarse llega un enlace para verificar el email. No es
+    // obligatorio para entrar, pero sin verificar, Google no se enlaza solo (ver accountLinking).
+    ...(mailer
+      ? {
+          emailVerification: {
+            sendOnSignUp: true,
+            autoSignInAfterVerification: true,
+            sendVerificationEmail: async ({
+              user,
+              url,
+            }: {
+              user: { name: string; email: string };
+              url: string;
+            }) => {
+              await mailer.send({
+                to: user.email,
+                subject: "Doctor Deck · Confirma tu email",
+                text: `Hola ${user.name},\n\nConfirma que este email es tuyo abriendo este enlace:\n${url}\n\nSi no te has registrado en Doctor Deck, ignora este mensaje.`,
+              });
+            },
+          },
+        }
+      : {}),
     socialProviders: google,
     account: {
-      // Si alguien se registró con email y luego entra con Google (mismo email verificado por
-      // Google), es la misma cuenta.
+      // Si alguien se registró con email y luego entra con Google (mismo email), es la misma
+      // cuenta, pero solo si su email ya está verificado (`requireLocalEmailVerified`, por
+      // defecto): si no, alguien podría registrarse antes con un email ajeno y quedarse la cuenta
+      // de quien luego entra con Google. Sin verificar, Google devuelve `account_not_linked`: se
+      // explica en /login y se enlaza desde Ajustes, ya con sesión (`linkSocial`).
       accountLinking: { enabled: true, trustedProviders: ["google"] },
     },
     telemetry: { enabled: false },

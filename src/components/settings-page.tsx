@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DeleteAccountDialog } from "./delete-account-dialog";
 import { USERNAME_HELP } from "@/domain/social/username";
@@ -12,8 +13,106 @@ import { authClient } from "./auth-client";
 import { IconLogout } from "./icons";
 import { Banner, Loading } from "./ui";
 
+/**
+ * Cuenta: email verificado o no (con reenvío del enlace) y cuentas vinculadas (Google). Vincular
+ * con sesión es la forma segura de unir Google a una cuenta creada con contraseña.
+ */
+function AccountSection({ google, mail }: { google: boolean; mail: boolean }) {
+  const { data: session, refetch } = authClient.useSession();
+  const [providers, setProviders] = useState<string[] | null>(null);
+  const linkError = useSearchParams().get("linkError");
+  const [note, setNote] = useState<{ tone: "in" | "out"; text: string } | null>(
+    linkError
+      ? {
+          tone: "out",
+          text: "No se ha podido vincular Google. Comprueba que usas la cuenta de Google con el mismo email (o que no está ya vinculada a otro usuario).",
+        }
+      : null,
+  );
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    void authClient.listAccounts().then(({ data }) => {
+      setProviders((data ?? []).map((a) => a.providerId));
+    });
+  }, []);
+
+  if (!session) return null;
+  const verified = session.user.emailVerified;
+  const hasGoogle = providers?.includes("google") ?? false;
+  return (
+    <section className="panel">
+      <div className="panel-h">
+        <span className="h2">Cuenta</span>
+      </div>
+      <div className="flex flex-col gap-3 p-3.5 text-[13.5px]">
+        {note && <Banner tone={note.tone}>{note.text}</Banner>}
+        <div className="flex flex-wrap items-center gap-2">
+          <span>
+            Email: <b>{session.user.email}</b>
+          </span>
+          <span className={`pill ${verified ? "pill-in" : "pill-warn"}`}>
+            {verified ? "verificado" : "sin verificar"}
+          </span>
+          {!verified && mail && (
+            <button
+              type="button"
+              className="btn btn-sm"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                const { error } = await authClient.sendVerificationEmail({
+                  email: session.user.email,
+                  callbackURL: "/settings",
+                });
+                setBusy(false);
+                setNote(
+                  error
+                    ? { tone: "out", text: "No se ha podido enviar el correo. Prueba más tarde." }
+                    : { tone: "in", text: "Te hemos enviado un enlace para verificar el email." },
+                );
+                void refetch();
+              }}
+            >
+              Enviar enlace de verificación
+            </button>
+          )}
+        </div>
+        {google && providers && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span>Google:</span>
+            {hasGoogle ? (
+              <span className="pill pill-in">vinculada · puedes entrar con Google</span>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-sm"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  const { error } = await authClient.linkSocial({
+                    provider: "google",
+                    callbackURL: "/settings",
+                    errorCallbackURL: "/settings?linkError=1",
+                  });
+                  if (error) {
+                    setBusy(false);
+                    setNote({ tone: "out", text: "No se ha podido vincular Google." });
+                  }
+                }}
+              >
+                Vincular Google
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 /** /settings: nombre de usuario, privacidad de la colección, avisos de precio y salir. */
-export function SettingsPage() {
+export function SettingsPage({ google, mail }: { google: boolean; mail: boolean }) {
   const [me, setMe] = useState<MyProfileDTO | null>(null);
   const [username, setUsername] = useState("");
   const [message, setMessage] = useState<{ tone: "in" | "out"; text: string } | null>(null);
@@ -68,6 +167,7 @@ export function SettingsPage() {
     <main className="page">
       <h1 className="h1">Ajustes</h1>
       {message && <Banner tone={message.tone}>{message.text}</Banner>}
+      <AccountSection google={google} mail={mail} />
 
       <section className="panel">
         <div className="panel-h">

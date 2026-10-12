@@ -75,10 +75,14 @@ describe("registro y login con email + contraseña", () => {
 describe("restablecer contraseña", () => {
   it("envía un enlace por email y permite poner una contraseña nueva", async () => {
     await signUp("olvido@example.com", "antigua-123");
+    // Al registrarse llega el enlace para verificar el email.
+    expect(
+      sent.find((m) => m.to === "olvido@example.com" && /verify-email/.test(m.text)),
+    ).toBeDefined();
     await auth.api.requestPasswordReset({
       body: { email: "olvido@example.com", redirectTo: "/reset-password" },
     });
-    const mail = sent.find((m) => m.to === "olvido@example.com");
+    const mail = sent.find((m) => m.to === "olvido@example.com" && /reset-password\//.test(m.text));
     expect(mail?.text).toMatch(/\/api\/auth\/reset-password\//);
     const token = /reset-password\/([^?\s]+)/.exec(mail?.text ?? "")?.[1] ?? "";
 
@@ -88,6 +92,9 @@ describe("restablecer contraseña", () => {
       asResponse: true,
     });
     expect(res.ok).toBe(true);
+    // Restablecer con el enlace del correo verifica el email (y así Google se enlaza solo).
+    const user = await db.user.findUnique({ where: { email: "olvido@example.com" } });
+    expect(user?.emailVerified).toBe(true);
   });
 });
 
