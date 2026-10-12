@@ -40,6 +40,7 @@ export default defineConfig({
       BETTER_AUTH_SECRET: "e2e-secret-e2e-secret-e2e-secret-e2e",
       IMAGE_CACHE_DIR: "data/e2e-images",
       ADMIN_EMAILS: "e2e@example.com",
+      HTTP_USER_AGENT: "DoctorDeck-e2e/0.1 (pruebas)",
     },
   },
 });
