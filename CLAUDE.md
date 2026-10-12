@@ -7,29 +7,31 @@ recomendaciones de EDHREC, priorizando cartas de la colección del usuario (expo
 
 ## Comandos
 
-| Comando                                                                                           | Qué hace                                                                  |
-| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `npm install`                                                                                     | Instala dependencias y genera el cliente Prisma (`postinstall`)           |
-| `cp .env.example .env`                                                                            | Configuración local (nunca se sube `.env`)                                |
-| `npm run db:migrate`                                                                              | Aplica/crea migraciones de Prisma sobre SQLite (`data/deck-doctor.db`)    |
-| `npm run dev`                                                                                     | Servidor de desarrollo                                                    |
-| `npm test` / `npm run test:watch` / `npm run test:coverage`                                       | Vitest                                                                    |
-| `npm run typecheck`                                                                               | `next typegen` + `tsc --noEmit`                                           |
-| `npm run lint`                                                                                    | ESLint (incluye la regla de capas)                                        |
-| `npm run format` / `format:check`                                                                 | Prettier                                                                  |
-| `npm run build`                                                                                   | Build de producción                                                       |
-| `npm run scryfall:sync [-- --force \| --skip-download]`                                           | Descarga los bulk de Scryfall (si hay versión nueva) y los vuelca a la BD |
-| `npm run symbols:sync`                                                                            | Descarga los símbolos de maná de Scryfall a `public/symbols/`             |
-| `npm run otags:sync [-- --force \| --tag ramp]`                                                   | Descarga las etiquetas `otag:` de Scryfall Tagger (roles)                 |
-| `npm run db:backup`                                                                               | Copia de seguridad de la SQLite en `data/backups/` (ver `DEPLOY.md`)      |
-| `npm run collection:import -- "export.csv" [--user email]`                                        | Importa un CSV de ManaBox (a la cuenta indicada) y muestra el resumen     |
-| `npm run users:claim -- --user email`                                                             | Pasa a esa cuenta la colección y los mazos de antes de haber usuarios     |
-| `npm run deck:check -- "lista.txt" \| "https://…"`                                                | Parsea y resuelve una lista de mazo contra el catálogo                    |
-| `npm run edhrec:fetch -- "Comandante" [--theme x] [--partner "B"] [--save f.json]`                | Pide recomendaciones a EDHREC (con caché) y muestra un resumen            |
-| `npm run deck:suggest -- "lista.txt" [--theme x] [--lock "Carta"] [--commander "C"]`              | Analiza un mazo y muestra los cambios sugeridos                           |
-| `… deck:suggest -- … [--deck-id uuid] [--ignore-other-decks] [--buy N --max-price 1 --budget 10]` | Igual, con mazo guardado / sin descontar otros mazos / modo compra        |
+| Comando                                                                                           | Qué hace                                                                       |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `npm install`                                                                                     | Instala dependencias y genera el cliente Prisma (`postinstall`)                |
+| `cp .env.example .env`                                                                            | Configuración local (nunca se sube `.env`)                                     |
+| `npm run db:migrate`                                                                              | Aplica/crea migraciones de Prisma sobre SQLite (`data/deck-doctor.db`)         |
+| `npm run dev`                                                                                     | Servidor de desarrollo                                                         |
+| `npm test` / `npm run test:watch` / `npm run test:coverage`                                       | Vitest                                                                         |
+| `npm run e2e`                                                                                     | Pruebas de navegador (Playwright, escritorio y móvil) contra la build, sin red |
+| `npm run typecheck`                                                                               | `next typegen` + `tsc --noEmit`                                                |
+| `npm run lint`                                                                                    | ESLint (incluye la regla de capas)                                             |
+| `npm run format` / `format:check`                                                                 | Prettier                                                                       |
+| `npm run build`                                                                                   | Build de producción                                                            |
+| `npm run scryfall:sync [-- --force \| --skip-download]`                                           | Descarga los bulk de Scryfall (si hay versión nueva) y los vuelca a la BD      |
+| `npm run symbols:sync`                                                                            | Descarga los símbolos de maná de Scryfall a `public/symbols/`                  |
+| `npm run otags:sync [-- --force \| --tag ramp]`                                                   | Descarga las etiquetas `otag:` de Scryfall Tagger (roles)                      |
+| `npm run db:backup`                                                                               | Copia de seguridad de la SQLite en `data/backups/` (ver `DEPLOY.md`)           |
+| `npm run collection:import -- "export.csv" [--user email]`                                        | Importa un CSV de ManaBox (a la cuenta indicada) y muestra el resumen          |
+| `npm run users:claim -- --user email`                                                             | Pasa a esa cuenta la colección y los mazos de antes de haber usuarios          |
+| `npm run deck:check -- "lista.txt" \| "https://…"`                                                | Parsea y resuelve una lista de mazo contra el catálogo                         |
+| `npm run edhrec:fetch -- "Comandante" [--theme x] [--partner "B"] [--save f.json]`                | Pide recomendaciones a EDHREC (con caché) y muestra un resumen                 |
+| `npm run deck:suggest -- "lista.txt" [--theme x] [--lock "Carta"] [--commander "C"]`              | Analiza un mazo y muestra los cambios sugeridos                                |
+| `… deck:suggest -- … [--deck-id uuid] [--ignore-other-decks] [--buy N --max-price 1 --budget 10]` | Igual, con mazo guardado / sin descontar otros mazos / modo compra             |
 
-Antes de cada commit: `npm run typecheck && npm run lint && npm run format:check && npm test`.
+Antes de cada commit: `npm run typecheck && npm run lint && npm run format:check && npm test`
+(y, si se toca la UI, `npm run build && npm run e2e`).
 
 **CI/CD**: `.github/workflows/ci.yml` ejecuta esos checks + build en cada push/PR; en push a `main`
 despliega en el VPS (`root@37.27.32.222:/doctor-deck`) por SSH (`scripts/deploy.sh`: pull +
@@ -379,6 +381,17 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     de la colección) mientras llega lo nuevo; se borra al entrar o salir. `GET /api/decks`,
     `/api/decks/{id}`, `/api/collection/cards` y `/api/me/prefs` llevan ETag (`jsonWithEtag`, 304
     si no ha cambiado; pensado también para la app).
+  - **Errores** (`ErrorLog`, `domain/errors/report.ts`, `PrismaErrorLog`): los 500 de
+    `errorResponse` y los de pintar páginas (`instrumentation.ts`, `onRequestError`) se guardan
+    con `reportServerError`; los del navegador los manda `ErrorReporter` (en el layout raíz, y
+    `(app)/error.tsx` al fallar una página) a `POST /api/errors` (público, `RateLimiter` 20/min por
+    IP). Se agrupan por huella (sin números ni uuids) y se ven en `/admin/errors` (`ADMIN_EMAILS`).
+  - **Pruebas de navegador** (`e2e/`, `playwright.config.ts`): `scripts/e2e-db.ts` crea
+    `data/e2e.db` con el catálogo de ejemplo y EDHREC de los fixtures (sin red), `global-setup`
+    crea la cuenta `e2e@example.com` (administradora) con colección y dos mazos, y se prueban
+    colección, mazos, buscador, errores y, en móvil (`mobile.spec.ts`), la hoja de carta y que
+    ninguna página tenga scroll horizontal. El CI las corre tras la build. Las especificaciones
+    usan `test` de `e2e/fixtures.ts`, que falla si la página lanza errores de JavaScript.
   - Tipos y mapeadores de la API en `src/server/dto.ts` (los componentes solo hacen `import type`);
     errores → JSON `{error: {code, message}}` en `src/server/http.ts`.
   - Las rutas GET llaman a `await connection()` (better-sqlite3 es síncrono y si no, Next las

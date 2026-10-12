@@ -32,7 +32,13 @@ export function AdminReports() {
 
   return (
     <main className="page">
-      <h1 className="h1">Denuncias</h1>
+      <div className="flex flex-col gap-1">
+        <h1 className="h1">Denuncias</h1>
+        <p className="muted text-[13px]">
+          Comentarios denunciados pendientes de revisar. También:{" "}
+          <Link href="/admin/errors">errores de la app</Link>.
+        </p>
+      </div>
       {error && <Banner tone="out">{error}</Banner>}
       {!list && !error && <Loading>Cargando…</Loading>}
       {list && list.length === 0 && (

@@ -810,3 +810,16 @@ export const publicProfileDTO = (p: {
   tradesPublic: p.tradesPublic,
   createdAt: p.createdAt.toISOString(),
 });
+
+/** Un error del registro (/admin/errors). */
+export interface ErrorLogEntryDTO {
+  id: number;
+  source: "server" | "client";
+  message: string;
+  stack: string | null;
+  path: string | null;
+  userAgent: string | null;
+  count: number;
+  firstAt: string;
+  lastAt: string;
+}
