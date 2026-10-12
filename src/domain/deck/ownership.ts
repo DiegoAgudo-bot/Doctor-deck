@@ -19,8 +19,10 @@ export interface CardOwnership {
   owned: number;
   /** Copias libres (las que no usan mis otros mazos). */
   available: number;
-  /** Mis otros mazos que la usan. */
+  /** Mis otros mazos que la usan (y "Prestada a @ana"). */
   usedIn: string[];
+  /** Los mazos de `usedIn` con su id público, para enlazarlos. */
+  usedInDecks: { id: string; name: string }[];
   /** Copias que tendría que sacar de otros mazos (las tengo, pero están ocupadas). */
   fromOtherDecks: number;
   /** Copias que tendría que comprar. */
@@ -35,6 +37,15 @@ export interface OwnershipTotals {
   have: number;
   fromOtherDecks: number;
   toBuy: number;
+}
+
+/** Los mazos de un `CardUsage` con su id (`decks` y `deckIds` van a la par; los préstamos, detrás). */
+export function usedDecks(used: CardUsage | undefined): { id: string; name: string }[] {
+  if (!used?.deckIds) return [];
+  return used.deckIds.flatMap((id, i) => {
+    const name = used.decks[i];
+    return name === undefined ? [] : [{ id, name }];
+  });
 }
 
 /** Cuánto del mazo (comandantes + 99) tengo, carta a carta, descontando lo que usan otros mazos. */
@@ -69,6 +80,7 @@ export function deckOwnership(
       owned: have,
       available,
       usedIn: used?.decks ?? [],
+      usedInDecks: usedDecks(used),
       fromOtherDecks: card.isBasicLand ? 0 : fromOtherDecks,
       toBuy: card.isBasicLand ? 0 : toBuy,
       status,

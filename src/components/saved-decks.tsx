@@ -111,7 +111,7 @@ export function SavedDecks() {
   );
 
   return (
-    <main className="page max-w-[1100px]">
+    <main className="page">
       <div className="stack-sm flex items-center justify-between gap-3">
         <h1 className="h1">
           Mis mazos{" "}

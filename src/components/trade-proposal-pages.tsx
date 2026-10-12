@@ -58,7 +58,7 @@ export function TradeCalculatorPage() {
 
   const empty = !lines.some((l) => l.quantity > 0);
   return (
-    <main className="page max-w-[1100px]" style={{ gap: 16 }}>
+    <main className="page" style={{ gap: 16 }}>
       <div className="flex flex-col gap-1">
         <Link className="subtle text-[13px]" href="/trades">
           ← Intercambios
@@ -160,7 +160,7 @@ export function TradeProposalPage() {
 
   if (!p) {
     return (
-      <main className="page max-w-[1100px]">
+      <main className="page">
         {error ? <Banner tone="out">{error}</Banner> : <Loading>Cargando la propuesta…</Loading>}
       </main>
     );
@@ -173,7 +173,7 @@ export function TradeProposalPage() {
     p.status === "pending" ? (p.myTurn ? "Te toca responder" : `Le toca a @${partner}`) : null;
 
   return (
-    <main className="page max-w-[1100px]" style={{ gap: 16 }}>
+    <main className="page" style={{ gap: 16 }}>
       <div className="flex flex-col gap-1">
         <Link className="subtle text-[13px]" href="/trades?tab=proposals">
           ← Propuestas

@@ -107,6 +107,8 @@ export interface OwnershipItemDTO {
   owned: number;
   available: number;
   usedIn: string[];
+  /** Los mazos de `usedIn` con su id público (los préstamos solo van en `usedIn`). */
+  usedInDecks: { id: string; name: string }[];
   fromOtherDecks: number;
   toBuy: number;
   status: "owned" | "in_other_decks" | "missing" | "basic";
@@ -706,6 +708,7 @@ export function analyzeResponse(result: AnalyzeDeckResult, config: EngineConfig)
         owned: i.owned,
         available: i.available,
         usedIn: i.usedIn,
+        usedInDecks: i.usedInDecks,
         fromOtherDecks: i.fromOtherDecks,
         toBuy: i.toBuy,
         status: i.status,

@@ -57,14 +57,14 @@ export function Home() {
 
   if (error) {
     return (
-      <main className="page max-w-[1100px]">
+      <main className="page">
         <Banner tone="out">{error}</Banner>
       </main>
     );
   }
   if (!status) {
     return (
-      <main className="page max-w-[1100px]">
+      <main className="page">
         <Loading>Cargando…</Loading>
       </main>
     );
@@ -77,7 +77,7 @@ export function Home() {
     const deleted =
       typeof window !== "undefined" && window.location.search.includes("account=deleted");
     return (
-      <main className="page max-w-[1180px]">
+      <main className="page">
         {deleted && <Banner tone="info">Tu cuenta y todos tus datos se han borrado.</Banner>}
         <Landing />
       </main>
@@ -87,7 +87,7 @@ export function Home() {
   const unique = user ? (collection?.uniqueCards ?? 0) : ownedPairs(local).length;
 
   return (
-    <main className="page max-w-[1100px]" style={{ gap: 20 }}>
+    <main className="page" style={{ gap: 20 }}>
       {user ? (
         <div className="stack-sm flex items-center justify-between gap-3">
           <h1 className="h1">Hola, {user.name}</h1>

@@ -611,6 +611,13 @@
   .pill-warn {
     color: var(--color-warn);
   }
+  .pill-inuse {
+    color: var(--color-inuse);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+  }
   .dot {
     width: 7px;
     height: 7px;
@@ -1103,6 +1110,45 @@
   }
   .pv .cardimg {
     box-shadow: var(--shadow-pop);
+  }
+  /* Hoja de carta en el móvil (al tocar una carta). */
+  .sheet {
+    width: min(420px, calc(100vw - 16px));
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+  }
+  .sheet-grip {
+    display: none;
+  }
+  .sheet-img {
+    width: min(260px, 66vw);
+    max-height: 52dvh;
+    object-fit: contain;
+  }
+  @media (max-width: 760px) {
+    .sheet {
+      width: 100vw;
+      max-width: 100vw;
+      margin: auto 0 0;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      border-bottom: 0;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      animation: dd-sheet var(--motion-200) var(--ease-out) both;
+    }
+    .sheet-grip {
+      display: block;
+      width: 38px;
+      height: 4px;
+      margin: 8px auto 4px;
+      border-radius: 2px;
+      background: var(--color-line-strong);
+    }
+  }
+  @keyframes dd-sheet {
+    from {
+      transform: translateY(40px);
+      opacity: 0;
+    }
   }
 
   /* ---------- Estadísticas ---------- */

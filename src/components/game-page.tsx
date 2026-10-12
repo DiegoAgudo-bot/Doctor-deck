@@ -24,7 +24,7 @@ export function GamePage() {
 
   if (!game) {
     return (
-      <main className="page max-w-[720px]">
+      <main className="page">
         {error ? <Banner tone="out">{error}</Banner> : <Loading>Cargando la partida…</Loading>}
       </main>
     );
@@ -33,7 +33,7 @@ export function GamePage() {
   const winner = game.players.find((p) => p.winner);
   const back = game.group ? `/groups/${game.group.id}` : "/groups";
   return (
-    <main className="page max-w-[720px]">
+    <main className="page">
       <Link className="subtle text-[13px]" href={back}>
         ← {game.group ? game.group.name : "Grupos"}
       </Link>

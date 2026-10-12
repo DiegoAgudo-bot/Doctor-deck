@@ -30,7 +30,7 @@ export function CommunityPage() {
   }, [q]);
 
   return (
-    <main className="page max-w-[1100px]" style={{ gap: 20 }}>
+    <main className="page" style={{ gap: 20 }}>
       <div className="flex flex-col gap-1">
         <h1 className="h1">Comunidad</h1>
         <p className="muted text-[13px]">

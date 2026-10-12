@@ -53,7 +53,7 @@ export function GroupsPage() {
   }
 
   return (
-    <main className="page max-w-[960px]">
+    <main className="page">
       <div className="stack-sm flex items-end gap-3">
         <div className="flex flex-1 flex-col gap-1">
           <span className="eyebrow">Tu mesa</span>
@@ -210,7 +210,7 @@ export function GroupPage() {
 
   if (!group) {
     return (
-      <main className="page max-w-[1100px]">
+      <main className="page">
         {error ? <Banner tone="out">{error}</Banner> : <Loading>Cargando el grupo…</Loading>}
       </main>
     );
@@ -252,7 +252,7 @@ export function GroupPage() {
 
   const leader = group.stats.players[0];
   return (
-    <main className="page max-w-[1100px]">
+    <main className="page">
       <section className="grouphero">
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <Link className="subtle text-[13px]" href="/groups">
@@ -744,11 +744,11 @@ export function JoinGroupPage() {
   }
 
   return (
-    <main className="page max-w-[480px]" style={{ paddingTop: 48 }}>
+    <main className="page" style={{ paddingTop: 48 }}>
       {error && <Banner tone="out">{error}</Banner>}
       {!preview && !error && <Loading>Abriendo la invitación…</Loading>}
       {preview && (
-        <div className="panel invitecard flex flex-col items-center gap-3 p-6 text-center">
+        <div className="panel invitecard mx-auto flex w-full max-w-[480px] flex-col items-center gap-3 p-6 text-center">
           <span className="groupcard-icon" style={{ width: 56, height: 56 }}>
             <IconUsers size={26} />
           </span>

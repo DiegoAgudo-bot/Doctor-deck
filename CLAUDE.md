@@ -354,6 +354,11 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     en `/trades`) y **nunca con IDs internos**: lo que se identifica en una URL usa un uuid aleatorio
     (`Deck.publicId`, `TradeProposal.publicId`, `CollectionEntry.publicId`) o el nombre de usuario.
     Las URL antiguas en español redirigen a las nuevas (`next.config.ts`).
+  - Las páginas (`<main className="page">`) ocupan todo el ancho; solo se limitan bloques de
+    texto (legal) o tarjetas sueltas. `CardHover`: con ratón, la carta al pasar por encima; en
+    táctil, tocarla abre `CardSheet` (hoja con carta, tipo, precio, mis copias y "Ver ficha").
+    "N en otros mazos" de la cabecera de un mazo abre qué cartas y en qué mazos
+    (`OwnershipItemDTO.usedInDecks`, enlazados), y la tabla de la lista las marca.
   - Tipos y mapeadores de la API en `src/server/dto.ts` (los componentes solo hacen `import type`);
     errores → JSON `{error: {code, message}}` en `src/server/http.ts`.
   - Las rutas GET llaman a `await connection()` (better-sqlite3 es síncrono y si no, Next las

@@ -7,7 +7,7 @@ import type { CardDTO, OwnershipDTO, OwnershipItemDTO } from "@/server/dto";
 import { CardHover } from "./card-image";
 import { CardPriceDialog } from "./card-price-dialog";
 import { ManaCost } from "./mana";
-import { Banner, fmt } from "./ui";
+import { Banner, Dialog, fmt } from "./ui";
 
 const cardmarketUrl = (name: string) =>
   `https://www.cardmarket.com/es/Magic/Products/Search?searchString=${encodeURIComponent(name.split(" // ")[0] ?? name)}`;
@@ -49,6 +49,58 @@ function CardName({ item }: { item: OwnershipItemDTO }) {
       {item.isCommander && <span className="pill subtle">comandante</span>}
       <ManaCost cost={item.card.manaCost} />
     </CardHover>
+  );
+}
+
+/** "Deck A, Deck B, Prestada a @ana", con enlace a cada mazo. */
+export function UsedIn({ item }: { item: Pick<OwnershipItemDTO, "usedIn" | "usedInDecks"> }) {
+  const linked = new Map(item.usedInDecks.map((d) => [d.name, d.id]));
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-1.5">
+      <span className="dot dot-inuse" />
+      {item.usedIn.map((name, i) => {
+        const id = linked.get(name);
+        return (
+          <span key={`${name}-${i}`}>
+            {id ? <Link href={`/decks/${id}`}>{name}</Link> : name}
+            {i < item.usedIn.length - 1 && ","}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+/** Las cartas del mazo que tengo pero están en otros mazos (o prestadas), y dónde. */
+export function OtherDecksDialog({
+  items,
+  onClose,
+}: {
+  items: readonly OwnershipItemDTO[];
+  onClose: () => void;
+}) {
+  const elsewhere = items.filter((i) => i.fromOtherDecks > 0);
+  return (
+    <Dialog open onClose={onClose} title="En otros mazos" width={560}>
+      <p className="muted text-[13px]">
+        Las tienes, pero las estás usando en otros mazos: muévelas o compra otra copia.
+      </p>
+      <div className="flex flex-col">
+        {elsewhere.map((i) => (
+          <div key={i.card.oracleId} className="kv" style={{ alignItems: "center" }}>
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="mono subtle">{i.fromOtherDecks}</span>
+              <CardHover card={i.card} className="truncate">
+                {i.card.name}
+              </CardHover>
+            </span>
+            <span className="text-right text-[12.5px]">
+              <UsedIn item={i} />
+            </span>
+          </div>
+        ))}
+      </div>
+    </Dialog>
   );
 }
 
@@ -262,10 +314,7 @@ export function OwnershipPanel({
                       <CardName item={i} />
                     </td>
                     <td className="muted">
-                      <span className="flex items-center gap-1.5">
-                        <span className="dot dot-inuse" />
-                        {i.usedIn.join(", ")}
-                      </span>
+                      <UsedIn item={i} />
                     </td>
                   </tr>
                 ))}

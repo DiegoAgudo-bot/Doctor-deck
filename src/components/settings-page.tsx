@@ -56,7 +56,7 @@ export function SettingsPage() {
 
   if (!me) {
     return (
-      <main className="page max-w-[640px]">
+      <main className="page">
         <h1 className="h1">Ajustes</h1>
         {message ? <Banner tone="out">{message.text}</Banner> : <Loading>Cargando…</Loading>}
       </main>
@@ -64,7 +64,7 @@ export function SettingsPage() {
   }
 
   return (
-    <main className="page max-w-[640px]">
+    <main className="page">
       <h1 className="h1">Ajustes</h1>
       {message && <Banner tone={message.tone}>{message.text}</Banner>}
 
