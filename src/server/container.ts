@@ -5,6 +5,7 @@ import { PrismaCardRepository } from "@/adapters/db/card-repository";
 import { PrismaCollectionRepository } from "@/adapters/db/collection-repository";
 import { PrismaDeckRepository, PrismaPublicDecks } from "@/adapters/db/deck-repository";
 import { PrismaPriceHistory } from "@/adapters/db/price-history";
+import { PrismaPrefsRepository } from "@/adapters/db/prefs-repository";
 import { PrismaRoleOverrideRepository } from "@/adapters/db/role-override-repository";
 import { PrismaTradeRepository } from "@/adapters/db/trade-repository";
 import { PrismaTradeProposalRepository } from "@/adapters/db/trade-proposal-repository";
@@ -73,6 +74,8 @@ export function createContainer() {
     decksFor: (userId: string) => new PrismaDeckRepository(db, userId),
     /** Roles y etiquetas que cada usuario ha corregido a mano. */
     roleOverridesFor: (userId: string) => new PrismaRoleOverrideRepository(db, userId),
+    /** Filtros, orden y vista de cada página (para que sigan en otro navegador o en la app). */
+    prefsFor: (userId: string) => new PrismaPrefsRepository(db, userId),
     /** Lista de deseos manual y cartas que no cambio de cada usuario. */
     tradesFor: (userId: string) => new PrismaTradeRepository(db, userId),
     /** Propuestas de intercambio entre usuarios (fase 19). */

@@ -36,6 +36,7 @@ const schema = z.object({
     })
     .default({}),
   sort: z.enum(COLLECTION_SORTS).default("nombre"),
+  dir: z.enum(["asc", "desc"]).optional(),
   offset: z.number().int().min(0).default(0),
   limit: z.number().int().min(0).max(200).default(48),
   roleEdits: browserRoleEditsSchema,

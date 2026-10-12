@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
       loans: c.loans,
       comments: c.moderation,
       blocks: c.moderation,
+      prefs: c.prefsFor(user.id),
     });
     const date = new Date().toISOString().slice(0, 10);
     return new Response(JSON.stringify(data, null, 2), {

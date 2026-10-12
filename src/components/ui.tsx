@@ -48,6 +48,59 @@ export function Loading({ children }: { children: ReactNode }) {
   );
 }
 
+/** Mientras carga una rejilla de cartas: huecos con la forma de las cartas. */
+export function CardGridSkeleton({ count = 12, label }: { count?: number; label: string }) {
+  return (
+    <div
+      className="grid gap-x-3 gap-y-4"
+      style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}
+      role="status"
+      aria-busy="true"
+      aria-label={label}
+    >
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="flex flex-col gap-1.5">
+          <div className="skel" style={{ aspectRatio: "488/680", borderRadius: "4.5%" }} />
+          <div className="skel" style={{ height: 10, width: "70%" }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Mientras carga una lista de tarjetas (mazos, grupos, avisos…). */
+export function TilesSkeleton({
+  count = 6,
+  columns = 2,
+  height = 92,
+  label,
+}: {
+  count?: number;
+  columns?: number;
+  height?: number;
+  label: string;
+}) {
+  return (
+    <div
+      className="grid-1-sm grid gap-2.5"
+      style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      role="status"
+      aria-busy="true"
+      aria-label={label}
+    >
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="panel flex items-center gap-3 p-3" style={{ height }}>
+          <div className="skel flex-none" style={{ width: 46, aspectRatio: "488/680" }} />
+          <div className="flex flex-1 flex-col gap-2">
+            <div className="skel" style={{ height: 12, width: "55%" }} />
+            <div className="skel" style={{ height: 10, width: "35%" }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Estado vacío: dos cartas en línea discontinua, título, texto y acción. */
 export function EmptyState({
   title,
@@ -74,6 +127,30 @@ export function EmptyState({
       {children && <span className="muted max-w-[340px] text-[13px]">{children}</span>}
       {action}
     </div>
+  );
+}
+
+/** Botón ↓/↑ junto a un desplegable de orden: de mayor a menor o al revés. */
+export function SortDirButton({
+  dir,
+  onChange,
+}: {
+  dir: "asc" | "desc";
+  onChange: (dir: "asc" | "desc") => void;
+}) {
+  const label = dir === "desc" ? "De mayor a menor" : "De menor a mayor";
+  return (
+    <button
+      type="button"
+      className="btn btn-icon"
+      title={`${label} (clic para invertir)`}
+      aria-label={`Orden: ${label.toLowerCase()}. Invertir`}
+      onClick={() => onChange(dir === "desc" ? "asc" : "desc")}
+    >
+      <span aria-hidden="true" className="mono" style={{ fontSize: 15 }}>
+        {dir === "desc" ? "↓" : "↑"}
+      </span>
+    </button>
   );
 }
 

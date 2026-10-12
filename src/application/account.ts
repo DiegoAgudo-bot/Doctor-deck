@@ -7,6 +7,7 @@ import type { TradeRepository } from "@/domain/ports/trades";
 import type { LoanRepository } from "@/domain/ports/loans";
 import type { BlockRepository, CommentRepository } from "@/domain/ports/moderation";
 import type { GameRepository, GroupRepository } from "@/domain/ports/play";
+import type { PrefsRepository } from "@/domain/ports/prefs";
 
 export class AccountConfirmationError extends Error {
   constructor() {
@@ -44,6 +45,8 @@ export interface ExportDeps {
   loans: LoanRepository;
   comments: CommentRepository;
   blocks: BlockRepository;
+  /** Preferencias de la interfaz (filtros y orden guardados). */
+  prefs: PrefsRepository;
 }
 
 /**
@@ -64,13 +67,14 @@ export async function exportMyData(userId: string, deps: ExportDeps, now = new D
       deps.proposals.listFor(userId),
       deps.follows.followingIds(userId),
     ]);
-  const [decks, groups, games, loans, comments, blocked] = await Promise.all([
+  const [decks, groups, games, loans, comments, blocked, prefs] = await Promise.all([
     Promise.all(summaries.map((d) => deps.decks.get(d.id))),
     deps.groups.forUser(userId),
     deps.games.list({ userId }, 10_000),
     deps.loans.forUser(userId, true),
     deps.comments.byAuthor(userId),
     deps.blocks.blocked(userId),
+    deps.prefs.all(),
   ]);
   const member = (m: { username: string | null; name: string } | null) =>
     m ? (m.username ? `@${m.username}` : m.name) : null;
@@ -144,6 +148,7 @@ export async function exportMyData(userId: string, deps: ExportDeps, now = new D
     })),
     following: following.map((id) => people.get(id)).filter((u): u is string => Boolean(u)),
     blocked: blocked.flatMap((b) => (b.username ? [b.username] : [])),
+    preferences: prefs,
     groups: groups.map((g) => ({
       id: g.id,
       name: g.name,

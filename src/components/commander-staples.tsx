@@ -18,7 +18,7 @@ function StapleTile({ s }: { s: StapleDTO }) {
   return (
     <Link href={`/cards/${s.card.oracleId}`} className="staple">
       <span className="cardbtn">
-        <CardImage card={s.card} />
+        <CardImage card={s.card} sizes="(max-width: 760px) 30vw, 160px" />
       </span>
       {s.mine && (
         <span

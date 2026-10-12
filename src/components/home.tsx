@@ -229,7 +229,7 @@ export function Home() {
                           style={{ color: "var(--color-text)", textDecoration: "none" }}
                         >
                           {d.commanderCard ? (
-                            <CardImage card={d.commanderCard} style={{ width: 26 }} />
+                            <CardImage card={d.commanderCard} style={{ width: 26 }} sizes="26px" />
                           ) : (
                             <span className="w-[26px]" />
                           )}

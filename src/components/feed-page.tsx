@@ -7,7 +7,7 @@ import { api, ApiError } from "./api-client";
 import { CardImage } from "./card-image";
 import { Avatar } from "./games-ui";
 import { IconDecks, IconHeart, IconSwap, IconUsers } from "./icons";
-import { ago, Banner, EmptyState, Loading } from "./ui";
+import { ago, Banner, EmptyState, TilesSkeleton } from "./ui";
 
 const FILTERS: [string, string][] = [
   ["", "Todo"],
@@ -67,7 +67,7 @@ function FeedEntry({ item: i }: { item: FeedItemDTO }) {
           >
             <div className="w-[52px] flex-none">
               {deck.commanderCard ? (
-                <CardImage card={deck.commanderCard} />
+                <CardImage card={deck.commanderCard} sizes="52px" />
               ) : (
                 <span className="cardimg-missing" />
               )}
@@ -152,7 +152,7 @@ export function ActivityFeed({ compact = false }: { compact?: boolean }) {
         </div>
       )}
       {error && <Banner tone="out">{error}</Banner>}
-      {!items && !error && <Loading>Cargando la actividad…</Loading>}
+      {!items && !error && <TilesSkeleton count={5} columns={1} label="Cargando la actividad…" />}
       {items && items.length === 0 && (
         <div className="panel">
           <EmptyState

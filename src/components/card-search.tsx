@@ -149,7 +149,7 @@ export function CardSearch({
                 choose(c);
               }}
             >
-              <CardImage card={c} style={{ width: 28 }} />
+              <CardImage card={c} style={{ width: 28 }} sizes="28px" />
               <span className="flex min-w-0 flex-1 flex-col leading-tight">
                 <span className="truncate" style={{ fontWeight: 500 }}>
                   {c.name}

@@ -99,14 +99,46 @@ export function matchesFilters(c: BrowsableCard, f: CollectionFilters): boolean 
 }
 
 const byName = (a: BrowsableCard, b: BrowsableCard) => a.card.name.localeCompare(b.card.name);
-const SORTERS: Record<CollectionSort, (a: BrowsableCard, b: BrowsableCard) => number> = {
-  nombre: byName,
-  coste: (a, b) => a.card.cmc - b.card.cmc || byName(a, b),
-  copias: (a, b) => b.quantity - a.quantity || byName(a, b),
-  precio: (a, b) => (b.price ?? -1) - (a.price ?? -1) || byName(a, b),
-  valor: (a, b) => (b.value ?? -1) - (a.value ?? -1) || byName(a, b),
-  recientes: (a, b) => b.lastAdded.localeCompare(a.lastAdded) || byName(a, b),
+
+export type SortDir = "asc" | "desc";
+/** La dirección natural de cada orden (la que se usa si no se elige otra). */
+export const COLLECTION_SORT_DEFAULT_DIR: Record<CollectionSort, SortDir> = {
+  nombre: "asc",
+  coste: "asc",
+  copias: "desc",
+  precio: "desc",
+  valor: "desc",
+  recientes: "desc",
 };
+
+/** Lo que se compara en cada orden, de menor a mayor (null = sin dato: siempre al final). */
+const KEYS: Record<
+  Exclude<CollectionSort, "nombre">,
+  (c: BrowsableCard) => number | string | null
+> = {
+  coste: (c) => c.card.cmc,
+  copias: (c) => c.quantity,
+  precio: (c) => c.price,
+  valor: (c) => c.value,
+  recientes: (c) => c.lastAdded,
+};
+
+/** Comparador de un orden y una dirección; a igualdad, por nombre (siempre A→Z). */
+export function collectionSorter(
+  sort: CollectionSort,
+  dir: SortDir = COLLECTION_SORT_DEFAULT_DIR[sort],
+): (a: BrowsableCard, b: BrowsableCard) => number {
+  const sign = dir === "asc" ? 1 : -1;
+  if (sort === "nombre") return (a, b) => sign * byName(a, b);
+  const key = KEYS[sort];
+  return (a, b) => {
+    const x = key(a);
+    const y = key(b);
+    if (x === null || y === null) return x === y ? byName(a, b) : x === null ? 1 : -1;
+    const c = typeof x === "string" ? x.localeCompare(String(y)) : x - Number(y);
+    return sign * c || byName(a, b);
+  };
+}
 
 export interface CollectionPage<T> {
   items: T[];
@@ -121,8 +153,11 @@ export function browseCollection<T extends BrowsableCard>(
   sort: CollectionSort,
   offset: number,
   limit: number,
+  dir?: SortDir,
 ): CollectionPage<T> {
-  const matching = cards.filter((c) => matchesFilters(c, filters)).sort(SORTERS[sort]);
+  const matching = cards
+    .filter((c) => matchesFilters(c, filters))
+    .sort(collectionSorter(sort, dir));
   return {
     items: matching.slice(offset, offset + limit),
     total: totals(matching),

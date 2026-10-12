@@ -8,7 +8,7 @@ import { DeckTile } from "./deck-tile";
 import { nextVisibility, setDeckVisibility } from "./deck-visibility";
 import { IconEye, IconPlus } from "./icons";
 import { DECKS_EVENT, notifyDecksChanged } from "./local-collection";
-import { Banner, Dialog, EmptyState, Loading } from "./ui";
+import { Banner, Dialog, EmptyState, TilesSkeleton } from "./ui";
 
 export function SavedDecks() {
   const [decks, setDecks] = useState<SavedDeckSummaryDTO[] | null>(null);
@@ -151,7 +151,7 @@ export function SavedDecks() {
         </Banner>
       )}
 
-      {!decks && !error && <Loading>Cargando tus mazos…</Loading>}
+      {!decks && !error && <TilesSkeleton label="Cargando tus mazos…" />}
 
       {decks && decks.length === 0 && (
         <div className="panel">

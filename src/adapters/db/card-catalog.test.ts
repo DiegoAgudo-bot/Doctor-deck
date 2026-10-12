@@ -83,4 +83,25 @@ describe("searchCatalog", () => {
     const page2 = await repo.searchCatalog({ ...EMPTY_CATALOG_QUERY, sort: "name" }, 2, 2);
     expect(page2.cards.map((c) => c.name)).toEqual(["Cackling Counterpart", "Dig Through Time"]);
   });
+
+  it("por precio (la impresión más barata), en las dos direcciones y con rango", async () => {
+    const priced = (await db.oracleCard.findMany({ where: { minPriceEur: { not: null } } }))
+      .map((c) => ({ name: c.name, price: c.minPriceEur ?? 0 }))
+      .sort((a, b) => b.price - a.price || a.name.localeCompare(b.name));
+    expect(priced.length).toBeGreaterThan(2);
+    const desc = await search({ sort: "price" });
+    const priceOf = new Map(priced.map((p) => [p.name, p.price]));
+    const prices = desc.slice(0, priced.length).map((n) => priceOf.get(n));
+    expect(prices).toEqual(priced.map((p) => p.price));
+    // Las que no tienen precio, al final en las dos direcciones.
+    const asc = await search({ sort: "price", dir: "asc" });
+    expect(asc[0]).toBe([...priced].sort((a, b) => a.price - b.price)[0]?.name);
+    expect(new Set(asc.slice(priced.length))).toEqual(new Set(desc.slice(priced.length)));
+    const top = priced[0];
+    if (!top) throw new Error("sin precios");
+    expect(await search({ minPrice: top.price })).toEqual(
+      priced.filter((p) => p.price >= top.price).map((p) => p.name),
+    );
+    expect(await search({ maxPrice: top.price - 0.001 })).not.toContain(top.name);
+  });
 });

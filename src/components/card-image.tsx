@@ -16,17 +16,27 @@ import { api } from "./api-client";
 import { IconX } from "./icons";
 import { ManaCost } from "./mana";
 
-/** Imagen de Scryfall (488×680); si no hay o no carga (sin conexión), un hueco con el nombre. */
+/** "/img/normal/…" → la misma en tamaño pequeño de Scryfall (146×204). */
+const smallVariant = (url: string) =>
+  url.startsWith("/img/normal/") ? `/img/small/${url.slice("/img/normal/".length)}` : null;
+
+/**
+ * Imagen de Scryfall (488×680). Con `sizes` (el ancho con que se pinta, como en el atributo HTML),
+ * el navegador puede bajar la pequeña (146 px) cuando le basta: miniaturas y listas.
+ */
 export function CardImage({
   card,
   className = "",
   style,
+  sizes,
 }: {
   card: Pick<CardDTO, "name" | "imageUrl">;
   className?: string;
   style?: React.CSSProperties;
+  sizes?: string;
 }) {
   const [failed, setFailed] = useState(false);
+  const small = card.imageUrl ? smallVariant(card.imageUrl) : null;
   if (!card.imageUrl || failed) {
     return (
       <div
@@ -43,6 +53,7 @@ export function CardImage({
     // eslint-disable-next-line @next/next/no-img-element -- imágenes de Scryfall servidas por su CDN
     <img
       src={card.imageUrl}
+      {...(sizes && small ? { srcSet: `${small} 146w, ${card.imageUrl} 488w`, sizes } : {})}
       alt={card.name}
       loading="lazy"
       width={488}

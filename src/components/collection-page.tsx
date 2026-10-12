@@ -24,7 +24,7 @@ import {
   ownedPairs,
   type LocalCollection,
 } from "./local-collection";
-import { Banner, EmptyState, Loading, fmt } from "./ui";
+import { Banner, CardGridSkeleton, EmptyState, fmt } from "./ui";
 
 type Tab = "cartas" | "precios" | "anadir" | "importar";
 
@@ -230,7 +230,7 @@ export function CollectionPage() {
 
       {tab === "cartas" &&
         (overall === null ? (
-          <Loading>Cargando tu colección…</Loading>
+          <CardGridSkeleton label="Cargando tu colección…" />
         ) : overall.cards === 0 ? (
           <div className="panel">
             <EmptyState
