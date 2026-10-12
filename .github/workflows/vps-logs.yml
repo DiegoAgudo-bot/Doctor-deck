@@ -1,0 +1,47 @@
+name: Logs del VPS
+
+# Manual y de solo lectura: las últimas líneas del log de la app que parecen errores o avisos (o
+# todas, con `all`). El repositorio es público, así que antes de mostrarlas se tapan emails, tokens
+# y cadenas largas que podrían ser secretos.
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "Desde hace cuánto (formato de docker logs: 30m, 6h, 24h)"
+        required: false
+        default: "6h"
+      filter:
+        description: "errors = solo errores y avisos; all = todo"
+        required: false
+        default: "errors"
+
+permissions:
+  contents: read
+
+jobs:
+  logs:
+    name: Últimos logs de la app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.2.0
+        env:
+          SINCE: ${{ inputs.since }}
+          FILTER: ${{ inputs.filter }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER || 'root' }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
+          envs: SINCE,FILTER
+          command_timeout: 5m
+          script: |
+            set -e
+            case "$SINCE" in *[!0-9smhd]*|"") SINCE=6h ;; esac
+            docker logs --since "$SINCE" deck_doctor 2>&1 \
+              | { if [ "$FILTER" = "all" ]; then cat; else grep -iE "error|warn|fail|exception|auth|denied|refused" || true; fi; } \
+              | sed -E \
+                -e 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/<email>/g' \
+                -e 's/(token|secret|key|password|code|state)([=:" ]+)[^ ,"&]+/\1\2<oculto>/gI' \
+                -e 's/[A-Za-z0-9_-]{32,}/<largo>/g' \
+              | tail -n 200
