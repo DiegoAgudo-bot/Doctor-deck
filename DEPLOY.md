@@ -4,7 +4,7 @@ La app corre en el VPS (`37.27.32.222`, carpeta `/doctor-deck`) como contenedor 
 (`docker-compose.yml`), detrás del **Traefik** que ya existe allí (proyecto pulsestack: red
 `pulsestack_proxy`, certificados de Let's Encrypt con el resolver `le`).
 
-- URL: **https://deckdoctor.37.27.32.222.nip.io**. Cada persona se crea su cuenta (`/signup`,
+- URL: **https://doctordeck.app** (antes `deckdoctor.37.27.32.222.nip.io`, que redirige aquí). Cada persona se crea su cuenta (`/signup`,
   email + contraseña o Google) y solo ve su colección y sus mazos.
 - Datos (SQLite + bulk de Scryfall) en `/doctor-deck/data`, montado en el contenedor; los
   despliegues no lo tocan.
@@ -32,9 +32,15 @@ docker compose exec deck-doctor npm run scryfall:sync   # catálogo de Scryfall 
 Variables de despliegue en `.env` (además de las de `.env.example`):
 
 ```bash
-DECK_DOCTOR_HOST=deckdoctor.37.27.32.222.nip.io
+DECK_DOCTOR_HOST=doctordeck.app
 BETTER_AUTH_SECRET="…"   # lo genera scripts/deploy.sh si falta; no lo cambies (cerraría todas las sesiones)
+# Opcional: dominio anterior que redirige al nuevo (por defecto, la dirección nip.io de antes).
+# DECK_DOCTOR_OLD_HOST=deckdoctor.37.27.32.222.nip.io
 ```
+
+DNS del dominio (en el registrador): registros `A` de `@` y de `www` a la IP del VPS
+(`37.27.32.222`). Traefik pide los certificados de los dos solo; `www.` y el dominio antiguo
+redirigen (301, con la misma ruta) al de `DECK_DOCTOR_HOST`.
 
 `BETTER_AUTH_URL` no hace falta: `docker-compose.yml` lo pone a `https://$DECK_DOCTOR_HOST`.
 
@@ -89,7 +95,7 @@ Los demás scripts CLI se ejecutan igual, p. ej.
 - **Login con Google (opcional).** En
   [Google Cloud Console](https://console.cloud.google.com/apis/credentials) crea un "ID de cliente
   de OAuth" de tipo _Aplicación web_ con la URI de redirección autorizada
-  `https://deckdoctor.37.27.32.222.nip.io/api/auth/callback/google` y añade al `.env`
+  `https://doctordeck.app/api/auth/callback/google` y añade al `.env`
   `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`. Sin ellas el botón de Google no aparece.
   (Google puede no aceptar dominios `nip.io`; con un dominio propio no hay problema.)
 - **"He olvidado la contraseña" (opcional).** Necesita enviar emails: `SMTP_URL`
