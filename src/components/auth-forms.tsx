@@ -64,7 +64,12 @@ function GoogleButton({ next }: { next: string }) {
       disabled={busy}
       onClick={async () => {
         setBusy(true);
-        await authClient.signIn.social({ provider: "google", callbackURL: next });
+        // Si Google no puede entrar (p. ej. cuenta sin enlazar), de vuelta a /login con `?error=`.
+        await authClient.signIn.social({
+          provider: "google",
+          callbackURL: next,
+          errorCallbackURL: `/login?next=${encodeURIComponent(next)}`,
+        });
       }}
       className="btn btn-lg w-full"
     >
@@ -85,11 +90,30 @@ function Divider() {
   );
 }
 
+/** Lo que devuelve Better Auth en `?error=` al volver de Google. */
+const OAUTH_ERRORS: Record<string, string> = {
+  account_not_linked:
+    "Ya tienes una cuenta con el email de tu Google, creada con contraseña. Entra con tu email y contraseña y, en Ajustes, pulsa «Vincular Google»: a partir de ahí podrás entrar con los dos. Si no recuerdas la contraseña, recupérala abajo.",
+  email_does_not_match: "El email de Google no coincide con el de tu cuenta.",
+  account_already_linked_to_different_user:
+    "Esa cuenta de Google ya está vinculada a otro usuario.",
+  unable_to_link_account:
+    "No se ha podido vincular tu cuenta de Google. Entra con tu email y vincúlala desde Ajustes.",
+  access_denied: "Has cancelado el acceso con Google.",
+};
+
 export function LoginForm({ google, passwordReset }: { google: boolean; passwordReset: boolean }) {
-  const next = safeNext(useSearchParams().get("next"));
+  const params = useSearchParams();
+  const next = safeNext(params.get("next"));
+  const oauthError = params.get("error");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    oauthError
+      ? (OAUTH_ERRORS[oauthError.replace(/ /g, "_")] ??
+          "No se ha podido entrar con Google. Prueba otra vez o entra con tu email.")
+      : null,
+  );
   const [busy, setBusy] = useState(false);
 
   return (

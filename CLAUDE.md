@@ -408,7 +408,12 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   y Google si hay `GOOGLE_CLIENT_ID/SECRET`; "olvidé mi contraseña" solo si hay `SMTP_URL`
   (`adapters/mail`). Sesiones en BD (tablas `user`, `session`, `account`, `verification`) con cookie
   httpOnly; rutas en `/api/auth/[...all]`. Si alguien entra con Google con el mismo email que una
-  cuenta existente, se vinculan (`accountLinking`).
+  cuenta existente, se vinculan (`accountLinking`) **solo si el email de esa cuenta está
+  verificado** (`requireLocalEmailVerified`, por seguridad); si no, Google vuelve a `/login?error=
+account_not_linked` con la explicación y se vincula desde Ajustes ya con sesión
+  (`authClient.linkSocial`, sección "Cuenta", que también reenvía el enlace de verificación). Con
+  correo configurado, el registro envía el enlace de verificación (`emailVerification`) y
+  restablecer la contraseña marca el email como verificado (`onPasswordReset`).
   - `CollectionEntry` y `Deck` tienen `userId`. Los repositorios se crean **por usuario**
     (`container.collectionFor(userId)`, `decksFor(userId)`) y filtran todas sus consultas por él; el
     catálogo y la caché de EDHREC son globales. Dominio y casos de uso no saben de usuarios.
