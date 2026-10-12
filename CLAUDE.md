@@ -36,7 +36,8 @@ Antes de cada commit: `npm run typecheck && npm run lint && npm run format:check
 **CI/CD**: `.github/workflows/ci.yml` ejecuta esos checks + build en cada push/PR; en push a `main`
 despliega en el VPS (`root@37.27.32.222:/doctor-deck`) por SSH (`scripts/deploy.sh`: pull +
 `docker compose up -d --build`; el contenedor aplica `prisma migrate deploy` al arrancar). La app va
-detrás del Traefik de pulsestack en `https://deckdoctor.37.27.32.222.nip.io`.
+detrás del Traefik de pulsestack en `https://doctordeck.app` (`DECK_DOCTOR_HOST`); `www.` y la
+dirección antigua `deckdoctor.37.27.32.222.nip.io` redirigen allí (301).
 Configuración del VPS y secretos en `DEPLOY.md`.
 
 ## Stack
