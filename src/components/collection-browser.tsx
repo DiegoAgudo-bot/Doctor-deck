@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LANGUAGES, languageBadge, languageLabel } from "@/domain/cards/languages";
-import type { CollectionFilters, CollectionSort } from "@/domain/collection/browse";
+import {
+  COLLECTION_SORT_DEFAULT_DIR,
+  COLLECTION_SORTS,
+  type CollectionFilters,
+  type CollectionSort,
+  type SortDir,
+} from "@/domain/collection/browse";
 import { ROLES, type Role } from "@/domain/roles/types";
 import { formatEuros } from "@/domain/suggestions/format";
 import type {
@@ -19,7 +25,8 @@ import { notifyCollectionChanged } from "./local-collection";
 import { localRoles } from "./local-roles";
 import { roleLabel } from "./deck-views";
 import { ManaCost, SYMBOL_URL } from "./mana";
-import { Banner, Loading, fmt } from "./ui";
+import { restorePref, savePref } from "./prefs";
+import { Banner, CardGridSkeleton, fmt, SortDirButton } from "./ui";
 
 /* eslint-disable @next/next/no-img-element -- símbolos de maná de Scryfall en los filtros */
 
@@ -60,6 +67,8 @@ interface Filters {
   foil: boolean;
   language: string;
   sort: Sort;
+  /** null = la natural del orden. */
+  dir: SortDir | null;
 }
 
 const EMPTY: Filters = {
@@ -74,7 +83,47 @@ const EMPTY: Filters = {
   foil: false,
   language: "",
   sort: "nombre",
+  dir: null,
 };
+
+type View = "cuadricula" | "tabla";
+
+/**
+ * Lo que se recuerda de la colección (con la cuenta): filtros, orden y vista; no el texto buscado.
+ * Al leerlo se valida campo a campo (lo que no se entiende, se ignora).
+ */
+function parseCollectionPref(raw: unknown): { filters: Partial<Filters>; view: View } | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  const str = (k: string) => (typeof r[k] === "string" ? (r[k] as string) : undefined);
+  const f: Partial<Filters> = {};
+  const sort = str("sort");
+  if (sort && (COLLECTION_SORTS as readonly string[]).includes(sort)) f.sort = sort as Sort;
+  const dir = str("dir");
+  if (dir === "asc" || dir === "desc") f.dir = dir;
+  if (Array.isArray(r.colors)) {
+    f.colors = COLORS.filter((c) => (r.colors as unknown[]).includes(c));
+  }
+  const mode = str("colorMode");
+  if (mode === "alguno" || mode === "dentro" || mode === "exacto") f.colorMode = mode;
+  const type = str("type");
+  if (type !== undefined && (type === "" || TYPES.some(([en]) => en === type))) f.type = type;
+  const role = str("role");
+  if (role !== undefined && (role === "" || (ROLES as readonly string[]).includes(role))) {
+    f.role = role as Role | "";
+  }
+  if (r.cmc === null || (typeof r.cmc === "number" && r.cmc >= 0 && r.cmc <= 7)) {
+    f.cmc = r.cmc as number | null;
+  }
+  const origin = str("origin");
+  if (origin === "" || origin === "csv" || origin === "manual") f.origin = origin;
+  const use = str("use");
+  if (use === "" || use === "libres" || use === "en-mazos") f.use = use;
+  if (typeof r.foil === "boolean") f.foil = r.foil;
+  const language = str("language");
+  if (language !== undefined && (language === "" || language in LANGUAGES)) f.language = language;
+  return { filters: f, view: r.view === "tabla" ? "tabla" : "cuadricula" };
+}
 
 /** Cartas por página: la colección se pide al servidor por trozos ("Ver más"). */
 const PAGE = 48;
@@ -135,7 +184,11 @@ export function CollectionBrowser({
   username?: string | undefined;
 }) {
   const [f, setF] = useState<Filters>(EMPTY);
-  const [view, setView] = useState<"cuadricula" | "tabla">("cuadricula");
+  const [view, setView] = useState<View>("cuadricula");
+  /** Hasta recuperar los filtros guardados no se pide nada (si no, se pediría dos veces). */
+  /** Mis filtros se recuerdan; los de la colección de otro, no. */
+  const remember = !username;
+  const [ready, setReady] = useState(!remember);
   /** En el móvil los filtros van plegados (solo el buscador a la vista). */
   const [filtersOpen, setFiltersOpen] = useState(false);
   /** Carta cuyo histórico de precio se está viendo. */
@@ -161,6 +214,7 @@ export function CollectionBrowser({
           ...(!username && !loggedIn ? { roleEdits: localRoles.all() } : {}),
           filters: toQuery(f),
           sort: f.sort,
+          ...(f.dir ? { dir: f.dir } : {}),
           offset,
           limit: PAGE,
         }),
@@ -168,8 +222,45 @@ export function CollectionBrowser({
     [f, loggedIn, localPairs, username],
   );
 
+  useEffect(() => {
+    if (!remember) return;
+    return restorePref(
+      "collection",
+      parseCollectionPref,
+      loggedIn,
+      (p) => {
+        setF((prev) => ({ ...prev, ...p.filters }));
+        setView(p.view);
+      },
+      () => setReady(true),
+    );
+  }, [remember, loggedIn]);
+
+  useEffect(() => {
+    if (!ready || !remember) return;
+    savePref(
+      "collection",
+      {
+        colors: f.colors,
+        colorMode: f.colorMode,
+        type: f.type,
+        role: f.role,
+        cmc: f.cmc,
+        origin: f.origin,
+        use: f.use,
+        foil: f.foil,
+        language: f.language,
+        sort: f.sort,
+        dir: f.dir,
+        view,
+      },
+      loggedIn,
+    );
+  }, [f, view, ready, remember, loggedIn]);
+
   // Primera página al cambiar filtros u orden (con un respiro mientras se escribe en el buscador).
   useEffect(() => {
+    if (!ready) return;
     const id = ++request.current;
     const t = setTimeout(
       () => {
@@ -191,7 +282,7 @@ export function CollectionBrowser({
       f.q ? 250 : 0,
     );
     return () => clearTimeout(t);
-  }, [fetchPage, version, f.q]);
+  }, [fetchPage, version, f.q, ready]);
 
   async function loadMore() {
     if (!items) return;
@@ -385,7 +476,7 @@ export function CollectionBrowser({
             <button
               type="button"
               className="btn btn-ghost"
-              onClick={() => set({ ...EMPTY, sort: f.sort })}
+              onClick={() => set({ ...EMPTY, sort: f.sort, dir: f.dir })}
             >
               Quitar filtros
             </button>
@@ -407,7 +498,7 @@ export function CollectionBrowser({
             style={{ width: "auto" }}
             aria-label="Ordenar"
             value={f.sort}
-            onChange={(e) => set({ sort: e.target.value as Sort })}
+            onChange={(e) => set({ sort: e.target.value as Sort, dir: null })}
           >
             <option value="nombre">Ordenar: nombre</option>
             <option value="coste">Ordenar: coste</option>
@@ -416,6 +507,12 @@ export function CollectionBrowser({
             <option value="precio">Ordenar: precio por copia</option>
             {loggedIn && <option value="recientes">Ordenar: recientes</option>}
           </select>
+          <SortDirButton
+            dir={f.dir ?? COLLECTION_SORT_DEFAULT_DIR[f.sort]}
+            onChange={(dir) =>
+              set({ dir: dir === COLLECTION_SORT_DEFAULT_DIR[f.sort] ? null : dir })
+            }
+          />
           <div className="btn-group" role="group" aria-label="Ver como">
             {(["cuadricula", "tabla"] as const).map((v) => (
               <button
@@ -440,7 +537,7 @@ export function CollectionBrowser({
       {error ? (
         <Banner tone="out">{error}</Banner>
       ) : items === null ? (
-        <Loading>Cargando tu colección…</Loading>
+        <CardGridSkeleton label="Cargando tu colección…" />
       ) : shown.length === 0 ? (
         <div className="panel flex flex-col items-center gap-2.5 px-5 py-9 text-center">
           <span className="muted text-[13px]">
@@ -465,10 +562,10 @@ export function CollectionBrowser({
                     title="Ver y editar tus copias"
                     onClick={() => setEditCard(c.card)}
                   >
-                    <CardImage card={c.card} />
+                    <CardImage card={c.card} sizes="(max-width: 760px) 30vw, 180px" />
                   </button>
                 ) : (
-                  <CardImage card={c.card} />
+                  <CardImage card={c.card} sizes="(max-width: 760px) 30vw, 180px" />
                 )}
                 <span
                   className="qtymark"

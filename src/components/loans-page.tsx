@@ -168,7 +168,9 @@ function LoanRow({
     : memberLabel(loan.lender);
   return (
     <li className={`loanrow ${loan.returnedAt ? "is-returned" : ""}`}>
-      <div className="w-[46px] flex-none">{loan.card && <CardImage card={loan.card} />}</div>
+      <div className="w-[46px] flex-none">
+        {loan.card && <CardImage card={loan.card} sizes="46px" />}
+      </div>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <b className="truncate">
           {loan.quantity > 1 && <span className="mono">{loan.quantity}× </span>}

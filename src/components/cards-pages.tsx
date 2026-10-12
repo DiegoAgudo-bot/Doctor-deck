@@ -7,7 +7,9 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CARD_TYPES,
+  CATALOG_SORT_DEFAULT_DIR,
   catalogQueryParams,
+  catalogSortDir,
   isEmptyQuery,
   parseCatalogQuery,
   type CardType,
@@ -27,7 +29,8 @@ import { IconPlus } from "./icons";
 import { notifyCollectionChanged } from "./local-collection";
 import { ManaCost, ManaText, SYMBOL_URL } from "./mana";
 import { formatChange, PriceChart } from "./price-chart";
-import { Banner, EmptyState, fmt, Loading } from "./ui";
+import { restorePref, savePref } from "./prefs";
+import { Banner, CardGridSkeleton, EmptyState, fmt, Loading, SortDirButton } from "./ui";
 
 const COLOR_LABEL = { W: "Blanco", U: "Azul", B: "Negro", R: "Rojo", G: "Verde" } as const;
 const PAGE = 36;
@@ -42,7 +45,7 @@ function CatalogTile({ card, delay }: { card: CatalogCardDTO; delay: number }) {
       style={{ ["--d" as string]: `${delay}ms` }}
     >
       <span className="cardbtn">
-        <CardImage card={card} />
+        <CardImage card={card} sizes="(max-width: 760px) 30vw, 180px" />
       </span>
       <span className="catalogtile-meta">
         <span className="truncate">{card.name}</span>
@@ -52,12 +55,62 @@ function CatalogTile({ card, delay }: { card: CatalogCardDTO; delay: number }) {
   );
 }
 
+/** Lo que se recuerda del buscador: los filtros y el orden (como parámetros de URL), sin el texto. */
+const parseCardsPref = (raw: unknown): CatalogQuery | null =>
+  typeof raw === "object" && raw !== null && typeof (raw as { query?: unknown }).query === "string"
+    ? parseCatalogQuery(new URLSearchParams((raw as { query: string }).query))
+    : null;
+
+/** "5" / "0,5" → número; vacío → null. */
+const euros = (v: string): number | null => {
+  const n = Number(v.replace(",", "."));
+  return v.trim() === "" || !Number.isFinite(n) || n < 0 ? null : n;
+};
+
+/** Precio mínimo o máximo: se aplica al dejar de escribir. */
+function PriceInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number | null;
+  onChange: (v: number | null) => void;
+}) {
+  const [draft, setDraft] = useState(value === null ? "" : String(value));
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- refleja el valor que llega de fuera
+    setDraft(value === null ? "" : String(value));
+  }, [value]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (euros(draft) !== value) onChange(euros(draft));
+    }, 500);
+    return () => clearTimeout(t);
+  }, [draft, value, onChange]);
+  return (
+    <input
+      className="input"
+      style={{ width: 92 }}
+      inputMode="decimal"
+      placeholder={label}
+      aria-label={`Precio ${label}`}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+    />
+  );
+}
+
 /** /cards: buscador de cartas con filtros (en la URL) y su precio. */
 export function CardsSearchPage() {
   const router = useRouter();
   const params = useSearchParams();
+  const { data: session, isPending } = authClient.useSession();
+  const loggedIn = Boolean(session);
   const [q, setQ] = useState<CatalogQuery>(() => parseCatalogQuery(new URLSearchParams(params)));
   const [text, setText] = useState(q.text);
+  /** Si se entra sin filtros en la URL, primero se recuperan los guardados. */
+  const [ready, setReady] = useState(() => [...new URLSearchParams(params).keys()].length > 0);
   const [items, setItems] = useState<CatalogCardDTO[] | null>(null);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -94,13 +147,32 @@ export function CardsSearchPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (ready || isPending) return;
+    return restorePref(
+      "cards",
+      parseCardsPref,
+      loggedIn,
+      (saved) => setQ((x) => ({ ...saved, text: x.text })),
+      () => setReady(true),
+    );
+  }, [ready, isPending, loggedIn]);
+
+  useEffect(() => {
+    if (!ready || isPending) return;
+    savePref("cards", { query: catalogQueryParams({ ...q, text: "" }).toString() }, loggedIn);
+  }, [q, ready, isPending, loggedIn]);
+
   // Cada cambio de filtros: a la URL (para compartir o volver atrás) y primera página.
   useEffect(() => {
+    if (!ready) return;
     const p = catalogQueryParams(q).toString();
     router.replace(`/cards${p ? `?${p}` : ""}`, { scroll: false });
     // eslint-disable-next-line react-hooks/set-state-in-effect -- busca al cambiar los filtros
     void load(q, 0);
-  }, [q, load, router]);
+  }, [q, load, router, ready]);
+  const setMinPrice = useCallback((v: number | null) => set({ minPrice: v }), []);
+  const setMaxPrice = useCallback((v: number | null) => set({ maxPrice: v }), []);
 
   const colorOn = (c: (typeof COLORS)[number]) => q.colors.includes(c);
   return (
@@ -203,12 +275,22 @@ export function CardsSearchPage() {
             style={{ width: "auto" }}
             aria-label="Ordenar"
             value={q.sort}
-            onChange={(e) => set({ sort: e.target.value as CatalogQuery["sort"] })}
+            onChange={(e) => set({ sort: e.target.value as CatalogQuery["sort"], dir: null })}
           >
             <option value="popular">Más jugadas (EDHREC)</option>
+            <option value="price">Precio</option>
             <option value="name">Nombre</option>
             <option value="cmc">Coste</option>
           </select>
+          <SortDirButton
+            dir={catalogSortDir(q)}
+            onChange={(dir) => set({ dir: dir === CATALOG_SORT_DEFAULT_DIR[q.sort] ? null : dir })}
+          />
+          <span className="flex items-center gap-1">
+            <PriceInput label="mín. €" value={q.minPrice} onChange={setMinPrice} />
+            <span className="subtle">–</span>
+            <PriceInput label="máx. €" value={q.maxPrice} onChange={setMaxPrice} />
+          </span>
           <label className="check">
             <input
               type="checkbox"
@@ -229,7 +311,7 @@ export function CardsSearchPage() {
       </section>
 
       {error && <Banner tone="out">{error}</Banner>}
-      {!items && !error && <Loading>Buscando…</Loading>}
+      {!items && !error && <CardGridSkeleton count={18} label="Buscando…" />}
       {items && (
         <>
           <span className="subtle text-[13px]">

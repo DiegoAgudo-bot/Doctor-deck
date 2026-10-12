@@ -20,7 +20,17 @@ export type CardType = keyof typeof CARD_TYPES;
  */
 export type ColorMode = "within" | "exact" | "includes";
 
-export type CatalogSort = "popular" | "name" | "cmc";
+export const CATALOG_SORTS = ["popular", "name", "cmc", "price"] as const;
+export type CatalogSort = (typeof CATALOG_SORTS)[number];
+export type SortDir = "asc" | "desc";
+
+/** La dirección natural de cada orden (la que se usa si no se elige otra). */
+export const CATALOG_SORT_DEFAULT_DIR: Record<CatalogSort, SortDir> = {
+  popular: "desc",
+  name: "asc",
+  cmc: "asc",
+  price: "desc",
+};
 
 export interface CatalogQuery {
   /** Texto en el nombre, el tipo o el texto de reglas. */
@@ -36,8 +46,16 @@ export interface CatalogQuery {
   gameChanger: boolean;
   /** Coste de maná convertido (null = cualquiera; 7 = 7 o más). */
   cmc: number | null;
+  /** Precio mínimo y máximo (EUR) de la impresión más barata. */
+  minPrice: number | null;
+  maxPrice: number | null;
   sort: CatalogSort;
+  /** null = la natural del orden (`CATALOG_SORT_DEFAULT_DIR`). */
+  dir: SortDir | null;
 }
+
+export const catalogSortDir = (q: Pick<CatalogQuery, "sort" | "dir">): SortDir =>
+  q.dir ?? CATALOG_SORT_DEFAULT_DIR[q.sort];
 
 export const EMPTY_CATALOG_QUERY: CatalogQuery = {
   text: "",
@@ -48,8 +66,17 @@ export const EMPTY_CATALOG_QUERY: CatalogQuery = {
   commander: false,
   gameChanger: false,
   cmc: null,
+  minPrice: null,
+  maxPrice: null,
   sort: "popular",
+  dir: null,
 };
+
+function priceParam(v: string | null): number | null {
+  if (v === null || v.trim() === "") return null;
+  const n = Number(v.replace(",", "."));
+  return Number.isFinite(n) && n >= 0 && n <= 100000 ? n : null;
+}
 
 /** Lee la consulta de los parámetros de la URL (tolerante: lo que no entiende, lo ignora). */
 export function parseCatalogQuery(params: URLSearchParams): CatalogQuery {
@@ -59,6 +86,8 @@ export function parseCatalogQuery(params: URLSearchParams): CatalogQuery {
   const sort = params.get("sort");
   const cmc = params.get("cmc");
   const cmcN = cmc === null || cmc === "" ? null : Number(cmc);
+  const dir = params.get("dir");
+  const parsedSort: CatalogSort = CATALOG_SORTS.find((s) => s === sort) ?? "popular";
   return {
     text: (params.get("q") ?? "").trim().slice(0, 100),
     colors: COLORS.filter((c) => colorsParam.includes(c)),
@@ -68,7 +97,13 @@ export function parseCatalogQuery(params: URLSearchParams): CatalogQuery {
     commander: params.get("commander") === "1",
     gameChanger: params.get("gc") === "1",
     cmc: cmcN !== null && Number.isInteger(cmcN) && cmcN >= 0 && cmcN <= 7 ? cmcN : null,
-    sort: sort === "name" || sort === "cmc" ? sort : "popular",
+    minPrice: priceParam(params.get("min")),
+    maxPrice: priceParam(params.get("max")),
+    sort: parsedSort,
+    dir:
+      (dir === "asc" || dir === "desc") && dir !== CATALOG_SORT_DEFAULT_DIR[parsedSort]
+        ? dir
+        : null,
   };
 }
 
@@ -83,7 +118,10 @@ export function catalogQueryParams(q: CatalogQuery): URLSearchParams {
   if (q.commander) p.set("commander", "1");
   if (q.gameChanger) p.set("gc", "1");
   if (q.cmc !== null) p.set("cmc", String(q.cmc));
+  if (q.minPrice !== null) p.set("min", String(q.minPrice));
+  if (q.maxPrice !== null) p.set("max", String(q.maxPrice));
   if (q.sort !== "popular") p.set("sort", q.sort);
+  if (q.dir !== null && q.dir !== CATALOG_SORT_DEFAULT_DIR[q.sort]) p.set("dir", q.dir);
   return p;
 }
 
@@ -95,4 +133,6 @@ export const isEmptyQuery = (q: CatalogQuery) =>
   !q.type &&
   !q.commander &&
   !q.gameChanger &&
-  q.cmc === null;
+  q.cmc === null &&
+  q.minPrice === null &&
+  q.maxPrice === null;

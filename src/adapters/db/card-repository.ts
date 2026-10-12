@@ -1,10 +1,10 @@
 import { NON_GAME_LAYOUTS } from "@/domain/cards/card-index";
 import { nameKey } from "@/domain/cards/names";
 import { COLORS, type Card, type Color, type Printing } from "@/domain/cards/types";
-import type { CatalogQuery } from "@/domain/cards/catalog-search";
+import { catalogSortDir, type CatalogQuery } from "@/domain/cards/catalog-search";
 import type { CardCatalogWriter, CardRepository } from "@/domain/ports/card-repository";
 import type { CardTagWriter } from "@/domain/ports/tagger-source";
-import type { OracleCard, Prisma, Printing as PrintingRow } from "@/generated/prisma/client";
+import { Prisma, type OracleCard, type Printing as PrintingRow } from "@/generated/prisma/client";
 import type { Db } from "./prisma";
 
 /** SQLite admite ~32k parámetros por consulta; troceamos los IN para ir sobrados. */
@@ -190,14 +190,22 @@ export class PrismaCardRepository implements CardRepository, CardCatalogWriter, 
     }
     if (q.gameChanger) and.push({ gameChanger: true });
     if (q.cmc !== null) and.push({ cmc: q.cmc >= 7 ? { gte: 7 } : q.cmc });
+    if (q.minPrice !== null) and.push({ minPriceEur: { gte: q.minPrice } });
+    if (q.maxPrice !== null) and.push({ minPriceEur: { lte: q.maxPrice } });
     const where: Prisma.OracleCardWhereInput = { AND: and };
-    const rank = { edhrecRank: { sort: "asc" as const, nulls: "last" as const } };
+    const dir = catalogSortDir(q);
+    // "Más jugadas" de más a menos = rango de EDHREC ascendente; las que no tienen, siempre al final.
+    const rank = {
+      edhrecRank: { sort: q.sort === "popular" && dir === "asc" ? "desc" : "asc", nulls: "last" },
+    } as const;
     const orderBy: Prisma.OracleCardOrderByWithRelationInput[] =
       q.sort === "name"
-        ? [{ name: "asc" }]
+        ? [{ name: dir }]
         : q.sort === "cmc"
-          ? [{ cmc: "asc" }, rank, { name: "asc" }]
-          : [rank, { name: "asc" }];
+          ? [{ cmc: dir }, rank, { name: "asc" }]
+          : q.sort === "price"
+            ? [{ minPriceEur: { sort: dir, nulls: "last" } }, rank, { name: "asc" }]
+            : [rank, { name: "asc" }];
     const [rows, total] = await Promise.all([
       this.db.oracleCard.findMany({ where, orderBy, skip: offset, take: limit }),
       this.db.oracleCard.count({ where }),
@@ -303,6 +311,16 @@ export class PrismaCardRepository implements CardRepository, CardCatalogWriter, 
       await this.db.printing.createMany({
         data: batch.map((p) => ({ ...p, scryfallId: p.scryfallId.toLowerCase() })),
       });
+      await this.refreshMinPrices([...new Set(batch.map((p) => p.oracleId))]);
     }
+  }
+
+  /** `OracleCard.minPriceEur` = la impresión más barata (para ordenar el buscador por precio). */
+  private async refreshMinPrices(oracleIds: readonly string[]) {
+    if (oracleIds.length === 0) return;
+    await this.db.$executeRaw`
+      UPDATE "OracleCard" SET "minPriceEur" = (
+        SELECT MIN("priceEur") FROM "Printing" WHERE "Printing"."oracleId" = "OracleCard"."oracleId"
+      ) WHERE "oracleId" IN (${Prisma.join(oracleIds)})`;
   }
 }

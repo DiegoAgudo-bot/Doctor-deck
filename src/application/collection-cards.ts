@@ -8,6 +8,7 @@ import {
   totals,
   type CollectionFilters,
   type CollectionSort,
+  type SortDir,
 } from "@/domain/collection/browse";
 import type { Card } from "@/domain/cards/types";
 import type { CardRepository } from "@/domain/ports/card-repository";
@@ -231,6 +232,8 @@ export async function collectionView(deps: {
 export interface CollectionQuery {
   filters: CollectionFilters;
   sort: CollectionSort;
+  /** Sin ella, la natural del orden (`COLLECTION_SORT_DEFAULT_DIR`). */
+  dir?: SortDir | undefined;
   offset: number;
   limit: number;
 }
@@ -259,7 +262,14 @@ export async function browseMyCollection(
     lastAdded: c.lastAdded.toISOString(),
     source: c,
   }));
-  const page = browseCollection(all, query.filters, query.sort, query.offset, query.limit);
+  const page = browseCollection(
+    all,
+    query.filters,
+    query.sort,
+    query.offset,
+    query.limit,
+    query.dir,
+  );
   return {
     items: page.items.map((i) => i.source),
     total: page.total,

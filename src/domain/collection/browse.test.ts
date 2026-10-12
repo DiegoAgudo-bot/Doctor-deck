@@ -121,3 +121,28 @@ describe("valor de las copias", () => {
     expect(browseCollection(cards, {}, "precio", 0, 10).items[0]?.card.name).toBe("Foil cara");
   });
 });
+
+describe("dirección del orden", () => {
+  it("invierte el orden y deja siempre al final las que no tienen dato", () => {
+    const card = (name: string, price: number | null) => ({
+      card: { name, typeLine: "Artifact", cmc: 1, colorIdentity: [] },
+      roles: [],
+      quantity: 1,
+      foilQuantity: 0,
+      fromCsv: 1,
+      manualCount: 0,
+      inUse: 0,
+      price,
+      value: price,
+      lastAdded: "2026-01-01",
+    });
+    const cards = [card("B", 5), card("A", null), card("C", 1), card("D", 5)];
+    const order = (dir?: "asc" | "desc") =>
+      browseCollection(cards, {}, "precio", 0, 10, dir).items.map((c) => c.card.name);
+    expect(order()).toEqual(["B", "D", "C", "A"]);
+    expect(order("asc")).toEqual(["C", "B", "D", "A"]);
+    expect(
+      browseCollection(cards, {}, "nombre", 0, 10, "desc").items.map((c) => c.card.name),
+    ).toEqual(["D", "C", "B", "A"]);
+  });
+});

@@ -34,10 +34,13 @@ model OracleCard {
   imageUrl       String?
   /// En la lista de "game changers" de los brackets (Scryfall `game_changer`).
   gameChanger    Boolean    @default(false)
+  /// Precio (EUR) de la impresión más barata; lo mantiene `insertPrintings`. Para ordenar por precio.
+  minPriceEur    Float?
   printings      Printing[]
 
   @@index([nameKey])
   @@index([frontFaceKey])
+  @@index([minPriceEur])
 }
 
 /// Una impresión concreta (bulk default_cards).
@@ -205,6 +208,7 @@ model User {
   tradesPublic      Boolean            @default(false)
   /// Avisar si una carta que me falta baja este % respecto a su máximo de 30 días. null = no avisar.
   priceAlertPercent Int?               @default(15)
+  prefs             UserPref[]
   sessions          Session[]
   accounts          Account[]
   collection        CollectionEntry[]
@@ -589,4 +593,16 @@ model CommentReport {
   reviewedAt DateTime?
 
   @@id([commentId, reporterId])
+}
+
+/// Preferencias de la interfaz (filtros, orden y vista de cada página), para que sigan en cualquier
+/// navegador y en la app. `value` = JSON pequeño validado al guardar.
+model UserPref {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@id([userId, key])
 }

@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaCollectionRepository } from "@/adapters/db/collection-repository";
 import { PrismaDeckRepository } from "@/adapters/db/deck-repository";
 import type { Db } from "@/adapters/db/prisma";
+import { PrismaPrefsRepository } from "@/adapters/db/prefs-repository";
 import { PrismaRoleOverrideRepository } from "@/adapters/db/role-override-repository";
 import { PrismaSocialRepository } from "@/adapters/db/social-repository";
 import { PrismaTradeProposalRepository } from "@/adapters/db/trade-proposal-repository";
@@ -79,11 +80,14 @@ const deps = (u: string) => ({
   loans: new PrismaLoanRepository(db),
   comments: new PrismaModerationRepository(db),
   blocks: new PrismaModerationRepository(db),
+  prefs: new PrismaPrefsRepository(db, u),
 });
 
 describe("mis datos", () => {
   it("los exporta todos, con la gente por su nombre de usuario y sin ids internos", async () => {
+    await new PrismaPrefsRepository(db, "ana").set("collection", { sort: "valor" });
     const data = await exportMyData("ana", deps("ana"), new Date("2026-10-12T00:00:00Z"));
+    expect(data.preferences).toEqual({ collection: { sort: "valor" } });
     expect(data.profile).toMatchObject({ username: "ana", email: "ana@test.local" });
     expect(data.collection).toEqual([
       expect.objectContaining({

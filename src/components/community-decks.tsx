@@ -8,7 +8,7 @@ import { authClient } from "./auth-client";
 import { DeckTile } from "./deck-tile";
 import { localCollection, ownedPairs } from "./local-collection";
 import { ColorPips } from "./mana";
-import { Banner, EmptyState, Loading, fmt } from "./ui";
+import { Banner, EmptyState, fmt, TilesSkeleton } from "./ui";
 
 const PAGE = 24;
 const COLORS = ["W", "U", "B", "R", "G"] as const;
@@ -204,7 +204,7 @@ export function CommunityDecks() {
 
       {error && <Banner tone="out">{error}</Banner>}
       {items === null ? (
-        <Loading>Cargando mazos…</Loading>
+        <TilesSkeleton label="Cargando mazos…" />
       ) : items.length === 0 ? (
         <div className="panel">
           <EmptyState

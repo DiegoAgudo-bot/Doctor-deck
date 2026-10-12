@@ -14,7 +14,7 @@ import { Avatar, GameCard, MemberLink, playedOn, Standings } from "./games-ui";
 import { IconCopy, IconLink, IconPlus, IconTrash, IconUsers } from "./icons";
 import { LendDialog } from "./loans-page";
 import { RecordGameDialog } from "./record-game-dialog";
-import { ago, Banner, Dialog, EmptyState, fmt, Loading } from "./ui";
+import { ago, Banner, Dialog, EmptyState, fmt, Loading, TilesSkeleton } from "./ui";
 
 const json = (body: unknown) => ({
   headers: { "Content-Type": "application/json" },
@@ -73,7 +73,7 @@ export function GroupsPage() {
         </div>
       </div>
       {error && <Banner tone="out">{error}</Banner>}
-      {!groups && !error && <Loading>Cargando tus grupos…</Loading>}
+      {!groups && !error && <TilesSkeleton count={4} height={76} label="Cargando tus grupos…" />}
       {groups && groups.length === 0 && (
         <div className="panel">
           <EmptyState

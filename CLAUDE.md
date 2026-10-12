@@ -359,6 +359,16 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     táctil, tocarla abre `CardSheet` (hoja con carta, tipo, precio, mis copias y "Ver ficha").
     "N en otros mazos" de la cabecera de un mazo abre qué cartas y en qué mazos
     (`OwnershipItemDTO.usedInDecks`, enlazados), y la tabla de la lista las marca.
+  - **Preferencias** (`UserPref`, `domain/prefs/prefs.ts`, `components/prefs.ts`): filtros, orden
+    y vista de la colección (`collection`) y del buscador (`cards`, como parámetros de URL sin el
+    texto) se guardan en el navegador y, con cuenta, en `GET /api/me/prefs` / `PUT
+/api/me/prefs/{key}` (objeto JSON ≤ 4000 caracteres). `restorePref` aplica la del navegador al
+    momento y luego la del servidor; sin ninguna local espera al servidor para no pisarla.
+  - Orden con dirección (botón ↓/↑, `SortDirButton`): colección `dir` en `/api/collection/view`
+    (`collectionSorter`, sin dato siempre al final) y buscador `sort=price` + `dir` + `min`/`max`
+    (€). `OracleCard.minPriceEur` (precio de la impresión más barata) lo rellena `insertPrintings`.
+  - `CardImage` con `sizes` ofrece también la imagen pequeña de Scryfall (146 px) en miniaturas;
+    `CardGridSkeleton` y `TilesSkeleton` mientras cargan las rejillas y listas.
   - Tipos y mapeadores de la API en `src/server/dto.ts` (los componentes solo hacen `import type`);
     errores → JSON `{error: {code, message}}` en `src/server/http.ts`.
   - Las rutas GET llaman a `await connection()` (better-sqlite3 es síncrono y si no, Next las
