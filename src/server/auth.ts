@@ -4,6 +4,7 @@ import { nextCookies } from "better-auth/next-js";
 import type { Db } from "@/adapters/db/prisma";
 import type { Mailer } from "@/adapters/mail/mailer";
 import type { Env } from "@/config/env";
+import { reportServerError } from "./error-log";
 
 /** Solo para desarrollo: en producción `loadEnv` exige BETTER_AUTH_SECRET. */
 const DEV_SECRET = "deck-doctor-dev-secret-not-for-production-use";
@@ -23,6 +24,18 @@ export const authFeatures = (env: Env, mailer: Mailer | null): AuthFeatures => (
  * Sesiones en BD (tabla `session`) con cookie httpOnly. Las rutas viven en /api/auth/*.
  */
 export function createAuth({ db, env, mailer }: { db: Db; env: Env; mailer: Mailer | null }) {
+  /**
+   * Los correos se mandan sin esperar: la pantalla no se queda en "Enviando…" si el servidor de
+   * correo tarda, y no se nota por el tiempo de respuesta si el email existe. Si falla, queda en
+   * /admin/errors.
+   */
+  const sendInBackground = (message: Parameters<Mailer["send"]>[0], path: string) => {
+    if (!mailer) return;
+    void mailer.send(message).catch((err: unknown) => {
+      console.error("No se pudo enviar un correo:", err);
+      void reportServerError(err, path);
+    });
+  };
   const google =
     env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
       ? { google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET } }
@@ -48,11 +61,14 @@ export function createAuth({ db, env, mailer }: { db: Db; env: Env; mailer: Mail
               }
             },
             sendResetPassword: async ({ user, url }) => {
-              await mailer.send({
-                to: user.email,
-                subject: "Doctor Deck · Restablecer la contraseña",
-                text: `Hola ${user.name},\n\nPara elegir una contraseña nueva abre este enlace (caduca en 1 hora):\n${url}\n\nSi no lo has pedido tú, ignora este mensaje.`,
-              });
+              sendInBackground(
+                {
+                  to: user.email,
+                  subject: "Doctor Deck · Restablecer la contraseña",
+                  text: `Hola ${user.name},\n\nPara elegir una contraseña nueva abre este enlace (caduca en 1 hora):\n${url}\n\nSi no lo has pedido tú, ignora este mensaje.`,
+                },
+                "/api/auth/request-password-reset",
+              );
             },
           }
         : {}),
@@ -71,11 +87,14 @@ export function createAuth({ db, env, mailer }: { db: Db; env: Env; mailer: Mail
               user: { name: string; email: string };
               url: string;
             }) => {
-              await mailer.send({
-                to: user.email,
-                subject: "Doctor Deck · Confirma tu email",
-                text: `Hola ${user.name},\n\nConfirma que este email es tuyo abriendo este enlace:\n${url}\n\nSi no te has registrado en Doctor Deck, ignora este mensaje.`,
-              });
+              sendInBackground(
+                {
+                  to: user.email,
+                  subject: "Doctor Deck · Confirma tu email",
+                  text: `Hola ${user.name},\n\nConfirma que este email es tuyo abriendo este enlace:\n${url}\n\nSi no te has registrado en Doctor Deck, ignora este mensaje.`,
+                },
+                "/api/auth/send-verification-email",
+              );
             },
           },
         }

@@ -139,6 +139,8 @@ export interface CollectionCard {
     addedAt: Date;
   }[];
   lastAdded: Date;
+  /** La impresión de la que tengo más copias (la que se enseña); null si no se sabe ninguna. */
+  printing: Printing | null;
   /** Precio de referencia (EUR) de la impresión más barata; null si no hay. */
   price: number | null;
   /**
@@ -176,6 +178,8 @@ export async function collectionView(deps: {
   };
 
   const out = new Map<string, CollectionCard>();
+  /** Copias por impresión de cada carta, para enseñar la que más tengo. */
+  const printingCopies = new Map<string, Map<string, number>>();
   for (const e of entries) {
     const card = byId.get(e.oracleId);
     if (!card) continue;
@@ -192,6 +196,7 @@ export async function collectionView(deps: {
         fromCsv: 0,
         manual: [],
         lastAdded: e.addedAt,
+        printing: null,
         price: prices.get(e.oracleId) ?? null,
         value: null,
         usedIn: u?.decks ?? [],
@@ -203,6 +208,12 @@ export async function collectionView(deps: {
     const unit = unitPrice(e);
     if (unit !== null) item.value = Math.round(((item.value ?? 0) + unit * e.quantity) * 100) / 100;
     if (e.foil) item.foilQuantity += e.quantity;
+    const sid = e.scryfallId?.toLowerCase();
+    if (sid && byPrinting.has(sid)) {
+      const copies = printingCopies.get(e.oracleId) ?? new Map<string, number>();
+      copies.set(sid, (copies.get(sid) ?? 0) + e.quantity);
+      printingCopies.set(e.oracleId, copies);
+    }
     if (e.setCode && !item.sets.includes(e.setCode.toUpperCase())) {
       item.sets.push(e.setCode.toUpperCase());
     }
@@ -225,7 +236,14 @@ export async function collectionView(deps: {
     }
     if (e.addedAt > item.lastAdded) item.lastAdded = e.addedAt;
   }
-  for (const item of out.values()) item.languages.sort((a, b) => b.quantity - a.quantity);
+  for (const [oracleId, item] of out) {
+    item.languages.sort((a, b) => b.quantity - a.quantity);
+    let best: [string, number] | undefined;
+    for (const entry of printingCopies.get(oracleId) ?? []) {
+      if (!best || entry[1] > best[1]) best = entry;
+    }
+    item.printing = best ? (byPrinting.get(best[0]) ?? null) : null;
+  }
   return [...out.values()];
 }
 

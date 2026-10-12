@@ -24,7 +24,7 @@ import { createDb, dataEpoch } from "@/adapters/db/prisma";
 import { HttpClient } from "@/adapters/http/http-client";
 import { FileImageCache } from "@/adapters/images/image-cache";
 import { ScryfallTagger } from "@/adapters/scryfall/tagger";
-import { smtpMailer } from "@/adapters/mail/mailer";
+import { createMailer } from "@/adapters/mail/mailer";
 import { engineConfig } from "@/config/engine";
 import { loadEnv } from "@/config/env";
 import { HeuristicRoleClassifier } from "@/domain/roles/heuristic-classifier";
@@ -61,7 +61,7 @@ export function createContainer() {
     userAgent: env.HTTP_USER_AGENT,
     minIntervalMs: env.SCRYFALL_MIN_INTERVAL_MS,
   });
-  const mailer = env.SMTP_URL ? smtpMailer(env.SMTP_URL, env.MAIL_FROM) : null;
+  const mailer = env.SMTP_URL ? createMailer(env.SMTP_URL, env.MAIL_FROM) : null;
   return {
     env,
     edhrec,
