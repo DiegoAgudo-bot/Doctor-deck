@@ -5,7 +5,7 @@ import { EdhrecError } from "@/adapters/edhrec/errors";
 import { UnsupportedDeckInputError } from "@/application/load-deck";
 import { EmptyCatalogError } from "@/application/import-collection";
 import { ManaboxFormatError } from "@/domain/collection/manabox";
-import { errorResponse } from "./http";
+import { errorResponse, jsonWithEtag } from "./http";
 
 const body = async (r: Response) =>
   ((await r.json()) as { error: { code: string; message: string } }).error;
@@ -34,5 +34,20 @@ describe("errorResponse", () => {
     expect(r.status).toBe(500);
     expect((await body(r)).message).toBe("Error inesperado en el servidor");
     spy.mockRestore();
+  });
+});
+
+describe("jsonWithEtag", () => {
+  it("responde 304 sin cuerpo si el cliente ya tiene esa versión", async () => {
+    const first = jsonWithEtag(new Request("http://x/api/decks"), [{ id: "a" }]);
+    expect(first.status).toBe(200);
+    expect(await first.json()).toEqual([{ id: "a" }]);
+    const etag = first.headers.get("etag") ?? "";
+    expect(etag).toMatch(/^".+"$/);
+    const again = new Request("http://x/api/decks", { headers: { "If-None-Match": `W/${etag}` } });
+    const second = jsonWithEtag(again, [{ id: "a" }]);
+    expect(second.status).toBe(304);
+    expect(await second.text()).toBe("");
+    expect(jsonWithEtag(again, [{ id: "b" }]).status).toBe(200);
   });
 });

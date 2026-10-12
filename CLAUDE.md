@@ -369,6 +369,16 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     (€). `OracleCard.minPriceEur` (precio de la impresión más barata) lo rellena `insertPrintings`.
   - `CardImage` con `sizes` ofrece también la imagen pequeña de Scryfall (146 px) en miniaturas;
     `CardGridSkeleton` y `TilesSkeleton` mientras cargan las rejillas y listas.
+  - **Rendimiento** (bloque C del bugfix): `createDb` sube `dataEpoch()` con cada escritura en
+    colección, mazos, préstamos, roles corregidos o catálogo; `MemoCache` (`server/memo-cache.ts`)
+    guarda por usuario la colección calculada (`container.collectionViews`, válida hasta que cambie
+    la época o pasen 10 min) y `browseCollectionView` filtra sobre ella. `EdhrecClient` guarda en
+    memoria las 32 últimas páginas validadas hasta que caducan. `/api/collection/view` y
+    `/api/analyze` devuelven `Server-Timing` (`Timing`, `timing.wrap` cronometra los adaptadores).
+    En el navegador, `swr-cache.ts` enseña lo de la última vez (mis mazos, totales y primera página
+    de la colección) mientras llega lo nuevo; se borra al entrar o salir. `GET /api/decks`,
+    `/api/decks/{id}`, `/api/collection/cards` y `/api/me/prefs` llevan ETag (`jsonWithEtag`, 304
+    si no ha cambiado; pensado también para la app).
   - Tipos y mapeadores de la API en `src/server/dto.ts` (los componentes solo hacen `import type`);
     errores → JSON `{error: {code, message}}` en `src/server/http.ts`.
   - Las rutas GET llaman a `await connection()` (better-sqlite3 es síncrono y si no, Next las

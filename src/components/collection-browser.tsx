@@ -17,6 +17,7 @@ import type {
   CollectionTotals,
   CollectionViewResponse,
 } from "@/server/dto";
+import { readCached, writeCached } from "./swr-cache";
 import { api, ApiError } from "./api-client";
 import { CardHover, CardImage } from "./card-image";
 import { CardPriceDialog } from "./card-price-dialog";
@@ -259,6 +260,20 @@ export function CollectionBrowser({
   }, [f, view, ready, remember, loggedIn]);
 
   // Primera página al cambiar filtros u orden (con un respiro mientras se escribe en el buscador).
+  // Mi colección: la primera página de la última vez (si era con estos filtros) al momento.
+  const cacheable = remember && loggedIn;
+  const signature = JSON.stringify({ filters: toQuery(f), sort: f.sort, dir: f.dir });
+  useEffect(() => {
+    if (!ready || !cacheable) return;
+    const cached = readCached<{ sig: string; items: CollectionCardDTO[]; total: CollectionTotals }>(
+      "collection-first",
+    );
+    if (cached?.sig !== signature) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- lo guardado del navegador, una vez
+    setItems((x) => x ?? cached.items);
+    setTotal((x) => x ?? cached.total);
+  }, [ready, cacheable, signature]);
+
   useEffect(() => {
     if (!ready) return;
     const id = ++request.current;
@@ -271,6 +286,9 @@ export function CollectionBrowser({
             if (id !== request.current) return;
             setItems(r.items);
             setTotal(r.total);
+            if (cacheable) {
+              writeCached("collection-first", { sig: signature, items: r.items, total: r.total });
+            }
           })
           .catch((e: unknown) => {
             if (id === request.current) {
@@ -282,7 +300,7 @@ export function CollectionBrowser({
       f.q ? 250 : 0,
     );
     return () => clearTimeout(t);
-  }, [fetchPage, version, f.q, ready]);
+  }, [fetchPage, version, f.q, ready, cacheable, signature]);
 
   async function loadMore() {
     if (!items) return;

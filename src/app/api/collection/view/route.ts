@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { BrowserCollectionRepository, noSavedDecks } from "@/adapters/memory/anonymous";
-import { browseMyCollection } from "@/application/collection-cards";
+import { browseCollectionView, collectionView } from "@/application/collection-cards";
 import { CARD_TYPES, COLLECTION_SORTS, COLOR_FILTERS } from "@/domain/collection/browse";
 import { ROLES } from "@/domain/roles/types";
 import { withOverrides } from "@/domain/roles/overrides";
@@ -9,6 +9,7 @@ import { collectionCardDTO, type CollectionViewResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
 import { browserRoleEditsSchema, loadRoleEdits, overridesOf } from "@/server/role-edits";
 import { currentUser } from "@/server/session";
+import { Timing } from "@/server/timing";
 
 const schema = z.object({
   /** La colección de otro usuario (si la tiene pública). */
@@ -66,23 +67,38 @@ export async function POST(request: Request) {
       }
       ownerId = owner.id;
     }
-    const result = await browseMyCollection(query, {
+    const timing = new Timing();
+    const deps = {
       cards: c.cards,
       collection: ownerId ? c.collectionFor(ownerId) : new BrowserCollectionRepository(collection),
       decks: ownerId ? c.decksFor(ownerId) : noSavedDecks,
-      // Con las correcciones de roles del dueño (o, sin sesión, las del navegador).
-      classifier: withOverrides(c.classifier, {
-        mine: overridesOf(
-          ownerId ? await c.roleOverridesFor(ownerId).all() : await loadRoleEdits(null, roleEdits),
-        ),
-      }),
+    };
+    const load = async () =>
+      collectionView({
+        ...deps,
+        // Con las correcciones de roles del dueño (o, sin sesión, las del navegador).
+        classifier: withOverrides(c.classifier, {
+          mine: overridesOf(
+            ownerId
+              ? await c.roleOverridesFor(ownerId).all()
+              : await loadRoleEdits(null, roleEdits),
+          ),
+        }),
+      });
+    // La de un usuario se guarda en caché; la del navegador (sin cuenta) viene en cada petición.
+    const view = await timing.step("view", async () => {
+      if (!ownerId) return load();
+      const r = await c.collectionViews.get(ownerId, load);
+      timing.add(r.hit ? "cache-hit" : "cache-miss", 0);
+      return r.value;
     });
+    const result = browseCollectionView(view, query);
     const body: CollectionViewResponse = {
       items: result.items.map(collectionCardDTO),
       total: result.total,
       overall: result.overall,
     };
-    return Response.json(body);
+    return Response.json(body, { headers: timing.header() });
   } catch (err) {
     return errorResponse(err);
   }

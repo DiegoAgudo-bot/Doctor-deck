@@ -9,6 +9,7 @@ import type {
   SavedDeckSummaryDTO,
   StatusResponse,
 } from "@/server/dto";
+import { clearCached, swr } from "./swr-cache";
 import { api, storage } from "./api-client";
 import { authClient } from "./auth-client";
 import {
@@ -132,7 +133,9 @@ export function BareShell({ children }: { children: ReactNode }) {
 
 async function signOut() {
   await authClient.signOut();
-  storage.remove("deck-doctor:mazo"); // no dejar el mazo abierto en un navegador compartido
+  // No dejar el mazo abierto ni lo cargado de la cuenta en un navegador compartido.
+  storage.remove("deck-doctor:mazo");
+  clearCached();
   window.location.assign(new URL("/", window.location.origin));
 }
 
@@ -258,9 +261,11 @@ function Sidebar({
     if (pending) return;
     const load = () => {
       if (user) {
-        api<SavedDeckSummaryDTO[]>("/api/decks", undefined, { silent: true })
-          .then(setDecks)
-          .catch(() => setDecks([]));
+        swr(
+          "decks",
+          () => api<SavedDeckSummaryDTO[]>("/api/decks", undefined, { silent: true }),
+          setDecks,
+        ).catch(() => setDecks((d) => d ?? []));
         api<StatusResponse>("/api/status", undefined, { silent: true })
           .then((s) => setCopies(s.collection?.totalCards ?? 0))
           .catch(() => setCopies(null));

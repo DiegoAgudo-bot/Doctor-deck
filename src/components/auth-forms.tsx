@@ -4,13 +4,16 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { authClient, authErrorMessage, safeNext } from "./auth-client";
+import { clearCached } from "./swr-cache";
 import { Banner } from "./ui";
 
 /**
  * Navegación completa tras entrar: las rutas protegidas pueden estar precargadas (sin sesión) en la
  * caché del router, y así además se refresca todo lo que depende de la sesión.
  */
+/** Tras entrar: fuera lo guardado de otra cuenta y recarga completa. */
 function goTo(path: string) {
+  clearCached();
   window.location.assign(new URL(path, window.location.origin));
 }
 

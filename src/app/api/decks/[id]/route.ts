@@ -4,7 +4,7 @@ import { BRACKETS } from "@/domain/deck/bracket";
 import { DECK_VISIBILITIES } from "@/domain/deck/visibility";
 import { getContainer } from "@/server/container";
 import { savedDeckDTO, type DeckViewDTO } from "@/server/dto";
-import { errorResponse } from "@/server/http";
+import { errorResponse, jsonWithEtag } from "@/server/http";
 import { currentUser, requireUser } from "@/server/session";
 
 const notFound = () =>
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">
       likes,
       liked: liked.has(found.deck.id),
     };
-    return Response.json(body);
+    return jsonWithEtag(req, body);
   } catch (err) {
     return errorResponse(err);
   }

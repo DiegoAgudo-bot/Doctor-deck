@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { DeckNotFoundError } from "@/adapters/db/deck-repository";
 import { DeckSourceError } from "@/adapters/deck-sources/errors";
@@ -108,4 +109,20 @@ export function errorResponse(err: unknown): Response {
   }
   console.error(err);
   return Response.json(body("internal", "Error inesperado en el servidor"), { status: 500 });
+}
+
+/**
+ * JSON con ETag (hash del cuerpo): si el cliente manda `If-None-Match` con el mismo, responde 304
+ * sin cuerpo. Para la app móvil (y el navegador): saber si algo ha cambiado sin volver a bajarlo.
+ * Privado (`no-cache`): siempre se revalida, nunca se sirve de una caché compartida.
+ */
+export function jsonWithEtag(request: Request, body: unknown, headers: HeadersInit = {}): Response {
+  const json = JSON.stringify(body);
+  const etag = `"${createHash("sha1").update(json).digest("base64url")}"`;
+  const common = { ETag: etag, "Cache-Control": "private, no-cache", ...headers };
+  const match = request.headers.get("if-none-match");
+  if (match && match.split(",").some((t) => t.trim().replace(/^W\//, "") === etag)) {
+    return new Response(null, { status: 304, headers: common });
+  }
+  return new Response(json, { headers: { "Content-Type": "application/json", ...common } });
 }

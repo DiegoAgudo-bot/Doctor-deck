@@ -4,7 +4,7 @@ import { createTestDb, createTestUser } from "../../../tests/helpers/test-db";
 import { nameKey } from "@/domain/cards/names";
 import { PrismaCardRepository } from "./card-repository";
 import { PrismaCollectionRepository } from "./collection-repository";
-import type { Db } from "./prisma";
+import { dataEpoch, type Db } from "./prisma";
 
 let db: Db;
 let cleanup: () => Promise<void>;
@@ -111,5 +111,27 @@ describe("PrismaCollectionRepository", () => {
     expect(await db.collectionEntry.count({ where: { userId: "u1" } })).toBe(0);
     expect(await db.collectionEntry.count({ where: { userId: "u2" } })).toBe(1);
     expect(await repo.summary()).toMatchObject({ rows: 0, totalCards: 0, importedAt: null });
+  });
+});
+
+describe("dataEpoch", () => {
+  it("sube al escribir en la colección y no al leer", async () => {
+    const { db: d, cleanup: c } = createTestDb();
+    const user = await createTestUser(d, "epoch-user");
+    const before = dataEpoch();
+    await d.collectionEntry.findMany();
+    expect(dataEpoch()).toBe(before);
+    await d.collectionEntry.create({
+      data: {
+        userId: user,
+        name: "Sol Ring",
+        quantity: 1,
+        status: "unmatched",
+        line: 2,
+        raw: "{}",
+      },
+    });
+    expect(dataEpoch()).toBeGreaterThan(before);
+    await c();
   });
 });

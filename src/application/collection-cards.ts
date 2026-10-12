@@ -254,7 +254,15 @@ export async function browseMyCollection(
   query: CollectionQuery,
   deps: Parameters<typeof collectionView>[0],
 ): Promise<CollectionBrowseResult> {
-  const all = (await collectionView(deps)).map((c) => ({
+  return browseCollectionView(await collectionView(deps), query);
+}
+
+/** Lo mismo sobre una vista ya calculada (p. ej. guardada en caché). */
+export function browseCollectionView(
+  view: readonly CollectionCard[],
+  query: CollectionQuery,
+): CollectionBrowseResult {
+  const all = view.map((c) => ({
     ...c,
     roles: c.roles.roles,
     manualCount: c.manual.length,

@@ -6,6 +6,7 @@ import { DeleteAccountDialog } from "./delete-account-dialog";
 import { USERNAME_HELP } from "@/domain/social/username";
 import type { MyProfileDTO } from "@/server/dto";
 import type { MemberDTO } from "@/server/social-dto";
+import { clearCached } from "./swr-cache";
 import { api, ApiError, storage } from "./api-client";
 import { authClient } from "./auth-client";
 import { IconLogout } from "./icons";
@@ -246,6 +247,7 @@ export function SettingsPage() {
         onClick={async () => {
           await authClient.signOut();
           storage.remove("deck-doctor:mazo");
+          clearCached();
           window.location.assign(new URL("/", window.location.origin));
         }}
       >

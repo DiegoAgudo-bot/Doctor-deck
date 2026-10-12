@@ -6,7 +6,7 @@ import { announceBigCards } from "@/application/social";
 import { socialConfig } from "@/config/social";
 import { getContainer } from "@/server/container";
 import { addCardsResponse, cardDTO, type AddedCardDTO } from "@/server/dto";
-import { errorResponse } from "@/server/http";
+import { errorResponse, jsonWithEtag } from "@/server/http";
 import { currentUser, requireUser } from "@/server/session";
 
 const schema = z.object({
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
       language: a.language,
       addedAt: a.addedAt.toISOString(),
     }));
-    return Response.json(body);
+    return jsonWithEtag(request, body);
   } catch (err) {
     return errorResponse(err);
   }
