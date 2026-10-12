@@ -7,6 +7,7 @@ import { analyzeResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
 import { browserRoleEditsSchema, loadDeckRoleEdits, loadRoleEdits } from "@/server/role-edits";
 import { currentUser } from "@/server/session";
+import { Timing } from "@/server/timing";
 
 const ids = z.array(z.string().min(1).max(64)).max(200).optional();
 
@@ -44,23 +45,30 @@ export async function POST(request: Request) {
     const user = await currentUser(request);
     const { collection, roleEdits, ...req } = analyzeRequestSchema.parse(await request.json());
     const c = getContainer();
-    const result = await analyzeDeck(
-      {
-        ...req,
-        roleEdits: await loadRoleEdits(user?.id ?? null, roleEdits),
-        deckRoleEdits: await loadDeckRoleEdits(user?.id ?? null, req.deckId),
-      },
-      {
-        sources: c.deckSources,
-        cards: c.cards,
-        collection: user ? c.collectionFor(user.id) : new BrowserCollectionRepository(collection),
-        recommendations: c.edhrec,
-        decks: user ? c.decksFor(user.id) : noSavedDecks,
-        classifier: c.classifier,
-        config: c.engineConfig,
-      },
+    const t = new Timing();
+    const result = await t.step("total", async () =>
+      analyzeDeck(
+        {
+          ...req,
+          roleEdits: await loadRoleEdits(user?.id ?? null, roleEdits),
+          deckRoleEdits: await loadDeckRoleEdits(user?.id ?? null, req.deckId),
+        },
+        {
+          sources: c.deckSources,
+          cards: t.wrap("cards", c.cards),
+          collection: t.wrap(
+            "collection",
+            user ? c.collectionFor(user.id) : new BrowserCollectionRepository(collection),
+          ),
+          recommendations: t.wrap("edhrec", c.edhrec),
+          decks: t.wrap("decks", user ? c.decksFor(user.id) : noSavedDecks),
+          classifier: c.classifier,
+          config: c.engineConfig,
+        },
+      ),
     );
-    return Response.json(analyzeResponse(result, c.engineConfig));
+    const body = await t.step("dto", async () => analyzeResponse(result, c.engineConfig));
+    return Response.json(body, { headers: t.header() });
   } catch (err) {
     return errorResponse(err);
   }

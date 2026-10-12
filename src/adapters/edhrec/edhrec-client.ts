@@ -22,6 +22,9 @@ export interface EdhrecClientOptions {
   baseUrl?: string;
 }
 
+/** Páginas validadas que se guardan en memoria (las más recientes). */
+const MEMO_PAGES = 32;
+
 interface Fetched<T> {
   page: T;
   fetchedAt: Date;
@@ -98,12 +101,34 @@ export class EdhrecClient implements RecommendationSource, AverageDeckSource {
     return { slug, path: `/commanders/${slug}${theme ? `/${theme}` : ""}` };
   }
 
+  /**
+   * Las últimas páginas ya leídas y validadas, en memoria hasta que caducan: abrir otra vez un mazo
+   * del mismo comandante no vuelve a leer y validar el JSON (cientos de KB) de la BD.
+   */
+  private readonly memo = new Map<string, { until: number; value: Fetched<unknown> }>();
+
   private async fetchPage<T>(
     path: string,
     parse: Parser<T>,
     redirectsLeft: number,
   ): Promise<Fetched<T>> {
     const url = `${this.baseUrl}${path}.json`;
+    const hit = this.memo.get(url);
+    if (hit && this.now().getTime() < hit.until) return hit.value as Fetched<T>;
+    const value = await this.loadPage(url, parse, redirectsLeft);
+    if (!value.stale) {
+      this.memo.delete(url);
+      this.memo.set(url, { until: value.fetchedAt.getTime() + this.opts.ttlMs, value });
+      if (this.memo.size > MEMO_PAGES) this.memo.delete(this.memo.keys().next().value ?? "");
+    }
+    return value;
+  }
+
+  private async loadPage<T>(
+    url: string,
+    parse: Parser<T>,
+    redirectsLeft: number,
+  ): Promise<Fetched<T>> {
     const cached = await this.opts.cache.get(url);
     const now = this.now();
 

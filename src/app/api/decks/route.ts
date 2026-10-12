@@ -6,7 +6,7 @@ import { saveDeck } from "@/application/save-deck";
 import { announceNewDeck } from "@/application/social";
 import { deckSummaries } from "@/server/deck-summaries";
 import { getContainer } from "@/server/container";
-import { errorResponse } from "@/server/http";
+import { errorResponse, jsonWithEtag } from "@/server/http";
 import { requireUser } from "@/server/session";
 
 const ids = z.array(z.string().min(1).max(64)).max(200).optional();
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   try {
     const user = await requireUser(request);
     const c = getContainer();
-    return Response.json(await deckSummaries(await c.decksFor(user.id).list(), c.cards));
+    return jsonWithEtag(request, await deckSummaries(await c.decksFor(user.id).list(), c.cards));
   } catch (err) {
     return errorResponse(err);
   }

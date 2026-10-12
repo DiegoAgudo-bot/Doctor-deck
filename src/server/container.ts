@@ -5,6 +5,8 @@ import { PrismaCardRepository } from "@/adapters/db/card-repository";
 import { PrismaCollectionRepository } from "@/adapters/db/collection-repository";
 import { PrismaDeckRepository, PrismaPublicDecks } from "@/adapters/db/deck-repository";
 import { PrismaPriceHistory } from "@/adapters/db/price-history";
+import { MemoCache } from "./memo-cache";
+import type { CollectionCard } from "@/application/collection-cards";
 import { PrismaPrefsRepository } from "@/adapters/db/prefs-repository";
 import { PrismaRoleOverrideRepository } from "@/adapters/db/role-override-repository";
 import { PrismaTradeRepository } from "@/adapters/db/trade-repository";
@@ -17,7 +19,7 @@ import { PrismaGameRepository, PrismaGroupRepository } from "@/adapters/db/play-
 import { PrismaResponseCache } from "@/adapters/db/response-cache";
 import { EdhrecClient } from "@/adapters/edhrec/edhrec-client";
 import { SpellbookClient } from "@/adapters/spellbook/spellbook-client";
-import { createDb } from "@/adapters/db/prisma";
+import { createDb, dataEpoch } from "@/adapters/db/prisma";
 import { HttpClient } from "@/adapters/http/http-client";
 import { FileImageCache } from "@/adapters/images/image-cache";
 import { ScryfallTagger } from "@/adapters/scryfall/tagger";
@@ -76,6 +78,11 @@ export function createContainer() {
     roleOverridesFor: (userId: string) => new PrismaRoleOverrideRepository(db, userId),
     /** Filtros, orden y vista de cada página (para que sigan en otro navegador o en la app). */
     prefsFor: (userId: string) => new PrismaPrefsRepository(db, userId),
+    /**
+     * La colección calculada de cada usuario (cartas, precios, roles y uso en mazos): se rehace
+     * solo si algo cambia (`dataEpoch`) o cada 10 minutos (precios de `scryfall:sync`).
+     */
+    collectionViews: new MemoCache<CollectionCard[]>(dataEpoch, 10 * 60_000, 200),
     /** Lista de deseos manual y cartas que no cambio de cada usuario. */
     tradesFor: (userId: string) => new PrismaTradeRepository(db, userId),
     /** Propuestas de intercambio entre usuarios (fase 19). */

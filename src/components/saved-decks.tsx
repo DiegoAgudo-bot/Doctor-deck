@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { SavedDeckDTO, SavedDeckSummaryDTO } from "@/server/dto";
+import { swr } from "./swr-cache";
 import { api, ApiError } from "./api-client";
 import { DeckTile } from "./deck-tile";
 import { nextVisibility, setDeckVisibility } from "./deck-visibility";
@@ -21,12 +22,11 @@ export function SavedDecks() {
   const [working, setWorking] = useState(false);
 
   useEffect(() => {
+    // Lo de la última vez al momento; después, lo nuevo.
     const load = () =>
-      api<SavedDeckSummaryDTO[]>("/api/decks")
-        .then(setDecks)
-        .catch((e: unknown) =>
-          setError(e instanceof ApiError ? e.message : "No se pudieron cargar los mazos"),
-        );
+      swr("decks", () => api<SavedDeckSummaryDTO[]>("/api/decks"), setDecks).catch((e: unknown) =>
+        setError(e instanceof ApiError ? e.message : "No se pudieron cargar los mazos"),
+      );
     void load();
     window.addEventListener(DECKS_EVENT, load);
     return () => window.removeEventListener(DECKS_EVENT, load);

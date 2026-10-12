@@ -9,6 +9,7 @@ import type {
   CollectionViewResponse,
   StatusResponse,
 } from "@/server/dto";
+import { readCached, writeCached } from "./swr-cache";
 import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
 import { AddCards, type AddedRow } from "./collection-add";
@@ -47,6 +48,9 @@ export function CollectionPage() {
     const l = localCollection.get();
     setLocal(l);
     setVersion((v) => v + 1);
+    // Con cuenta, los totales de la última vez al momento (la lista hace lo mismo).
+    const cachedTotals = loggedIn ? readCached<CollectionTotals>("collection-overall") : null;
+    if (cachedTotals) setOverall((o) => o ?? cachedTotals);
     try {
       const [view, st, added] = await Promise.all([
         api<CollectionViewResponse>("/api/collection/view", {
@@ -61,6 +65,7 @@ export function CollectionPage() {
         loggedIn ? api<AddedCardDTO[]>("/api/collection/cards") : Promise.resolve([]),
       ]);
       setOverall(view.overall);
+      if (loggedIn) writeCached("collection-overall", view.overall);
       setStatus(st);
       setAccountAdded(added);
     } catch (err) {

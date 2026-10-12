@@ -109,7 +109,7 @@ model CollectionEntry {
   importedAt      DateTime @default(now())
 
   @@index([oracleId])
-  @@index([userId])
+  @@index([userId, oracleId])
 }
 
 model Deck {
@@ -167,6 +167,7 @@ model DeckCard {
   scryfallId  String?
 
   @@unique([deckId, oracleId])
+  @@index([oracleId])
 }
 
 model SwapDecision {
