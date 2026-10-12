@@ -104,7 +104,7 @@ export function CardsSearchPage() {
 
   const colorOn = (c: (typeof COLORS)[number]) => q.colors.includes(c);
   return (
-    <main className="page max-w-[1200px]">
+    <main className="page">
       <div className="flex flex-col gap-1">
         <span className="eyebrow">Catálogo</span>
         <h1 className="h1">Buscar cartas</h1>
@@ -318,7 +318,7 @@ export function CardDetailPage() {
 
   if (!d) {
     return (
-      <main className="page max-w-[1100px]">
+      <main className="page">
         {error ? <Banner tone="out">{error}</Banner> : <Loading>Cargando la carta…</Loading>}
       </main>
     );
@@ -328,7 +328,7 @@ export function CardDetailPage() {
   const image = printing ? { ...d.card, imageUrl: printing.imageUrl ?? d.card.imageUrl } : d.card;
   const change = prices?.change;
   return (
-    <main className="page max-w-[1100px]">
+    <main className="page">
       <Link className="subtle text-[13px]" href="/cards">
         ← Buscar cartas
       </Link>

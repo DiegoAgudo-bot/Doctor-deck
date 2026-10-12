@@ -175,7 +175,7 @@ export function TradesPage() {
 
   if (!mine || !partners || !proposals) {
     return (
-      <main className="page max-w-[1100px]">
+      <main className="page">
         <h1 className="h1">Intercambios</h1>
         {error ? <Banner tone="out">{error}</Banner> : <Loading>Cargando tus listas…</Loading>}
       </main>
@@ -184,7 +184,7 @@ export function TradesPage() {
 
   const wishValue = mine.wishlist.reduce((n, w) => n + (w.price ?? 0) * w.quantity, 0);
   return (
-    <main className="page max-w-[1100px]" style={{ gap: 20 }}>
+    <main className="page" style={{ gap: 20 }}>
       <div className="flex flex-col gap-1">
         <h1 className="h1">Intercambios</h1>
         <p className="muted text-[13px]">

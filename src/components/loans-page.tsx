@@ -235,7 +235,7 @@ export function LoansPage() {
       .catch((e: unknown) => setError(e instanceof ApiError ? e.message : "No se pudo guardar"));
 
   return (
-    <main className="page max-w-[900px]">
+    <main className="page">
       <div className="stack-sm flex items-end gap-3">
         <div className="flex flex-1 flex-col gap-1">
           <span className="eyebrow">Entre amigos</span>

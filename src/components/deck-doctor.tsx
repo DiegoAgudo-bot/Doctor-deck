@@ -34,7 +34,7 @@ import { OpeningHand } from "./deck-hand";
 import { localRoles } from "./local-roles";
 import { PrintingDialog } from "./printing-dialog";
 import { RoleEditDialog, type RoleEditScope } from "./role-edit-dialog";
-import { OwnershipPanel } from "./deck-ownership";
+import { OtherDecksDialog, OwnershipPanel } from "./deck-ownership";
 import { ExportDialog, SaveDialog } from "./deck-dialogs";
 import {
   DeckFacts,
@@ -365,6 +365,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     .map((s) => `- 1 ${s.out.card.name}\n+ 1 ${s.in.card.name}`)
     .join("\n");
   const leaving = new Set(accepted.map((s) => s.out.card.oracleId));
+  const inOtherDecks = new Map(
+    (ok?.ownership.items ?? [])
+      .filter((i) => i.fromOtherDecks > 0)
+      .map((i) => [i.card.oracleId, i.usedIn] as const),
+  );
 
   /** Aplica los aceptados a la lista, excluye los descartados y vuelve a analizar. */
   function applyAndRecalculate() {
@@ -580,7 +585,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const analyzing = busy === "analyze";
 
   return (
-    <main className="page max-w-[1240px]">
+    <main className="page">
       {opening && !ok && <OpeningDeck />}
       {showForm && (
         <EntryForm
@@ -893,6 +898,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                   onChangeQuantity={owner ? undefined : (card, delta) => void editCard(card, delta)}
                   onEditRoles={setEditingRoles}
                   onEditPrinting={owner ? undefined : setPrintingCard}
+                  inOtherDecks={inOtherDecks}
                   busy={busy !== null}
                 />
               )}
@@ -1354,7 +1360,7 @@ function DeckHeader({
             <> · {ok.edhrec.totalDecks.toLocaleString("es")} mazos en EDHREC</>
           )}
         </p>
-        <OwnershipLine totals={ok.ownership.totals} onClick={onShowMissing} />
+        <OwnershipLine ownership={ok.ownership} onClick={onShowMissing} />
       </div>
       <div className="flex flex-wrap gap-2">
         <div className="btn-group">
@@ -1482,44 +1488,63 @@ function DeckEditor({
   );
 }
 
-/** "Tienes 72 de 99 · te faltan 27 (≈ 85 €)", que lleva a la pestaña "Qué me falta". */
+/**
+ * "Tienes 72 de 99 · te faltan 27 (≈ 85 €)", que lleva a la pestaña "Qué me falta"; "· 4 en otros
+ * mazos" abre cuáles y dónde.
+ */
 function OwnershipLine({
-  totals,
+  ownership,
   onClick,
 }: {
-  totals: Ok["ownership"]["totals"];
+  ownership: Ok["ownership"];
   onClick: () => void;
 }) {
+  const { totals } = ownership;
+  const [others, setOthers] = useState(false);
   const pct = totals.cards ? Math.round((totals.have / totals.cards) * 100) : 0;
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex max-w-[420px] cursor-pointer flex-col gap-1.5 rounded-md border border-line bg-transparent p-2 text-left"
-      style={{ color: "inherit", font: "inherit" }}
-    >
+    <div className="flex max-w-[420px] flex-col gap-1.5 rounded-md border border-line p-2">
       <span className="text-[13px]">
-        Tienes <b className="mono">{totals.have}</b> de <b className="mono">{totals.cards}</b>
-        {totals.toBuy > 0 ? (
-          <>
-            {" "}
-            · te faltan{" "}
-            <b className="mono" style={{ color: "var(--color-out)" }}>
-              {totals.toBuy}
-            </b>{" "}
-            <span className="muted">(≈ {formatEuros(totals.cost)})</span>
-          </>
-        ) : (
-          <span className="pill pill-in"> · lo tienes todo</span>
-        )}
+        <button type="button" onClick={onClick} className="linkbtn text-left no-underline">
+          Tienes <b className="mono">{totals.have}</b> de <b className="mono">{totals.cards}</b>
+          {totals.toBuy > 0 ? (
+            <>
+              {" "}
+              · te faltan{" "}
+              <b className="mono" style={{ color: "var(--color-out)" }}>
+                {totals.toBuy}
+              </b>{" "}
+              <span className="muted">(≈ {formatEuros(totals.cost)})</span>
+            </>
+          ) : totals.fromOtherDecks === 0 ? (
+            <span className="pill pill-in"> · lo tienes todo</span>
+          ) : null}
+        </button>
         {totals.fromOtherDecks > 0 && (
-          <span className="muted"> · {totals.fromOtherDecks} en otros mazos</span>
+          <>
+            <span className="muted"> · </span>
+            <button
+              type="button"
+              className="linkbtn underline decoration-dotted underline-offset-2"
+              style={{ color: "var(--color-inuse)" }}
+              onClick={() => setOthers(true)}
+            >
+              {totals.fromOtherDecks} en otros mazos
+            </button>
+          </>
         )}
       </span>
-      <span className="role-bar" style={{ height: 4 }}>
+      <button
+        type="button"
+        onClick={onClick}
+        className="role-bar cursor-pointer border-0 p-0"
+        style={{ height: 4 }}
+        aria-label="Ver qué me falta"
+      >
         <i style={{ width: `${pct}%` }} />
-      </span>
-    </button>
+      </button>
+      {others && <OtherDecksDialog items={ownership.items} onClose={() => setOthers(false)} />}
+    </div>
   );
 }
 

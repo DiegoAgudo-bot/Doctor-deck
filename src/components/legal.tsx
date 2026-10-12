@@ -12,8 +12,8 @@ export function LegalPage({
   children: ReactNode;
 }) {
   return (
-    <main className="page max-w-[760px]">
-      <article className="prose">
+    <main className="page">
+      <article className="prose max-w-[80ch]">
         <h1 className="h1">{title}</h1>
         <p className="subtle text-xs">Última actualización: {updated}</p>
         {children}

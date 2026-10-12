@@ -139,7 +139,7 @@ export function NewDeckWizard() {
   }
 
   return (
-    <main className="page max-w-[980px]" style={{ gap: 20 }}>
+    <main className="page" style={{ gap: 20 }}>
       <div className="flex flex-col gap-1">
         <h1 className="h1">Nuevo mazo</h1>
         <p className="muted text-[13px]">

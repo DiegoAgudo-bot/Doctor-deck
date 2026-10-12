@@ -366,6 +366,7 @@ export function DeckList({
   onChangeQuantity,
   onEditRoles,
   onEditPrinting,
+  inOtherDecks,
   busy = false,
 }: {
   view: ListView;
@@ -380,6 +381,8 @@ export function DeckList({
   onEditRoles?: ((card: DeckCardDTO) => void) | undefined;
   /** Elegir la impresión de una carta (columna "Edición"). */
   onEditPrinting?: ((card: CardDTO) => void) | undefined;
+  /** Cartas que tengo pero están en otros mazos (o prestadas): oracleId → dónde. */
+  inOtherDecks?: ReadonlyMap<string, readonly string[]> | undefined;
   busy?: boolean;
 }) {
   const groups = groupByRole(cards);
@@ -426,6 +429,14 @@ export function DeckList({
                         )}
                         {leaving.has(c.card.oracleId) && (
                           <span className="pill pill-out">sale</span>
+                        )}
+                        {inOtherDecks?.has(c.card.oracleId) && (
+                          <span
+                            className="pill pill-inuse"
+                            title={`La tienes en: ${inOtherDecks.get(c.card.oracleId)?.join(", ")}`}
+                          >
+                            en {inOtherDecks.get(c.card.oracleId)?.join(", ")}
+                          </span>
                         )}
                       </CardHover>
                       {c.tags.length > 0 && (

@@ -146,7 +146,7 @@ export function CollectionPage() {
   ];
 
   return (
-    <main className="page max-w-[1240px]">
+    <main className="page">
       <div className="stack-sm flex items-end justify-between gap-3">
         <h1 className="h1">Mi colección</h1>
         {overall && overall.cards > 0 && (

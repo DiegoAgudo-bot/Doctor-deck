@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeCard } from "../../../tests/helpers/cards";
-import { deckOwnership } from "./ownership";
+import { deckOwnership, usedDecks } from "./ownership";
 
 const korvold = makeCard({ name: "Korvold, Fae-Cursed King", typeLine: "Legendary Creature" });
 const sol = makeCard({ name: "Sol Ring" });
@@ -52,5 +52,22 @@ describe("deckOwnership", () => {
   it("sin mazos guardados (o sin descontarlos) todo lo que tengo está libre", () => {
     const r = deckOwnership([], [{ card: devil, quantity: 1 }], new Map([[devil.oracleId, 1]]));
     expect(r.items[0]?.status).toBe("owned");
+  });
+});
+
+describe("usedDecks", () => {
+  it("empareja nombres e ids y deja fuera los préstamos", () => {
+    expect(
+      usedDecks({
+        quantity: 3,
+        decks: ["Meren", "Korvold", "Prestada a @ana"],
+        deckIds: ["a", "b"],
+      }),
+    ).toEqual([
+      { id: "a", name: "Meren" },
+      { id: "b", name: "Korvold" },
+    ]);
+    expect(usedDecks({ quantity: 1, decks: ["Meren"] })).toEqual([]);
+    expect(usedDecks(undefined)).toEqual([]);
   });
 });

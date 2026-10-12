@@ -116,14 +116,14 @@ export function ProfilePage() {
 
   if (error) {
     return (
-      <main className="page max-w-[1100px]">
+      <main className="page">
         <Banner tone="out">{error}</Banner>
       </main>
     );
   }
   if (!view) {
     return (
-      <main className="page max-w-[1100px]">
+      <main className="page">
         <Loading>Cargando el perfil…</Loading>
       </main>
     );
@@ -133,7 +133,7 @@ export function ProfilePage() {
   const canSeeCollection = profile.collectionPublic || view.isMe;
   const publicCount = view.decks.filter((d) => d.visibility === "public").length;
   return (
-    <main className="page max-w-[1100px]">
+    <main className="page">
       <section className="stack-sm flex items-center gap-4">
         <span className="avatar" style={{ width: 64, height: 64, fontSize: 26 }} aria-hidden="true">
           {(profile.name.trim()[0] ?? profile.username[0] ?? "?").toUpperCase()}

@@ -348,7 +348,7 @@ export function LifeCounter() {
 
   if (!s.game) {
     return (
-      <main className="page max-w-[560px]" style={{ gap: 18 }}>
+      <main className="page" style={{ gap: 18 }}>
         <div className="flex flex-col gap-1">
           <span className="eyebrow">Contador de vidas</span>
           <h1 className="h1">A jugar</h1>

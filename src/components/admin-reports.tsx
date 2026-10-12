@@ -31,7 +31,7 @@ export function AdminReports() {
       .catch((e: unknown) => setError(e instanceof ApiError ? e.message : "No se pudo guardar"));
 
   return (
-    <main className="page max-w-[860px]">
+    <main className="page">
       <h1 className="h1">Denuncias</h1>
       {error && <Banner tone="out">{error}</Banner>}
       {!list && !error && <Loading>Cargando…</Loading>}

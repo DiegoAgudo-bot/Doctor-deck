@@ -200,7 +200,7 @@ export function ActivityFeed({ compact = false }: { compact?: boolean }) {
 
 export function FeedPage() {
   return (
-    <main className="page max-w-[760px]">
+    <main className="page">
       <div className="flex flex-col gap-1">
         <span className="eyebrow">Comunidad</span>
         <h1 className="h1">Actividad</h1>

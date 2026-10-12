@@ -35,7 +35,7 @@ export function NotificationsPage() {
   }, []);
 
   return (
-    <main className="page max-w-[760px]">
+    <main className="page">
       <h1 className="h1">Notificaciones</h1>
       {error && <Banner tone="out">{error}</Banner>}
       {!data && !error && <Loading>Cargando…</Loading>}
