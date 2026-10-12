@@ -59,6 +59,14 @@ ADMIN_EMAILS="tu-email@ejemplo.com"
 
 Tras cambiar `.env`: `docker compose up -d` (recrea el contenedor).
 
+Sin entrar por SSH: GitHub › Actions › **Configurar el VPS** › Run workflow cambia
+`DECK_DOCTOR_HOST` (entrada; antes comprueba que el DNS ya apunta al VPS y deja el dominio anterior
+en `DECK_DOCTOR_OLD_HOST` para que redirija) y, si existen como secretos del repositorio
+(Settings › Secrets and variables › Actions), `ADMIN_EMAILS`, `LEGAL_OWNER`, `LEGAL_EMAIL`,
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_URL` y `MAIL_FROM`. Guarda
+una copia `.env.bak-…`, reinicia y comprueba que la web responde. El repositorio es público: los
+datos personales van como secretos, nunca en el código ni como entrada del workflow.
+
 Tareas diarias en el crontab de root (`scripts/deploy.sh` las añade solas si faltan):
 
 ```cron

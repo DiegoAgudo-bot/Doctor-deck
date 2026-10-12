@@ -1,0 +1,100 @@
+name: Configurar el VPS
+
+# Manual (Actions › "Configurar el VPS" › Run workflow). Cambia variables del .env del VPS y
+# reinicia la app, por la misma conexión SSH que el despliegue. El dominio va como entrada (es
+# público); el resto sale de secretos del repositorio (ADMIN_EMAILS, LEGAL_OWNER, LEGAL_EMAIL,
+# GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SMTP_URL, MAIL_FROM), que
+# GitHub oculta en los logs: el repositorio es público. Lo que no esté definido no se toca.
+on:
+  workflow_dispatch:
+    inputs:
+      host:
+        description: "Dominio público (DECK_DOCTOR_HOST); vacío = no cambiarlo"
+        required: false
+        default: "doctordeck.app"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  configure:
+    name: Cambiar el .env y reiniciar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.2.0
+        env:
+          NEW_HOST: ${{ inputs.host }}
+          ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+          LEGAL_OWNER: ${{ secrets.LEGAL_OWNER }}
+          LEGAL_EMAIL: ${{ secrets.LEGAL_EMAIL }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          SMTP_URL: ${{ secrets.SMTP_URL }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER || 'root' }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
+          envs: NEW_HOST,ADMIN_EMAILS,LEGAL_OWNER,LEGAL_EMAIL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,SMTP_URL,MAIL_FROM
+          command_timeout: 10m
+          script: |
+            set -e
+            cd "${{ secrets.VPS_APP_DIR || '/doctor-deck' }}"
+            OLD_HOST=$(grep -E '^DECK_DOCTOR_HOST=' .env | head -1 | cut -d= -f2- | tr -d '"')
+            echo "Dominio actual: ${OLD_HOST:-(ninguno)}"
+
+            # Antes de cambiar el dominio: que ya apunte a este servidor (si no, la web dejaría de
+            # funcionar hasta que el DNS se propague y el certificado no se podría emitir).
+            if [ -n "$NEW_HOST" ] && [ "$NEW_HOST" != "$OLD_HOST" ]; then
+              IP=$(getent ahostsv4 "$NEW_HOST" | awk 'NR==1{print $1}')
+              MINE=$(hostname -I; curl -s4 --max-time 5 https://ifconfig.me || true)
+              echo "$NEW_HOST resuelve a: ${IP:-(nada)}"
+              if [ -z "$IP" ] || ! echo "$MINE" | tr ' ' '\n' | grep -qx "$IP"; then
+                echo "::error::$NEW_HOST todavía no apunta a este servidor. Revisa los registros A del DNS y vuelve a lanzarlo en un rato."
+                exit 1
+              fi
+            fi
+
+            cp .env ".env.bak-$(date +%Y%m%d-%H%M%S)"
+            set_var() {
+              [ -z "$2" ] && return 0
+              grep -v -E "^$1=" .env > .env.tmp || true
+              printf '%s="%s"\n' "$1" "$2" >> .env.tmp
+              mv .env.tmp .env
+              echo "Actualizado: $1"
+            }
+            set_var DECK_DOCTOR_HOST "$NEW_HOST"
+            set_var ADMIN_EMAILS "$ADMIN_EMAILS"
+            set_var LEGAL_OWNER "$LEGAL_OWNER"
+            set_var LEGAL_EMAIL "$LEGAL_EMAIL"
+            set_var GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
+            set_var GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET"
+            set_var SMTP_URL "$SMTP_URL"
+            set_var MAIL_FROM "$MAIL_FROM"
+            # Que el dominio de antes siga redirigiendo al nuevo.
+            if [ -n "$NEW_HOST" ] && [ -n "$OLD_HOST" ] && [ "$NEW_HOST" != "$OLD_HOST" ]; then
+              set_var DECK_DOCTOR_OLD_HOST "$OLD_HOST"
+            fi
+
+            docker compose up -d
+
+            HOST=$(grep -E '^DECK_DOCTOR_HOST=' .env | head -1 | cut -d= -f2- | tr -d '"')
+            echo "Esperando a https://$HOST (certificado incluido)…"
+            for i in $(seq 1 24); do
+              CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://$HOST/api/status" || true)
+              [ "$CODE" = "200" ] && break
+              sleep 10
+            done
+            echo "https://$HOST/api/status → $CODE"
+            [ "$CODE" = "200" ] || { echo "::error::La app no responde en https://$HOST"; exit 1; }
+            for H in "www.$HOST" "$(grep -E '^DECK_DOCTOR_OLD_HOST=' .env | cut -d= -f2- | tr -d '"')"; do
+              [ -z "$H" ] && continue
+              LOC=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 15 "https://$H/decks" || true)
+              echo "https://$H/decks → $LOC"
+            done
