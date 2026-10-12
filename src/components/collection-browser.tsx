@@ -620,7 +620,7 @@ export function CollectionBrowser({
         </div>
       ) : (
         <div className="panel overflow-x-auto">
-          <table className="table">
+          <table className="table rtable">
             <thead>
               <tr>
                 <th className="r" style={{ width: 44 }}>
@@ -638,8 +638,8 @@ export function CollectionBrowser({
             <tbody>
               {shown.map((c) => (
                 <tr key={c.card.oracleId}>
-                  <td className="r mono">{c.quantity}</td>
-                  <td>
+                  <td className="r mono rt-qty">{c.quantity}</td>
+                  <td className="rt-main">
                     <CardHover card={c.card} className="inline-flex items-center gap-2">
                       {editable ? (
                         <button
@@ -676,7 +676,7 @@ export function CollectionBrowser({
                         : "—"}
                     </td>
                   )}
-                  <td className="r mono">
+                  <td className="r mono rt-end">
                     {(c.value ?? c.price) !== null ? (
                       <button
                         type="button"

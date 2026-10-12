@@ -9,6 +9,7 @@ import type {
   SavedDeckSummaryDTO,
   StatusResponse,
 } from "@/server/dto";
+import { GlobalSearch } from "./global-search";
 import { clearCached, swr } from "./swr-cache";
 import { api, storage } from "./api-client";
 import { authClient } from "./auth-client";
@@ -196,6 +197,7 @@ function TopBar({
         ))}
       </nav>
       <div className="ml-auto flex items-center gap-2">
+        <GlobalSearch loggedIn={Boolean(user)} />
         <ThemeToggle />
         {user && (
           <Link

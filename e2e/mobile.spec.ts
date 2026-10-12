@@ -34,3 +34,15 @@ for (const path of [
     expect(overflow, "scroll horizontal").toBeLessThanOrEqual(1);
   });
 }
+
+test("en el móvil el buscador se abre en una hoja", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Buscar", exact: true }).tap();
+  const sheet = page.locator("dialog.gsearch-sheet[open]");
+  await sheet.getByLabel("Buscar en Doctor Deck").fill("sol ring");
+  await sheet
+    .getByRole("option", { name: /Sol Ring/ })
+    .first()
+    .tap();
+  await expect(page).toHaveURL(/\/cards\//);
+});

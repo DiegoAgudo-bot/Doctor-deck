@@ -234,7 +234,7 @@ export function OwnershipPanel({
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="table">
+            <table className="table rtable">
               <thead>
                 <tr>
                   <th className="r" style={{ width: 56 }}>
@@ -249,12 +249,12 @@ export function OwnershipPanel({
               <tbody>
                 {missing.map((i) => (
                   <tr key={i.card.oracleId}>
-                    <td className="r mono">{i.toBuy}</td>
-                    <td>
+                    <td className="r mono rt-qty">{i.toBuy}</td>
+                    <td className="rt-main">
                       <CardName item={i} />
                     </td>
                     <td className="r mono subtle hide-sm">{i.owned || "—"}</td>
-                    <td className="r mono">
+                    <td className="r mono rt-end">
                       {i.price !== null ? (
                         <button
                           type="button"
@@ -303,14 +303,14 @@ export function OwnershipPanel({
             <span className="subtle text-xs">Muévelas o compra otra copia</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="table">
+            <table className="table rtable">
               <tbody>
                 {elsewhere.map((i) => (
                   <tr key={i.card.oracleId}>
-                    <td className="r mono" style={{ width: 56 }}>
+                    <td className="r mono rt-qty" style={{ width: 56 }}>
                       {i.fromOtherDecks}
                     </td>
-                    <td>
+                    <td className="rt-main">
                       <CardName item={i} />
                     </td>
                     <td className="muted">

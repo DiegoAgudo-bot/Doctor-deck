@@ -170,7 +170,7 @@ export function BuyPanel({
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="table">
+              <table className="table rtable">
                 <thead>
                   <tr>
                     <th style={{ width: 36 }} />
@@ -193,7 +193,7 @@ export function BuyPanel({
                           transition: "opacity var(--motion-150) var(--ease-out)",
                         }}
                       >
-                        <td>
+                        <td className="rt-qty">
                           <input
                             type="checkbox"
                             checked={on}
@@ -209,7 +209,7 @@ export function BuyPanel({
                             }
                           />
                         </td>
-                        <td>
+                        <td className="rt-main">
                           <CardHover card={p.in.card} className="inline-flex items-center gap-2">
                             <span className="mono" style={{ color: "var(--color-in)" }}>
                               +
@@ -218,7 +218,7 @@ export function BuyPanel({
                             <ManaCost cost={p.in.card.manaCost} />
                           </CardHover>
                         </td>
-                        <td className="hide-sm">
+                        <td className="rt-out">
                           <span
                             className="muted"
                             style={{
@@ -233,7 +233,7 @@ export function BuyPanel({
                           <span className="pill">{roleLabel(p.in.primaryRole)}</span>
                         </td>
                         <td className="r mono hide-sm">+{points(p.score)}</td>
-                        <td className="r mono">
+                        <td className="r mono rt-end">
                           {p.in.price !== undefined ? formatEuros(p.in.price) : "—"}
                         </td>
                         <td className="r">

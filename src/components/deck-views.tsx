@@ -400,14 +400,14 @@ export function DeckList({
   if (view === "lista") {
     return (
       <div className="panel overflow-x-auto">
-        <table className="table">
+        <table className="table rtable">
           <thead>
             <tr>
               <th style={{ width: 30 }} />
               <th>Carta</th>
               <th>Coste</th>
               <th>Rol</th>
-              <th className="hide-sm">Edición</th>
+              <th>Edición</th>
               <th style={{ width: 40 }} />
               {onChangeQuantity && <th style={{ width: 70 }} />}
             </tr>
@@ -418,8 +418,8 @@ export function DeckList({
                 const isLocked = locked.has(c.card.oracleId);
                 return (
                   <tr key={c.card.oracleId}>
-                    <td className="mono subtle">{c.quantity}</td>
-                    <td>
+                    <td className="mono subtle rt-qty">{c.quantity}</td>
+                    <td className="rt-main">
                       <CardHover card={c.card} className="inline-flex items-center gap-2">
                         {c.card.name}
                         {c.card.gameChanger && (
@@ -485,7 +485,7 @@ export function DeckList({
                         </span>
                       )}
                     </td>
-                    <td className="mono subtle hide-sm whitespace-nowrap text-xs">
+                    <td className="mono subtle whitespace-nowrap text-xs">
                       {onEditPrinting ? (
                         <button
                           type="button"
@@ -503,7 +503,7 @@ export function DeckList({
                         (c.card.printing?.setCode.toUpperCase() ?? "—")
                       )}
                     </td>
-                    <td>
+                    <td className="rt-end">
                       {!c.isBasicLand && (
                         <button
                           type="button"
@@ -525,7 +525,7 @@ export function DeckList({
                       )}
                     </td>
                     {onChangeQuantity && (
-                      <td>
+                      <td className="rt-end">
                         <span className="flex justify-end gap-0.5">
                           {c.isBasicLand && (
                             <button
