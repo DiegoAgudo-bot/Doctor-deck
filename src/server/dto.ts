@@ -768,7 +768,8 @@ export const savedDeckDTO = (d: SavedDeck): SavedDeckDTO => ({
 });
 
 export const collectionCardDTO = (c: CollectionCard): CollectionCardDTO => ({
-  card: cardDTO(c.card),
+  // Con la imagen de la impresión que tengo (la de más copias), no la de referencia.
+  card: cardWithPrintingDTO(c.card, c.printing ?? undefined),
   roles: c.roles.roles,
   primaryRole: c.roles.primary,
   quantity: c.quantity,

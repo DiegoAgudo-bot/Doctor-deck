@@ -90,7 +90,7 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   Además, cartas sueltas (`addToCollection`, `application/collection-cards.ts`): se resuelven por
   `oracleId` (buscador web), `scryfallId` (lo que dará el escáner de la app móvil) o nombre, y se
   guardan con `matchMethod = "manual"`; reimportar el CSV **no** las borra. `collectionView` agrupa
-  la colección por carta con catálogo, precio, roles, idiomas y mazos que la usan; `browseMyCollection` filtra,
+  la colección por carta (con la imagen de la impresión de la que tengo más copias) con catálogo, precio, roles, idiomas y mazos que la usan; `browseMyCollection` filtra,
   ordena y pagina en el servidor (`domain/collection/browse.ts`; la web pide 48 por página).
   `summary.totalCards` = copias identificadas (sin las filas sin emparejar). Cada copia guarda su
   idioma (`CollectionEntry.language`, código de Scryfall: `en`, `es`, `ja`…; `normalizeLanguage` en
@@ -406,7 +406,8 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     (`domain/deck/export.ts`) y vuelve a analizar excluyendo las cartas descartadas.
 - **Usuarios** (Fase 8, Better Auth, `src/server/auth.ts`): email + contraseña (scrypt, mínimo 8)
   y Google si hay `GOOGLE_CLIENT_ID/SECRET`; "olvidé mi contraseña" solo si hay `SMTP_URL`
-  (`adapters/mail`). Sesiones en BD (tablas `user`, `session`, `account`, `verification`) con cookie
+  (`adapters/mail`; con el SMTP de Resend se usa su API HTTPS, porque el VPS bloquea los puertos
+  SMTP; los correos se mandan sin esperar y si fallan quedan en `/admin/errors`). Sesiones en BD (tablas `user`, `session`, `account`, `verification`) con cookie
   httpOnly; rutas en `/api/auth/[...all]`. Si alguien entra con Google con el mismo email que una
   cuenta existente, se vinculan (`accountLinking`) **solo si el email de esa cuenta está
   verificado** (`requireLocalEmailVerified`, por seguridad); si no, Google vuelve a `/login?error=

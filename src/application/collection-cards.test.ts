@@ -187,6 +187,13 @@ describe("collectionView", () => {
       price: 0.1,
       value: 2.5,
     });
+    // Y se enseña esa impresión, no la de referencia de la carta.
+    const printing = fixturePrintings().find((p) => p.oracleId === trainer.oracleId);
+    expect(
+      view.find((v) => v.card.oracleId === trainer.oracleId)?.printing?.scryfallId.toLowerCase(),
+    ).toBe(printing?.scryfallId.toLowerCase());
+    // Sin impresión conocida, ninguna.
+    expect(view.find((v) => v.card.name === "Sol Ring")?.printing).toBeNull();
   });
 
   it("sin cuenta usa la colección que manda el navegador", async () => {
