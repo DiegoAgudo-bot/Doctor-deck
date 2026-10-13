@@ -306,7 +306,7 @@ PR por fase, que se mergea cuando el CI está en verde.
 | Fase | Contenido                                                                           | Esfuerzo   | Estado |
 | ---- | ----------------------------------------------------------------------------------- | ---------- | ------ |
 | U1   | Limpieza: navegación sin duplicados, portada, cabecera del mazo y textos de botones | Bajo       | ✅     |
-| U2   | Los mazos guardados se guardan solos (cambios aplicados, tema, candados, descartes) | Medio      |        | ✅  |
+| U2   | Los mazos guardados se guardan solos (cambios aplicados, tema, candados, descartes) | Medio      | ✅     |
 | U3   | Ajustes del mazo en su página (nombre, visibilidad, bracket, deseos, borrar…)       | Bajo-medio |        |
 | U4   | Colección y cartas → mazos: «Añadir a un mazo», «Crear mazo», comandantes que tengo | Medio      |        |
 | U5   | Un único «Nuevo mazo» (comandante o lista/enlace, siempre se guarda)                | Medio      |        |
