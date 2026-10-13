@@ -80,13 +80,11 @@ export function Home() {
 
   const user = status.user;
   const collection = status.collection;
-  // Sin cuenta: la portada (con un aviso si acaba de borrar su cuenta).
+  // Sin cuenta (la sesión caducó en el navegador): la portada.
   if (!user && !isPending) {
-    const deleted =
-      typeof window !== "undefined" && window.location.search.includes("account=deleted");
+    // La portada sin sesión la pinta el servidor; esto solo pasa si la sesión caduca aquí.
     return (
       <main className="page">
-        {deleted && <Banner tone="info">Tu cuenta y todos tus datos se han borrado.</Banner>}
         <Landing />
       </main>
     );

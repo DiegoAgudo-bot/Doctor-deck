@@ -64,3 +64,23 @@ test.describe("registro", () => {
     );
   });
 });
+
+test.describe("portada", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("sin cuenta, la portada viene en el HTML del servidor", async ({ request }) => {
+    const html = await (await request.get("/")).text();
+    expect(html).toContain("Mejora tus mazos con las cartas");
+    expect(html).toContain("Preguntas frecuentes");
+    expect(html).toContain("Lo último de la comunidad");
+  });
+
+  test("enseña mazos reales de la comunidad y las preguntas frecuentes", async ({ page }) => {
+    await page.goto("/");
+    await expect(
+      page.getByRole("link", { name: /Teferi (control|copia)/ }).first(),
+    ).toHaveAttribute("href", /^\/decks\//);
+    await page.getByText("¿Necesito cuenta?").click();
+    await expect(page.getByText(/No para analizar un mazo/)).toBeVisible();
+  });
+});

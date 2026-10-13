@@ -1,11 +1,10 @@
-"use client";
-
-/* eslint-disable @next/next/no-img-element -- símbolos de maná servidos desde /symbols */
+/* eslint-disable @next/next/no-img-element -- símbolos de maná e imágenes servidos desde nuestro servidor */
 
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { IconArrowRight, IconCollection, IconDecks, IconSwap, IconUsers } from "./icons";
-import { SYMBOL_URL } from "./mana";
+import type { LandingDeck } from "@/server/landing";
+import { ColorPips, SYMBOL_URL } from "./mana";
 
 /** Una carta dibujada con CSS (sin imágenes externas): marco del color, coste, arte y texto. */
 function MockCard({
@@ -68,8 +67,32 @@ function Feature({
   );
 }
 
+/** Preguntas de quien llega por primera vez (respuestas cortas, antes de pedir la cuenta). */
+const FAQ: [string, ReactNode][] = [
+  ["¿Es gratis?", "Sí, gratis y sin anuncios."],
+  [
+    "¿Necesito cuenta?",
+    "No para analizar un mazo: tu colección se queda en este navegador. Con una cuenta guardas tus mazos y tienes la colección en cualquier dispositivo.",
+  ],
+  [
+    "¿Necesito ManaBox?",
+    "No. ManaBox es la forma rápida de traer tu colección (exportas el CSV y lo subes), pero también puedes añadir las cartas a mano.",
+  ],
+  [
+    "¿De dónde salen las recomendaciones?",
+    "De EDHREC: lo que juega la gente con tu comandante. Las cartas y los precios vienen de Scryfall (Cardmarket) y los combos, de Commander Spellbook.",
+  ],
+  [
+    "¿Qué hacéis con mis datos?",
+    <>
+      Solo los usamos para que la app funcione. Puedes descargarlos o borrar tu cuenta desde Ajustes
+      cuando quieras. Más en la <Link href="/privacy">política de privacidad</Link>.
+    </>,
+  ],
+];
+
 /** Portada para quien llega sin cuenta: qué hace Doctor Deck, enseñado más que contado. */
-export function Landing() {
+export function Landing({ decks = [] }: { decks?: LandingDeck[] }) {
   return (
     <div className="landing">
       <section className="hero">
@@ -153,31 +176,78 @@ export function Landing() {
         </Feature>
       </section>
 
-      <section className="steps">
-        {[
-          [
-            "1",
-            "Tu colección",
-            "Sube el CSV de ManaBox o añade tus cartas. Sin cuenta, se queda en tu navegador.",
-          ],
-          [
-            "2",
-            "Tu mazo",
-            "Pega la lista o un enlace de Archidekt o Moxfield. Detecto el comandante y leo EDHREC.",
-          ],
-          [
-            "3",
-            "Los cambios",
-            "Acepta o descarta cada propuesta y exporta la lista mejorada a donde juegues.",
-          ],
-        ].map(([n, t, d]) => (
-          <div key={n} className="step">
-            <span className="step-n">{n}</span>
-            <div>
-              <h3>{t}</h3>
-              <p>{d}</p>
-            </div>
+      {decks.length > 0 ? (
+        <section className="landing-decks" aria-labelledby="landing-decks-title">
+          <div className="flex items-end justify-between gap-3">
+            <h2 id="landing-decks-title" className="h2" style={{ fontSize: 20 }}>
+              Lo último de la comunidad
+            </h2>
+            <Link href="/community" style={{ fontSize: 13 }}>
+              Ver todos
+            </Link>
           </div>
+          <div className="landing-decks-grid">
+            {decks.map((d) => (
+              <Link key={d.id} href={`/decks/${d.id}`} className="landing-deck">
+                {d.imageUrl ? (
+                  <img src={d.imageUrl} alt={d.commanders[0] ?? ""} loading="lazy" />
+                ) : (
+                  <span className="landing-deck-noimg" aria-hidden />
+                )}
+                <span className="flex min-w-0 flex-col gap-1">
+                  <b className="truncate">{d.name}</b>
+                  <span className="muted truncate text-[13px]">{d.commanders.join(" + ")}</span>
+                  <span className="subtle flex items-center gap-2 text-xs">
+                    <ColorPips colors={d.colors} />@{d.owner}
+                    {d.likes > 0 && <> · {d.likes === 1 ? "1 me gusta" : `${d.likes} me gusta`}</>}
+                  </span>
+                </span>
+              </Link>
+            ))}
+          </div>
+          <p className="muted text-[13px]">
+            Al abrir un mazo de otro jugador ves qué cartas ya tienes y cuánto te costaría el resto.
+          </p>
+        </section>
+      ) : (
+        <section className="steps">
+          {[
+            [
+              "1",
+              "Tu colección",
+              "Sube el CSV de ManaBox o añade tus cartas. Sin cuenta, se queda en tu navegador.",
+            ],
+            [
+              "2",
+              "Tu mazo",
+              "Pega la lista o un enlace de Archidekt o Moxfield. Detecto el comandante y leo EDHREC.",
+            ],
+            [
+              "3",
+              "Los cambios",
+              "Acepta o descarta cada propuesta y exporta la lista mejorada a donde juegues.",
+            ],
+          ].map(([n, t, d]) => (
+            <div key={n} className="step">
+              <span className="step-n">{n}</span>
+              <div>
+                <h3>{t}</h3>
+                <p>{d}</p>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      <section className="faq" aria-labelledby="faq-title">
+        <h2 id="faq-title" className="h2" style={{ fontSize: 20 }}>
+          Preguntas frecuentes
+        </h2>
+        {FAQ.map(([q, a]) => (
+          <details key={q}>
+            <summary>{q}</summary>
+            <p className="muted">{a}</p>
+          </details>
         ))}
       </section>
 
