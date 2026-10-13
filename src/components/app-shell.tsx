@@ -42,6 +42,7 @@ import {
   localCopies,
 } from "./local-collection";
 import { LegalFooter } from "./legal";
+import { LocalCollectionToAccount } from "./local-to-account";
 import { ColorPips } from "./mana";
 import { Dialog, fmt } from "./ui";
 
@@ -102,6 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="shell">
         <WithPath>{(p) => <Sidebar user={user} pending={isPending} pathname={p} />}</WithPath>
         <div className="main">
+          <LocalCollectionToAccount loggedIn={Boolean(sessionUser)} />
           {children}
           <LegalFooter />
           <WithPath>{(p) => <BottomNav pathname={p} user={user} />}</WithPath>

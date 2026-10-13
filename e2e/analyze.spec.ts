@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { DECK } from "./global-setup";
 
 test.describe("sin cuenta", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
@@ -23,5 +24,43 @@ test.describe("sin cuenta", () => {
     await expect(page.getByRole("heading", { name: "Teferi, Temporal Archmage" })).toBeVisible({
       timeout: 30_000,
     });
+  });
+});
+
+test("al volver de crear la cuenta se abre «Guardar mazo»", async ({ page }) => {
+  await page.addInitScript((input) => {
+    localStorage.setItem(
+      "deck-doctor:mazo",
+      JSON.stringify({ input, theme: "", locked: [], excluded: [], deckId: null, name: "" }),
+    );
+  }, DECK);
+  await page.goto("/analyze?analyze=1&save=1");
+  await expect(page.getByRole("dialog", { name: "Guardar mazo" })).toBeVisible({
+    timeout: 30_000,
+  });
+});
+
+test.describe("registro", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("sin repetir la contraseña: se puede ver y el nombre es opcional", async ({ page }) => {
+    await page.goto("/signup");
+    await expect(page.getByLabel("Repite la contraseña")).toHaveCount(0);
+    const password = page.getByLabel(/^Contraseña/);
+    await password.fill("secreta123");
+    await expect(password).toHaveAttribute("type", "password");
+    await page.getByRole("button", { name: "Ver" }).click();
+    await expect(password).toHaveAttribute("type", "text");
+    await expect(page.getByLabel("Nombre (opcional)")).not.toHaveAttribute("required", "");
+  });
+
+  test("«Guardar» sin cuenta vuelve al mazo para guardarlo", async ({ page }) => {
+    await page.goto("/analyze?sample=1");
+    await page.getByRole("button", { name: "Guardar", exact: true }).click({ timeout: 30_000 });
+    const dialog = page.getByRole("dialog", { name: "Guardar mazo" });
+    await expect(dialog.getByRole("link", { name: "Crear cuenta" })).toHaveAttribute(
+      "href",
+      `/signup?next=${encodeURIComponent("/analyze?analyze=1&save=1")}`,
+    );
   });
 });

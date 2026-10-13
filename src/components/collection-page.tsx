@@ -15,12 +15,11 @@ import { authClient } from "./auth-client";
 import { AddCards, type AddedRow } from "./collection-add";
 import { CollectionBrowser } from "./collection-browser";
 import { CollectionPrices } from "./collection-prices";
-import { CsvImport, uploadCsv } from "./collection-import";
+import { CsvImport } from "./collection-import";
 import {
   COLLECTION_EVENT,
   LOCAL_COLLECTION_EVENT,
   localCollection,
-  localCopies,
   notifyCollectionChanged,
   ownedPairs,
   type LocalCollection,
@@ -42,7 +41,6 @@ export function CollectionPage() {
   /** Cambia cada vez que cambia la colección, para que la lista se vuelva a pedir. */
   const [version, setVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [moving, setMoving] = useState(false);
 
   const load = useCallback(async () => {
     const l = localCollection.get();
@@ -91,35 +89,6 @@ export function CollectionPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- solo la primera vez que llega vacía
     if (overall && overall.cards === 0) setTab((t) => (t === "cartas" ? "importar" : t));
   }, [overall]);
-
-  /** Pasa la colección de este navegador (CSV y sueltas) a la cuenta recién creada. */
-  async function moveToAccount(l: LocalCollection) {
-    setMoving(true);
-    setError(null);
-    try {
-      if (l.import?.csv) await uploadCsv(l.import.csv, l.import.fileName, true);
-      if (l.added.length > 0) {
-        await api("/api/collection/cards", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cards: l.added.map((a) => ({
-              oracleId: a.oracleId,
-              quantity: a.quantity,
-              foil: a.foil,
-              ...(a.language ? { language: a.language } : {}),
-            })),
-          }),
-        });
-      }
-      localCollection.clear();
-      notifyCollectionChanged();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo pasar la colección a tu cuenta");
-    } finally {
-      setMoving(false);
-    }
-  }
 
   async function removeAdded(id: string) {
     if (!loggedIn) {
@@ -188,36 +157,6 @@ export function CollectionPage() {
         >
           <b>Sin cuenta, tu colección se guarda solo en este navegador.</b>{" "}
           <span className="muted">Con una cuenta la tendrás en cualquier dispositivo.</span>
-        </Banner>
-      )}
-      {loggedIn && local && (
-        <Banner
-          tone="info"
-          action={
-            local.import && !local.import.csv ? (
-              <button type="button" className="btn btn-sm" onClick={() => localCollection.clear()}>
-                Olvidarla
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-sm"
-                disabled={moving}
-                onClick={() => void moveToAccount(local)}
-              >
-                {moving ? "Guardando…" : "Guardarla en mi cuenta"}
-              </button>
-            )
-          }
-        >
-          <b>Tienes una colección guardada en este navegador</b>{" "}
-          <span className="muted">
-            ({fmt(localCopies(local))} copias
-            {local.import ? `, ${local.import.fileName}` : ""}).{" "}
-            {local.import && !local.import.csv
-              ? "Era demasiado grande para guardarla: vuelve a subir el CSV."
-              : "Puedes pasarla a tu cuenta."}
-          </span>
         </Banner>
       )}
       {error && <Banner tone="out">{error}</Banner>}

@@ -444,7 +444,12 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   - Cada ruta de la API llama a `requireUser(request)` (`src/server/session.ts`) → 401 si no hay
     sesión; `/api/status` funciona sin sesión. `src/proxy.ts` redirige a `/login?next=…` las páginas
     privadas si no hay cookie (comprobación optimista; la real es `requireUser`).
-  - UI: `/login`, `/signup`, `/forgot-password`, `/reset-password`; `UserMenu` en la cabecera. Tras entrar
+  - UI: `/login`, `/signup`, `/forgot-password`, `/reset-password`; `UserMenu` en la cabecera. Registro
+    (UX U7): email, contraseña (con «Ver», sin repetirla) y nombre opcional (si no, lo de antes
+    de la @). «Guardar mazo» sin cuenta manda a registrarse con `next=/analyze?analyze=1&save=1`,
+    que reabre el diálogo de guardar. Con sesión y una colección en el navegador,
+    `LocalCollectionToAccount` (en el armazón, cualquier página) ofrece pasarla a la cuenta y
+    avisa si su CSV sustituye al de la cuenta. Tras entrar
     se navega con recarga completa (la caché del router puede tener la redirección de antes).
   - Filas con `userId` vacío = datos de antes de los usuarios → `npm run users:claim`.
   - En producción `loadEnv` exige `BETTER_AUTH_SECRET`; `BETTER_AUTH_URL` debe ser la URL pública.
