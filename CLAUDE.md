@@ -111,6 +111,15 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   pise; `DELETE /api/collection/lines/{publicId}` borra cualquiera. `exportCollectionCsv`
   (`GET /api/collection/export`) escribe el CSV de ManaBox (`toManaboxCsv`, se vuelve a leer igual).
   UI: pulsar una carta de la colección abre `CollectionCardDialog` (imagen + cada copia editable).
+- **Carta → mazo** (UX U4): «Añadir a un mazo» (`AddToDeck`, en la ficha de la colección, la
+  ficha de la carta y la hoja del móvil; solo con sesión) → `POST /api/decks/{id}/cards`
+  (`{oracleId}`, `addCardToDeck`): resuelve la lista guardada (aunque sea un enlace), comprueba
+  con `addCardProblem` (`domain/deck/add-card.ts`) que no sea el comandante, que esté en su
+  identidad y que no esté ya (salvo básicas; error 409 con `code`), la reescribe en texto con
+  `decklistWithCard` (conserva impresiones y las líneas no encontradas) y la guarda con
+  `saveDeck`. `CardDTO.canBeCommander` → «Crear mazo con X» (`/decks/new?commander=`) en la ficha
+  de la colección; filtro `commander` («Pueden ser comandante») en la colección; enlace «Mazos que
+  puedes montar» (`/community?sort=owned`, Comunidad lee `?sort=`).
 - **Cuenta y RGPD** (Fase 20, `application/account.ts`): `GET /api/me/export` (todos mis datos en
   JSON, sin ids internos) y `DELETE /api/me` (`{confirm: email}`; borra en cascada). Páginas
   `/privacy` y `/legal` (titular y contacto de `LEGAL_OWNER`/`LEGAL_EMAIL`), pie `LegalFooter` con el
@@ -396,6 +405,10 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     colección, mazos, buscador, errores y, en móvil (`mobile.spec.ts`), la hoja de carta y que
     ninguna página tenga scroll horizontal. El CI las corre tras la build. Las especificaciones
     usan `test` de `e2e/fixtures.ts`, que falla si la página lanza errores de JavaScript.
+  - **Barra inferior del móvil** (UX U6, `BottomNav`): con cuenta Inicio · Mazos · Colección ·
+    Jugar · Más (hoja `Dialog` con perfil, nuevo mazo, cartas, comunidad, actividad, grupos,
+    intercambios, préstamos, ajustes y salir; va fuera de `nav.bottomnav` para no heredar sus
+    estilos); sin cuenta Inicio · Analizar · Colección · Jugar · Entrar.
   - **Móvil**: las tablas con `.rtable` pasan a tarjetas (celdas `rt-qty`, `rt-main`, `rt-end`
     en la primera línea; el resto debajo) y todos los `.dialog` salen desde abajo como hojas.
     **Buscador global** (`GlobalSearch` en la cabecera, atajo `/`; en el móvil, hoja a pantalla
@@ -407,6 +420,13 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   - Estado del mazo (lista, tema, bloqueadas, descartadas) en `localStorage` del navegador.
     "Aplicar cambios y recalcular" reescribe la lista con `applySwaps` + `exportDecklist`
     (`domain/deck/export.ts`) y vuelve a analizar excluyendo las cartas descartadas.
+    En un mazo mío guardado **todo se guarda solo** (UX U2: `analyze(…, { persist: true })` →
+    `persistDeck`): aplicar cambios, tema, «Cambiar lista», editor y edición; candados y
+    descartes al momento. Ahí el botón de la cabecera es «Guardar como nuevo». La lista de temas
+    de EDHREC se recuerda (la página de un tema no la trae). En su página, un mazo mío guardado
+    tiene «Exportar» y «Ajustes» (`DeckSettingsDialog`: nombre, visibilidad, duplicar —abre
+    «Guardar como nuevo»—, reemplazar la lista y borrar con confirmación); el bracket objetivo
+    sigue en Estadísticas y la lista de deseos en «Qué me falta».
 - **Usuarios** (Fase 8, Better Auth, `src/server/auth.ts`): email + contraseña (scrypt, mínimo 8)
   y Google si hay `GOOGLE_CLIENT_ID/SECRET`; "olvidé mi contraseña" solo si hay `SMTP_URL`
   (`adapters/mail`; con el SMTP de Resend se usa su API HTTPS, porque el VPS bloquea los puertos
@@ -453,6 +473,11 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   Aristócratas" (combinaciones Boros/Jund/… y temas de EDHREC traducidos). API: `GET
 /api/commanders?ids=` (temas y nombre) y `POST /api/decks/new` (con sesión guarda y devuelve
   `id`; sin ella devuelve la lista para abrirla en `/analyze?analyze=1`).
+  UX U5: «Nuevo mazo» es la única entrada para crear: pestañas «Desde un comandante» (con
+  atajos «De tu colección»: mis cartas que pueden ser comandante, `filters.commander`) e
+  «Importar una lista o enlace» (`?from=list`; con sesión `POST /api/decks` y se abre el mazo; si
+  la lista no dice el comandante —`no_commander`— o no hay sesión, se abre en el analizador).
+  Con sesión, la barra superior dice «Mis mazos» en vez de «Analizar mazo».
   Editor: en la pestaña Lista de un mazo propio o sin guardar, "Añadir cartas" (buscador con
   `identity=` de los colores del comandante y recomendadas de tu colección) y −/+ en la tabla;
   cada cambio (`changeCard` en `domain/deck/export.ts`) reanaliza y, si es un mazo guardado, lo

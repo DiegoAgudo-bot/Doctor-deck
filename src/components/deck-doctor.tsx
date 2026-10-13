@@ -11,6 +11,7 @@ import {
 } from "@/domain/deck/export";
 import type { Bracket, BracketEstimate } from "@/domain/deck/bracket";
 import type { DeckVisibility } from "@/domain/deck/visibility";
+import type { ThemeLink } from "@/domain/recommendations/types";
 import { formatEuros } from "@/domain/suggestions/format";
 import { ROLE_TAGS } from "@/domain/roles/tags";
 import type {
@@ -35,7 +36,8 @@ import { localRoles } from "./local-roles";
 import { PrintingDialog } from "./printing-dialog";
 import { RoleEditDialog, type RoleEditScope } from "./role-edit-dialog";
 import { OtherDecksDialog, OwnershipPanel } from "./deck-ownership";
-import { ExportDialog, SaveDialog } from "./deck-dialogs";
+import { DeckSettingsDialog, ExportDialog, SaveDialog } from "./deck-dialogs";
+import { setDeckVisibility } from "./deck-visibility";
 import {
   DeckFacts,
   DeckList,
@@ -47,7 +49,7 @@ import {
   type Decision,
   type ListView,
 } from "./deck-views";
-import { IconCart, IconHeart, IconWarn } from "./icons";
+import { IconHeart, IconSettings, IconWarn } from "./icons";
 import {
   LOCAL_COLLECTION_EVENT,
   localCollection,
@@ -55,6 +57,7 @@ import {
   ownedPairs,
 } from "./local-collection";
 import { ColorPips } from "./mana";
+import { SAMPLE_DECK } from "./sample-deck";
 import { Banner, Loading } from "./ui";
 
 interface Saved {
@@ -93,6 +96,11 @@ type Ok = Extract<AnalyzeResponse, { status: "ok" }>;
 type Tab = "changes" | "missing" | "list" | "combos" | "stats" | "buy";
 type Filter = "todos" | "pendientes" | "aceptados" | "descartados";
 
+/**
+ * Pestaña con la que se abre un análisis: sin colección no hay cambios que proponer (solo se
+ * proponen cartas que tengo), así que se empieza por lo que falta.
+ */
+const firstTab = (hasCollection: boolean): Tab => (hasCollection ? "changes" : "missing");
 const isLink = (s: string) => /^\s*https?:\/\//i.test(s);
 const shortName = (name: string) => name.split(/,| \/\/ /)[0] ?? name;
 
@@ -112,6 +120,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const [editingRoles, setEditingRoles] = useState<DeckCardDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  /**
+   * Temas de EDHREC del comandante. La página de un tema no trae la lista: se guarda la última que
+   * llegó para poder cambiar de tema o volver a «General».
+   */
+  const [themes, setThemes] = useState<ThemeLink[]>([]);
   const [buy, setBuy] = useState<BuyOptions | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -124,7 +137,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const [tab, setTab] = useState<Tab>("changes");
   const [filter, setFilter] = useState<Filter>("todos");
   const [view, setView] = useState<ListView>("pilas");
-  const [dialog, setDialog] = useState<"save" | "export" | null>(null);
+  const [dialog, setDialog] = useState<"save" | "export" | "settings" | null>(null);
   /** Panel "Añadir cartas" de la lista abierto (al crear un mazo desde cero, de entrada). */
   const [adding, setAdding] = useState(false);
   const [editNotice, setEditNotice] = useState<string | null>(null);
@@ -208,7 +221,15 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
         });
       return;
     }
-    if (params.has("new")) {
+    if (params.has("sample")) {
+      // Desde la portada: el mazo de ejemplo, analizado al momento.
+      window.history.replaceState(null, "", "/analyze");
+      const sample = { ...EMPTY, input: SAMPLE_DECK };
+      setSaved(sample);
+      setTab(firstTab(loggedIn || localCollection.get() !== null));
+      setOpening(true);
+      void analyze(sample, []).finally(() => setOpening(false));
+    } else if (params.has("new")) {
       window.history.replaceState(null, "", "/analyze");
       setSaved(EMPTY);
     } else {
@@ -238,13 +259,48 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const update = (patch: Partial<Saved>) => setSaved((s) => ({ ...s, ...patch }));
   const locked = useMemo(() => new Set(saved.locked), [saved.locked]);
 
+  /**
+   * Guarda en la cuenta un mazo mío ya guardado con el estado `req` (lista, tema, candados y
+   * descartes). La visibilidad y el bracket objetivo no se mandan: el servidor los conserva.
+   * Devuelve false si falla (el error ya se enseña).
+   */
+  async function persistDeck(req: Saved, commanders: string[]): Promise<boolean> {
+    if (req.deckId === null) return false;
+    try {
+      await api("/api/decks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: req.deckId,
+          name: req.name,
+          input: req.input,
+          ...(req.theme ? { theme: req.theme } : {}),
+          commanders,
+          locked: req.locked,
+          excluded: req.excluded,
+        }),
+      });
+      notifyDecksChanged();
+      return true;
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo guardar el mazo");
+      return false;
+    }
+  }
+
+  /**
+   * Analiza el mazo con `next` aplicado. Con `persist`, si es un mazo mío guardado, además lo
+   * guarda (los cambios de un mazo guardado se guardan solos). Devuelve true si se guardó, false si
+   * solo se analizó y null si falló.
+   */
   async function analyze(
     next: Partial<Saved> = {},
     commanders: string[] = chosen,
     buyOptions: BuyOptions | null = buy,
-  ) {
+    { persist = false }: { persist?: boolean } = {},
+  ): Promise<boolean | null> {
     const req = { ...saved, ...next };
-    if (!req.input.trim()) return;
+    if (!req.input.trim()) return null;
     setBusy(buyOptions && buyOptions !== buy ? "buy" : "analyze");
     setError(null);
     setNotice(null);
@@ -269,12 +325,19 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
         }),
       });
       setResult(res);
+      if (res.status === "ok" && res.edhrec.themes.length > 0) setThemes(res.edhrec.themes);
       setDecisions({});
       setDirty(false);
       setEditing(false);
       update(next);
+      if (!persist || req.deckId === null || res.status !== "ok") return false;
+      return await persistDeck(
+        req,
+        res.commanders.map((c) => c.oracleId),
+      );
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo analizar el mazo");
+      return null;
     } finally {
       setBusy(null);
     }
@@ -372,12 +435,25 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   );
 
   /** Aplica los aceptados a la lista, excluye los descartados y vuelve a analizar. */
-  function applyAndRecalculate() {
+  async function applyAndRecalculate() {
     if (!finalDeck) return;
-    void analyze({
-      input: exportDecklist(finalDeck),
-      excluded: [...new Set([...saved.excluded, ...rejected.map((s) => s.in.card.oracleId)])],
-    });
+    const n = accepted.length;
+    const savedIt = await analyze(
+      {
+        input: exportDecklist(finalDeck),
+        excluded: [...new Set([...saved.excluded, ...rejected.map((s) => s.in.card.oracleId)])],
+      },
+      chosen,
+      buy,
+      { persist: true },
+    );
+    if (savedIt) {
+      setNotice(
+        n > 0
+          ? `${n === 1 ? "Aplicado 1 cambio" : `Aplicados ${n} cambios`} y guardado.`
+          : "Guardado.",
+      );
+    }
   }
 
   async function saveDeck({
@@ -428,6 +504,51 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
    * Añade (delta > 0) o quita (delta < 0) copias de una carta: rehace la lista, vuelve a analizar y,
    * si es uno de mis mazos guardados, lo guarda.
    */
+  /** Ajustes de un mazo mío guardado (desde su página). */
+  async function renameDeck(name: string) {
+    if (saved.deckId === null) return;
+    setBusy("settings");
+    try {
+      await api(`/api/decks/${encodeURIComponent(saved.deckId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      update({ name });
+      notifyDecksChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo cambiar el nombre");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function changeVisibility(v: DeckVisibility) {
+    if (saved.deckId === null) return;
+    try {
+      const { visibility } = await setDeckVisibility(api, saved.deckId, v);
+      update({ visibility });
+      notifyDecksChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo cambiar la visibilidad");
+    }
+  }
+
+  async function deleteDeck() {
+    if (saved.deckId === null) return;
+    setBusy("settings");
+    try {
+      await api(`/api/decks/${encodeURIComponent(saved.deckId)}`, { method: "DELETE" });
+      // Que no se reabra como «el último mazo» en /analyze.
+      storage.remove(KEY);
+      notifyDecksChanged();
+      window.location.assign(new URL("/decks", window.location.origin));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo borrar el mazo");
+      setBusy(null);
+    }
+  }
+
   async function toggleWishlist() {
     if (!saved.deckId) return;
     setBusy("wishlist");
@@ -510,30 +631,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
    * guardado, lo guarda. Devuelve si se guardó.
    */
   async function applyDeckEdit(next: ExportableDeck): Promise<boolean | null> {
-    const input = exportDecklist(next);
     setEditNotice(null);
-    await analyze({ input });
-    if (saved.deckId === null || !ok) return false;
-    try {
-      await api("/api/decks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: saved.deckId,
-          name: saved.name,
-          input,
-          ...(saved.theme ? { theme: saved.theme } : {}),
-          commanders: ok.commanders.map((c) => c.oracleId),
-          locked: saved.locked,
-          excluded: saved.excluded,
-        }),
-      });
-      notifyDecksChanged();
-      return true;
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo guardar el cambio");
-      return null;
-    }
+    return analyze({ input: exportDecklist(next) }, chosen, buy, { persist: true });
   }
 
   async function editCard(card: { oracleId: string; name: string }, delta: number) {
@@ -564,12 +663,23 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     );
   }
 
+  /** Candados y descartes: en un mazo mío guardado se guardan al momento (sin reanalizar). */
+  function changeMarks(patch: Pick<Partial<Saved>, "locked" | "excluded">) {
+    update(patch);
+    setDirty(true);
+    if (ok && saved.deckId !== null) {
+      void persistDeck(
+        { ...saved, ...patch },
+        ok.commanders.map((c) => c.oracleId),
+      );
+    }
+  }
+
   function toggleLock(oracleId: string) {
     const next = new Set(saved.locked);
     if (next.has(oracleId)) next.delete(oracleId);
     else next.add(oracleId);
-    update({ locked: [...next] });
-    setDirty(true);
+    changeMarks({ locked: [...next] });
   }
 
   const decide = (id: string, d: Decision | undefined) =>
@@ -605,8 +715,15 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           onCancel={ok ? () => setEditing(false) : null}
           onSubmit={() => {
             setChosen([]);
-            setTab("changes");
-            void analyze({}, []);
+            setTab(firstTab(hasCollection));
+            // «Cambiar lista» de un mazo mío guardado: la lista nueva se guarda en él.
+            void analyze({}, [], buy, { persist: true });
+          }}
+          onSample={() => {
+            setChosen([]);
+            setMode("texto");
+            setTab(firstTab(hasCollection));
+            void analyze({ ...EMPTY, input: SAMPLE_DECK }, []);
           }}
           openDeck={saved.deckId !== null ? saved.name : null}
           onCloseDeck={() => {
@@ -627,7 +744,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           onToggle={(id) =>
             setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id].slice(-2)))
           }
-          onConfirm={() => void analyze({}, chosen)}
+          onConfirm={() => void analyze({}, chosen, buy, { persist: true })}
           busy={analyzing}
         />
       )}
@@ -644,10 +761,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             bracket={bracket ?? ok.bracket}
             name={saved.name || ok.deckName || ok.commanders.map((c) => c.name).join(" + ")}
             owner={owner}
+            isSaved={saved.deckId !== null}
             onShowMissing={() => setTab("missing")}
             onSave={() => setDialog("save")}
+            onSettings={() => setDialog("settings")}
             onExport={() => setDialog("export")}
-            onBuy={() => setTab("buy")}
             onEdit={() => setEditing(true)}
             target={saved.targetBracket}
             onShowBracket={() => setTab("stats")}
@@ -656,13 +774,13 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             onLike={() => void toggleLike()}
           />
 
-          {ok.edhrec.themes.length > 0 && (
+          {(themes.length > 0 || saved.theme !== "") && (
             <div className="field">
               <span className="label">Tema de EDHREC</span>
               <div className="chips scroll-sm" role="radiogroup" aria-label="Tema">
                 {[
                   { slug: "", name: "General", count: ok.edhrec.totalDecks },
-                  ...ok.edhrec.themes.slice(0, 12),
+                  ...themeChips(themes, saved.theme),
                 ].map((t) => (
                   <button
                     key={t.slug || "general"}
@@ -671,7 +789,10 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                     aria-checked={saved.theme === t.slug}
                     className={`chipbtn ${saved.theme === t.slug ? "is-on" : ""}`}
                     disabled={busy !== null}
-                    onClick={() => saved.theme !== t.slug && void analyze({ theme: t.slug })}
+                    onClick={() =>
+                      saved.theme !== t.slug &&
+                      void analyze({ theme: t.slug }, chosen, buy, { persist: true })
+                    }
                   >
                     {t.name}
                     {t.count !== null && <span className="n">{compact(t.count)}</span>}
@@ -762,7 +883,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                           busy !== null ||
                           (accepted.length === 0 && rejected.length === 0 && !dirty)
                         }
-                        onClick={applyAndRecalculate}
+                        onClick={() => void applyAndRecalculate()}
                       >
                         {analyzing
                           ? "Recalculando…"
@@ -832,10 +953,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                     <button
                       type="button"
                       className="btn btn-ghost"
-                      onClick={() => {
-                        update({ locked: [], excluded: [] });
-                        setDirty(true);
-                      }}
+                      onClick={() => changeMarks({ locked: [], excluded: [] })}
                     >
                       Olvidar candados y descartes ({saved.locked.length + saved.excluded.length})
                     </button>
@@ -976,6 +1094,23 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             canScopeToDeck={loggedIn && saved.deckId !== null}
             onSave={(edit, scope) => editingRoles && void saveRoles(editingRoles, edit, scope)}
           />
+          {saved.deckId !== null && !owner && (
+            <DeckSettingsDialog
+              open={dialog === "settings"}
+              onClose={() => setDialog(null)}
+              name={saved.name || ok.deckName || ""}
+              visibility={saved.visibility}
+              busy={busy === "settings"}
+              onRename={(n) => void renameDeck(n)}
+              onVisibility={(v) => void changeVisibility(v)}
+              onDuplicate={() => setDialog("save")}
+              onReplaceList={() => {
+                setDialog(null);
+                setEditing(true);
+              }}
+              onDelete={() => void deleteDeck()}
+            />
+          )}
           <SaveDialog
             open={dialog === "save"}
             onClose={() => setDialog(null)}
@@ -1003,6 +1138,15 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   );
 }
 
+/** Los 12 temas más jugados y, si no está entre ellos, el elegido. */
+function themeChips(themes: ThemeLink[], current: string): ThemeLink[] {
+  const top = themes.slice(0, 12);
+  if (current === "" || top.some((t) => t.slug === current)) return top;
+  const known = themes.find((t) => t.slug === current);
+  const name = current.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase());
+  return [...top, known ?? { slug: current, name, count: null }];
+}
+
 const compact = (n: number) =>
   n >= 1000 ? `${(n / 1000).toLocaleString("es", { maximumFractionDigits: 1 })}K` : String(n);
 
@@ -1019,6 +1163,7 @@ function EntryForm({
   analyzing,
   onCancel,
   onSubmit,
+  onSample,
   openDeck,
   onCloseDeck,
 }: {
@@ -1034,12 +1179,30 @@ function EntryForm({
   analyzing: boolean;
   onCancel: (() => void) | null;
   onSubmit: () => void;
+  /** Analizar el mazo de ejemplo (sustituye la lista). */
+  onSample: () => void;
   openDeck: string | null;
   onCloseDeck: () => void;
 }) {
   return (
     <>
       <h1 className="h1">{title}</h1>
+      {!hasCollection && (
+        <Banner
+          tone="warn"
+          action={
+            <Link className="btn btn-sm" href="/collection">
+              Importar colección
+            </Link>
+          }
+        >
+          <b>Aún no tengo tu colección.</b>{" "}
+          <span className="muted">
+            Puedo analizar el mazo y decirte qué le falta y qué comprar, pero para proponerte
+            cambios con tus cartas sube el CSV de ManaBox.
+          </span>
+        </Banner>
+      )}
       <div
         className="grid-1-sm grid items-start gap-4"
         style={{ gridTemplateColumns: "minmax(0, 1fr) 300px" }}
@@ -1112,6 +1275,16 @@ function EntryForm({
               </label>
             )}
             <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
+              {!openDeck && !onCancel && (
+                <button
+                  type="button"
+                  className="btn btn-ghost mr-auto"
+                  disabled={analyzing}
+                  onClick={onSample}
+                >
+                  Probar con un mazo de ejemplo
+                </button>
+              )}
               {openDeck && (
                 <button type="button" className="btn btn-ghost mr-auto" onClick={onCloseDeck}>
                   Cerrar «{openDeck}»
@@ -1157,12 +1330,10 @@ function EntryForm({
               <span className="mono">Commander</span>/<span className="mono">Deck</span> o{" "}
               <span className="mono">*CMDR*</span>, y exports de Moxfield y Archidekt.
             </p>
-            {!hasCollection && (
-              <Banner tone="warn">
-                Sin colección solo puedo proponerte compras.{" "}
-                <Link href="/collection">Importa tu CSV de ManaBox</Link>.
-              </Banner>
-            )}
+            <p className="muted">
+              ¿No tienes la lista a mano? <Link href="/decks/new">Créalo desde un comandante</Link>{" "}
+              con el mazo medio de EDHREC.
+            </p>
           </div>
         </aside>
       </div>
@@ -1275,10 +1446,11 @@ function DeckHeader({
   ok,
   name,
   owner,
+  isSaved,
   onShowMissing,
   onSave,
+  onSettings,
   onExport,
-  onBuy,
   onEdit,
   target,
   bracket,
@@ -1290,10 +1462,13 @@ function DeckHeader({
   ok: Ok;
   name: string;
   owner: DeckViewDTO["owner"] | null;
+  /** Mazo mío guardado: se guarda solo, el botón crea otro. */
+  isSaved: boolean;
   onShowMissing: () => void;
   onSave: () => void;
+  /** Ajustes del mazo (solo en uno mío guardado). */
+  onSettings: () => void;
   onExport: () => void;
-  onBuy: () => void;
   onEdit: () => void;
   target: Bracket | null;
   /** El estimado, con los combos si ya han llegado. */
@@ -1363,21 +1538,34 @@ function DeckHeader({
         <OwnershipLine ownership={ok.ownership} onClick={onShowMissing} />
       </div>
       <div className="flex flex-wrap gap-2">
-        <div className="btn-group">
-          <button type="button" className="btn" onClick={onSave}>
-            {owner ? "Copiar a mis mazos" : "Guardar"}
-          </button>
-          <button type="button" className="btn" onClick={onExport}>
-            Exportar
-          </button>
-        </div>
-        <button type="button" className="btn" onClick={onBuy}>
-          <IconCart size={15} />
-          Modo compra
-        </button>
-        <button type="button" className="btn btn-ghost" onClick={onEdit}>
-          Cambiar lista
-        </button>
+        {isSaved && !owner ? (
+          // Mío y guardado: se guarda solo; lo demás (duplicar, reemplazar, borrar…) en Ajustes.
+          <>
+            <button type="button" className="btn" onClick={onExport}>
+              Exportar
+            </button>
+            <button type="button" className="btn" onClick={onSettings}>
+              <IconSettings size={15} />
+              Ajustes
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="btn-group">
+              <button type="button" className="btn" onClick={onSave}>
+                {owner ? "Copiar a mis mazos" : "Guardar"}
+              </button>
+              <button type="button" className="btn" onClick={onExport}>
+                Exportar
+              </button>
+            </div>
+            {!owner && (
+              <button type="button" className="btn btn-ghost" onClick={onEdit}>
+                Cambiar lista
+              </button>
+            )}
+          </>
+        )}
         {like &&
           (canLike ? (
             <button
@@ -1398,9 +1586,13 @@ function DeckHeader({
               {like.count}
             </Link>
           ) : (
-            <span className="btn btn-ghost" title="«Me gusta» de otros jugadores">
-              <IconHeart size={15} />
-              {like.count}
+            // Mi mazo: solo el dato, no un botón.
+            <span
+              className="subtle flex items-center gap-1.5 self-center text-[13px]"
+              title="«Me gusta» de otros jugadores"
+            >
+              <IconHeart size={14} />
+              {like.count === 1 ? "1 me gusta" : `${like.count} me gusta`}
             </span>
           ))}
       </div>
@@ -1534,15 +1726,9 @@ function OwnershipLine({
           </>
         )}
       </span>
-      <button
-        type="button"
-        onClick={onClick}
-        className="role-bar cursor-pointer border-0 p-0"
-        style={{ height: 4 }}
-        aria-label="Ver qué me falta"
-      >
+      <div className="role-bar" style={{ height: 4 }} aria-hidden>
         <i style={{ width: `${pct}%` }} />
-      </button>
+      </div>
       {others && <OtherDecksDialog items={ownership.items} onClose={() => setOthers(false)} />}
     </div>
   );
@@ -1605,8 +1791,8 @@ function NoSwaps({ hasCollection }: { hasCollection: boolean }) {
       <span className="h2">No hay cambios que proponer</span>
       <span className="muted max-w-[420px] text-[13px]">
         {hasCollection
-          ? "Ninguna carta de tu colección mejora el mazo con la configuración actual. Prueba otro tema de EDHREC o el modo compra."
-          : "Sin tu colección no sé qué cartas tienes. Impórtala, o mira el modo compra."}
+          ? "Ninguna carta de tu colección mejora el mazo con la configuración actual. Prueba otro tema de EDHREC o la pestaña «Mejorar comprando»."
+          : "Sin tu colección no sé qué cartas tienes. Impórtala, o mira la pestaña «Mejorar comprando»."}
       </span>
       {!hasCollection && (
         <Link className="btn btn-primary" href="/collection">

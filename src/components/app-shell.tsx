@@ -21,13 +21,14 @@ import {
   IconSettings,
   IconUser,
   IconSwap,
-  IconUsers,
   IconCollection,
   IconDecks,
   IconHome,
   IconLogin,
   IconLogout,
   IconMoon,
+  IconMore,
+  IconUsers,
   IconPlus,
   IconSun,
   Logo,
@@ -42,7 +43,7 @@ import {
 } from "./local-collection";
 import { LegalFooter } from "./legal";
 import { ColorPips } from "./mana";
-import { fmt } from "./ui";
+import { Dialog, fmt } from "./ui";
 
 type SessionUser = { name: string; email: string; username?: string | null };
 const profileHref = (u: SessionUser) => (u.username ? `/u/${u.username}` : "/settings");
@@ -176,9 +177,10 @@ function TopBar({
   pending: boolean;
   unread: number;
 }) {
+  // "Inicio" ya es el logo. Con cuenta, los mazos (crear o importar está en «Nuevo mazo»); sin
+  // ella, el analizador.
   const nav = [
-    { href: "/", label: "Inicio" },
-    { href: "/analyze", label: "Analizar mazo" },
+    user ? { href: "/decks", label: "Mis mazos" } : { href: "/analyze", label: "Analizar mazo" },
     { href: "/cards", label: "Cartas" },
     { href: "/community", label: "Comunidad" },
     { href: "/play", label: "Jugar" },
@@ -215,7 +217,8 @@ function TopBar({
                   minWidth: 16,
                   height: 16,
                   padding: "0 4px",
-                  background: "var(--color-out)",
+                  // Rojo oscuro: con texto blanco de 10 px, el de los avisos no llega a 4,5:1.
+                  background: "#c0352b",
                   color: "#fff",
                   font: "600 10px/1 var(--font-sans)",
                 }}
@@ -237,7 +240,7 @@ function TopBar({
             {initial(user)}
           </Link>
         ) : (
-          <Link href={`/login?next=${encodeURIComponent(pathname)}`} className="btn btn-primary">
+          <Link href={`/login?next=${encodeURIComponent(pathname)}`} className="btn btn-ghost">
             Entrar
           </Link>
         )}
@@ -297,23 +300,6 @@ function Sidebar({
   return (
     <aside className="side" aria-label="Tu espacio">
       {user && (
-        <Link
-          href={profileHref(user)}
-          className={`deckrow ${pathname === profileHref(user) ? "is-active" : ""}`}
-          style={{ gridTemplateColumns: "36px minmax(0, 1fr)", padding: 8, marginBottom: 8 }}
-        >
-          <span className="avatar" style={{ width: 36, height: 36, fontSize: 15 }}>
-            {initial(user)}
-          </span>
-          <span className="min-w-0">
-            <span className="nm" style={{ color: "var(--color-text)", fontWeight: 600 }}>
-              {user.name}
-            </span>
-            <span className="cmd">{user.username ? `@${user.username}` : "Mi perfil"}</span>
-          </span>
-        </Link>
-      )}
-      {user && (
         <Link className={`nav ${pathname === "/decks" ? "is-active" : ""}`} href="/decks">
           <IconDecks />
           Mis mazos
@@ -325,6 +311,12 @@ function Sidebar({
         Mi colección
         {copies !== null && <span className="count">{fmt(copies)}</span>}
       </Link>
+      {!user && !pending && (
+        <Link className={`nav ${pathname === "/decks/new" ? "is-active" : ""}`} href="/decks/new">
+          <IconPlus />
+          Nuevo mazo
+        </Link>
+      )}
 
       {user ? (
         <>
@@ -379,13 +371,6 @@ function Sidebar({
               <IconCrown />
               Grupos y partidas
             </Link>
-            <Link
-              className={`nav ${pathname === "/community" ? "is-active" : ""}`}
-              href="/community"
-            >
-              <IconUsers />
-              Comunidad
-            </Link>
             <Link className={`nav ${pathname === "/trades" ? "is-active" : ""}`} href="/trades">
               <IconSwap />
               Intercambios
@@ -411,12 +396,8 @@ function Sidebar({
               Sin cuenta puedes analizar mazos; tu colección se queda en este navegador. Crea una
               cuenta para guardar mazos y llevar tu colección a cualquier dispositivo.
             </p>
-            <Link href="/signup" className="btn btn-primary">
+            <Link href="/signup" className="btn">
               Crear cuenta
-            </Link>
-            <Link className="nav" href={`/login?next=${encodeURIComponent(pathname)}`}>
-              <IconLogin />
-              Entrar
             </Link>
           </div>
         )
@@ -425,28 +406,120 @@ function Sidebar({
   );
 }
 
+/** Lo que no cabe en la barra inferior del móvil (con cuenta): en la hoja «Más». */
+const MORE_LINKS = [
+  { href: "/decks/new", label: "Nuevo mazo", icon: <IconPlus size={18} /> },
+  { href: "/cards", label: "Buscar cartas", icon: <IconCollection size={18} /> },
+  { href: "/community", label: "Comunidad", icon: <IconUsers size={18} /> },
+  { href: "/feed", label: "Actividad", icon: <IconActivity size={18} /> },
+  { href: "/groups", label: "Grupos y partidas", icon: <IconCrown size={18} /> },
+  { href: "/trades", label: "Intercambios", icon: <IconSwap size={18} /> },
+  { href: "/loans", label: "Préstamos", icon: <IconLoan size={18} /> },
+  { href: "/settings", label: "Ajustes", icon: <IconSettings size={18} /> },
+];
+
 function BottomNav({ pathname, user }: { pathname: string; user: SessionUser | null }) {
-  const items = [
-    { href: "/", label: "Inicio", icon: <IconHome size={20} /> },
-    { href: "/analyze", label: "Analizar", icon: <IconPlus size={20} weight={1.8} /> },
-    { href: "/play", label: "Jugar", icon: <IconCrown size={20} /> },
-    { href: "/collection", label: "Colección", icon: <IconCollection size={20} /> },
-    user
-      ? { href: profileHref(user), label: "Perfil", icon: <IconUser size={20} /> }
-      : {
+  const [more, setMore] = useState(false);
+  const items = user
+    ? [
+        { href: "/", label: "Inicio", icon: <IconHome size={20} />, active: pathname === "/" },
+        {
+          href: "/decks",
+          label: "Mazos",
+          icon: <IconDecks size={20} />,
+          active: pathname.startsWith("/decks") || pathname === "/analyze",
+        },
+        {
+          href: "/collection",
+          label: "Colección",
+          icon: <IconCollection size={20} />,
+          active: pathname === "/collection",
+        },
+        {
+          href: "/play",
+          label: "Jugar",
+          icon: <IconCrown size={20} />,
+          active: pathname === "/play",
+        },
+      ]
+    : [
+        { href: "/", label: "Inicio", icon: <IconHome size={20} />, active: pathname === "/" },
+        {
+          href: "/analyze",
+          label: "Analizar",
+          icon: <IconDecks size={20} />,
+          active: pathname === "/analyze",
+        },
+        {
+          href: "/collection",
+          label: "Colección",
+          icon: <IconCollection size={20} />,
+          active: pathname === "/collection",
+        },
+        {
+          href: "/play",
+          label: "Jugar",
+          icon: <IconCrown size={20} />,
+          active: pathname === "/play",
+        },
+        {
           href: `/login?next=${encodeURIComponent(pathname)}`,
           label: "Entrar",
           icon: <IconLogin size={20} />,
+          active: false,
         },
-  ];
+      ];
+  const moreActive =
+    user !== null &&
+    (pathname === profileHref(user) ||
+      MORE_LINKS.some((l) => l.href !== "/decks/new" && pathname.startsWith(l.href)));
   return (
-    <nav className="bottomnav" aria-label="Principal">
-      {items.map((i) => (
-        <Link key={i.label} href={i.href} className={pathname === i.href ? "is-active" : ""}>
-          {i.icon}
-          {i.label}
-        </Link>
-      ))}
-    </nav>
+    <>
+      <nav className="bottomnav" aria-label="Principal">
+        {items.map((i) => (
+          <Link key={i.label} href={i.href} className={i.active ? "is-active" : ""}>
+            {i.icon}
+            {i.label}
+          </Link>
+        ))}
+        {user && (
+          <button
+            type="button"
+            className={moreActive ? "is-active" : ""}
+            aria-haspopup="dialog"
+            onClick={() => setMore(true)}
+          >
+            <IconMore size={20} />
+            Más
+          </button>
+        )}
+      </nav>
+      {/* Fuera de la barra: si no, hereda los estilos de sus enlaces. */}
+      {user && (
+        <Dialog open={more} onClose={() => setMore(false)} title="Más">
+          <nav className="morenav flex flex-col" aria-label="Más secciones">
+            <Link className="nav" href={profileHref(user)} onClick={() => setMore(false)}>
+              <IconUser size={18} />
+              Mi perfil {user.username ? <span className="subtle">@{user.username}</span> : null}
+            </Link>
+            {MORE_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                className={`nav ${pathname === l.href ? "is-active" : ""}`}
+                href={l.href}
+                onClick={() => setMore(false)}
+              >
+                {l.icon}
+                {l.label}
+              </Link>
+            ))}
+            <button type="button" className="nav" onClick={() => void signOut()}>
+              <IconLogout size={18} />
+              Salir
+            </button>
+          </nav>
+        </Dialog>
+      )}
+    </>
   );
 }

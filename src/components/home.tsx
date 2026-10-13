@@ -7,7 +7,15 @@ import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardImage } from "./card-image";
 import { ActivityFeed } from "./feed-page";
-import { IconCollection, IconCrown, IconDecks, IconLoan, IconPlus, IconUsers } from "./icons";
+import {
+  IconCollection,
+  IconCrown,
+  IconDecks,
+  IconLoan,
+  IconPlus,
+  IconSwap,
+  IconUsers,
+} from "./icons";
 import { Landing } from "./landing";
 import {
   LOCAL_COLLECTION_EVENT,
@@ -88,42 +96,15 @@ export function Home() {
 
   return (
     <main className="page" style={{ gap: 20 }}>
-      {user ? (
-        <div className="stack-sm flex items-center justify-between gap-3">
-          <h1 className="h1">Hola, {user.name}</h1>
-          <div className="flex flex-wrap gap-2">
-            <Link className="btn" href="/analyze?new=1">
-              Analizar una lista
-            </Link>
-            <Link className="btn btn-primary" href="/decks/new">
-              <IconPlus size={14} />
-              Nuevo mazo
-            </Link>
-          </div>
+      <div className="stack-sm flex items-center justify-between gap-3">
+        <h1 className="h1">Hola, {user?.name}</h1>
+        <div className="flex flex-wrap gap-2">
+          <Link className="btn btn-primary" href="/decks/new">
+            <IconPlus size={14} />
+            Nuevo mazo
+          </Link>
         </div>
-      ) : (
-        <section className="fade flex flex-col gap-3 py-2">
-          <h1 className="h1" style={{ fontSize: 30, maxWidth: 640 }}>
-            Mejora tus mazos de Commander con las cartas que ya tienes
-          </h1>
-          <p className="muted max-w-[620px]" style={{ fontSize: 15 }}>
-            Pega tu lista (o un enlace de Archidekt o Moxfield) y te propongo cambios uno por uno:
-            qué carta sacar y cuál meter, según las recomendaciones de EDHREC y priorizando tu
-            colección de ManaBox.
-          </p>
-          <div className="mt-1 flex flex-wrap gap-2">
-            <Link className="btn btn-primary btn-lg" href="/analyze">
-              Analizar un mazo
-            </Link>
-            <Link className="btn btn-lg" href="/decks/new">
-              Crear desde un comandante
-            </Link>
-            <Link className="btn btn-lg" href="/collection">
-              Importar mi colección
-            </Link>
-          </div>
-        </section>
-      )}
+      </div>
 
       {status.catalog.cards === 0 && (
         <Banner tone="out">
@@ -150,187 +131,139 @@ export function Home() {
 
       <div
         className="panel grid-1-sm grid"
-        style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}
+        style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
       >
         <Stat
           href="/collection"
-          label="Copias en tu colección"
-          value={fmt(copies)}
-          meta={user ? "En tu cuenta" : local ? "En este navegador" : "Sin importar"}
+          label="Tu colección"
+          value={`${fmt(copies)} ${copies === 1 ? "copia" : "copias"}`}
+          meta={
+            user && collection?.unmatchedRows
+              ? `${fmt(unique)} distintas · ${fmt(collection.unmatchedRows)} filas sin emparejar`
+              : `${fmt(unique)} cartas distintas`
+          }
           first
         />
         <Stat
-          href="/collection"
-          label="Cartas distintas"
-          value={fmt(unique)}
-          meta={
-            user && collection?.unmatchedRows
-              ? `${fmt(collection.unmatchedRows)} filas sin emparejar`
-              : "Emparejadas con Scryfall"
-          }
+          href="/decks"
+          label="Mazos guardados"
+          value={decks ? fmt(decks.length) : "…"}
+          meta="Sus cartas cuentan como en uso"
         />
-        {user ? (
-          <Stat
-            href="/decks"
-            label="Mazos guardados"
-            value={decks ? fmt(decks.length) : "…"}
-            meta="Sus cartas cuentan como en uso"
-          />
-        ) : (
-          <Stat
-            href="/signup"
-            label="Mazos guardados"
-            value="—"
-            meta="Crea una cuenta para guardarlos"
-          />
-        )}
         <Stat
-          href="/trades?tab=proposals"
+          href={myTurn ? "/trades?tab=proposals" : "/trades"}
           label="Intercambios"
           value={myTurn === null ? "…" : fmt(myTurn)}
-          meta={myTurn ? "Propuestas por responder" : "Cruces con otros jugadores"}
+          meta={myTurn ? "Propuestas por responder" : "Ver cruces con otros jugadores"}
         />
       </div>
 
-      {user ? (
-        <section className="panel">
-          <div className="panel-h">
-            <span className="h2">Tus mazos</span>
-            {decks && decks.length > 0 && (
-              <Link href="/decks" style={{ fontSize: 13 }}>
-                Ver todos
-              </Link>
-            )}
-          </div>
-          {decks && decks.length === 0 ? (
-            <p className="muted p-4 text-[13px]">
-              Aún no has guardado ningún mazo. <Link href="/analyze?new=1">Analiza uno</Link> y
-              pulsa Guardar.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Mazo</th>
-                    <th className="hide-sm">Colores</th>
-                    <th className="r hide-sm">Cartas</th>
-                    <th className="hide-sm">Origen</th>
-                    <th className="r">Actualizado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(decks ?? []).slice(0, 6).map((d, i) => (
-                    <tr key={d.id} className="fade" style={{ ["--d" as string]: `${i * 40}ms` }}>
-                      <td>
-                        <Link
-                          href={`/decks/${d.id}`}
-                          className="flex items-center gap-2.5"
-                          style={{ color: "var(--color-text)", textDecoration: "none" }}
-                        >
-                          {d.commanderCard ? (
-                            <CardImage card={d.commanderCard} style={{ width: 26 }} sizes="26px" />
-                          ) : (
-                            <span className="w-[26px]" />
-                          )}
-                          <span className="flex flex-col leading-tight">
-                            <span style={{ fontWeight: 500 }}>{d.name}</span>
-                            <span className="subtle text-xs">{d.commanderNames.join(" + ")}</span>
-                          </span>
-                        </Link>
-                      </td>
-                      <td className="hide-sm">
-                        <ColorPips colors={d.colorIdentity} />
-                      </td>
-                      <td className="r mono hide-sm">{d.cardCount}</td>
-                      <td className="muted hide-sm">{SOURCE[d.source] ?? d.source}</td>
-                      <td className="r mono subtle">{ago(d.updatedAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      <section className="panel">
+        <div className="panel-h">
+          <span className="h2">Tus mazos</span>
+          {decks && decks.length > 0 && (
+            <Link href="/decks" style={{ fontSize: 13 }}>
+              Ver todos
+            </Link>
           )}
-        </section>
-      ) : null}
-
-      {user && (
-        <div
-          className="grid-1-sm grid gap-4"
-          style={{ gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)" }}
-        >
-          <section className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="h2">Actividad</span>
-              <Link href="/feed" style={{ fontSize: 13 }}>
-                Ver todo
-              </Link>
-            </div>
-            <ActivityFeed compact />
-          </section>
-          <section className="flex flex-col gap-2">
-            <span className="h2">Tu mesa</span>
-            <div className="quicklinks">
-              <Link href="/play" className="quicklink ql-play">
-                <IconCrown size={20} />
-                <b>Contador de vidas</b>
-                <span>Vidas, comandante y veneno</span>
-              </Link>
-              <Link href="/groups" className="quicklink">
-                <IconUsers size={20} />
-                <b>Grupos</b>
-                <span>Partidas, ranking y quién tiene qué</span>
-              </Link>
-              <Link href="/loans" className="quicklink">
-                <IconLoan size={20} />
-                <b>Préstamos</b>
-                <span>Lo que has dejado y te han dejado</span>
-              </Link>
-              <Link href="/community" className="quicklink">
-                <IconDecks size={20} />
-                <b>Comunidad</b>
-                <span>Mazos que ya puedes montar</span>
-              </Link>
-              <Link href="/cards" className="quicklink">
-                <IconCollection size={20} />
-                <b>Buscar cartas</b>
-                <span>Precios, ediciones y crear mazos</span>
-              </Link>
-            </div>
-          </section>
         </div>
-      )}
+        {decks && decks.length === 0 ? (
+          <p className="muted p-4 text-[13px]">
+            Aún no tienes ningún mazo. <Link href="/decks/new">Crea uno</Link> desde un comandante o
+            importa una lista.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Mazo</th>
+                  <th className="hide-sm">Colores</th>
+                  <th className="r hide-sm">Cartas</th>
+                  <th className="hide-sm">Origen</th>
+                  <th className="r">Actualizado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(decks ?? []).slice(0, 6).map((d, i) => (
+                  <tr key={d.id} className="fade" style={{ ["--d" as string]: `${i * 40}ms` }}>
+                    <td>
+                      <Link
+                        href={`/decks/${d.id}`}
+                        className="flex items-center gap-2.5"
+                        style={{ color: "var(--color-text)", textDecoration: "none" }}
+                      >
+                        {d.commanderCard ? (
+                          <CardImage card={d.commanderCard} style={{ width: 26 }} sizes="26px" />
+                        ) : (
+                          <span className="w-[26px]" />
+                        )}
+                        <span className="flex flex-col leading-tight">
+                          <span style={{ fontWeight: 500 }}>{d.name}</span>
+                          <span className="subtle text-xs">{d.commanderNames.join(" + ")}</span>
+                        </span>
+                      </Link>
+                    </td>
+                    <td className="hide-sm">
+                      <ColorPips colors={d.colorIdentity} />
+                    </td>
+                    <td className="r mono hide-sm">{d.cardCount}</td>
+                    <td className="muted hide-sm">{SOURCE[d.source] ?? d.source}</td>
+                    <td className="r mono subtle">{ago(d.updatedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
-      {!user && (
-        <section
-          className="grid-1-sm grid gap-3"
-          style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
-        >
-          {[
-            [
-              "1 · Tu colección",
-              "Exporta el CSV desde ManaBox y súbelo. Sin cuenta se guarda solo en este navegador.",
-            ],
-            [
-              "2 · Tu mazo",
-              "Pega la lista o un enlace de Archidekt o Moxfield. Detecto el comandante y leo EDHREC.",
-            ],
-            [
-              "3 · Los cambios",
-              "Te propongo cambios 1×1 con las cartas que tienes: aceptas, descartas y exportas la lista.",
-            ],
-          ].map(([t, d], i) => (
-            <div
-              key={t}
-              className="panel fade flex flex-col gap-1.5 p-3.5"
-              style={{ ["--d" as string]: `${i * 60}ms` }}
-            >
-              <span className="h2">{t}</span>
-              <span className="muted text-[13px]">{d}</span>
-            </div>
-          ))}
-        </section>
-      )}
+      <section className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span className="h2">Actividad</span>
+          <Link href="/feed" style={{ fontSize: 13 }}>
+            Ver todo
+          </Link>
+        </div>
+        <ActivityFeed compact />
+      </section>
+
+      {/* En escritorio todo esto ya está en el lateral; en el móvil no hay lateral. */}
+      <section className="only-sm flex-col gap-2">
+        <span className="h2">Tu mesa</span>
+        <div className="quicklinks">
+          <Link href="/play" className="quicklink ql-play">
+            <IconCrown size={20} />
+            <b>Contador de vidas</b>
+            <span>Vidas, comandante y veneno</span>
+          </Link>
+          <Link href="/groups" className="quicklink">
+            <IconUsers size={20} />
+            <b>Grupos</b>
+            <span>Partidas, ranking y quién tiene qué</span>
+          </Link>
+          <Link href="/loans" className="quicklink">
+            <IconLoan size={20} />
+            <b>Préstamos</b>
+            <span>Lo que has dejado y te han dejado</span>
+          </Link>
+          <Link href="/community" className="quicklink">
+            <IconDecks size={20} />
+            <b>Comunidad</b>
+            <span>Mazos que ya puedes montar</span>
+          </Link>
+          <Link href="/trades" className="quicklink">
+            <IconSwap size={20} />
+            <b>Intercambios</b>
+            <span>Quién tiene lo que buscas</span>
+          </Link>
+          <Link href="/cards" className="quicklink">
+            <IconCollection size={20} />
+            <b>Buscar cartas</b>
+            <span>Precios, ediciones y crear mazos</span>
+          </Link>
+        </div>
+      </section>
     </main>
   );
 }

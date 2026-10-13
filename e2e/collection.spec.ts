@@ -23,3 +23,22 @@ test("ordena por precio en las dos direcciones y lo recuerda", async ({ page }) 
     .poll(async () => (await (await page.request.get("/api/me/prefs")).json()) as unknown)
     .toMatchObject({ prefs: { collection: { sort: "precio", dir: "asc" } } });
 });
+
+test("filtra las que pueden ser comandante y desde una se crea un mazo", async ({ page }) => {
+  await page.goto("/collection");
+  await expect(page.locator("figure").first()).toBeVisible();
+  const commander = page.getByLabel("Pueden ser comandante");
+  await commander.check();
+  await expect
+    .poll(async () => (await names(page)).sort())
+    .toEqual(["Teferi, Temporal Archmage", "Ultros, Obnoxious Octopus"]);
+  await page.getByRole("button", { name: "Teferi, Temporal Archmage", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Crear mazo con Teferi" })).toHaveAttribute(
+    "href",
+    /^\/decks\/new\?commander=/,
+  );
+  await page.keyboard.press("Escape");
+  // Que no se quede recordado para el resto de pruebas.
+  await commander.uncheck();
+  await expect.poll(async () => (await names(page)).length).toBeGreaterThan(2);
+});

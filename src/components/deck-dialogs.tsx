@@ -76,29 +76,26 @@ export function SaveDialog({
 
   const submit = (asNew: boolean) =>
     onSave({ name: name.trim(), asNew, includeAccepted, visibility });
+  // Un mazo mío ya guardado se guarda solo: aquí solo se crea otro a partir de él.
+  const asNewOnly = deckId !== null && !copyOf;
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      title={copyOf ? "Guardar una copia" : deckId ? "Guardar cambios" : "Guardar mazo"}
+      title={copyOf ? "Guardar una copia" : asNewOnly ? "Guardar como nuevo mazo" : "Guardar mazo"}
       width={380}
       footer={
         <>
           <button type="button" className="btn" onClick={onClose}>
             Cancelar
           </button>
-          {deckId && (
-            <button type="button" className="btn" disabled={busy} onClick={() => submit(true)}>
-              Guardar como nuevo
-            </button>
-          )}
           <button
             type="button"
             className="btn btn-primary"
             disabled={busy}
-            onClick={() => submit(false)}
+            onClick={() => submit(asNewOnly)}
           >
-            {busy ? "Guardando…" : "Guardar"}
+            {busy ? "Guardando…" : asNewOnly ? "Guardar como nuevo" : "Guardar"}
           </button>
         </>
       }
@@ -107,7 +104,7 @@ export function SaveDialog({
         className="flex flex-col gap-3"
         onSubmit={(e) => {
           e.preventDefault();
-          submit(false);
+          submit(asNewOnly);
         }}
       >
         <div className="field">
@@ -123,6 +120,11 @@ export function SaveDialog({
             onChange={(e) => setName(e.target.value)}
           />
         </div>
+        {asNewOnly && (
+          <p className="muted text-[13px]">
+            Los cambios de este mazo ya se guardan solos. Esto crea otro mazo a partir de él.
+          </p>
+        )}
         {copyOf && (
           <p className="muted text-[13px]">
             Es el mazo de {copyOf.username ? `@${copyOf.username}` : copyOf.name}: se guardará una
@@ -272,6 +274,130 @@ export function ExportDialog({
         style={{ minHeight: 220 }}
         aria-label="Texto para exportar"
       />
+    </Dialog>
+  );
+}
+
+/**
+ * Ajustes de un mazo mío guardado, desde su propia página: nombre, visibilidad, duplicar,
+ * reemplazar la lista y borrar (antes solo estaban en «Mis mazos»).
+ */
+export function DeckSettingsDialog({
+  open,
+  onClose,
+  name,
+  visibility,
+  busy,
+  onRename,
+  onVisibility,
+  onDuplicate,
+  onReplaceList,
+  onDelete,
+}: {
+  open: boolean;
+  onClose: () => void;
+  name: string;
+  visibility: DeckVisibility;
+  busy: boolean;
+  onRename: (name: string) => void;
+  onVisibility: (v: DeckVisibility) => void;
+  onDuplicate: () => void;
+  onReplaceList: () => void;
+  onDelete: () => void;
+}) {
+  const [draft, setDraft] = useState(name);
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reiniciar el formulario al abrir
+    setDraft(name);
+    setConfirming(false);
+  }, [open, name]);
+  const renamed = draft.trim() !== "" && draft.trim() !== name;
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Ajustes del mazo"
+      width={420}
+      footer={
+        <button type="button" className="btn" onClick={onClose}>
+          Cerrar
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <form
+          className="field"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (renamed) onRename(draft.trim());
+          }}
+        >
+          <label className="label" htmlFor="deck-settings-name">
+            Nombre
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="deck-settings-name"
+              className="input"
+              value={draft}
+              maxLength={120}
+              onChange={(e) => setDraft(e.target.value)}
+            />
+            <button type="submit" className="btn" disabled={busy || !renamed}>
+              Cambiar
+            </button>
+          </div>
+        </form>
+
+        <VisibilityPicker
+          value={visibility}
+          onChange={(v) => v !== visibility && onVisibility(v)}
+        />
+
+        <div className="field">
+          <span className="label">Lista</span>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn" onClick={onDuplicate}>
+              Duplicar mazo
+            </button>
+            <button type="button" className="btn" onClick={onReplaceList}>
+              Reemplazar la lista
+            </button>
+          </div>
+          <span className="hint">
+            Para quitar o añadir cartas sueltas, usa la pestaña Lista. Los cambios se guardan solos.
+          </span>
+        </div>
+
+        <div className="field border-t border-line pt-3">
+          {confirming ? (
+            <div className="flex flex-col gap-2">
+              <span className="text-[13px]">
+                ¿Borrar «{name}»? Sus cartas dejarán de contar como en uso. No se puede deshacer.
+              </span>
+              <div className="flex gap-2">
+                <button type="button" className="btn" onClick={() => setConfirming(false)}>
+                  Cancelar
+                </button>
+                <button type="button" className="btn btn-out" disabled={busy} onClick={onDelete}>
+                  Borrar «{name}»
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-out self-start"
+              onClick={() => setConfirming(true)}
+            >
+              Borrar mazo
+            </button>
+          )}
+        </div>
+      </div>
     </Dialog>
   );
 }

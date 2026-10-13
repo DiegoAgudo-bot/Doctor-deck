@@ -161,6 +161,10 @@ export function CollectionPage() {
             </b>{" "}
             copias · {fmt(overall.cards)} cartas distintas
             {value > 0 && <> · valor aprox. {formatEuros(value)}</>}
+            {" · "}
+            <Link href="/community?sort=owned" title="Mazos públicos ordenados por cuánto tienes">
+              Mazos que puedes montar
+            </Link>
             {loggedIn && (
               <>
                 {" · "}

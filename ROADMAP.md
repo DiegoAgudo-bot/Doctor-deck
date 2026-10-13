@@ -295,6 +295,32 @@ ManaBox** (CSV o texto) y usar la misma API, con el plugin `bearer` de Better Au
 
 ---
 
+## Plan de UX (fases U1–U10)
+
+Sale de la auditoría UX/CRO y del recorrido pantalla a pantalla (octubre de 2026). El problema
+principal: **carta, colección y mazo apenas se conectan** (no se puede añadir una carta a un mazo
+desde la colección ni crear un mazo desde ella), los cambios aplicados en un mazo guardado no se
+guardan solos y hay botones y entradas de menú repetidos. El usuario pidió aplicarlas seguidas: una
+PR por fase, que se mergea cuando el CI está en verde.
+
+| Fase | Contenido                                                                           | Esfuerzo   | Estado |
+| ---- | ----------------------------------------------------------------------------------- | ---------- | ------ |
+| U1   | Limpieza: navegación sin duplicados, portada, cabecera del mazo y textos de botones | Bajo       | ✅     |
+| U2   | Los mazos guardados se guardan solos (cambios aplicados, tema, candados, descartes) | Medio      | ✅     |
+| U3   | Ajustes del mazo en su página (nombre, visibilidad, duplicar, reemplazar, borrar)   | Bajo-medio | ✅     |
+| U4   | Colección y cartas → mazos: «Añadir a un mazo», «Crear mazo», comandantes que tengo | Medio      | ✅     |
+| U5   | Un único «Nuevo mazo» (comandante o lista/enlace, siempre se guarda)                | Medio      | ✅     |
+| U6   | Barra inferior del móvil con Mazos y «Más»                                          | Medio      | ✅     |
+| U7   | Registro sin fricción y sin perder lo hecho antes de tener cuenta                   | Medio      |        |
+| U8   | Portada pintada en el servidor, mazos reales de la comunidad y preguntas frecuentes | Medio      |        |
+| U9   | Crear un mazo «Con mis cartas» (recomendadas de EDHREC que tengo libres)            | Alto       |        |
+| U10  | Barra de acción fija en el mazo (móvil) y letra más legible en el móvil             | Bajo       |        |
+
+Ya hecho antes de este plan (PR #20): mazo de ejemplo, aviso de colección encima del analizador,
+un solo CTA primario en la portada, zonas táctiles y campos de 16 px, contraste y foco.
+
+---
+
 ## Descartado o aplazado (y por qué)
 
 - **Playtester completo** (partida de prueba con zonas): Moxfield y Archidekt ya lo hacen muy bien

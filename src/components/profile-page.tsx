@@ -263,8 +263,8 @@ export function ProfilePage() {
               }
               action={
                 view.isMe ? (
-                  <Link className="btn btn-primary" href="/analyze?new=1">
-                    Analizar mazo
+                  <Link className="btn btn-primary" href="/decks/new">
+                    Nuevo mazo
                   </Link>
                 ) : undefined
               }

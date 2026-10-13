@@ -7,18 +7,44 @@ import { COLORS } from "@/domain/cards/types";
 import { suggestedDeckName } from "@/domain/deck/naming";
 import type { DeckVisibility } from "@/domain/deck/visibility";
 import type { CardDetailDTO } from "@/server/card-dto";
-import type { CardDTO, CommanderInfoDTO, NewDeckResponse } from "@/server/dto";
+import type {
+  CardDTO,
+  CollectionViewResponse,
+  CommanderInfoDTO,
+  NewDeckResponse,
+} from "@/server/dto";
 import { api, ApiError, storage } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardImage } from "./card-image";
 import { CardSearch } from "./card-search";
 import { VisibilityPicker } from "./deck-visibility";
 import { IconX } from "./icons";
-import { notifyDecksChanged } from "./local-collection";
+import { localCollection, notifyDecksChanged, ownedPairs } from "./local-collection";
 import { ColorPips } from "./mana";
 import { Banner, Loading, fmt } from "./ui";
 
 type Mode = "average" | "empty";
+/** De dónde sale el mazo: el comandante (mazo medio o vacío) o una lista/enlace que ya tengo. */
+type Source = "commander" | "list";
+
+const isLink = (s: string) => /^\s*https?:\/\//i.test(s);
+const LIST_PLACEHOLDER =
+  "Pega la lista (Commander / Deck, una carta por línea) o un enlace de Moxfield o Archidekt";
+
+/** Deja la lista en el navegador y la abre en el analizador (sin cuenta, o para elegir comandante). */
+function openInAnalyzer(input: string, name: string, tab: string) {
+  storage.set("deck-doctor:mazo", {
+    input,
+    theme: "",
+    name,
+    locked: [],
+    excluded: [],
+    deckId: null,
+    useOtherDecks: true,
+    visibility: "public",
+  });
+  window.location.assign(new URL(`/analyze?analyze=1&tab=${tab}`, window.location.origin));
+}
 
 const shortName = (name: string) => name.split(/,| \/\/ /)[0] ?? name;
 const compact = (n: number) =>
@@ -44,6 +70,39 @@ export function NewDeckWizard() {
   const [visibility, setVisibility] = useState<DeckVisibility>("public");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [source, setSource] = useState<Source>("commander");
+  const [list, setList] = useState("");
+  /** Cartas de mi colección que pueden ser comandante (atajos del paso 1). */
+  const [mine, setMine] = useState<CardDTO[] | null>(null);
+
+  // ?from=list: abrir en «Importar una lista».
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única tras montar
+    if (new URLSearchParams(window.location.search).get("from") === "list") setSource("list");
+  }, []);
+
+  // Tus comandantes: los que tengo en la colección (la de la cuenta o la del navegador).
+  useEffect(() => {
+    const local = loggedIn ? null : localCollection.get();
+    if (!loggedIn && !local) return;
+    api<CollectionViewResponse>(
+      "/api/collection/view",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filters: { commander: true },
+          sort: "copias",
+          offset: 0,
+          limit: 12,
+          ...(local ? { collection: ownedPairs(local) } : {}),
+        }),
+      },
+      { silent: true },
+    )
+      .then((r) => setMine(r.items.map((i) => i.card)))
+      .catch(() => setMine([]));
+  }, [loggedIn]);
 
   // ?commander={oracleId} (botón "Crear mazo" de la ficha de una carta): ya elegido.
   useEffect(() => {
@@ -98,6 +157,35 @@ export function NewDeckWizard() {
     setNameTouched(false);
   }
 
+  /** Importar: con cuenta se guarda y se abre; sin ella (o sin comandante claro), al analizador. */
+  async function createFromList() {
+    const input = list.trim();
+    if (!input) return;
+    if (!loggedIn) return openInAnalyzer(input, name.trim(), "changes");
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await api<{ id: string; name: string }>("/api/decks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input,
+          ...(name.trim() ? { name: name.trim() } : {}),
+          visibility,
+        }),
+      });
+      notifyDecksChanged();
+      router.push(`/decks/${res.id}`);
+    } catch (e) {
+      // La lista no dice cuál es el comandante: se elige en el analizador y luego se guarda.
+      if (e instanceof ApiError && e.code === "no_commander") {
+        return openInAnalyzer(input, name.trim(), "changes");
+      }
+      setError(e instanceof ApiError ? e.message : "No se pudo importar la lista");
+      setBusy(false);
+    }
+  }
+
   async function create() {
     if (commanders.length === 0) return;
     setBusy(true);
@@ -143,156 +231,83 @@ export function NewDeckWizard() {
       <div className="flex flex-col gap-1">
         <h1 className="h1">Nuevo mazo</h1>
         <p className="muted text-[13px]">
-          Elige el comandante y te monto el mazo con lo que juega la comunidad en EDHREC, o empieza
-          desde cero. ¿Ya tienes la lista? <Link href="/analyze?new=1">Impórtala</Link>.
+          Elige el comandante y te monto el mazo con lo que juega la comunidad en EDHREC (o empiezas
+          desde cero), o importa una lista que ya tengas.
         </p>
       </div>
 
-      <section className="panel">
-        <div className="panel-h">
-          <span className="h2">1 · El comandante</span>
-        </div>
-        <div className="flex flex-col gap-3 p-3.5">
-          {commanders.length > 0 && (
-            <div className="flex flex-wrap gap-4">
-              {commanders.map((c) => (
-                <div key={c.oracleId} className="relative" style={{ width: 150 }}>
-                  <CardImage card={c} />
-                  <button
-                    type="button"
-                    className="btn btn-icon absolute"
-                    style={{ top: 6, right: 6, width: 26, height: 26 }}
-                    aria-label={`Quitar ${c.name}`}
-                    onClick={() => {
-                      setCommanders((prev) => prev.filter((x) => x.oracleId !== c.oracleId));
-                      setInfo(null);
-                    }}
-                  >
-                    <IconX size={12} />
-                  </button>
-                </div>
-              ))}
+      <nav className="tabs" aria-label="Cómo empiezas">
+        {(
+          [
+            ["commander", "Desde un comandante"],
+            ["list", "Importar una lista o enlace"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={source === id ? "is-active" : ""}
+            aria-pressed={source === id}
+            onClick={() => {
+              setSource(id);
+              setError(null);
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      {source === "list" && (
+        <section className="panel">
+          <form
+            className="flex flex-col gap-3.5 p-3.5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void createFromList();
+            }}
+          >
+            <div className="field">
+              <label className="label" htmlFor="import-list">
+                Lista o enlace
+              </label>
+              {isLink(list) ? (
+                <input
+                  id="import-list"
+                  className="input mono"
+                  type="url"
+                  value={list}
+                  onChange={(e) => setList(e.target.value)}
+                />
+              ) : (
+                <textarea
+                  id="import-list"
+                  className="textarea"
+                  spellCheck={false}
+                  value={list}
+                  placeholder={LIST_PLACEHOLDER}
+                  onChange={(e) => setList(e.target.value)}
+                />
+              )}
+              <span className="hint">
+                Formatos: <span className="mono">1 Sol Ring</span>,{" "}
+                <span className="mono">1x Sol Ring (C21) 263</span>, secciones Commander/Deck o{" "}
+                <span className="mono">*CMDR*</span>, y enlaces públicos de Moxfield y Archidekt.
+              </span>
             </div>
-          )}
-          {(commanders.length === 0 || pairing) && (
-            <div style={{ maxWidth: 420 }}>
-              <CardSearch
-                id="commander"
-                label={
-                  pairing ? "Segundo comandante (partner, background…)" : "Busca tu comandante"
-                }
-                filters={{ commander: true }}
-                autoFocus
-                clearOnPick
-                onPick={pick}
+            <div className="field" style={{ maxWidth: 480 }}>
+              <label className="label" htmlFor="import-name">
+                Nombre <span className="subtle font-normal">(opcional)</span>
+              </label>
+              <input
+                id="import-name"
+                className="input"
+                value={name}
+                maxLength={120}
+                placeholder="El de la lista o el del comandante"
+                onChange={(e) => setName(e.target.value)}
               />
             </div>
-          )}
-          {commanders.length === 1 && !pairing && (
-            <button
-              type="button"
-              className="btn btn-ghost self-start"
-              onClick={() => setPairing(true)}
-            >
-              Añadir un segundo comandante (partner, background…)
-            </button>
-          )}
-        </div>
-      </section>
-
-      {commanders.length > 0 && (
-        <section className="panel fade">
-          <div className="panel-h">
-            <span className="h2">2 · Cómo lo montas</span>
-            {info?.totalDecks !== null && info?.totalDecks !== undefined && (
-              <span className="subtle text-xs">{fmt(info.totalDecks)} mazos en EDHREC</span>
-            )}
-          </div>
-          <div className="flex flex-col gap-4 p-3.5">
-            <div
-              className="grid-1-sm grid gap-3"
-              style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
-            >
-              {(
-                [
-                  [
-                    "average",
-                    "Con el mazo medio de EDHREC",
-                    "Las ~99 cartas que juega de media la gente con este comandante. Después te digo qué tienes, qué te falta y qué cambiar.",
-                  ],
-                  [
-                    "empty",
-                    "Desde cero",
-                    "Solo el comandante. Añades tú las cartas una a una, con sugerencias de tu colección.",
-                  ],
-                ] as const
-              ).map(([m, title, text]) => (
-                <button
-                  key={m}
-                  type="button"
-                  aria-pressed={mode === m}
-                  onClick={() => setMode(m)}
-                  className="flex cursor-pointer flex-col gap-1 rounded-lg p-3 text-left"
-                  style={{
-                    border: `1px solid ${mode === m ? "var(--color-accent)" : "var(--color-line)"}`,
-                    background: mode === m ? "var(--color-hover)" : "transparent",
-                    color: "inherit",
-                  }}
-                >
-                  <span className="h2">{title}</span>
-                  <span className="muted text-[13px]">{text}</span>
-                </button>
-              ))}
-            </div>
-
-            {mode === "average" && (
-              <div className="field">
-                <span className="label">Tema de EDHREC</span>
-                {loadingInfo ? (
-                  <Loading>Consultando EDHREC…</Loading>
-                ) : (
-                  <div className="chips" role="radiogroup" aria-label="Tema">
-                    {[
-                      { slug: "", name: "General", count: info?.totalDecks ?? null },
-                      ...(info?.themes ?? []).slice(0, 14),
-                    ].map((t) => (
-                      <button
-                        key={t.slug || "general"}
-                        type="button"
-                        role="radio"
-                        aria-checked={theme === t.slug}
-                        className={`chipbtn ${theme === t.slug ? "is-on" : ""}`}
-                        onClick={() => setTheme(t.slug)}
-                      >
-                        {t.name}
-                        {t.count !== null && <span className="n">{compact(t.count)}</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="field" style={{ maxWidth: 480 }}>
-              <label className="label" htmlFor="deck-name">
-                Nombre
-              </label>
-              <div className="flex items-center gap-2">
-                <ColorPips colors={[...new Set(commanders.flatMap((c) => c.colorIdentity))]} />
-                <input
-                  id="deck-name"
-                  className="input"
-                  value={finalName}
-                  maxLength={120}
-                  onChange={(e) => {
-                    setNameTouched(true);
-                    setName(e.target.value);
-                  }}
-                />
-              </div>
-              <span className="hint">Colores - de qué va el mazo. Puedes cambiarlo.</span>
-            </div>
-
             {loggedIn ? (
               <VisibilityPicker value={visibility} onChange={setVisibility} />
             ) : (
@@ -301,23 +316,222 @@ export function NewDeckWizard() {
                 <Link href="/signup?next=/decks/new">Crea una cuenta</Link> para guardarlo.
               </Banner>
             )}
-
             {error && <Banner tone="out">{error}</Banner>}
-            <div className="flex justify-end border-t border-line pt-3">
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
+              {loggedIn && (
+                <Link className="btn btn-ghost mr-auto" href="/analyze?new=1">
+                  Solo analizarla, sin guardar
+                </Link>
+              )}
               <button
-                type="button"
+                type="submit"
                 className="btn btn-primary btn-lg full-sm"
-                disabled={busy || (mode === "average" && loadingInfo)}
-                onClick={() => void create()}
+                disabled={busy || !list.trim()}
               >
-                {busy ? "Creando…" : mode === "average" ? "Crear con el mazo medio" : "Crear vacío"}
+                {busy ? "Importando…" : loggedIn ? "Importar y guardar" : "Importar"}
               </button>
             </div>
-            {busy && mode === "average" && (
-              <Loading>Montando el mazo medio con los datos de EDHREC…</Loading>
-            )}
-          </div>
+            {busy && <Loading>Leyendo la lista y buscando las cartas…</Loading>}
+          </form>
         </section>
+      )}
+
+      {source === "commander" && (
+        <>
+          <section className="panel">
+            <div className="panel-h">
+              <span className="h2">1 · El comandante</span>
+            </div>
+            <div className="flex flex-col gap-3 p-3.5">
+              {commanders.length > 0 && (
+                <div className="flex flex-wrap gap-4">
+                  {commanders.map((c) => (
+                    <div key={c.oracleId} className="relative" style={{ width: 150 }}>
+                      <CardImage card={c} />
+                      <button
+                        type="button"
+                        className="btn btn-icon absolute"
+                        style={{ top: 6, right: 6, width: 26, height: 26 }}
+                        aria-label={`Quitar ${c.name}`}
+                        onClick={() => {
+                          setCommanders((prev) => prev.filter((x) => x.oracleId !== c.oracleId));
+                          setInfo(null);
+                        }}
+                      >
+                        <IconX size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(commanders.length === 0 || pairing) && (
+                <div style={{ maxWidth: 420 }}>
+                  <CardSearch
+                    id="commander"
+                    label={
+                      pairing ? "Segundo comandante (partner, background…)" : "Busca tu comandante"
+                    }
+                    filters={{ commander: true }}
+                    autoFocus
+                    clearOnPick
+                    onPick={pick}
+                  />
+                </div>
+              )}
+              {commanders.length === 0 && mine && mine.length > 0 && (
+                <div className="field">
+                  <span className="label">De tu colección</span>
+                  <div className="chips">
+                    {mine.map((c) => (
+                      <button
+                        key={c.oracleId}
+                        type="button"
+                        className="chipbtn"
+                        onClick={() => pick(c)}
+                      >
+                        <ColorPips colors={c.colorIdentity} />
+                        {shortName(c.name)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {commanders.length === 1 && !pairing && (
+                <button
+                  type="button"
+                  className="btn btn-ghost self-start"
+                  onClick={() => setPairing(true)}
+                >
+                  Añadir un segundo comandante (partner, background…)
+                </button>
+              )}
+            </div>
+          </section>
+
+          {commanders.length > 0 && (
+            <section className="panel fade">
+              <div className="panel-h">
+                <span className="h2">2 · Cómo lo montas</span>
+                {info?.totalDecks !== null && info?.totalDecks !== undefined && (
+                  <span className="subtle text-xs">{fmt(info.totalDecks)} mazos en EDHREC</span>
+                )}
+              </div>
+              <div className="flex flex-col gap-4 p-3.5">
+                <div
+                  className="grid-1-sm grid gap-3"
+                  style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
+                >
+                  {(
+                    [
+                      [
+                        "average",
+                        "Con el mazo medio de EDHREC",
+                        "Las ~99 cartas que juega de media la gente con este comandante. Después te digo qué tienes, qué te falta y qué cambiar.",
+                      ],
+                      [
+                        "empty",
+                        "Desde cero",
+                        "Solo el comandante. Añades tú las cartas una a una, con sugerencias de tu colección.",
+                      ],
+                    ] as const
+                  ).map(([m, title, text]) => (
+                    <button
+                      key={m}
+                      type="button"
+                      aria-pressed={mode === m}
+                      onClick={() => setMode(m)}
+                      className="flex cursor-pointer flex-col gap-1 rounded-lg p-3 text-left"
+                      style={{
+                        border: `1px solid ${mode === m ? "var(--color-accent)" : "var(--color-line)"}`,
+                        background: mode === m ? "var(--color-hover)" : "transparent",
+                        color: "inherit",
+                      }}
+                    >
+                      <span className="h2">{title}</span>
+                      <span className="muted text-[13px]">{text}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {mode === "average" && (
+                  <div className="field">
+                    <span className="label">Tema de EDHREC</span>
+                    {loadingInfo ? (
+                      <Loading>Consultando EDHREC…</Loading>
+                    ) : (
+                      <div className="chips" role="radiogroup" aria-label="Tema">
+                        {[
+                          { slug: "", name: "General", count: info?.totalDecks ?? null },
+                          ...(info?.themes ?? []).slice(0, 14),
+                        ].map((t) => (
+                          <button
+                            key={t.slug || "general"}
+                            type="button"
+                            role="radio"
+                            aria-checked={theme === t.slug}
+                            className={`chipbtn ${theme === t.slug ? "is-on" : ""}`}
+                            onClick={() => setTheme(t.slug)}
+                          >
+                            {t.name}
+                            {t.count !== null && <span className="n">{compact(t.count)}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="field" style={{ maxWidth: 480 }}>
+                  <label className="label" htmlFor="deck-name">
+                    Nombre
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <ColorPips colors={[...new Set(commanders.flatMap((c) => c.colorIdentity))]} />
+                    <input
+                      id="deck-name"
+                      className="input"
+                      value={finalName}
+                      maxLength={120}
+                      onChange={(e) => {
+                        setNameTouched(true);
+                        setName(e.target.value);
+                      }}
+                    />
+                  </div>
+                  <span className="hint">Colores - de qué va el mazo. Puedes cambiarlo.</span>
+                </div>
+
+                {loggedIn ? (
+                  <VisibilityPicker value={visibility} onChange={setVisibility} />
+                ) : (
+                  <Banner tone="info">
+                    Sin cuenta, el mazo se abre en el analizador y se queda en este navegador.{" "}
+                    <Link href="/signup?next=/decks/new">Crea una cuenta</Link> para guardarlo.
+                  </Banner>
+                )}
+
+                {error && <Banner tone="out">{error}</Banner>}
+                <div className="flex justify-end border-t border-line pt-3">
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-lg full-sm"
+                    disabled={busy || (mode === "average" && loadingInfo)}
+                    onClick={() => void create()}
+                  >
+                    {busy
+                      ? "Creando…"
+                      : mode === "average"
+                        ? "Crear con el mazo medio"
+                        : "Crear vacío"}
+                  </button>
+                </div>
+                {busy && mode === "average" && (
+                  <Loading>Montando el mazo medio con los datos de EDHREC…</Loading>
+                )}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </main>
   );

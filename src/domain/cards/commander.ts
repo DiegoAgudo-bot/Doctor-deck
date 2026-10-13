@@ -1,17 +1,20 @@
 import type { Card, Color } from "./types";
 import { COLORS } from "./types";
 
-const isLegendary = (c: Card) => /\bLegendary\b/.test(c.typeLine);
-const isCreature = (c: Card) => /\bCreature\b/.test(frontTypeLine(c));
-const isBackground = (c: Card) => /\bBackground\b/.test(c.typeLine);
+type Typed = Pick<Card, "typeLine">;
+const isLegendary = (c: Typed) => /\bLegendary\b/.test(c.typeLine);
+const isCreature = (c: Typed) => /\bCreature\b/.test(frontTypeLine(c));
+const isBackground = (c: Typed) => /\bBackground\b/.test(c.typeLine);
 
 /** En cartas de dos caras solo cuenta la cara frontal para ser comandante. */
-function frontTypeLine(c: Card): string {
+function frontTypeLine(c: Typed): string {
   return c.typeLine.split("//")[0] ?? c.typeLine;
 }
 
-/** ¿Puede esta carta ser comandante (sola o como pareja)? */
-export function canBeCommander(card: Card): boolean {
+/** ¿Puede esta carta ser comandante (sola o como pareja)? Solo mira el tipo y el texto. */
+export function canBeCommander(
+  card: Pick<Card, "typeLine"> & { oracleText?: string | null },
+): boolean {
   if (/can be your commander/i.test(card.oracleText ?? "")) return true;
   if (isBackground(card) && isLegendary(card)) return true;
   return isLegendary(card) && isCreature(card);

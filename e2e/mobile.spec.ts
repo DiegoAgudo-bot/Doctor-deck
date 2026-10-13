@@ -15,6 +15,7 @@ test("al tocar una carta sale su hoja con enlace a la ficha", async ({ page }) =
 
 for (const path of [
   "/",
+  "/analyze",
   "/collection",
   "/cards",
   "/decks",
@@ -45,4 +46,15 @@ test("en el móvil el buscador se abre en una hoja", async ({ page }) => {
     .first()
     .tap();
   await expect(page).toHaveURL(/\/cards\//);
+});
+
+test("en el móvil, «Más» lleva a lo que no cabe en la barra", async ({ page }) => {
+  await page.goto("/");
+  const bar = page.getByRole("navigation", { name: "Principal" });
+  await expect(bar.getByRole("link", { name: "Mazos" })).toHaveAttribute("href", "/decks");
+  await bar.getByRole("button", { name: "Más" }).tap();
+  const sheet = page.getByRole("dialog", { name: "Más" });
+  await sheet.getByRole("link", { name: "Intercambios" }).tap();
+  await expect(page).toHaveURL(/\/trades$/);
+  await expect(sheet).toBeHidden();
 });

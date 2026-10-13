@@ -12,6 +12,14 @@ import { Banner, EmptyState, fmt, TilesSkeleton } from "./ui";
 
 const PAGE = 24;
 const COLORS = ["W", "U", "B", "R", "G"] as const;
+const COLOR_NAME: Record<string, string> = {
+  W: "Blanco",
+  U: "Azul",
+  B: "Negro",
+  R: "Rojo",
+  G: "Verde",
+  C: "Incoloro",
+};
 const SORTS: [CommunitySort, string][] = [
   ["recent", "Recientes"],
   ["owned", "Los que más tengo"],
@@ -36,11 +44,14 @@ export function CommunityDecks() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ?q= (p. ej. desde la ficha de una carta): ese texto de entrada.
+  // ?q= (p. ej. desde la ficha de una carta) y ?sort= (desde la colección: «los que más tengo»).
   useEffect(() => {
-    const initial = new URLSearchParams(window.location.search).get("q");
+    const params = new URLSearchParams(window.location.search);
+    const initial = params.get("q");
     // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única tras montar
     if (initial) setQ(initial.slice(0, 100));
+    const s = params.get("sort");
+    if (s === "recent" || s === "likes" || s === "owned") setSort(s);
   }, []);
 
   // El texto se busca con un pequeño respiro.
@@ -164,7 +175,8 @@ export function CommunityDecks() {
                   aria-pressed={on}
                   className={`chipbtn ${on ? "is-on" : ""}`}
                   onClick={() => toggleColor(c)}
-                  title={c === "C" ? "Incoloro" : undefined}
+                  aria-label={COLOR_NAME[c]}
+                  title={COLOR_NAME[c]}
                 >
                   <ColorPips colors={[c]} />
                 </button>
