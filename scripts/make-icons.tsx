@@ -1,13 +1,25 @@
 /**
- * Genera los iconos de la app (PWA, iOS y favicon grande) en public/icons/ a partir del logo.
- * Uso: npx tsx scripts/make-icons.tsx (solo hace falta si cambia el logo; los PNG se suben al repo).
+ * Genera los iconos (favicon, PWA, iOS y app Android) a partir del logo (`LOGO_FACETS`).
+ * Uso: npx tsx scripts/make-icons.tsx (solo hace falta si cambia el logo; los ficheros se suben al repo).
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { ImageResponse } from "next/og";
+import { LOGO_FACETS } from "../src/components/icons";
 
-/** El logo (carta con una cruz) sobre fondo oscuro. `pad` = margen (los "maskable" necesitan más). */
+const BG = "radial-gradient(circle at 30% 20%, #23344d 0%, #131313 70%)";
+
+function gem(size: number) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24">
+      {LOGO_FACETS.map(([d, fill]) => (
+        <path key={fill} d={d} fill={fill} />
+      ))}
+    </svg>
+  );
+}
+
+/** El logo sobre fondo oscuro. `pad` = margen (los "maskable" y el adaptativo de Android necesitan más). */
 function icon(size: number, pad: number, rounded: boolean) {
-  const inner = size * (1 - pad * 2);
   return new ImageResponse(
     <div
       style={{
@@ -17,30 +29,38 @@ function icon(size: number, pad: number, rounded: boolean) {
         alignItems: "center",
         justifyContent: "center",
         borderRadius: rounded ? size * 0.22 : 0,
-        background: "radial-gradient(circle at 30% 20%, #23344d 0%, #131313 70%)",
+        background: BG,
       }}
     >
-      <svg width={inner} height={inner} viewBox="0 0 24 24" fill="none">
-        <rect x="5" y="2" width="14" height="20" rx="2" stroke="#e8e6e3" strokeWidth="1.8" />
-        <path d="M12 8v8M8 12h8" stroke="#6cb0ff" strokeWidth="2.4" strokeLinecap="round" />
-      </svg>
+      {gem(size * (1 - pad * 2))}
     </div>,
     { width: size, height: size },
   );
 }
 
+/** Favicon en SVG: la gema sobre un cuadrado redondeado oscuro (se ve igual con tema claro u oscuro). */
+function faviconSvg() {
+  const paths = LOGO_FACETS.map(([d, fill]) => `<path d="${d}" fill="${fill}"/>`).join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><radialGradient id="bg" cx="30%" cy="18%" r="85%"><stop offset="0" stop-color="#23344d"/><stop offset=".72" stop-color="#131313"/></radialGradient></defs><rect width="64" height="64" rx="14" fill="url(#bg)"/><g transform="translate(4.5 4.5) scale(2.29)">${paths}</g></svg>\n`;
+}
+
 async function main() {
   mkdirSync("public/icons", { recursive: true });
+  writeFileSync("public/icons/favicon.svg", faviconSvg());
+  console.log("public/icons/favicon.svg");
   const out: [string, ImageResponse][] = [
-    ["icon-192.png", icon(192, 0.12, true)],
-    ["icon-512.png", icon(512, 0.12, true)],
+    ["public/icons/icon-192.png", icon(192, 0.12, true)],
+    ["public/icons/icon-512.png", icon(512, 0.12, true)],
     // Android recorta los "maskable" en círculo o squircle: logo dentro de la zona segura (80 %).
-    ["maskable-512.png", icon(512, 0.24, false)],
-    ["apple-touch-icon.png", icon(180, 0.14, false)],
+    ["public/icons/maskable-512.png", icon(512, 0.24, false)],
+    ["public/icons/apple-touch-icon.png", icon(180, 0.14, false)],
+    // App móvil (Expo): icono normal y primer plano del adaptativo (zona segura = 66 % central).
+    ["mobile/assets/icon.png", icon(512, 0.14, true)],
+    ["mobile/assets/adaptive-icon.png", icon(512, 0.3, false)],
   ];
   for (const [name, res] of out) {
-    writeFileSync(`public/icons/${name}`, Buffer.from(await res.arrayBuffer()));
-    console.log(`public/icons/${name}`);
+    writeFileSync(name, Buffer.from(await res.arrayBuffer()));
+    console.log(name);
   }
 }
 

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="270" height="64" viewBox="0 0 270 64"><g><defs><radialGradient id="bgl3" cx="30%" cy="18%" r="85%"><stop offset="0" stop-color="#23344d"/><stop offset=".72" stop-color="#131313"/></radialGradient></defs><rect width="64" height="64" rx="14" fill="url(#bgl3)"/>
+<rect x="8" y="15" width="22" height="32" rx="4" transform="rotate(-10 19 31)" fill="none" stroke="#f06a5f" stroke-width="2.6"/>
+<path d="M14 25l10 10M24 25L14 35" stroke="#f06a5f" stroke-width="2.6" stroke-linecap="round" transform="rotate(-10 19 31)"/>
+<rect x="34" y="15" width="22" height="32" rx="4" transform="rotate(10 45 31)" fill="#4fc16a"/>
+<path d="M45 24v14M38 31h14" stroke="#0b2a14" stroke-width="3.2" stroke-linecap="round" transform="rotate(10 45 31)"/>
+<path d="M22 10.5q10-5 20 0" fill="none" stroke="#e8e6e3" stroke-width="2.4" stroke-linecap="round"/><path d="M38 7l4.5 3.5-5 2.5" fill="none" stroke="#e8e6e3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M42 53.5q-10 5-20 0" fill="none" stroke="#e8e6e3" stroke-width="2.4" stroke-linecap="round"/><path d="M26 57l-4.5-3.5 5-2.5" fill="none" stroke="#e8e6e3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></g><text x="80" y="42" font-family="'Instrument Sans', system-ui, sans-serif" font-weight="700" font-size="30" letter-spacing="-0.5" fill="#1c1b19">Doctor <tspan fill="#0b63c9">Deck</tspan></text></svg>

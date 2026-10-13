@@ -27,7 +27,10 @@ export const metadata: Metadata = {
     "Mejora tus mazos de Commander con las cartas que ya tienes: cambios 1×1 con EDHREC, tu colección, combos e intercambios con otros jugadores.",
   applicationName: "Doctor Deck",
   icons: {
-    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    icon: [
+      { url: "/icons/favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
   appleWebApp: { capable: true, title: "Doctor Deck", statusBarStyle: "black-translucent" },

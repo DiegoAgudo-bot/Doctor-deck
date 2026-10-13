@@ -129,7 +129,7 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   `/u/[username]`: imagen 1200×630 con el arte del comandante (`art_crop` de la caché de imágenes),
   fuente Instrument Sans (`assets/fonts`, OFL). `metadataBase` = `BETTER_AUTH_URL`. `robots.ts` y
   `sitemap.ts` (mazos públicos y perfiles) se generan al pedirlos.
-- **PWA** (Fase 20): `app/manifest.ts`, iconos en `public/icons/` (`npx tsx scripts/make-icons.tsx`
+- **PWA** (Fase 20): `app/manifest.ts`, iconos en `public/icons/` y `mobile/assets/` (logo: gema de cinco colores, `LOGO_FACETS` en `components/icons.tsx`; `npx tsx scripts/make-icons.tsx`
   los regenera), `themeColor` y márgenes `safe-area` en las barras.
 - **Copias de seguridad** (Fase 20): `backupDatabase` (`adapters/db/backup.ts`, API `backup` de
   SQLite + `integrity_check` + gzip, rotación `BACKUP_KEEP`); cron diario que añade `deploy.sh`.

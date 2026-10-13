@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="270" height="64" viewBox="0 0 270 64"><g><defs><radialGradient id="bgd1" cx="30%" cy="18%" r="85%"><stop offset="0" stop-color="#23344d"/><stop offset=".72" stop-color="#131313"/></radialGradient></defs><rect width="64" height="64" rx="14" fill="url(#bgd1)"/>
+<rect x="17" y="9" width="30" height="46" rx="5" fill="none" stroke="#e8e6e3" stroke-width="3"/>
+<path d="M5 34h12l4-7 6 16 6-25 5 20 3-4h18" fill="none" stroke="#131313" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M5 34h12l4-7 6 16 6-25 5 20 3-4h18" fill="none" stroke="#4fc16a" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></g><text x="80" y="42" font-family="'Instrument Sans', system-ui, sans-serif" font-weight="700" font-size="30" letter-spacing="-0.5" fill="#e8e6e3">Doctor <tspan fill="#6cb0ff">Deck</tspan></text></svg>
