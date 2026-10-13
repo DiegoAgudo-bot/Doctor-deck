@@ -11,6 +11,7 @@ import {
 } from "@/domain/deck/export";
 import type { Bracket, BracketEstimate } from "@/domain/deck/bracket";
 import type { DeckVisibility } from "@/domain/deck/visibility";
+import type { ThemeLink } from "@/domain/recommendations/types";
 import { formatEuros } from "@/domain/suggestions/format";
 import { ROLE_TAGS } from "@/domain/roles/tags";
 import type {
@@ -118,6 +119,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const [editingRoles, setEditingRoles] = useState<DeckCardDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  /**
+   * Temas de EDHREC del comandante. La página de un tema no trae la lista: se guarda la última que
+   * llegó para poder cambiar de tema o volver a «General».
+   */
+  const [themes, setThemes] = useState<ThemeLink[]>([]);
   const [buy, setBuy] = useState<BuyOptions | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -252,13 +258,48 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const update = (patch: Partial<Saved>) => setSaved((s) => ({ ...s, ...patch }));
   const locked = useMemo(() => new Set(saved.locked), [saved.locked]);
 
+  /**
+   * Guarda en la cuenta un mazo mío ya guardado con el estado `req` (lista, tema, candados y
+   * descartes). La visibilidad y el bracket objetivo no se mandan: el servidor los conserva.
+   * Devuelve false si falla (el error ya se enseña).
+   */
+  async function persistDeck(req: Saved, commanders: string[]): Promise<boolean> {
+    if (req.deckId === null) return false;
+    try {
+      await api("/api/decks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: req.deckId,
+          name: req.name,
+          input: req.input,
+          ...(req.theme ? { theme: req.theme } : {}),
+          commanders,
+          locked: req.locked,
+          excluded: req.excluded,
+        }),
+      });
+      notifyDecksChanged();
+      return true;
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo guardar el mazo");
+      return false;
+    }
+  }
+
+  /**
+   * Analiza el mazo con `next` aplicado. Con `persist`, si es un mazo mío guardado, además lo
+   * guarda (los cambios de un mazo guardado se guardan solos). Devuelve true si se guardó, false si
+   * solo se analizó y null si falló.
+   */
   async function analyze(
     next: Partial<Saved> = {},
     commanders: string[] = chosen,
     buyOptions: BuyOptions | null = buy,
-  ) {
+    { persist = false }: { persist?: boolean } = {},
+  ): Promise<boolean | null> {
     const req = { ...saved, ...next };
-    if (!req.input.trim()) return;
+    if (!req.input.trim()) return null;
     setBusy(buyOptions && buyOptions !== buy ? "buy" : "analyze");
     setError(null);
     setNotice(null);
@@ -283,12 +324,19 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
         }),
       });
       setResult(res);
+      if (res.status === "ok" && res.edhrec.themes.length > 0) setThemes(res.edhrec.themes);
       setDecisions({});
       setDirty(false);
       setEditing(false);
       update(next);
+      if (!persist || req.deckId === null || res.status !== "ok") return false;
+      return await persistDeck(
+        req,
+        res.commanders.map((c) => c.oracleId),
+      );
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo analizar el mazo");
+      return null;
     } finally {
       setBusy(null);
     }
@@ -386,12 +434,25 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   );
 
   /** Aplica los aceptados a la lista, excluye los descartados y vuelve a analizar. */
-  function applyAndRecalculate() {
+  async function applyAndRecalculate() {
     if (!finalDeck) return;
-    void analyze({
-      input: exportDecklist(finalDeck),
-      excluded: [...new Set([...saved.excluded, ...rejected.map((s) => s.in.card.oracleId)])],
-    });
+    const n = accepted.length;
+    const savedIt = await analyze(
+      {
+        input: exportDecklist(finalDeck),
+        excluded: [...new Set([...saved.excluded, ...rejected.map((s) => s.in.card.oracleId)])],
+      },
+      chosen,
+      buy,
+      { persist: true },
+    );
+    if (savedIt) {
+      setNotice(
+        n > 0
+          ? `${n === 1 ? "Aplicado 1 cambio" : `Aplicados ${n} cambios`} y guardado.`
+          : "Guardado.",
+      );
+    }
   }
 
   async function saveDeck({
@@ -524,30 +585,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
    * guardado, lo guarda. Devuelve si se guardó.
    */
   async function applyDeckEdit(next: ExportableDeck): Promise<boolean | null> {
-    const input = exportDecklist(next);
     setEditNotice(null);
-    await analyze({ input });
-    if (saved.deckId === null || !ok) return false;
-    try {
-      await api("/api/decks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: saved.deckId,
-          name: saved.name,
-          input,
-          ...(saved.theme ? { theme: saved.theme } : {}),
-          commanders: ok.commanders.map((c) => c.oracleId),
-          locked: saved.locked,
-          excluded: saved.excluded,
-        }),
-      });
-      notifyDecksChanged();
-      return true;
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo guardar el cambio");
-      return null;
-    }
+    return analyze({ input: exportDecklist(next) }, chosen, buy, { persist: true });
   }
 
   async function editCard(card: { oracleId: string; name: string }, delta: number) {
@@ -578,12 +617,23 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     );
   }
 
+  /** Candados y descartes: en un mazo mío guardado se guardan al momento (sin reanalizar). */
+  function changeMarks(patch: Pick<Partial<Saved>, "locked" | "excluded">) {
+    update(patch);
+    setDirty(true);
+    if (ok && saved.deckId !== null) {
+      void persistDeck(
+        { ...saved, ...patch },
+        ok.commanders.map((c) => c.oracleId),
+      );
+    }
+  }
+
   function toggleLock(oracleId: string) {
     const next = new Set(saved.locked);
     if (next.has(oracleId)) next.delete(oracleId);
     else next.add(oracleId);
-    update({ locked: [...next] });
-    setDirty(true);
+    changeMarks({ locked: [...next] });
   }
 
   const decide = (id: string, d: Decision | undefined) =>
@@ -620,7 +670,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           onSubmit={() => {
             setChosen([]);
             setTab(firstTab(hasCollection));
-            void analyze({}, []);
+            // «Cambiar lista» de un mazo mío guardado: la lista nueva se guarda en él.
+            void analyze({}, [], buy, { persist: true });
           }}
           onSample={() => {
             setChosen([]);
@@ -647,7 +698,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           onToggle={(id) =>
             setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id].slice(-2)))
           }
-          onConfirm={() => void analyze({}, chosen)}
+          onConfirm={() => void analyze({}, chosen, buy, { persist: true })}
           busy={analyzing}
         />
       )}
@@ -664,6 +715,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             bracket={bracket ?? ok.bracket}
             name={saved.name || ok.deckName || ok.commanders.map((c) => c.name).join(" + ")}
             owner={owner}
+            isSaved={saved.deckId !== null}
             onShowMissing={() => setTab("missing")}
             onSave={() => setDialog("save")}
             onExport={() => setDialog("export")}
@@ -675,13 +727,13 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             onLike={() => void toggleLike()}
           />
 
-          {ok.edhrec.themes.length > 0 && (
+          {(themes.length > 0 || saved.theme !== "") && (
             <div className="field">
               <span className="label">Tema de EDHREC</span>
               <div className="chips scroll-sm" role="radiogroup" aria-label="Tema">
                 {[
                   { slug: "", name: "General", count: ok.edhrec.totalDecks },
-                  ...ok.edhrec.themes.slice(0, 12),
+                  ...themeChips(themes, saved.theme),
                 ].map((t) => (
                   <button
                     key={t.slug || "general"}
@@ -690,7 +742,10 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                     aria-checked={saved.theme === t.slug}
                     className={`chipbtn ${saved.theme === t.slug ? "is-on" : ""}`}
                     disabled={busy !== null}
-                    onClick={() => saved.theme !== t.slug && void analyze({ theme: t.slug })}
+                    onClick={() =>
+                      saved.theme !== t.slug &&
+                      void analyze({ theme: t.slug }, chosen, buy, { persist: true })
+                    }
                   >
                     {t.name}
                     {t.count !== null && <span className="n">{compact(t.count)}</span>}
@@ -781,7 +836,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                           busy !== null ||
                           (accepted.length === 0 && rejected.length === 0 && !dirty)
                         }
-                        onClick={applyAndRecalculate}
+                        onClick={() => void applyAndRecalculate()}
                       >
                         {analyzing
                           ? "Recalculando…"
@@ -851,10 +906,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                     <button
                       type="button"
                       className="btn btn-ghost"
-                      onClick={() => {
-                        update({ locked: [], excluded: [] });
-                        setDirty(true);
-                      }}
+                      onClick={() => changeMarks({ locked: [], excluded: [] })}
                     >
                       Olvidar candados y descartes ({saved.locked.length + saved.excluded.length})
                     </button>
@@ -1020,6 +1072,15 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       )}
     </main>
   );
+}
+
+/** Los 12 temas más jugados y, si no está entre ellos, el elegido. */
+function themeChips(themes: ThemeLink[], current: string): ThemeLink[] {
+  const top = themes.slice(0, 12);
+  if (current === "" || top.some((t) => t.slug === current)) return top;
+  const known = themes.find((t) => t.slug === current);
+  const name = current.replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase());
+  return [...top, known ?? { slug: current, name, count: null }];
 }
 
 const compact = (n: number) =>
@@ -1321,6 +1382,7 @@ function DeckHeader({
   ok,
   name,
   owner,
+  isSaved,
   onShowMissing,
   onSave,
   onExport,
@@ -1335,6 +1397,8 @@ function DeckHeader({
   ok: Ok;
   name: string;
   owner: DeckViewDTO["owner"] | null;
+  /** Mazo mío guardado: se guarda solo, el botón crea otro. */
+  isSaved: boolean;
   onShowMissing: () => void;
   onSave: () => void;
   onExport: () => void;
@@ -1409,7 +1473,7 @@ function DeckHeader({
       <div className="flex flex-wrap gap-2">
         <div className="btn-group">
           <button type="button" className="btn" onClick={onSave}>
-            {owner ? "Copiar a mis mazos" : "Guardar"}
+            {owner ? "Copiar a mis mazos" : isSaved ? "Guardar como nuevo" : "Guardar"}
           </button>
           <button type="button" className="btn" onClick={onExport}>
             Exportar

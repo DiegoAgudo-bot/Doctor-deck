@@ -76,29 +76,26 @@ export function SaveDialog({
 
   const submit = (asNew: boolean) =>
     onSave({ name: name.trim(), asNew, includeAccepted, visibility });
+  // Un mazo mío ya guardado se guarda solo: aquí solo se crea otro a partir de él.
+  const asNewOnly = deckId !== null && !copyOf;
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      title={copyOf ? "Guardar una copia" : deckId ? "Guardar cambios" : "Guardar mazo"}
+      title={copyOf ? "Guardar una copia" : asNewOnly ? "Guardar como nuevo mazo" : "Guardar mazo"}
       width={380}
       footer={
         <>
           <button type="button" className="btn" onClick={onClose}>
             Cancelar
           </button>
-          {deckId && (
-            <button type="button" className="btn" disabled={busy} onClick={() => submit(true)}>
-              Guardar como nuevo
-            </button>
-          )}
           <button
             type="button"
             className="btn btn-primary"
             disabled={busy}
-            onClick={() => submit(false)}
+            onClick={() => submit(asNewOnly)}
           >
-            {busy ? "Guardando…" : "Guardar"}
+            {busy ? "Guardando…" : asNewOnly ? "Guardar como nuevo" : "Guardar"}
           </button>
         </>
       }
@@ -107,7 +104,7 @@ export function SaveDialog({
         className="flex flex-col gap-3"
         onSubmit={(e) => {
           e.preventDefault();
-          submit(false);
+          submit(asNewOnly);
         }}
       >
         <div className="field">
@@ -123,6 +120,11 @@ export function SaveDialog({
             onChange={(e) => setName(e.target.value)}
           />
         </div>
+        {asNewOnly && (
+          <p className="muted text-[13px]">
+            Los cambios de este mazo ya se guardan solos. Esto crea otro mazo a partir de él.
+          </p>
+        )}
         {copyOf && (
           <p className="muted text-[13px]">
             Es el mazo de {copyOf.username ? `@${copyOf.username}` : copyOf.name}: se guardará una

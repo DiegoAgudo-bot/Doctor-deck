@@ -24,3 +24,31 @@ test("mis mazos se listan", async ({ page }) => {
   await expect(page.getByText("Teferi control").first()).toBeVisible();
   await expect(page.getByText("Teferi copia").first()).toBeVisible();
 });
+
+test("en un mazo guardado, cambiar el tema se guarda solo", async ({ page }) => {
+  const id = await deckId(page, "Teferi control");
+  await page.goto(`/decks/${id}`);
+  const control = page.getByRole("radio", { name: /^Control/ });
+  await expect(control).toBeVisible({ timeout: 30_000 });
+  const saving = page.waitForResponse(
+    (r) => r.url().endsWith("/api/decks") && r.request().method() === "POST",
+    { timeout: 30_000 },
+  );
+  await control.click();
+  expect((await saving).ok()).toBe(true);
+  // Al volver a abrirlo, sigue con el tema elegido (sin pulsar «Guardar»).
+  await page.reload();
+  await expect(page.getByRole("radio", { name: /^Control/ })).toHaveAttribute(
+    "aria-checked",
+    "true",
+    { timeout: 30_000 },
+  );
+  await expect(page.getByRole("button", { name: "Guardar como nuevo" })).toBeVisible();
+  // Lo dejo como estaba para el resto de pruebas.
+  const restoring = page.waitForResponse(
+    (r) => r.url().endsWith("/api/decks") && r.request().method() === "POST",
+    { timeout: 30_000 },
+  );
+  await page.getByRole("radio", { name: /^General/ }).click();
+  expect((await restoring).ok()).toBe(true);
+});
