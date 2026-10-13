@@ -88,12 +88,13 @@ export function Landing() {
               Analizar un mazo
               <IconArrowRight size={15} />
             </Link>
-            <Link className="btn btn-lg" href="/signup">
-              Crear cuenta gratis
+            <Link className="btn btn-lg" href="/analyze?sample=1">
+              Ver un ejemplo
             </Link>
           </div>
           <span className="hero-trust">
-            Cartas de Scryfall · Recomendaciones de EDHREC · Combos de Commander Spellbook
+            <b>Gratis, sin anuncios y sin cuenta para probar.</b> Cartas de Scryfall ·
+            Recomendaciones de EDHREC · Combos de Commander Spellbook
           </span>
         </div>
 
@@ -186,10 +187,13 @@ export function Landing() {
           <p>Gratis, sin anuncios. Tus datos son tuyos y te los llevas cuando quieras.</p>
         </div>
         <div className="hero-cta">
-          <Link className="btn btn-primary btn-lg" href="/signup">
-            Crear cuenta
+          <Link className="btn btn-primary btn-lg" href="/analyze">
+            Analizar un mazo
           </Link>
-          <Link className="btn btn-lg" href="/community">
+          <Link className="btn btn-lg" href="/signup">
+            Crear cuenta gratis
+          </Link>
+          <Link className="btn btn-ghost btn-lg" href="/community">
             Ver la comunidad
           </Link>
         </div>

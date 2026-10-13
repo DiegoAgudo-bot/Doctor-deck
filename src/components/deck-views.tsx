@@ -118,7 +118,7 @@ export function SwapDiff({
             </button>
           </span>
         ) : (
-          <span className="flex gap-1">
+          <span className="flex gap-2">
             <button
               type="button"
               className="btn btn-in btn-sm"
@@ -128,8 +128,7 @@ export function SwapDiff({
             </button>
             <button
               type="button"
-              className="btn btn-ghost btn-icon"
-              style={{ width: 26, height: 26 }}
+              className="btn btn-ghost btn-icon btn-sm"
               aria-label={`Descartar ${swap.in.card.name}`}
               onClick={() => onDecide("rejected")}
             >

@@ -215,7 +215,8 @@ function TopBar({
                   minWidth: 16,
                   height: 16,
                   padding: "0 4px",
-                  background: "var(--color-out)",
+                  // Rojo oscuro: con texto blanco de 10 px, el de los avisos no llega a 4,5:1.
+                  background: "#c0352b",
                   color: "#fff",
                   font: "600 10px/1 var(--font-sans)",
                 }}
@@ -237,7 +238,7 @@ function TopBar({
             {initial(user)}
           </Link>
         ) : (
-          <Link href={`/login?next=${encodeURIComponent(pathname)}`} className="btn btn-primary">
+          <Link href={`/login?next=${encodeURIComponent(pathname)}`} className="btn btn-ghost">
             Entrar
           </Link>
         )}
@@ -411,7 +412,7 @@ function Sidebar({
               Sin cuenta puedes analizar mazos; tu colección se queda en este navegador. Crea una
               cuenta para guardar mazos y llevar tu colección a cualquier dispositivo.
             </p>
-            <Link href="/signup" className="btn btn-primary">
+            <Link href="/signup" className="btn">
               Crear cuenta
             </Link>
             <Link className="nav" href={`/login?next=${encodeURIComponent(pathname)}`}>
