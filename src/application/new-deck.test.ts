@@ -103,6 +103,42 @@ describe("newDeckFromCommander", () => {
     );
   });
 
+  it("con mis cartas: las recomendadas que tengo libres y básicas hasta 36 tierras", async () => {
+    const deck = await newDeckFromCommander(
+      { commanderIds: [id("Teferi, Temporal Archmage")], mode: "owned" },
+      {
+        ...deps(),
+        collection: {
+          ownedQuantities: async () =>
+            new Map([
+              [id("Sol Ring"), 1],
+              [id("Dig Through Time"), 1],
+              [id("Body of Knowledge"), 2],
+              [id("Mana Crypt"), 1], // no la recomienda EDHREC
+            ]),
+        },
+        // Dig Through Time está en otro mazo: no queda libre.
+        usage: async () => new Map([[id("Dig Through Time"), { quantity: 1, decks: ["Otro"] }]]),
+      },
+    );
+    expect(deck.input).toContain("1 Sol Ring");
+    expect(deck.input).toContain("1 Body of Knowledge");
+    expect(deck.input).toContain("36 Island");
+    expect(deck.input).not.toContain("Dig Through Time");
+    expect(deck.input).not.toContain("Mana Crypt");
+    expect(deck.cardCount).toBe(38);
+    expect(deck.warning).toMatch(/faltan 61/);
+  });
+
+  it("con mis cartas sin colección: lo dice", async () => {
+    await expect(
+      newDeckFromCommander(
+        { commanderIds: [id("Teferi, Temporal Archmage")], mode: "owned" },
+        deps(),
+      ),
+    ).rejects.toMatchObject({ code: "no_collection" });
+  });
+
   it("desde cero: solo el comandante", async () => {
     const deck = await newDeckFromCommander(
       { commanderIds: [id("Teferi, Temporal Archmage")], mode: "empty" },

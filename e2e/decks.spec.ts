@@ -112,3 +112,21 @@ test("«Nuevo mazo» propone los comandantes de mi colección", async ({ page })
   await page.getByRole("button", { name: /Teferi/ }).click();
   await expect(page.getByText("2 · Cómo lo montas")).toBeVisible();
 });
+
+test("«Nuevo mazo» con mis cartas", async ({ page }) => {
+  await page.goto("/decks/new");
+  await page.getByRole("button", { name: /Teferi/ }).click();
+  await page.getByRole("button", { name: /^Con mis cartas/ }).click();
+  await page.getByLabel("Nombre").fill("Con mis cartas e2e");
+  await page.getByRole("button", { name: "Crear con mis cartas" }).click();
+  await expect(page).toHaveURL(/\/decks\/[0-9a-f-]{36}\?tab=list$/, { timeout: 30_000 });
+  await expect(page.getByRole("heading", { level: 1, name: "Con mis cartas e2e" })).toBeVisible({
+    timeout: 30_000,
+  });
+  const id = new URL(page.url()).pathname.split("/").at(-1);
+  const deck = (await (await page.request.get(`/api/decks/${id}`)).json()) as { input: string };
+  // Sol Ring y Dig Through Time están en los otros dos mazos: no quedan libres.
+  expect(deck.input).toContain("36 Island");
+  expect(deck.input).not.toContain("Sol Ring");
+  await page.request.delete(`/api/decks/${id}`);
+});

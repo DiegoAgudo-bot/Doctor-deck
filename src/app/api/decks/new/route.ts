@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BrowserCollectionRepository } from "@/adapters/memory/anonymous";
 import { newDeckFromCommander } from "@/application/new-deck";
 import { DECK_VISIBILITIES } from "@/domain/deck/visibility";
 import { saveDeck } from "@/application/save-deck";
@@ -10,7 +11,7 @@ import { currentUser } from "@/server/session";
 
 const schema = z.object({
   commanderIds: z.array(z.string().min(1).max(64)).min(1).max(2),
-  mode: z.enum(["average", "empty"]),
+  mode: z.enum(["average", "owned", "empty"]),
   theme: z
     .string()
     .regex(/^[a-z0-9-]+$/)
@@ -18,6 +19,11 @@ const schema = z.object({
   /** Si no viene, "<colores> - <de qué va>". */
   name: z.string().trim().max(120).optional(),
   visibility: z.enum(DECK_VISIBILITIES).optional(),
+  /** Sin sesión, con "owned": la colección del navegador, como pares [oracleId, copias]. */
+  collection: z
+    .array(z.tuple([z.string().min(1).max(64), z.number().int().min(1).max(10_000)]))
+    .max(60_000)
+    .optional(),
 });
 
 /**
@@ -33,6 +39,12 @@ export async function POST(request: Request) {
       cards: c.cards,
       recommendations: c.edhrec,
       averageDecks: c.edhrec,
+      collection: user
+        ? c.collectionFor(user.id)
+        : req.collection
+          ? new BrowserCollectionRepository(req.collection)
+          : undefined,
+      usage: user ? () => c.decksFor(user.id).usage() : undefined,
     });
     const name = req.name || deck.name;
     if (!user) {
