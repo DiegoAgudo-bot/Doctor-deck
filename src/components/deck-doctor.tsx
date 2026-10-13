@@ -47,7 +47,7 @@ import {
   type Decision,
   type ListView,
 } from "./deck-views";
-import { IconCart, IconHeart, IconWarn } from "./icons";
+import { IconHeart, IconWarn } from "./icons";
 import {
   LOCAL_COLLECTION_EVENT,
   localCollection,
@@ -667,7 +667,6 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             onShowMissing={() => setTab("missing")}
             onSave={() => setDialog("save")}
             onExport={() => setDialog("export")}
-            onBuy={() => setTab("buy")}
             onEdit={() => setEditing(true)}
             target={saved.targetBracket}
             onShowBracket={() => setTab("stats")}
@@ -1325,7 +1324,6 @@ function DeckHeader({
   onShowMissing,
   onSave,
   onExport,
-  onBuy,
   onEdit,
   target,
   bracket,
@@ -1340,7 +1338,6 @@ function DeckHeader({
   onShowMissing: () => void;
   onSave: () => void;
   onExport: () => void;
-  onBuy: () => void;
   onEdit: () => void;
   target: Bracket | null;
   /** El estimado, con los combos si ya han llegado. */
@@ -1418,10 +1415,6 @@ function DeckHeader({
             Exportar
           </button>
         </div>
-        <button type="button" className="btn" onClick={onBuy}>
-          <IconCart size={15} />
-          Modo compra
-        </button>
         <button type="button" className="btn btn-ghost" onClick={onEdit}>
           Cambiar lista
         </button>
@@ -1445,9 +1438,13 @@ function DeckHeader({
               {like.count}
             </Link>
           ) : (
-            <span className="btn btn-ghost" title="«Me gusta» de otros jugadores">
-              <IconHeart size={15} />
-              {like.count}
+            // Mi mazo: solo el dato, no un botón.
+            <span
+              className="subtle flex items-center gap-1.5 self-center text-[13px]"
+              title="«Me gusta» de otros jugadores"
+            >
+              <IconHeart size={14} />
+              {like.count === 1 ? "1 me gusta" : `${like.count} me gusta`}
             </span>
           ))}
       </div>
@@ -1581,15 +1578,9 @@ function OwnershipLine({
           </>
         )}
       </span>
-      <button
-        type="button"
-        onClick={onClick}
-        className="role-bar cursor-pointer border-0 p-0"
-        style={{ height: 4 }}
-        aria-label="Ver qué me falta"
-      >
+      <div className="role-bar" style={{ height: 4 }} aria-hidden>
         <i style={{ width: `${pct}%` }} />
-      </button>
+      </div>
       {others && <OtherDecksDialog items={ownership.items} onClose={() => setOthers(false)} />}
     </div>
   );
@@ -1652,8 +1643,8 @@ function NoSwaps({ hasCollection }: { hasCollection: boolean }) {
       <span className="h2">No hay cambios que proponer</span>
       <span className="muted max-w-[420px] text-[13px]">
         {hasCollection
-          ? "Ninguna carta de tu colección mejora el mazo con la configuración actual. Prueba otro tema de EDHREC o el modo compra."
-          : "Sin tu colección no sé qué cartas tienes. Impórtala, o mira el modo compra."}
+          ? "Ninguna carta de tu colección mejora el mazo con la configuración actual. Prueba otro tema de EDHREC o la pestaña «Mejorar comprando»."
+          : "Sin tu colección no sé qué cartas tienes. Impórtala, o mira la pestaña «Mejorar comprando»."}
       </span>
       {!hasCollection && (
         <Link className="btn btn-primary" href="/collection">

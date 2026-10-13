@@ -21,7 +21,6 @@ import {
   IconSettings,
   IconUser,
   IconSwap,
-  IconUsers,
   IconCollection,
   IconDecks,
   IconHome,
@@ -176,8 +175,8 @@ function TopBar({
   pending: boolean;
   unread: number;
 }) {
+  // "Inicio" ya es el logo.
   const nav = [
-    { href: "/", label: "Inicio" },
     { href: "/analyze", label: "Analizar mazo" },
     { href: "/cards", label: "Cartas" },
     { href: "/community", label: "Comunidad" },
@@ -298,23 +297,6 @@ function Sidebar({
   return (
     <aside className="side" aria-label="Tu espacio">
       {user && (
-        <Link
-          href={profileHref(user)}
-          className={`deckrow ${pathname === profileHref(user) ? "is-active" : ""}`}
-          style={{ gridTemplateColumns: "36px minmax(0, 1fr)", padding: 8, marginBottom: 8 }}
-        >
-          <span className="avatar" style={{ width: 36, height: 36, fontSize: 15 }}>
-            {initial(user)}
-          </span>
-          <span className="min-w-0">
-            <span className="nm" style={{ color: "var(--color-text)", fontWeight: 600 }}>
-              {user.name}
-            </span>
-            <span className="cmd">{user.username ? `@${user.username}` : "Mi perfil"}</span>
-          </span>
-        </Link>
-      )}
-      {user && (
         <Link className={`nav ${pathname === "/decks" ? "is-active" : ""}`} href="/decks">
           <IconDecks />
           Mis mazos
@@ -326,6 +308,12 @@ function Sidebar({
         Mi colección
         {copies !== null && <span className="count">{fmt(copies)}</span>}
       </Link>
+      {!user && !pending && (
+        <Link className={`nav ${pathname === "/decks/new" ? "is-active" : ""}`} href="/decks/new">
+          <IconPlus />
+          Nuevo mazo
+        </Link>
+      )}
 
       {user ? (
         <>
@@ -380,13 +368,6 @@ function Sidebar({
               <IconCrown />
               Grupos y partidas
             </Link>
-            <Link
-              className={`nav ${pathname === "/community" ? "is-active" : ""}`}
-              href="/community"
-            >
-              <IconUsers />
-              Comunidad
-            </Link>
             <Link className={`nav ${pathname === "/trades" ? "is-active" : ""}`} href="/trades">
               <IconSwap />
               Intercambios
@@ -414,10 +395,6 @@ function Sidebar({
             </p>
             <Link href="/signup" className="btn">
               Crear cuenta
-            </Link>
-            <Link className="nav" href={`/login?next=${encodeURIComponent(pathname)}`}>
-              <IconLogin />
-              Entrar
             </Link>
           </div>
         )
