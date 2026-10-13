@@ -27,6 +27,8 @@ import {
   IconLogin,
   IconLogout,
   IconMoon,
+  IconMore,
+  IconUsers,
   IconPlus,
   IconSun,
   Logo,
@@ -41,7 +43,7 @@ import {
 } from "./local-collection";
 import { LegalFooter } from "./legal";
 import { ColorPips } from "./mana";
-import { fmt } from "./ui";
+import { Dialog, fmt } from "./ui";
 
 type SessionUser = { name: string; email: string; username?: string | null };
 const profileHref = (u: SessionUser) => (u.username ? `/u/${u.username}` : "/settings");
@@ -404,28 +406,120 @@ function Sidebar({
   );
 }
 
+/** Lo que no cabe en la barra inferior del móvil (con cuenta): en la hoja «Más». */
+const MORE_LINKS = [
+  { href: "/decks/new", label: "Nuevo mazo", icon: <IconPlus size={18} /> },
+  { href: "/cards", label: "Buscar cartas", icon: <IconCollection size={18} /> },
+  { href: "/community", label: "Comunidad", icon: <IconUsers size={18} /> },
+  { href: "/feed", label: "Actividad", icon: <IconActivity size={18} /> },
+  { href: "/groups", label: "Grupos y partidas", icon: <IconCrown size={18} /> },
+  { href: "/trades", label: "Intercambios", icon: <IconSwap size={18} /> },
+  { href: "/loans", label: "Préstamos", icon: <IconLoan size={18} /> },
+  { href: "/settings", label: "Ajustes", icon: <IconSettings size={18} /> },
+];
+
 function BottomNav({ pathname, user }: { pathname: string; user: SessionUser | null }) {
-  const items = [
-    { href: "/", label: "Inicio", icon: <IconHome size={20} /> },
-    { href: "/analyze", label: "Analizar", icon: <IconPlus size={20} weight={1.8} /> },
-    { href: "/play", label: "Jugar", icon: <IconCrown size={20} /> },
-    { href: "/collection", label: "Colección", icon: <IconCollection size={20} /> },
-    user
-      ? { href: profileHref(user), label: "Perfil", icon: <IconUser size={20} /> }
-      : {
+  const [more, setMore] = useState(false);
+  const items = user
+    ? [
+        { href: "/", label: "Inicio", icon: <IconHome size={20} />, active: pathname === "/" },
+        {
+          href: "/decks",
+          label: "Mazos",
+          icon: <IconDecks size={20} />,
+          active: pathname.startsWith("/decks") || pathname === "/analyze",
+        },
+        {
+          href: "/collection",
+          label: "Colección",
+          icon: <IconCollection size={20} />,
+          active: pathname === "/collection",
+        },
+        {
+          href: "/play",
+          label: "Jugar",
+          icon: <IconCrown size={20} />,
+          active: pathname === "/play",
+        },
+      ]
+    : [
+        { href: "/", label: "Inicio", icon: <IconHome size={20} />, active: pathname === "/" },
+        {
+          href: "/analyze",
+          label: "Analizar",
+          icon: <IconDecks size={20} />,
+          active: pathname === "/analyze",
+        },
+        {
+          href: "/collection",
+          label: "Colección",
+          icon: <IconCollection size={20} />,
+          active: pathname === "/collection",
+        },
+        {
+          href: "/play",
+          label: "Jugar",
+          icon: <IconCrown size={20} />,
+          active: pathname === "/play",
+        },
+        {
           href: `/login?next=${encodeURIComponent(pathname)}`,
           label: "Entrar",
           icon: <IconLogin size={20} />,
+          active: false,
         },
-  ];
+      ];
+  const moreActive =
+    user !== null &&
+    (pathname === profileHref(user) ||
+      MORE_LINKS.some((l) => l.href !== "/decks/new" && pathname.startsWith(l.href)));
   return (
-    <nav className="bottomnav" aria-label="Principal">
-      {items.map((i) => (
-        <Link key={i.label} href={i.href} className={pathname === i.href ? "is-active" : ""}>
-          {i.icon}
-          {i.label}
-        </Link>
-      ))}
-    </nav>
+    <>
+      <nav className="bottomnav" aria-label="Principal">
+        {items.map((i) => (
+          <Link key={i.label} href={i.href} className={i.active ? "is-active" : ""}>
+            {i.icon}
+            {i.label}
+          </Link>
+        ))}
+        {user && (
+          <button
+            type="button"
+            className={moreActive ? "is-active" : ""}
+            aria-haspopup="dialog"
+            onClick={() => setMore(true)}
+          >
+            <IconMore size={20} />
+            Más
+          </button>
+        )}
+      </nav>
+      {/* Fuera de la barra: si no, hereda los estilos de sus enlaces. */}
+      {user && (
+        <Dialog open={more} onClose={() => setMore(false)} title="Más">
+          <nav className="morenav flex flex-col" aria-label="Más secciones">
+            <Link className="nav" href={profileHref(user)} onClick={() => setMore(false)}>
+              <IconUser size={18} />
+              Mi perfil {user.username ? <span className="subtle">@{user.username}</span> : null}
+            </Link>
+            {MORE_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                className={`nav ${pathname === l.href ? "is-active" : ""}`}
+                href={l.href}
+                onClick={() => setMore(false)}
+              >
+                {l.icon}
+                {l.label}
+              </Link>
+            ))}
+            <button type="button" className="nav" onClick={() => void signOut()}>
+              <IconLogout size={18} />
+              Salir
+            </button>
+          </nav>
+        </Dialog>
+      )}
+    </>
   );
 }

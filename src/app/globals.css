@@ -273,7 +273,8 @@
     border-radius: 50%;
   }
   .side a.nav,
-  .side button.nav {
+  .side button.nav,
+  .morenav .nav {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -292,11 +293,18 @@
       background-color var(--motion-100) var(--ease-out),
       color var(--motion-100) var(--ease-out);
   }
-  .side .nav:hover {
+  /* Hoja «Más» del móvil: filas a la medida del dedo. */
+  .morenav .nav {
+    height: 44px;
+    font-size: 15px;
+  }
+  .side .nav:hover,
+  .morenav .nav:hover {
     background: var(--color-hover);
     color: var(--color-text) !important;
   }
-  .side .nav.is-active {
+  .side .nav.is-active,
+  .morenav .nav.is-active {
     background: var(--color-hover);
     color: var(--color-text) !important;
     box-shadow: inset 2px 0 0 var(--color-accent);
@@ -581,9 +589,11 @@
     color: var(--color-text-3) !important;
     text-decoration: none !important;
   }
+  .bottomnav button.is-active,
   .bottomnav a.is-active {
     color: var(--color-text) !important;
   }
+  .bottomnav button.is-active svg,
   .bottomnav a.is-active svg {
     color: var(--color-accent);
   }
