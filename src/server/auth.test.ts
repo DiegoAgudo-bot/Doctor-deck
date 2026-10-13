@@ -110,3 +110,25 @@ describe("authFeatures", () => {
     expect(authFeatures(withGoogle, mailer)).toEqual({ google: true, passwordReset: true });
   });
 });
+
+describe("app móvil (plugin expo)", () => {
+  const post = (headers: Record<string, string>) =>
+    auth.handler(
+      new Request(`${env.BETTER_AUTH_URL}/api/auth/sign-in/email`, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...headers },
+        body: JSON.stringify({ email: "diego@example.com", password: "contraseña-segura" }),
+      }),
+    );
+
+  // La comprobación de origen la desactiva Better Auth en los tests (NODE_ENV=test).
+  it("entra desde la app (origen doctordeck://) y su cookie vale para lo demás", async () => {
+    const app = await post({ "expo-origin": "doctordeck://" });
+    expect(app.status).toBe(200);
+    // La cookie que recibe la app sirve para las demás peticiones (la manda en `cookie`).
+    const session = await auth.api.getSession({
+      headers: new Headers({ cookie: cookieFrom(app) }),
+    });
+    expect(session?.user.email).toBe("diego@example.com");
+  });
+});

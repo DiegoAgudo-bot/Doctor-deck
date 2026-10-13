@@ -28,6 +28,7 @@
     "e2e": "tsx scripts/e2e-db.ts data/e2e.db && playwright test"
   },
   "dependencies": {
+    "@better-auth/expo": "^1.7.7",
     "@prisma/adapter-better-sqlite3": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "better-auth": "^1.7.7",

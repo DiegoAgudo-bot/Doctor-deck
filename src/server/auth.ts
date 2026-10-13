@@ -1,3 +1,4 @@
+import { expo } from "@better-auth/expo";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
@@ -5,6 +6,9 @@ import type { Db } from "@/adapters/db/prisma";
 import type { Mailer } from "@/adapters/mail/mailer";
 import type { Env } from "@/config/env";
 import { reportServerError } from "./error-log";
+
+/** Esquema de los enlaces de la app móvil (`doctordeck://…`): a donde vuelve el login con Google. */
+export const APP_SCHEME = "doctordeck";
 
 /** Solo para desarrollo: en producción `loadEnv` exige BETTER_AUTH_SECRET. */
 const DEV_SECRET = "deck-doctor-dev-secret-not-for-production-use";
@@ -109,7 +113,10 @@ export function createAuth({ db, env, mailer }: { db: Db; env: Env; mailer: Mail
       accountLinking: { enabled: true, trustedProviders: ["google"] },
     },
     telemetry: { enabled: false },
-    plugins: [nextCookies()],
+    // La app móvil (Expo) manda la cookie de sesión en una cabecera y su origen en `expo-origin`;
+    // el login con Google vuelve a `doctordeck://…` con la cookie en la URL (plugin `expo`).
+    trustedOrigins: [`${APP_SCHEME}://`],
+    plugins: [nextCookies(), expo()],
   });
 }
 

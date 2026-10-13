@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { notificationMessage } from "@/domain/social/notification-text";
 import { getContainer } from "@/server/container";
 import type { NotificationsResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
@@ -29,6 +30,8 @@ export async function GET(request: Request) {
         refId: n.refId,
         createdAt: n.createdAt.toISOString(),
         read: n.read,
+        // Para la app: el texto ya montado y a qué pantalla lleva.
+        message: notificationMessage(n, n.actor.username ? `@${n.actor.username}` : n.actor.name),
       })),
     };
     return Response.json(body);

@@ -39,7 +39,14 @@ const PROFILE = {
 export class PrismaSocialRepository
   implements ProfileRepository, FollowRepository, NotificationRepository
 {
-  constructor(private readonly db: Db) {}
+  /**
+   * @param afterCreate Se llama con los avisos recién guardados (la app manda las push); no se
+   *   espera ni puede hacer fallar el aviso.
+   */
+  constructor(
+    private readonly db: Db,
+    private readonly afterCreate?: (items: readonly NewNotification[]) => void,
+  ) {}
 
   // ---------- perfiles ----------
 
@@ -193,6 +200,7 @@ export class PrismaSocialRepository
         refId: n.refId ?? null,
       })),
     });
+    this.afterCreate?.(items);
   }
 
   async list(userId: string, limit: number) {

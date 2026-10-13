@@ -35,6 +35,15 @@ const envSchema = z.object({
   /** Remitente de los emails, p. ej. "Doctor Deck <no-reply@ejemplo.com>". */
   MAIL_FROM: z.string().default("Doctor Deck <no-reply@localhost>"),
 
+  // --- App móvil (fase 22) ---
+  /** Clave de cuenta de servicio de Firebase (JSON o base64) para las push. Sin ella no se mandan. */
+  FCM_SERVICE_ACCOUNT: optionalString,
+  /** Versión mínima de la app: las anteriores piden actualizar (`GET /api/app`). */
+  MOBILE_MIN_VERSION: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/)
+    .default("1.0.0"),
+
   // --- Páginas legales (/privacy, /legal) ---
   /** Titular de la web (nombre y, si aplica, NIF) y email de contacto para privacidad. */
   LEGAL_OWNER: optionalString,

@@ -52,6 +52,11 @@ export default function Page() {
           <b>Técnicos</b>: la sesión (fecha, navegador y dirección IP) para mantenerte conectado y
           proteger la cuenta.
         </li>
+        <li>
+          <b>App móvil</b>: si activas las notificaciones, un identificador del móvil para mandarlas
+          (con el sistema y la versión de la app). Se borra al cerrar sesión en la app o al
+          desinstalarla. Lo que compartes con la app desde ManaBox solo se usa para importarlo.
+        </li>
       </ul>
       <p>Sin cuenta, tu colección y tu mazo se guardan solo en tu navegador, no en el servidor.</p>
 
@@ -67,8 +72,8 @@ export default function Page() {
           <Link href="/settings">Ajustes</Link> o en cada mazo.
         </li>
         <li>
-          <b>Avisos</b> dentro de la web (bajadas de precio, cruces, propuestas): los configuras en
-          Ajustes.
+          <b>Avisos</b> en la web y, si lo permites en el móvil, como notificaciones de la app
+          (bajadas de precio, cruces, propuestas): los configuras en Ajustes y en el propio móvil.
         </li>
       </ul>
       <p>No hay publicidad, no se venden datos y no se hacen perfiles comerciales.</p>
@@ -78,7 +83,8 @@ export default function Page() {
         <li>Otros usuarios: solo lo que hagas público y tu nombre de usuario. El email, nunca.</li>
         <li>
           Proveedores necesarios para que funcione: el alojamiento del servidor, el envío de emails
-          (solo para recuperar la contraseña) y Google si entras con Google.
+          (para verificar el email y recuperar la contraseña), Google si entras con Google y
+          Firebase Cloud Messaging (Google) para entregar las notificaciones de la app.
         </li>
         <li>
           Para buscar recomendaciones y combos se consulta a EDHREC y a Commander Spellbook con la
@@ -94,10 +100,10 @@ export default function Page() {
 
       <h2>Cookies y almacenamiento</h2>
       <p>
-        Solo una cookie técnica de sesión, imprescindible para mantenerte conectado. En tu navegador
-        se guardan además tus preferencias (tema claro/oscuro, el último mazo analizado y, sin
-        cuenta, tu colección). No usamos cookies de análisis ni de publicidad, por eso no te pedimos
-        consentimiento.
+        Solo una cookie técnica de sesión, imprescindible para mantenerte conectado (en la app se
+        guarda cifrada en el móvil). En tu navegador se guardan además tus preferencias (tema
+        claro/oscuro, el último mazo analizado y, sin cuenta, tu colección). No usamos cookies de
+        análisis ni de publicidad, por eso no te pedimos consentimiento.
       </p>
 
       <h2>Tus derechos</h2>
