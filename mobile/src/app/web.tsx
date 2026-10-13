@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { WebView } from "react-native-webview";
 import { Loading } from "~/components/ui";
-import { authClient } from "~/lib/auth";
+import { api } from "~/lib/api";
 import { API_URL } from "~/lib/config";
 import { colors } from "~/lib/theme";
 
@@ -22,24 +22,23 @@ true;`;
  */
 export default function Web() {
   const { path = "/", title } = useLocalSearchParams<{ path?: string; title?: string }>();
-  const [cookie, setCookie] = useState<string | null>(null);
+  // Un código de un solo uso con el que el servidor le pone la sesión al WebView.
+  const [code, setCode] = useState<string | null>(null);
   useEffect(() => {
-    authClient
-      .getCookie()
-      .then(setCookie)
-      .catch(() => setCookie(""));
+    api<{ code: string }>("/api/app/web", { body: {} })
+      .then((r) => setCode(r.code))
+      .catch(() => setCode(""));
   }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Stack.Screen options={{ title: title ?? "" }} />
-      {cookie === null ? (
+      {code === null ? (
         <Loading />
       ) : (
         <WebView
           source={{
-            uri: `${API_URL}/api/app/web?next=${encodeURIComponent(path)}`,
-            headers: cookie ? { cookie } : {},
+            uri: `${API_URL}/api/app/web?code=${encodeURIComponent(code)}&next=${encodeURIComponent(path)}`,
           }}
           style={{ backgroundColor: colors.bg }}
           injectedJavaScriptBeforeContentLoaded={HIDE_CHROME}
