@@ -509,8 +509,11 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   sesión. Solo importa **tipos** de la web (`@/server/dto`, `@/server/card-dto`); su código usa
   `~/…`. Servidor para la app:
   - Sesión: plugin `expo` de Better Auth (`trustedOrigins: doctordeck://`, cookie en cabecera;
-    Google vuelve a `doctordeck://` con la sesión). `GET /api/app/web?next=/ruta` copia la cookie
-    de sesión de la cabecera al WebView y redirige (solo rutas propias).
+    Google vuelve a `doctordeck://` con la sesión). La app manda sus peticiones con
+    `credentials: "omit"` (si no, el almacén de cookies de Android pisa la cabecera → 401). WebView:
+    `POST /api/app/web` (con sesión) da un código de un solo uso (60 s, en memoria,
+    `server/app-handoff.ts`) y `GET /api/app/web?code=…&next=/ruta` le pone la cookie de sesión al
+    WebView y redirige (solo rutas propias).
   - Compartir desde ManaBox: `POST /api/import/shared` (`{text, save}`; `importShared` en
     `application/shared-import.ts`): CSV (`looksLikeCsv`) o lista `1 Carta (SET) 123 *F*`
     (`(SET) número` → impresión con `findPrintingsBySetNumbers`), primero sin guardar (vista previa

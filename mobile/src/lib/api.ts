@@ -23,6 +23,9 @@ export async function api<T>(
   try {
     res = await fetch(`${API_URL}${path}`, {
       method: options.method ?? (options.body === undefined ? "GET" : "POST"),
+      // La sesión va en la cabecera; sin esto, el almacén de cookies de Android pone las suyas
+      // (viejas o del WebView) encima y el servidor responde 401.
+      credentials: "omit",
       headers: {
         ...(cookie ? { cookie } : {}),
         ...(options.body === undefined
