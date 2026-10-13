@@ -94,3 +94,21 @@ test("desde la ficha de una carta se añade a uno de mis mazos", async ({ page }
   expect(deck.input).toContain("1 Tamiyo's Logbook");
   await page.request.delete(`/api/decks/${id}`);
 });
+
+test("«Nuevo mazo» importa una lista y la guarda", async ({ page }) => {
+  await page.goto("/decks/new?from=list");
+  await page.getByLabel("Lista o enlace").fill(DECK);
+  await page.getByLabel(/^Nombre/).fill("Importado en e2e");
+  await page.getByRole("button", { name: "Importar y guardar" }).click();
+  await expect(page).toHaveURL(/\/decks\/[0-9a-f-]{36}$/, { timeout: 30_000 });
+  await expect(page.getByRole("heading", { level: 1, name: "Importado en e2e" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await page.request.delete(`/api/decks/${page.url().split("/").at(-1)}`);
+});
+
+test("«Nuevo mazo» propone los comandantes de mi colección", async ({ page }) => {
+  await page.goto("/decks/new");
+  await page.getByRole("button", { name: /Teferi/ }).click();
+  await expect(page.getByText("2 · Cómo lo montas")).toBeVisible();
+});

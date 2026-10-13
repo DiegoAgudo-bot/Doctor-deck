@@ -99,9 +99,6 @@ export function Home() {
       <div className="stack-sm flex items-center justify-between gap-3">
         <h1 className="h1">Hola, {user?.name}</h1>
         <div className="flex flex-wrap gap-2">
-          <Link className="btn" href="/analyze?new=1">
-            Analizar una lista
-          </Link>
           <Link className="btn btn-primary" href="/decks/new">
             <IconPlus size={14} />
             Nuevo mazo
@@ -172,8 +169,8 @@ export function Home() {
         </div>
         {decks && decks.length === 0 ? (
           <p className="muted p-4 text-[13px]">
-            Aún no has guardado ningún mazo. <Link href="/analyze?new=1">Analiza uno</Link> y pulsa
-            Guardar.
+            Aún no tienes ningún mazo. <Link href="/decks/new">Crea uno</Link> desde un comandante o
+            importa una lista.
           </p>
         ) : (
           <div className="overflow-x-auto">

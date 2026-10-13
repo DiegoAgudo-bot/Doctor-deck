@@ -175,9 +175,10 @@ function TopBar({
   pending: boolean;
   unread: number;
 }) {
-  // "Inicio" ya es el logo.
+  // "Inicio" ya es el logo. Con cuenta, los mazos (crear o importar está en «Nuevo mazo»); sin
+  // ella, el analizador.
   const nav = [
-    { href: "/analyze", label: "Analizar mazo" },
+    user ? { href: "/decks", label: "Mis mazos" } : { href: "/analyze", label: "Analizar mazo" },
     { href: "/cards", label: "Cartas" },
     { href: "/community", label: "Comunidad" },
     { href: "/play", label: "Jugar" },
