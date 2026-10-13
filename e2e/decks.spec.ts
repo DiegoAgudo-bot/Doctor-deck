@@ -1,3 +1,4 @@
+import { DECK } from "./global-setup";
 import { deckId, expect, test } from "./fixtures";
 
 test("«en otros mazos» dice cuáles y dónde", async ({ page }) => {
@@ -43,7 +44,9 @@ test("en un mazo guardado, cambiar el tema se guarda solo", async ({ page }) => 
     "true",
     { timeout: 30_000 },
   );
-  await expect(page.getByRole("button", { name: "Guardar como nuevo" })).toBeVisible();
+  // Ya no hay «Guardar»: se guarda solo y lo demás está en Ajustes.
+  await expect(page.getByRole("button", { name: "Ajustes" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Guardar", exact: true })).toHaveCount(0);
   // Lo dejo como estaba para el resto de pruebas.
   const restoring = page.waitForResponse(
     (r) => r.url().endsWith("/api/decks") && r.request().method() === "POST",
@@ -51,4 +54,22 @@ test("en un mazo guardado, cambiar el tema se guarda solo", async ({ page }) => 
   );
   await page.getByRole("radio", { name: /^General/ }).click();
   expect((await restoring).ok()).toBe(true);
+});
+
+test("desde el mazo: renombrar y borrar en Ajustes", async ({ page }) => {
+  const res = await page.request.post("/api/decks", {
+    data: { name: "Mazo para ajustes", input: DECK, visibility: "private" },
+  });
+  const { id } = (await res.json()) as { id: string };
+  await page.goto(`/decks/${id}`);
+  await page.getByRole("button", { name: "Ajustes" }).click({ timeout: 30_000 });
+  const dialog = page.getByRole("dialog", { name: "Ajustes del mazo" });
+  await dialog.getByLabel("Nombre").fill("Mazo renombrado");
+  await dialog.getByRole("button", { name: "Cambiar" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Mazo renombrado" })).toBeVisible();
+
+  await dialog.getByRole("button", { name: "Borrar mazo" }).click();
+  await dialog.getByRole("button", { name: "Borrar «Mazo renombrado»" }).click();
+  await expect(page).toHaveURL(/\/decks$/);
+  await expect(page.getByText("Mazo renombrado")).toHaveCount(0);
 });

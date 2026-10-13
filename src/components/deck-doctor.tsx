@@ -36,7 +36,8 @@ import { localRoles } from "./local-roles";
 import { PrintingDialog } from "./printing-dialog";
 import { RoleEditDialog, type RoleEditScope } from "./role-edit-dialog";
 import { OtherDecksDialog, OwnershipPanel } from "./deck-ownership";
-import { ExportDialog, SaveDialog } from "./deck-dialogs";
+import { DeckSettingsDialog, ExportDialog, SaveDialog } from "./deck-dialogs";
+import { setDeckVisibility } from "./deck-visibility";
 import {
   DeckFacts,
   DeckList,
@@ -48,7 +49,7 @@ import {
   type Decision,
   type ListView,
 } from "./deck-views";
-import { IconHeart, IconWarn } from "./icons";
+import { IconHeart, IconSettings, IconWarn } from "./icons";
 import {
   LOCAL_COLLECTION_EVENT,
   localCollection,
@@ -136,7 +137,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const [tab, setTab] = useState<Tab>("changes");
   const [filter, setFilter] = useState<Filter>("todos");
   const [view, setView] = useState<ListView>("pilas");
-  const [dialog, setDialog] = useState<"save" | "export" | null>(null);
+  const [dialog, setDialog] = useState<"save" | "export" | "settings" | null>(null);
   /** Panel "Añadir cartas" de la lista abierto (al crear un mazo desde cero, de entrada). */
   const [adding, setAdding] = useState(false);
   const [editNotice, setEditNotice] = useState<string | null>(null);
@@ -503,6 +504,51 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
    * Añade (delta > 0) o quita (delta < 0) copias de una carta: rehace la lista, vuelve a analizar y,
    * si es uno de mis mazos guardados, lo guarda.
    */
+  /** Ajustes de un mazo mío guardado (desde su página). */
+  async function renameDeck(name: string) {
+    if (saved.deckId === null) return;
+    setBusy("settings");
+    try {
+      await api(`/api/decks/${encodeURIComponent(saved.deckId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      update({ name });
+      notifyDecksChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo cambiar el nombre");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function changeVisibility(v: DeckVisibility) {
+    if (saved.deckId === null) return;
+    try {
+      const { visibility } = await setDeckVisibility(api, saved.deckId, v);
+      update({ visibility });
+      notifyDecksChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo cambiar la visibilidad");
+    }
+  }
+
+  async function deleteDeck() {
+    if (saved.deckId === null) return;
+    setBusy("settings");
+    try {
+      await api(`/api/decks/${encodeURIComponent(saved.deckId)}`, { method: "DELETE" });
+      // Que no se reabra como «el último mazo» en /analyze.
+      storage.remove(KEY);
+      notifyDecksChanged();
+      window.location.assign(new URL("/decks", window.location.origin));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo borrar el mazo");
+      setBusy(null);
+    }
+  }
+
   async function toggleWishlist() {
     if (!saved.deckId) return;
     setBusy("wishlist");
@@ -718,6 +764,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             isSaved={saved.deckId !== null}
             onShowMissing={() => setTab("missing")}
             onSave={() => setDialog("save")}
+            onSettings={() => setDialog("settings")}
             onExport={() => setDialog("export")}
             onEdit={() => setEditing(true)}
             target={saved.targetBracket}
@@ -1047,6 +1094,23 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             canScopeToDeck={loggedIn && saved.deckId !== null}
             onSave={(edit, scope) => editingRoles && void saveRoles(editingRoles, edit, scope)}
           />
+          {saved.deckId !== null && !owner && (
+            <DeckSettingsDialog
+              open={dialog === "settings"}
+              onClose={() => setDialog(null)}
+              name={saved.name || ok.deckName || ""}
+              visibility={saved.visibility}
+              busy={busy === "settings"}
+              onRename={(n) => void renameDeck(n)}
+              onVisibility={(v) => void changeVisibility(v)}
+              onDuplicate={() => setDialog("save")}
+              onReplaceList={() => {
+                setDialog(null);
+                setEditing(true);
+              }}
+              onDelete={() => void deleteDeck()}
+            />
+          )}
           <SaveDialog
             open={dialog === "save"}
             onClose={() => setDialog(null)}
@@ -1385,6 +1449,7 @@ function DeckHeader({
   isSaved,
   onShowMissing,
   onSave,
+  onSettings,
   onExport,
   onEdit,
   target,
@@ -1401,6 +1466,8 @@ function DeckHeader({
   isSaved: boolean;
   onShowMissing: () => void;
   onSave: () => void;
+  /** Ajustes del mazo (solo en uno mío guardado). */
+  onSettings: () => void;
   onExport: () => void;
   onEdit: () => void;
   target: Bracket | null;
@@ -1471,17 +1538,34 @@ function DeckHeader({
         <OwnershipLine ownership={ok.ownership} onClick={onShowMissing} />
       </div>
       <div className="flex flex-wrap gap-2">
-        <div className="btn-group">
-          <button type="button" className="btn" onClick={onSave}>
-            {owner ? "Copiar a mis mazos" : isSaved ? "Guardar como nuevo" : "Guardar"}
-          </button>
-          <button type="button" className="btn" onClick={onExport}>
-            Exportar
-          </button>
-        </div>
-        <button type="button" className="btn btn-ghost" onClick={onEdit}>
-          Cambiar lista
-        </button>
+        {isSaved && !owner ? (
+          // Mío y guardado: se guarda solo; lo demás (duplicar, reemplazar, borrar…) en Ajustes.
+          <>
+            <button type="button" className="btn" onClick={onExport}>
+              Exportar
+            </button>
+            <button type="button" className="btn" onClick={onSettings}>
+              <IconSettings size={15} />
+              Ajustes
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="btn-group">
+              <button type="button" className="btn" onClick={onSave}>
+                {owner ? "Copiar a mis mazos" : "Guardar"}
+              </button>
+              <button type="button" className="btn" onClick={onExport}>
+                Exportar
+              </button>
+            </div>
+            {!owner && (
+              <button type="button" className="btn btn-ghost" onClick={onEdit}>
+                Cambiar lista
+              </button>
+            )}
+          </>
+        )}
         {like &&
           (canLike ? (
             <button
