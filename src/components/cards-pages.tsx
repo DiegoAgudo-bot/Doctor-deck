@@ -31,6 +31,7 @@ import { ManaCost, ManaText, SYMBOL_URL } from "./mana";
 import { formatChange, PriceChart } from "./price-chart";
 import { restorePref, savePref } from "./prefs";
 import { Banner, CardGridSkeleton, EmptyState, fmt, Loading, SortDirButton } from "./ui";
+import { AddToDeck } from "./add-to-deck";
 
 const COLOR_LABEL = { W: "Blanco", U: "Azul", B: "Negro", R: "Rojo", G: "Verde" } as const;
 const PAGE = 36;
@@ -512,6 +513,7 @@ export function CardDetailPage() {
                 >
                   {d.mine && d.mine.wished > 0 ? "Quitar de mi lista de deseos" : "Añadir a deseos"}
                 </button>
+                <AddToDeck card={{ ...d.card, canBeCommander: d.commander }} />
               </>
             )}
           </div>

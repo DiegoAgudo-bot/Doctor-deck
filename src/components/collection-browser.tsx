@@ -66,6 +66,8 @@ interface Filters {
   origin: "" | "csv" | "manual";
   use: "" | "libres" | "en-mazos";
   foil: boolean;
+  /** Solo las que pueden ser comandante. */
+  commander: boolean;
   language: string;
   sort: Sort;
   /** null = la natural del orden. */
@@ -82,6 +84,7 @@ const EMPTY: Filters = {
   origin: "",
   use: "",
   foil: false,
+  commander: false,
   language: "",
   sort: "nombre",
   dir: null,
@@ -121,6 +124,7 @@ function parseCollectionPref(raw: unknown): { filters: Partial<Filters>; view: V
   const use = str("use");
   if (use === "" || use === "libres" || use === "en-mazos") f.use = use;
   if (typeof r.foil === "boolean") f.foil = r.foil;
+  if (typeof r.commander === "boolean") f.commander = r.commander;
   const language = str("language");
   if (language !== undefined && (language === "" || language in LANGUAGES)) f.language = language;
   return { filters: f, view: r.view === "tabla" ? "tabla" : "cuadricula" };
@@ -141,6 +145,7 @@ function toQuery(f: Filters): CollectionFilters {
     ...(f.origin ? { origin: f.origin } : {}),
     ...(f.use ? { use: f.use } : {}),
     ...(f.foil ? { foil: true } : {}),
+    ...(f.commander ? { commander: true } : {}),
     ...(f.language ? { language: f.language } : {}),
   };
 }
@@ -250,6 +255,7 @@ export function CollectionBrowser({
         origin: f.origin,
         use: f.use,
         foil: f.foil,
+        commander: f.commander,
         language: f.language,
         sort: f.sort,
         dir: f.dir,
@@ -331,6 +337,7 @@ export function CollectionBrowser({
     f.origin !== "" ||
     f.use !== "" ||
     f.foil ||
+    f.commander ||
     f.language !== "";
 
   return (
@@ -487,6 +494,15 @@ export function CollectionBrowser({
                   style={{ marginTop: 0 }}
                 />
                 Solo foil
+              </label>
+              <label className="check" style={{ alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={f.commander}
+                  onChange={(e) => set({ commander: e.target.checked })}
+                  style={{ marginTop: 0 }}
+                />
+                Pueden ser comandante
               </label>
             </>
           )}

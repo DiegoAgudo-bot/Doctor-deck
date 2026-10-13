@@ -1,4 +1,5 @@
 import { localImageUrl } from "@/domain/cards/images";
+import { canBeCommander } from "@/domain/cards/commander";
 import type { MissingStatus } from "@/domain/combos/analysis";
 import type { ComboBracketTag } from "@/domain/combos/types";
 import type { DeckOwnershipSummary } from "@/domain/community/rank";
@@ -44,6 +45,8 @@ export interface CardDTO {
   layout: string;
   /** En la lista de game changers de los brackets. */
   gameChanger: boolean;
+  /** Puede ser comandante (y es legal en Commander): para ofrecer «Crear mazo». */
+  canBeCommander?: boolean;
   /** Impresión elegida en el mazo (su imagen es la de `imageUrl`); sin ella, la de por defecto. */
   printing?: PrintingDTO | undefined;
 }
@@ -646,6 +649,7 @@ export const cardDTO = (c: Card): CardDTO => ({
   colorIdentity: c.colorIdentity,
   layout: c.layout,
   gameChanger: c.gameChanger,
+  canBeCommander: c.legalCommander && canBeCommander(c),
 });
 
 const scoredDTO = (s: ScoredCard | AddCandidate | PurchaseCandidate): ScoredCardDTO => ({

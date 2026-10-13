@@ -15,6 +15,7 @@ import type { CardDTO } from "@/server/dto";
 import { api } from "./api-client";
 import { IconX } from "./icons";
 import { ManaCost } from "./mana";
+import { AddToDeck } from "./add-to-deck";
 
 /** "/img/normal/…" → la misma en tamaño pequeño de Scryfall (146×204). */
 const smallVariant = (url: string) =>
@@ -174,6 +175,12 @@ export function CardSheet({ card, onClose }: { card: HoverCard; onClose: () => v
               </span>
             )}
           </div>
+        )}
+        {detail && (
+          <AddToDeck
+            card={{ ...detail.card, canBeCommander: detail.commander }}
+            className="btn w-full justify-center"
+          />
         )}
         {card.oracleId && (
           <Link className="btn btn-primary w-full justify-center" href={`/cards/${card.oracleId}`}>

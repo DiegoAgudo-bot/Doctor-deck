@@ -73,3 +73,24 @@ test("desde el mazo: renombrar y borrar en Ajustes", async ({ page }) => {
   await expect(page).toHaveURL(/\/decks$/);
   await expect(page.getByText("Mazo renombrado")).toHaveCount(0);
 });
+
+test("desde la ficha de una carta se añade a uno de mis mazos", async ({ page }) => {
+  const res = await page.request.post("/api/decks", {
+    data: { name: "Mazo para añadir", input: DECK, visibility: "private" },
+  });
+  const { id } = (await res.json()) as { id: string };
+  const search = await page.request.get("/api/cards/search?q=Tamiyo%27s%20Logbook&limit=1");
+  const [card] = (await search.json()) as { oracleId: string }[];
+  await page.goto(`/cards/${card?.oracleId}`);
+  await page.getByRole("button", { name: "Añadir a un mazo" }).click();
+  const dialog = page.getByRole("dialog", { name: /Añadir «Tamiyo's Logbook» a un mazo/ });
+  await dialog.getByRole("button", { name: /Mazo para añadir/ }).click();
+  await expect(dialog.getByText("Añadida a «Mazo para añadir».")).toBeVisible();
+  // Otra copia no: en Commander solo puede haber una.
+  await dialog.getByRole("button", { name: /Mazo para añadir/ }).click();
+  await expect(dialog.getByText(/ya está en el mazo/)).toBeVisible();
+
+  const deck = (await (await page.request.get(`/api/decks/${id}`)).json()) as { input: string };
+  expect(deck.input).toContain("1 Tamiyo's Logbook");
+  await page.request.delete(`/api/decks/${id}`);
+});

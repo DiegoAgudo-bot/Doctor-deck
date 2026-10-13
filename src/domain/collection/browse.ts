@@ -1,9 +1,11 @@
+import { canBeCommander } from "../cards/commander";
 import type { Card } from "../cards/types";
 import type { Role } from "../roles/types";
 
 /** Lo mínimo de una carta de la colección para filtrarla y ordenarla. */
 export interface BrowsableCard {
-  card: Pick<Card, "name" | "typeLine" | "cmc" | "colorIdentity">;
+  card: Pick<Card, "name" | "typeLine" | "cmc" | "colorIdentity"> &
+    Partial<Pick<Card, "oracleText" | "legalCommander">>;
   roles: readonly Role[];
   quantity: number;
   foilQuantity: number;
@@ -59,6 +61,8 @@ export interface CollectionFilters {
   foil?: boolean | undefined;
   /** Con alguna copia en este idioma (código de Scryfall). */
   language?: string | undefined;
+  /** Solo las que pueden ser comandante (para empezar un mazo con lo que tengo). */
+  commander?: boolean | undefined;
 }
 
 const norm = (s: string) => s.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
@@ -95,6 +99,7 @@ export function matchesFilters(c: BrowsableCard, f: CollectionFilters): boolean 
   if (f.use === "en-mazos" && c.inUse === 0) return false;
   if (f.foil && c.foilQuantity === 0) return false;
   if (f.language && !(c.languages ?? []).includes(f.language)) return false;
+  if (f.commander && (c.card.legalCommander === false || !canBeCommander(c.card))) return false;
   return true;
 }
 

@@ -11,6 +11,7 @@ import { CardImage } from "./card-image";
 import { IconMinus, IconPlus, IconTrash } from "./icons";
 import { LendDialog } from "./loans-page";
 import { Banner, Dialog, Loading } from "./ui";
+import { AddToDeck } from "./add-to-deck";
 
 const json = (body: unknown) => ({
   headers: { "Content-Type": "application/json" },
@@ -127,6 +128,7 @@ export function CollectionCardDialog({
               Ver ficha
             </Link>
           )}
+          {card && <AddToDeck card={card} />}
           {lines && lines.length > 0 && (
             <button type="button" className="btn" onClick={() => setLending(true)}>
               Prestar
@@ -145,6 +147,11 @@ export function CollectionCardDialog({
           <div className="cardsheet-art">
             {shown ? <CardImage card={shown.card} /> : card && <CardImage card={card} />}
             {card?.typeLine && <p className="subtle text-xs">{card.typeLine}</p>}
+            {card?.canBeCommander && (
+              <Link className="btn btn-primary" href={`/decks/new?commander=${card.oracleId}`}>
+                <IconPlus size={13} /> Crear mazo con {card.name.split(",")[0]}
+              </Link>
+            )}
           </div>
           <div className="flex min-w-0 flex-col gap-2.5">
             {lines.length === 0 && (
