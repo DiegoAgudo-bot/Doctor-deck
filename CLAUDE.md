@@ -111,6 +111,15 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   pise; `DELETE /api/collection/lines/{publicId}` borra cualquiera. `exportCollectionCsv`
   (`GET /api/collection/export`) escribe el CSV de ManaBox (`toManaboxCsv`, se vuelve a leer igual).
   UI: pulsar una carta de la colección abre `CollectionCardDialog` (imagen + cada copia editable).
+- **Carta → mazo** (UX U4): «Añadir a un mazo» (`AddToDeck`, en la ficha de la colección, la
+  ficha de la carta y la hoja del móvil; solo con sesión) → `POST /api/decks/{id}/cards`
+  (`{oracleId}`, `addCardToDeck`): resuelve la lista guardada (aunque sea un enlace), comprueba
+  con `addCardProblem` (`domain/deck/add-card.ts`) que no sea el comandante, que esté en su
+  identidad y que no esté ya (salvo básicas; error 409 con `code`), la reescribe en texto con
+  `decklistWithCard` (conserva impresiones y las líneas no encontradas) y la guarda con
+  `saveDeck`. `CardDTO.canBeCommander` → «Crear mazo con X» (`/decks/new?commander=`) en la ficha
+  de la colección; filtro `commander` («Pueden ser comandante») en la colección; enlace «Mazos que
+  puedes montar» (`/community?sort=owned`, Comunidad lee `?sort=`).
 - **Cuenta y RGPD** (Fase 20, `application/account.ts`): `GET /api/me/export` (todos mis datos en
   JSON, sin ids internos) y `DELETE /api/me` (`{confirm: email}`; borra en cascada). Páginas
   `/privacy` y `/legal` (titular y contacto de `LEGAL_OWNER`/`LEGAL_EMAIL`), pie `LegalFooter` con el

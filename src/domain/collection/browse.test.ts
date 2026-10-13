@@ -69,7 +69,7 @@ describe("colorMatch", () => {
 });
 
 describe("browseCollection", () => {
-  it("filtra por texto (nombre o tipo, sin tildes), tipo, rol, coste, origen, uso, foil e idioma", () => {
+  it("filtra por texto (nombre o tipo, sin tildes), tipo, rol, coste, origen, uso, foil, idioma y comandante", () => {
     const run = (f: Parameters<typeof browseCollection>[1]) =>
       names(browseCollection(CARDS, f, "nombre", 0, 50));
     expect(run({ q: "ELDRAZI" })).toEqual(["Ulamog, the Ceaseless Hunger"]);
@@ -86,6 +86,7 @@ describe("browseCollection", () => {
     expect(run({ use: "libres" })).not.toContain("Mayhem Devil");
     expect(run({ foil: true })).toEqual(["Counterspell"]);
     expect(run({ language: "ja" })).toEqual(["Counterspell"]);
+    expect(run({ commander: true })).toEqual(["Ulamog, the Ceaseless Hunger"]);
     expect(run({ colors: ["G"], colorMode: "dentro" })).toEqual([
       "Llanowar Elves",
       "Sol Ring",
