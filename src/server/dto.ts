@@ -247,6 +247,8 @@ export interface NotificationDTO {
   refId: string | null;
   createdAt: string;
   read: boolean;
+  /** Texto montado (título, frase y ruta de la web), el mismo que la notificación push. */
+  message: { title: string; body: string; path: string };
 }
 
 export interface NotificationsResponse {
@@ -572,6 +574,28 @@ export interface AddCardsResponse {
   notFound: string[];
   /** Si se ha guardado en la cuenta (con sesión); sin ella, el navegador lo guarda. */
   saved: boolean;
+}
+
+/** `POST /api/import/shared`: lo que se ha compartido con la app, resuelto (y guardado si `saved`). */
+export interface SharedImportResponse {
+  kind: "csv" | "list";
+  name: string | null;
+  added: { card: CardDTO; quantity: number; foil: boolean; language: string | null }[];
+  notFound: string[];
+  totalCopies: number;
+  looksLikeDeck: boolean;
+  skipped: number;
+  saved: boolean;
+}
+
+/** `GET /api/app`: lo que la app móvil consulta al abrirse. */
+export interface AppInfoDTO {
+  /** Versión mínima de la app (semver); con una anterior, pide actualizar. */
+  minVersion: string;
+  /** Si el servidor manda notificaciones push. */
+  push: boolean;
+  google: boolean;
+  passwordReset: boolean;
 }
 
 export interface ApiErrorBody {

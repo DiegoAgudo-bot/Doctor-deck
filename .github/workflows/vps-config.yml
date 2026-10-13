@@ -3,7 +3,7 @@ name: Configurar el VPS
 # Manual (Actions › "Configurar el VPS" › Run workflow). Cambia variables del .env del VPS y
 # reinicia la app, por la misma conexión SSH que el despliegue. El dominio va como entrada (es
 # público); el resto sale de secretos del repositorio (ADMIN_EMAILS, LEGAL_OWNER, LEGAL_EMAIL,
-# GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SMTP_URL, MAIL_FROM), que
+# GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SMTP_URL, MAIL_FROM, FCM_SERVICE_ACCOUNT_B64), que
 # GitHub oculta en los logs: el repositorio es público. Lo que no esté definido no se toca.
 on:
   workflow_dispatch:
@@ -35,13 +35,15 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           SMTP_URL: ${{ secrets.SMTP_URL }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          # Clave de la cuenta de servicio de Firebase EN BASE64 (una línea, sin comillas).
+          FCM_SERVICE_ACCOUNT: ${{ secrets.FCM_SERVICE_ACCOUNT_B64 }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER || 'root' }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
-          envs: NEW_HOST,ADMIN_EMAILS,LEGAL_OWNER,LEGAL_EMAIL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,SMTP_URL,MAIL_FROM
+          envs: NEW_HOST,ADMIN_EMAILS,LEGAL_OWNER,LEGAL_EMAIL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,SMTP_URL,MAIL_FROM,FCM_SERVICE_ACCOUNT
           command_timeout: 10m
           script: |
             set -e
@@ -77,6 +79,7 @@ jobs:
             set_var GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET"
             set_var SMTP_URL "$SMTP_URL"
             set_var MAIL_FROM "$MAIL_FROM"
+            set_var FCM_SERVICE_ACCOUNT "$FCM_SERVICE_ACCOUNT"
             # Que el dominio de antes siga redirigiendo al nuevo.
             if [ -n "$NEW_HOST" ] && [ -n "$OLD_HOST" ] && [ "$NEW_HOST" != "$OLD_HOST" ]; then
               set_var DECK_DOCTOR_OLD_HOST "$OLD_HOST"

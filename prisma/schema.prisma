@@ -210,6 +210,7 @@ model User {
   /// Avisar si una carta que me falta baja este % respecto a su máximo de 30 días. null = no avisar.
   priceAlertPercent Int?               @default(15)
   prefs             UserPref[]
+  pushDevices       PushDevice[]
   sessions          Session[]
   accounts          Account[]
   collection        CollectionEntry[]
@@ -624,4 +625,20 @@ model ErrorLog {
   lastAt      DateTime @default(now())
 
   @@index([lastAt])
+}
+
+/// Móviles con la app instalada a los que mandar notificaciones push (token de FCM).
+model PushDevice {
+  id         Int      @id @default(autoincrement())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Token de Firebase Cloud Messaging del dispositivo (único: si cambia de cuenta, pasa a la nueva).
+  token      String   @unique
+  /// "android" | "ios"
+  platform   String
+  appVersion String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@index([userId])
 }

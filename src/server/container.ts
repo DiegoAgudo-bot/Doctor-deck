@@ -25,6 +25,10 @@ import { HttpClient } from "@/adapters/http/http-client";
 import { FileImageCache } from "@/adapters/images/image-cache";
 import { ScryfallTagger } from "@/adapters/scryfall/tagger";
 import { createMailer } from "@/adapters/mail/mailer";
+import { PrismaPushDeviceRepository } from "@/adapters/db/push-device-repository";
+import { FcmSender, parseServiceAccount } from "@/adapters/push/fcm";
+import { pushNotifications } from "@/application/push";
+import { reportServerError } from "./error-log";
 import { engineConfig } from "@/config/engine";
 import { loadEnv } from "@/config/env";
 import { HeuristicRoleClassifier } from "@/domain/roles/heuristic-classifier";
@@ -62,6 +66,18 @@ export function createContainer() {
     minIntervalMs: env.SCRYFALL_MIN_INTERVAL_MS,
   });
   const mailer = env.SMTP_URL ? createMailer(env.SMTP_URL, env.MAIL_FROM) : null;
+  const pushDevices = new PrismaPushDeviceRepository(db);
+  const pushSender = env.FCM_SERVICE_ACCOUNT
+    ? new FcmSender(parseServiceAccount(env.FCM_SERVICE_ACCOUNT))
+    : null;
+  /** Cada aviso guardado sale también como push a los móviles (sin esperar; si falla, al registro). */
+  const afterNotify = pushSender
+    ? (items: Parameters<typeof pushNotifications>[0]) => {
+        void pushNotifications(items, { devices: pushDevices, sender: pushSender }).catch(
+          (err: unknown) => reportServerError(err, "push"),
+        );
+      }
+    : undefined;
   return {
     env,
     edhrec,
@@ -91,7 +107,10 @@ export function createContainer() {
     /** Propuestas de intercambio entre usuarios (fase 19). */
     tradeProposals: new PrismaTradeProposalRepository(db),
     /** Parte social: perfiles, seguidores y notificaciones (un mismo adaptador). */
-    social: new PrismaSocialRepository(db),
+    social: new PrismaSocialRepository(db, afterNotify),
+    /** Móviles con la app (tokens de push) y si se pueden mandar push (`FCM_SERVICE_ACCOUNT`). */
+    pushDevices,
+    pushEnabled: pushSender !== null,
     publicDecks: new PrismaPublicDecks(db),
     /** Fase 21: grupos de juego, partidas, préstamos, feed y moderación (comentarios, bloqueos). */
     groups: new PrismaGroupRepository(db),

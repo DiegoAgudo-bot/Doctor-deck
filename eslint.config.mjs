@@ -59,6 +59,8 @@ const eslintConfig = defineConfig([
     "coverage/**",
     "playwright-report/**",
     "test-results/**",
+    // La app móvil (Expo) tiene sus propias comprobaciones (`mobile/`: tsc y tests).
+    "mobile/**",
   ]),
 ]);
 

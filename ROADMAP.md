@@ -13,21 +13,21 @@ despliegue en `main` y **parar al terminar cada fase hasta el OK del usuario**.
 
 ## Resumen
 
-| Fase | Contenido                                                     | Esfuerzo | Estado |
-| ---- | ------------------------------------------------------------- | -------- | ------ |
-| 10   | Crear mazos (comandante, mazo medio, desde cero) y gestor     | Bajo     | ✅     |
-| 11   | Exportar Arena/MTGO, mazos ocultos, manos de muestra, precios | Bajo     | ✅     |
-| 12   | Bracket y game changers                                       | Bajo     | ✅     |
-| 13   | Comunidad: mazos que puedes montar ya, me gusta, filtros      | Medio    | ✅     |
-| 14   | Precios: histórico, lo que más sube, avisos de bajada         | Medio    | ✅     |
-| 15   | Etiquetas propias que corrigen los roles                      | Medio    | ✅     |
-| 16   | Combos (Commander Spellbook) y bracket con combos             | Medio    | ✅     |
-| 17   | Listas de deseos e intercambio con cruce automático           | Medio    | ✅     |
-| 18   | Impresiones concretas (edición, foil, idioma)                 | Alto     | ✅     |
-| 19   | Calculadora de intercambio entre dos usuarios                 | Medio    | ✅     |
-| 20   | Cimientos: copias, colección sin ManaBox, legal, compartir    | Medio    | ✅     |
-| 21   | Social: grupos, partidas, préstamos, feed y comentarios       | Alto     | ✅     |
-| 22   | App móvil: compartir desde ManaBox, escáner y push            | Alto     |        |
+| Fase | Contenido                                                     | Esfuerzo | Estado           |
+| ---- | ------------------------------------------------------------- | -------- | ---------------- |
+| 10   | Crear mazos (comandante, mazo medio, desde cero) y gestor     | Bajo     | ✅               |
+| 11   | Exportar Arena/MTGO, mazos ocultos, manos de muestra, precios | Bajo     | ✅               |
+| 12   | Bracket y game changers                                       | Bajo     | ✅               |
+| 13   | Comunidad: mazos que puedes montar ya, me gusta, filtros      | Medio    | ✅               |
+| 14   | Precios: histórico, lo que más sube, avisos de bajada         | Medio    | ✅               |
+| 15   | Etiquetas propias que corrigen los roles                      | Medio    | ✅               |
+| 16   | Combos (Commander Spellbook) y bracket con combos             | Medio    | ✅               |
+| 17   | Listas de deseos e intercambio con cruce automático           | Medio    | ✅               |
+| 18   | Impresiones concretas (edición, foil, idioma)                 | Alto     | ✅               |
+| 19   | Calculadora de intercambio entre dos usuarios                 | Medio    | ✅               |
+| 20   | Cimientos: copias, colección sin ManaBox, legal, compartir    | Medio    | ✅               |
+| 21   | Social: grupos, partidas, préstamos, feed y comentarios       | Alto     | ✅               |
+| 22   | App móvil: compartir desde ManaBox, escáner y push            | Alto     | ✅ (sin escáner) |
 
 ---
 
@@ -286,9 +286,11 @@ Lo que convierte Doctor Deck en la red social de los jugadores de Commander (det
 El requisito ya fijado en `CLAUDE.md` se mantiene: la app debe ser destino al **compartir desde
 ManaBox** (CSV o texto) y usar la misma API, con el plugin `bearer` de Better Auth.
 
-- **Primer paso:** compartir e importar, consultar mazos y colección, y los avisos (con
-  notificaciones push, aquí sí). La PWA de la fase 20 ya se puede instalar.
-- **Segundo paso:** el escáner de cartas. El endpoint `POST /api/collection/cards` con `scryfallId`
+- **Primer paso ✅:** app Android nativa (Expo) con la estructura de ManaBox: colección, mazos,
+  buscador, ficha de carta, avisos con notificaciones push y compartir desde ManaBox (CSV o
+  texto). Lo demás (intercambios, grupos, préstamos, contador) se abre de la web dentro de la app.
+  Ver `mobile/README.md`.
+- **Segundo paso (v2):** el escáner de cartas. El endpoint `POST /api/collection/cards` con `scryfallId`
   ya está listo, y las copias se pueden editar después (`PATCH /api/collection/lines/{id}`).
 
 ---

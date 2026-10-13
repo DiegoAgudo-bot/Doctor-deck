@@ -1,0 +1,405 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { useMemo, useState } from "react";
+import { Alert, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
+import type { CardDetailDTO } from "@/server/card-dto";
+import type { AddCardsResponse, CollectionLineDTO, PrintingDTO } from "@/server/dto";
+import { CardThumb, FoilMark, ManaCost } from "~/components/card-bits";
+import { Stepper } from "~/components/stepper";
+import { Banner, Button, Chip, ErrorView, Loading, T } from "~/components/ui";
+import { api } from "~/lib/api";
+import { CONDITION_OPTIONS, conditionShort, LANGUAGE_OPTIONS } from "~/lib/copies";
+import { euros } from "~/lib/format";
+import { colors, radius } from "~/lib/theme";
+
+/** Ficha de una carta: imagen, texto, precios, mis copias (editables) y añadir más. */
+export default function CardScreen() {
+  const { oracleId } = useLocalSearchParams<{ oracleId: string }>();
+  const { width } = useWindowDimensions();
+  const qc = useQueryClient();
+  const detail = useQuery({
+    queryKey: ["card", oracleId],
+    queryFn: () => api<CardDetailDTO>(`/api/cards/${oracleId}`),
+  });
+  const lines = useQuery({
+    queryKey: ["lines", oracleId],
+    queryFn: () =>
+      api<CollectionLineDTO[]>(`/api/collection/lines?oracleId=${encodeURIComponent(oracleId)}`),
+  });
+  const [adding, setAdding] = useState(false);
+  const [shown, setShown] = useState<PrintingDTO | null>(null);
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["lines", oracleId] });
+    qc.invalidateQueries({ queryKey: ["card", oracleId] });
+    qc.invalidateQueries({ queryKey: ["collection"] });
+  };
+
+  const wish = useMutation({
+    mutationFn: (quantity: number) =>
+      api(`/api/trades/wishes/${oracleId}`, { method: "PUT", body: { quantity } }),
+    onSuccess: refresh,
+  });
+
+  if (detail.isPending) return <Loading />;
+  if (detail.isError) return <ErrorView error={detail.error} onRetry={() => detail.refetch()} />;
+  const d = detail.data;
+  const myLines = lines.data ?? [];
+  // La imagen: la edición elegida al añadir, la de mi copia o la de referencia.
+  const image = shown?.imageUrl ?? myLines[0]?.card.imageUrl ?? d.card.imageUrl;
+  const imgWidth = Math.min(width - 64, 320);
+
+  return (
+    <>
+      <Stack.Screen options={{ title: d.card.name }} />
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}>
+        <View style={{ alignItems: "center" }}>
+          <CardThumb uri={image} width={imgWidth} name={d.card.name} large />
+        </View>
+
+        <View style={{ gap: 6 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <T variant="title" style={{ flex: 1 }}>
+              {d.card.name}
+            </T>
+            <ManaCost cost={d.card.manaCost} size={18} />
+          </View>
+          <T variant="small">{d.card.typeLine}</T>
+          {d.oracleText && (
+            <View
+              style={{
+                backgroundColor: colors.panel,
+                borderRadius: radius.md,
+                padding: 12,
+                marginTop: 4,
+              }}
+            >
+              <T style={{ lineHeight: 21 }}>{d.oracleText}</T>
+            </View>
+          )}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+            {d.roles.map((r) => (
+              <View
+                key={r.role}
+                style={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 10,
+                  backgroundColor: r.primary ? colors.accent : colors.raised,
+                }}
+              >
+                <T variant="small" style={r.primary ? { color: colors.onAccent } : undefined}>
+                  {r.label}
+                </T>
+              </View>
+            ))}
+            {!d.legalCommander && <Banner text="No es legal en Commander" />}
+          </View>
+        </View>
+
+        {/* Precio, como en la cabecera de la carta en ManaBox. */}
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <PriceBox label="Desde" value={euros(d.minPrice)} />
+          <PriceBox label="Foil desde" value={euros(d.minFoilPrice)} />
+          <Pressable
+            onPress={() =>
+              WebBrowser.openBrowserAsync(
+                `https://www.cardmarket.com/es/Magic/Products/Search?searchString=${encodeURIComponent(d.card.name)}`,
+              )
+            }
+            style={{
+              flex: 1,
+              backgroundColor: colors.panel,
+              borderRadius: radius.md,
+              padding: 10,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Ionicons name="cart-outline" size={20} color={colors.accent} />
+            <T variant="small" style={{ color: colors.accent }}>
+              Cardmarket
+            </T>
+          </Pressable>
+        </View>
+
+        {/* Mis copias */}
+        <View style={{ gap: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <T variant="label" style={{ flex: 1 }}>
+              Tus copias{d.mine ? ` · ${d.mine.owned} (${d.mine.free} libres)` : ""}
+            </T>
+          </View>
+          {d.mine && d.mine.usedIn.length > 0 && (
+            <T variant="small" style={{ color: colors.inuse }}>
+              En: {d.mine.usedIn.join(", ")}
+            </T>
+          )}
+          {lines.isPending ? (
+            <Loading />
+          ) : myLines.length === 0 ? (
+            <T variant="muted">No la tienes.</T>
+          ) : (
+            myLines.map((l) => <LineRow key={l.id} line={l} onChanged={refresh} />)
+          )}
+        </View>
+
+        {adding ? (
+          <AddPanel
+            detail={d}
+            onPreview={setShown}
+            onDone={() => {
+              setAdding(false);
+              setShown(null);
+              refresh();
+            }}
+            onCancel={() => {
+              setAdding(false);
+              setShown(null);
+            }}
+          />
+        ) : (
+          <View style={{ gap: 10 }}>
+            <Button
+              label="Añadir a la colección"
+              icon="add-circle-outline"
+              onPress={() => setAdding(true)}
+            />
+            <Button
+              label={
+                d.mine?.wished
+                  ? `En tu lista de deseos (${d.mine.wished}) · quitar`
+                  : "Añadir a la lista de deseos"
+              }
+              icon={d.mine?.wished ? "heart" : "heart-outline"}
+              kind="secondary"
+              busy={wish.isPending}
+              onPress={() => wish.mutate(d.mine?.wished ? 0 : 1)}
+            />
+            {d.commander && (
+              <Button
+                label="Crear un mazo con esta carta"
+                icon="layers-outline"
+                kind="secondary"
+                onPress={() =>
+                  router.push(`/web?path=${encodeURIComponent(`/decks/new?commander=${oracleId}`)}`)
+                }
+              />
+            )}
+          </View>
+        )}
+
+        {d.commanderDecks.length > 0 && (
+          <View style={{ gap: 8 }}>
+            <T variant="label">Mazos públicos con ella de comandante</T>
+            {d.commanderDecks.map((deck) => (
+              <Pressable
+                key={deck.id}
+                onPress={() => router.push(`/deck/${deck.id}`)}
+                style={{ backgroundColor: colors.panel, borderRadius: radius.md, padding: 12 }}
+              >
+                <T style={{ fontWeight: "600" }}>{deck.name}</T>
+                <T variant="small">{deck.owner ? `@${deck.owner}` : ""}</T>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    </>
+  );
+}
+
+function PriceBox({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.panel, borderRadius: radius.md, padding: 10 }}>
+      <T variant="small">{label}</T>
+      <T style={{ fontWeight: "700", fontSize: 17 }}>{value}</T>
+    </View>
+  );
+}
+
+/** Una línea de mi colección (edición, foil, idioma, estado) con − / +. */
+function LineRow({ line, onChanged }: { line: CollectionLineDTO; onChanged: () => void }) {
+  const edit = useMutation({
+    mutationFn: (quantity: number) =>
+      api(`/api/collection/lines/${line.id}`, { method: "PATCH", body: { quantity } }),
+    onSuccess: onChanged,
+    onError: (e) => Alert.alert("No se ha podido cambiar", e.message),
+  });
+  const change = (q: number) => {
+    if (q === 0) {
+      Alert.alert("¿Quitar estas copias?", "Se borran de tu colección.", [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Quitar", style: "destructive", onPress: () => edit.mutate(0) },
+      ]);
+    } else edit.mutate(q);
+  };
+  const p = line.printing;
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        backgroundColor: colors.panel,
+        borderRadius: radius.md,
+        padding: 10,
+      }}
+    >
+      <CardThumb uri={line.card.imageUrl} width={36} name={line.card.name} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <T style={{ fontWeight: "600" }}>
+            {p ? `${p.setCode.toUpperCase()} #${p.collectorNumber}` : "Edición sin indicar"}
+          </T>
+          {line.foil && <FoilMark />}
+        </View>
+        <T variant="small" numberOfLines={1}>
+          {[
+            p?.setName,
+            line.language?.toUpperCase(),
+            conditionShort(line.condition),
+            euros(line.unitPrice),
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </T>
+      </View>
+      <Stepper value={line.quantity} onChange={change} disabled={edit.isPending} />
+    </View>
+  );
+}
+
+/** Añadir copias: edición, cantidad, foil, idioma y estado. */
+function AddPanel({
+  detail,
+  onPreview,
+  onDone,
+  onCancel,
+}: {
+  detail: CardDetailDTO;
+  onPreview: (p: PrintingDTO | null) => void;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const printings = useMemo(
+    () => detail.printings.filter((p) => p.imageUrl || p.priceEur),
+    [detail],
+  );
+  const [printing, setPrinting] = useState<PrintingDTO | null>(printings[0] ?? null);
+  const [quantity, setQuantity] = useState(1);
+  const [foil, setFoil] = useState(false);
+  const [language, setLanguage] = useState("en");
+  const [condition, setCondition] = useState("near_mint");
+  const add = useMutation({
+    mutationFn: () =>
+      api<AddCardsResponse>("/api/collection/cards", {
+        body: {
+          cards: [
+            {
+              ...(printing
+                ? { scryfallId: printing.scryfallId }
+                : { oracleId: detail.card.oracleId }),
+              quantity,
+              foil,
+              language,
+              condition,
+            },
+          ],
+        },
+      }),
+    onSuccess: onDone,
+    onError: (e) => Alert.alert("No se ha podido añadir", e.message),
+  });
+  const price = printing ? (foil ? printing.priceEurFoil : printing.priceEur) : null;
+
+  return (
+    <View style={{ gap: 12, backgroundColor: colors.panel, borderRadius: radius.lg, padding: 14 }}>
+      <T variant="h2">Añadir a la colección</T>
+      <T variant="label">Edición</T>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8 }}
+      >
+        {printings.map((p) => {
+          const on = p.scryfallId === printing?.scryfallId;
+          return (
+            <Pressable
+              key={p.scryfallId}
+              onPress={() => {
+                setPrinting(p);
+                onPreview(p);
+              }}
+              style={{
+                padding: 6,
+                borderRadius: radius.md,
+                borderWidth: 2,
+                borderColor: on ? colors.accent : "transparent",
+                backgroundColor: colors.raised,
+                alignItems: "center",
+                gap: 4,
+                width: 84,
+              }}
+            >
+              <CardThumb uri={p.imageUrl} width={68} />
+              <T variant="small" style={{ fontWeight: "600" }} numberOfLines={1}>
+                {p.setCode.toUpperCase()} #{p.collectorNumber}
+              </T>
+              <T variant="mono" style={{ fontSize: 11 }}>
+                {euros(p.priceEur)}
+              </T>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      {printing?.setName && <T variant="small">{printing.setName}</T>}
+
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <T variant="label">Copias</T>
+        <Stepper value={quantity} onChange={setQuantity} min={1} />
+      </View>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <Chip label="Normal" active={!foil} onPress={() => setFoil(false)} />
+        <Chip label="★ Foil" active={foil} onPress={() => setFoil(true)} />
+        <View style={{ flex: 1 }} />
+        <T variant="mono" style={{ alignSelf: "center" }}>
+          {euros(price)}
+        </T>
+      </View>
+      <T variant="label">Idioma</T>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+        {LANGUAGE_OPTIONS.map((l) => (
+          <Chip
+            key={l.code}
+            label={l.label}
+            active={language === l.code}
+            onPress={() => setLanguage(l.code)}
+          />
+        ))}
+      </View>
+      <T variant="label">Estado</T>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+        {CONDITION_OPTIONS.map((c) => (
+          <Chip
+            key={c.code}
+            label={c.label}
+            active={condition === c.code}
+            onPress={() => setCondition(c.code)}
+          />
+        ))}
+      </View>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Button label="Cancelar" kind="secondary" onPress={onCancel} style={{ flex: 1 }} />
+        <Button
+          label={`Añadir ${quantity}`}
+          onPress={() => add.mutate()}
+          busy={add.isPending}
+          style={{ flex: 1 }}
+        />
+      </View>
+    </View>
+  );
+}

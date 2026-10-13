@@ -2,20 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { TRADE_TEXT } from "@/domain/social/notification-text";
 import { formatEuros } from "@/domain/suggestions/format";
-import type { NotificationDTO, NotificationsResponse } from "@/server/dto";
+import type { NotificationsResponse } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { IconBell } from "./icons";
 import { notifyNotificationsChanged } from "./local-collection";
 import { Banner, EmptyState, Loading, ago } from "./ui";
-
-const TRADE_TEXT: Partial<Record<NotificationDTO["type"], string>> = {
-  trade_proposal: "te ha propuesto un intercambio",
-  trade_counter: "te ha hecho una contrapropuesta",
-  trade_accepted: "ha aceptado vuestro intercambio: las cartas ya están en vuestras colecciones",
-  trade_rejected: "ha rechazado tu propuesta de intercambio",
-  trade_cancelled: "ha retirado la propuesta de intercambio",
-};
 
 /** /notifications: lo que han hecho las personas a las que sigues. Al abrirla, se marcan leídas. */
 export function NotificationsPage() {
