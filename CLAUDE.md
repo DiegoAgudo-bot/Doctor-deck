@@ -349,6 +349,11 @@ backend.commanderspellbook.com/find-my-combos?limit=500` con el mazo (nombres), 
   tienen más de 7 días (`syncOracleTags`); si Scryfall falla se avisa y se usan las de antes.
   Los nombres de las etiquetas están **pendientes de verificar** contra Scryfall real
   (`npm run otags:sync` avisa si alguna sale con 0 cartas).
+- **Portada** (UX U8, `app/(app)/page.tsx`): decide en el servidor (`hasSession`,
+  `server/landing.ts`, dentro de `<Suspense>`; las cabeceras se leen antes que la configuración):
+  sin sesión pinta `Landing` en el HTML (componente de servidor) con «Lo último de la comunidad»
+  (`landingDecks`: los 3 mazos públicos más nuevos con dueño e imagen del comandante; si falla,
+  sale sin la sección) y preguntas frecuentes; con sesión, el panel `Home` (cliente).
 - **UI** (`src/app`, `src/components`): páginas `/` (estado), `/collection` (subir CSV) y `/analyze`
   (pegar lista → curva, roles, cambios con aceptar/descartar, candados, exportar). Son componentes de
   cliente que solo hablan con la API JSON:

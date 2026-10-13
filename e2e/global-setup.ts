@@ -39,6 +39,9 @@ export default async function globalSetup(config: FullConfig) {
     const saved = await api.post("/api/decks", { data: { name, input: DECK } });
     if (!saved.ok()) throw new Error(`No se pudo guardar el mazo: ${saved.status()}`);
   }
+  // El nombre de usuario se crea al pedir el perfil: sin él, sus mazos no salen en Comunidad.
+  const profile = await api.get("/api/me/profile");
+  if (!profile.ok()) throw new Error(`No se pudo crear el perfil: ${profile.status()}`);
   mkdirSync("e2e/.auth", { recursive: true });
   await api.storageState({ path: "e2e/.auth/user.json" });
   await api.dispose();
