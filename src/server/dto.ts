@@ -500,7 +500,16 @@ export type CollectionImportResponse = Omit<CollectionImportSummary, "unmatched"
 
 /** Una carta de la colección (agrupada por oracleId) para la vista con filtros. */
 export interface CollectionCardDTO {
+  /** Identifica la fila (por carta, el oracleId; por variante, también edición, foil…). */
+  key: string;
   card: CardDTO;
+  /** Pidiendo `by: "copy"`: la variante de la fila. */
+  variant: {
+    scryfallId: string | null;
+    foil: boolean;
+    language: string | null;
+    condition: string | null;
+  } | null;
   roles: Role[];
   primaryRole: Role;
   quantity: number;
@@ -792,6 +801,8 @@ export const savedDeckDTO = (d: SavedDeck): SavedDeckDTO => ({
 });
 
 export const collectionCardDTO = (c: CollectionCard): CollectionCardDTO => ({
+  key: c.key,
+  variant: c.variant,
   // Con la imagen de la impresión que tengo (la de más copias), no la de referencia.
   card: cardWithPrintingDTO(c.card, c.printing ?? undefined),
   roles: c.roles.roles,

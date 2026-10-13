@@ -119,9 +119,24 @@ export async function addToCollection(
   return result;
 }
 
+/**
+ * Cómo se agrupa la colección: una fila por carta (todas sus copias juntas) o, como ManaBox, una
+ * por variante (misma edición, foil, idioma y estado).
+ */
+export type CollectionGrouping = "card" | "copy";
+
 /** Una carta de la colección con todo lo necesario para listarla y filtrarla. */
 export interface CollectionCard {
+  /** Identifica la fila: el oracleId o, por variante, oracleId|edición|foil|idioma|estado. */
+  key: string;
   card: Card;
+  /** Agrupando por variante: cuál es (null agrupando por carta). */
+  variant: {
+    scryfallId: string | null;
+    foil: boolean;
+    language: string | null;
+    condition: string | null;
+  } | null;
   roles: RoleSet;
   quantity: number;
   foilQuantity: number;
@@ -154,12 +169,15 @@ export interface CollectionCard {
 }
 
 /** La colección agrupada por carta (oracleId), con datos del catálogo, precio, roles y mazos. */
-export async function collectionView(deps: {
-  cards: CardRepository;
-  collection: CollectionRepository;
-  decks: DeckRepository;
-  classifier: RoleClassifier;
-}): Promise<CollectionCard[]> {
+export async function collectionView(
+  deps: {
+    cards: CardRepository;
+    collection: CollectionRepository;
+    decks: DeckRepository;
+    classifier: RoleClassifier;
+  },
+  grouping: CollectionGrouping = "card",
+): Promise<CollectionCard[]> {
   const entries = await deps.collection.entries();
   const ids = [...new Set(entries.map((e) => e.oracleId))];
   const printingIds = [...new Set(entries.flatMap((e) => (e.scryfallId ? [e.scryfallId] : [])))];
@@ -180,15 +198,42 @@ export async function collectionView(deps: {
   const out = new Map<string, CollectionCard>();
   /** Copias por impresión de cada carta, para enseñar la que más tengo. */
   const printingCopies = new Map<string, Map<string, number>>();
+  const roles = new Map<string, RoleSet>();
   for (const e of entries) {
     const card = byId.get(e.oracleId);
     if (!card) continue;
-    let item = out.get(e.oracleId);
+    const language0 = normalizeLanguage(e.language) ?? e.language;
+    const key =
+      grouping === "card"
+        ? e.oracleId
+        : [
+            e.oracleId,
+            e.scryfallId?.toLowerCase() ?? "",
+            e.foil ? "f" : "",
+            language0 ?? "",
+            e.condition ?? "",
+          ].join("|");
+    let item = out.get(key);
     if (!item) {
       const u = usage.get(e.oracleId);
+      let r = roles.get(e.oracleId);
+      if (!r) {
+        r = deps.classifier.classify(card);
+        roles.set(e.oracleId, r);
+      }
       item = {
+        key,
         card,
-        roles: deps.classifier.classify(card),
+        variant:
+          grouping === "card"
+            ? null
+            : {
+                scryfallId: e.scryfallId,
+                foil: e.foil,
+                language: language0,
+                condition: e.condition,
+              },
+        roles: r,
         quantity: 0,
         foilQuantity: 0,
         sets: [],
@@ -202,7 +247,7 @@ export async function collectionView(deps: {
         usedIn: u?.decks ?? [],
         inUse: u?.quantity ?? 0,
       };
-      out.set(e.oracleId, item);
+      out.set(key, item);
     }
     item.quantity += e.quantity;
     const unit = unitPrice(e);
@@ -210,9 +255,9 @@ export async function collectionView(deps: {
     if (e.foil) item.foilQuantity += e.quantity;
     const sid = e.scryfallId?.toLowerCase();
     if (sid && byPrinting.has(sid)) {
-      const copies = printingCopies.get(e.oracleId) ?? new Map<string, number>();
+      const copies = printingCopies.get(key) ?? new Map<string, number>();
       copies.set(sid, (copies.get(sid) ?? 0) + e.quantity);
-      printingCopies.set(e.oracleId, copies);
+      printingCopies.set(key, copies);
     }
     if (e.setCode && !item.sets.includes(e.setCode.toUpperCase())) {
       item.sets.push(e.setCode.toUpperCase());
@@ -236,10 +281,10 @@ export async function collectionView(deps: {
     }
     if (e.addedAt > item.lastAdded) item.lastAdded = e.addedAt;
   }
-  for (const [oracleId, item] of out) {
+  for (const [key, item] of out) {
     item.languages.sort((a, b) => b.quantity - a.quantity);
     let best: [string, number] | undefined;
-    for (const entry of printingCopies.get(oracleId) ?? []) {
+    for (const entry of printingCopies.get(key) ?? []) {
       if (!best || entry[1] > best[1]) best = entry;
     }
     item.printing = best ? (byPrinting.get(best[0]) ?? null) : null;

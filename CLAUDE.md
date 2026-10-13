@@ -91,7 +91,9 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   Además, cartas sueltas (`addToCollection`, `application/collection-cards.ts`): se resuelven por
   `oracleId` (buscador web), `scryfallId` (lo que dará el escáner de la app móvil) o nombre, y se
   guardan con `matchMethod = "manual"`; reimportar el CSV **no** las borra. `collectionView` agrupa
-  la colección por carta (con la imagen de la impresión de la que tengo más copias) con catálogo, precio, roles, idiomas y mazos que la usan; `browseMyCollection` filtra,
+  la colección por carta (con la imagen de la impresión de la que tengo más copias) o, con
+  `by: "copy"` en `/api/collection/view` (la app lo usa por defecto, como ManaBox), por variante
+  (edición, foil, idioma y estado; `CollectionCard.key`/`variant`) con catálogo, precio, roles, idiomas y mazos que la usan; `browseMyCollection` filtra,
   ordena y pagina en el servidor (`domain/collection/browse.ts`; la web pide 48 por página).
   `summary.totalCards` = copias identificadas (sin las filas sin emparejar). Cada copia guarda su
   idioma (`CollectionEntry.language`, código de Scryfall: `en`, `es`, `ja`…; `normalizeLanguage` en

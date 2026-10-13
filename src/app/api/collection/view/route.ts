@@ -36,6 +36,8 @@ const schema = z.object({
         .optional(),
     })
     .default({}),
+  /** Una fila por carta o, como ManaBox, por variante (edición, foil, idioma y estado). */
+  by: z.enum(["card", "copy"]).default("card"),
   sort: z.enum(COLLECTION_SORTS).default("nombre"),
   dir: z.enum(["asc", "desc"]).optional(),
   offset: z.number().int().min(0).default(0),
@@ -51,7 +53,7 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const user = await currentUser(request);
-    const { collection, username, roleEdits, ...query } = schema.parse(
+    const { collection, username, roleEdits, by, ...query } = schema.parse(
       await request.json().catch(() => ({})),
     );
     const c = getContainer();
@@ -74,21 +76,24 @@ export async function POST(request: Request) {
       decks: ownerId ? c.decksFor(ownerId) : noSavedDecks,
     };
     const load = async () =>
-      collectionView({
-        ...deps,
-        // Con las correcciones de roles del dueño (o, sin sesión, las del navegador).
-        classifier: withOverrides(c.classifier, {
-          mine: overridesOf(
-            ownerId
-              ? await c.roleOverridesFor(ownerId).all()
-              : await loadRoleEdits(null, roleEdits),
-          ),
-        }),
-      });
+      collectionView(
+        {
+          ...deps,
+          // Con las correcciones de roles del dueño (o, sin sesión, las del navegador).
+          classifier: withOverrides(c.classifier, {
+            mine: overridesOf(
+              ownerId
+                ? await c.roleOverridesFor(ownerId).all()
+                : await loadRoleEdits(null, roleEdits),
+            ),
+          }),
+        },
+        by,
+      );
     // La de un usuario se guarda en caché; la del navegador (sin cuenta) viene en cada petición.
     const view = await timing.step("view", async () => {
       if (!ownerId) return load();
-      const r = await c.collectionViews.get(ownerId, load);
+      const r = await c.collectionViews.get(`${ownerId}|${by}`, load);
       timing.add(r.hit ? "cache-hit" : "cache-miss", 0);
       return r.value;
     });
