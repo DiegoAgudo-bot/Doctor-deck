@@ -67,9 +67,11 @@ export function GroupsPage() {
           <Link className="btn" href="/play">
             Contador de vidas
           </Link>
-          <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
-            <IconPlus size={14} /> Nuevo grupo
-          </button>
+          {groups && groups.length > 0 && (
+            <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
+              <IconPlus size={14} /> Nuevo grupo
+            </button>
+          )}
         </div>
       </div>
       {error && <Banner tone="out">{error}</Banner>}

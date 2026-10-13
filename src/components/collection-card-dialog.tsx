@@ -132,8 +132,8 @@ export function CollectionCardDialog({
               Prestar
             </button>
           )}
-          <button type="button" className="btn btn-primary" onClick={onClose}>
-            Hecho
+          <button type="button" className="btn" onClick={onClose}>
+            Cerrar
           </button>
         </>
       }

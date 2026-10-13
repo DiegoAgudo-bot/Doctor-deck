@@ -159,7 +159,7 @@ export function ActivityFeed({ compact = false }: { compact?: boolean }) {
             title={following === 0 ? "Aún no sigues a nadie" : "Nada nuevo por aquí"}
             action={
               <div className="flex flex-wrap justify-center gap-2">
-                <Link className="btn btn-primary" href="/community">
+                <Link className={compact ? "btn" : "btn btn-primary"} href="/community">
                   <IconUsers size={14} /> Buscar gente
                 </Link>
                 <Link className="btn" href="/groups">

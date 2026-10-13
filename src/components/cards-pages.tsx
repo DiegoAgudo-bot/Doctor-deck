@@ -510,7 +510,7 @@ export function CardDetailPage() {
                     )
                   }
                 >
-                  {d.mine && d.mine.wished > 0 ? "Quitar de mi lista de deseos" : "La quiero"}
+                  {d.mine && d.mine.wished > 0 ? "Quitar de mi lista de deseos" : "Añadir a deseos"}
                 </button>
               </>
             )}

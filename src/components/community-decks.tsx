@@ -12,6 +12,14 @@ import { Banner, EmptyState, fmt, TilesSkeleton } from "./ui";
 
 const PAGE = 24;
 const COLORS = ["W", "U", "B", "R", "G"] as const;
+const COLOR_NAME: Record<string, string> = {
+  W: "Blanco",
+  U: "Azul",
+  B: "Negro",
+  R: "Rojo",
+  G: "Verde",
+  C: "Incoloro",
+};
 const SORTS: [CommunitySort, string][] = [
   ["recent", "Recientes"],
   ["owned", "Los que más tengo"],
@@ -164,7 +172,8 @@ export function CommunityDecks() {
                   aria-pressed={on}
                   className={`chipbtn ${on ? "is-on" : ""}`}
                   onClick={() => toggleColor(c)}
-                  title={c === "C" ? "Incoloro" : undefined}
+                  aria-label={COLOR_NAME[c]}
+                  title={COLOR_NAME[c]}
                 >
                   <ColorPips colors={[c]} />
                 </button>
