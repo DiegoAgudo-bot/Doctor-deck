@@ -7,6 +7,9 @@ import type { DeckVisibility } from "@/domain/deck/visibility";
 import { VisibilityPicker } from "./deck-visibility";
 import { Dialog } from "./ui";
 
+/** Tras crear la cuenta o entrar: de vuelta al mazo (sigue en el navegador) y a guardarlo. */
+const AFTER_ACCOUNT = encodeURIComponent("/analyze?analyze=1&save=1");
+
 /** Guardar en "Mis mazos". Sin sesión, invita a entrar (el mazo sigue en el navegador). */
 export function SaveDialog({
   open,
@@ -56,16 +59,18 @@ export function SaveDialog({
         width={380}
         footer={
           <>
-            <Link className="btn" href="/signup?next=/analyze">
+            <Link className="btn btn-primary" href={`/signup?next=${AFTER_ACCOUNT}`}>
               Crear cuenta
             </Link>
-            <Link className="btn btn-primary" href="/login?next=/analyze">
+            <Link className="btn" href={`/login?next=${AFTER_ACCOUNT}`}>
               Entrar
             </Link>
           </>
         }
       >
-        <p>Para guardar mazos necesitas una cuenta.</p>
+        <p>
+          Para guardar mazos necesitas una cuenta (gratis). Al crearla vuelves aquí para guardarlo.
+        </p>
         <p className="muted text-[13px]">
           Tu lista, los candados y los descartes se quedan en este navegador: al volver los
           encontrarás tal cual. Los mazos guardados además descuentan sus cartas al analizar otros.

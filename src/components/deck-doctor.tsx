@@ -245,7 +245,12 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       if (params.has("analyze") && restored.input.trim()) {
         window.history.replaceState(null, "", "/analyze");
         setOpening(true);
-        void analyze(restored, []).finally(() => setOpening(false));
+        void analyze(restored, [])
+          .then(() => {
+            // ?save=1: vuelve de crear la cuenta desde «Guardar mazo»; se termina de guardar.
+            if (params.has("save")) setDialog("save");
+          })
+          .finally(() => setOpening(false));
       }
     }
     setHydrated(true);
