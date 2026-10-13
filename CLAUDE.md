@@ -95,6 +95,8 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   `by: "copy"` en `/api/collection/view` (la app lo usa por defecto, como ManaBox), por variante
   (edición, foil, idioma y estado; `CollectionCard.key`/`variant`) con catálogo, precio, roles, idiomas y mazos que la usan; `browseMyCollection` filtra,
   ordena y pagina en el servidor (`domain/collection/browse.ts`; la web pide 48 por página).
+  En la web, los filtros secundarios (tipo, rol, coste, origen, uso, idioma, foil, comandante)
+  van plegados detrás de «Más filtros · N» (`.filters-more`).
   `summary.totalCards` = copias identificadas (sin las filas sin emparejar). Cada copia guarda su
   idioma (`CollectionEntry.language`, código de Scryfall: `en`, `es`, `ja`…; `normalizeLanguage` en
   `domain/cards/languages.ts` acepta también "Japanese"…): sale del `Language` del CSV o del campo

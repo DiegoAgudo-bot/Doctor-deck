@@ -195,22 +195,38 @@ export function TradesPage() {
       </div>
       {error && <Banner tone="out">{error}</Banner>}
 
-      <label className="check panel p-3">
-        <input
-          type="checkbox"
-          checked={mine.public}
-          disabled={busy}
-          onChange={(e) => void setPublic(e.target.checked)}
-        />
-        <span>
-          Mis listas son públicas
-          <span className="subtle block text-xs">
-            {mine.public
-              ? "Salen en tu perfil y en los cruces de otros jugadores. Te avisaremos cuando alguien tenga algo que buscas."
-              : "Solo las ves tú. Hazlas públicas para cruzarlas con las de otros (y que ellos te encuentren)."}
+      {mine.public ? (
+        <p className="subtle text-[13px]">
+          Tus listas son públicas: salen en tu perfil y en los cruces de otros jugadores.{" "}
+          <button
+            type="button"
+            className="linkbtn underline"
+            disabled={busy}
+            onClick={() => void setPublic(false)}
+          >
+            Hacerlas privadas
+          </button>
+        </p>
+      ) : (
+        <Banner
+          tone="info"
+          action={
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              disabled={busy}
+              onClick={() => void setPublic(true)}
+            >
+              Hacerlas públicas
+            </button>
+          }
+        >
+          <b>Tus listas son privadas.</b>{" "}
+          <span className="muted">
+            Hazlas públicas para cruzarlas con las de otros jugadores (y que ellos te encuentren).
           </span>
-        </span>
-      </label>
+        </Banner>
+      )}
 
       <nav className="tabs" aria-label="Secciones de intercambios">
         {(

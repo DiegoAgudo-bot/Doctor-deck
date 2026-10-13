@@ -339,6 +339,17 @@ export function CollectionBrowser({
     f.foil ||
     f.commander ||
     f.language !== "";
+  /** Filtros de la segunda fila activos (van plegados detrás de «Más filtros»). */
+  const moreActive = [
+    f.type !== "",
+    f.role !== "",
+    f.cmc !== null,
+    f.origin !== "",
+    f.use !== "",
+    f.foil,
+    f.commander,
+    f.language !== "",
+  ].filter(Boolean).length;
 
   return (
     <div className="flex flex-col gap-3">
@@ -358,8 +369,7 @@ export function CollectionBrowser({
             aria-expanded={filtersOpen}
             onClick={() => setFiltersOpen((o) => !o)}
           >
-            Filtros{active ? " ·" : ""}
-            {active && <span className="dot" style={{ background: "var(--color-accent)" }} />}
+            {moreActive > 0 ? `Más filtros · ${moreActive}` : "Más filtros"}
           </button>
           <div
             className="filters-extra flex flex-wrap items-center gap-1"
@@ -405,7 +415,7 @@ export function CollectionBrowser({
             </select>
           </div>
         </div>
-        <div className="filters-extra flex flex-wrap items-center gap-2">
+        <div className="filters-extra filters-more flex flex-wrap items-center gap-2">
           <select
             className="select"
             style={{ width: "auto" }}

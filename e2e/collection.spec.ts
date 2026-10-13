@@ -27,8 +27,11 @@ test("ordena por precio en las dos direcciones y lo recuerda", async ({ page }) 
 test("filtra las que pueden ser comandante y desde una se crea un mazo", async ({ page }) => {
   await page.goto("/collection");
   await expect(page.locator("figure").first()).toBeVisible();
+  // Los filtros secundarios van plegados detrás de «Más filtros».
+  await page.getByRole("button", { name: /^Más filtros/ }).click();
   const commander = page.getByLabel("Pueden ser comandante");
   await commander.check();
+  await expect(page.getByRole("button", { name: "Más filtros · 1" })).toBeVisible();
   await expect
     .poll(async () => (await names(page)).sort())
     .toEqual(["Teferi, Temporal Archmage", "Ultros, Obnoxious Octopus"]);

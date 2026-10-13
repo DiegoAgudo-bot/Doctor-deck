@@ -15,7 +15,6 @@ import { CollectionBrowser } from "./collection-browser";
 import { DeckTile } from "./deck-tile";
 import { localCollection, ownedPairs } from "./local-collection";
 import { PartnerCard } from "./trades-page";
-import { nextVisibility, setDeckVisibility } from "./deck-visibility";
 import { IconEyeOff, IconSettings } from "./icons";
 import { Banner, Dialog, EmptyState, Loading, fmt } from "./ui";
 
@@ -283,20 +282,6 @@ export function ProfilePage() {
                 ownership={extra.get(d.id)?.ownership}
                 likes={extra.get(d.id)?.likes}
                 bracket={extra.get(d.id)?.bracket}
-                onToggleVisibility={
-                  view.isMe
-                    ? () =>
-                        void setDeckVisibility(api, d.id, nextVisibility(d.visibility)).then(
-                          ({ visibility }) =>
-                            setView({
-                              ...view,
-                              decks: view.decks.map((x) =>
-                                x.id === d.id ? { ...x, visibility } : x,
-                              ),
-                            }),
-                        )
-                    : undefined
-                }
               />
             ))}
           </div>

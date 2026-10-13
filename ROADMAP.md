@@ -316,6 +316,11 @@ PR por fase, que se mergea cuando el CI está en verde.
 | U9   | Crear un mazo «Con mis cartas» (recomendadas de EDHREC que tengo libres)            | Alto       | ✅     |
 | U10  | Barra de acción fija en el mazo (móvil) y letra más legible en el móvil             | Bajo       | ✅     |
 
+Pulido después del plan: sin «Tu mesa» en la portada (la repetía la barra del móvil), filtros
+secundarios de la colección detrás de «Más filtros», comentarios solo en Lista y «Qué me falta»,
+la cifra de cada cambio explicada, el perfil propio sin los botones de visibilidad (están en Mis
+mazos) y en Intercambios un aviso para hacer públicas las listas en vez de una casilla.
+
 Ya hecho antes de este plan (PR #20): mazo de ejemplo, aviso de colección encima del analizador,
 un solo CTA primario en la portada, zonas táctiles y campos de 16 px, contraste y foco.
 

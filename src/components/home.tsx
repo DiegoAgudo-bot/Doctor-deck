@@ -7,15 +7,7 @@ import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardImage } from "./card-image";
 import { ActivityFeed } from "./feed-page";
-import {
-  IconCollection,
-  IconCrown,
-  IconDecks,
-  IconLoan,
-  IconPlus,
-  IconSwap,
-  IconUsers,
-} from "./icons";
+import { IconPlus } from "./icons";
 import { Landing } from "./landing";
 import {
   LOCAL_COLLECTION_EVENT,
@@ -224,43 +216,6 @@ export function Home() {
           </Link>
         </div>
         <ActivityFeed compact />
-      </section>
-
-      {/* En escritorio todo esto ya está en el lateral; en el móvil no hay lateral. */}
-      <section className="only-sm flex-col gap-2">
-        <span className="h2">Tu mesa</span>
-        <div className="quicklinks">
-          <Link href="/play" className="quicklink ql-play">
-            <IconCrown size={20} />
-            <b>Contador de vidas</b>
-            <span>Vidas, comandante y veneno</span>
-          </Link>
-          <Link href="/groups" className="quicklink">
-            <IconUsers size={20} />
-            <b>Grupos</b>
-            <span>Partidas, ranking y quién tiene qué</span>
-          </Link>
-          <Link href="/loans" className="quicklink">
-            <IconLoan size={20} />
-            <b>Préstamos</b>
-            <span>Lo que has dejado y te han dejado</span>
-          </Link>
-          <Link href="/community" className="quicklink">
-            <IconDecks size={20} />
-            <b>Comunidad</b>
-            <span>Mazos que ya puedes montar</span>
-          </Link>
-          <Link href="/trades" className="quicklink">
-            <IconSwap size={20} />
-            <b>Intercambios</b>
-            <span>Quién tiene lo que buscas</span>
-          </Link>
-          <Link href="/cards" className="quicklink">
-            <IconCollection size={20} />
-            <b>Buscar cartas</b>
-            <span>Precios, ediciones y crear mazos</span>
-          </Link>
-        </div>
       </section>
     </main>
   );
