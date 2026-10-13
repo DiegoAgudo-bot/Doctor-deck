@@ -21,7 +21,7 @@ window.LOGOS = [
   },
   {
     slug: "5-gema-de-mana",
-    name: "Gema de maná",
-    idea: "Un pentágono con los cinco colores (blanco, azul, negro, rojo, verde) y la cruz en el centro: Commander e identidad de color. Colores propios, sin copiar los símbolos oficiales.",
+    name: "Gema de maná (elegida)",
+    idea: "Un pentágono con los cinco colores (blanco, azul, negro, rojo, verde): Commander e identidad de color. Colores propios, sin copiar los símbolos oficiales. Es el logo de la app.",
   },
 ];

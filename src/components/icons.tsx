@@ -27,17 +27,24 @@ function Icon({
 
 type P = { size?: number; weight?: number } & SVGProps<SVGSVGElement>;
 
-/** Logo: carta con una cruz. */
+/**
+ * Logo: gema de cinco caras con los colores del maná (blanco, azul, negro, rojo, verde), en una
+ * caja de 24×24. También lo usa `scripts/make-icons.tsx` para los iconos de la web y de la app.
+ */
+export const LOGO_FACETS: readonly (readonly [d: string, fill: string])[] = [
+  ["M12.42 12.32L12.42 2.32L21.93 9.23Z", "#f3e6c2"],
+  ["M12.68 13.12L22.19 10.03L18.56 21.21Z", "#6cb0ff"],
+  ["M12 13.61L17.88 21.7L6.12 21.7Z", "#8a7f9a"],
+  ["M11.32 13.12L5.44 21.21L1.81 10.03Z", "#f06a5f"],
+  ["M11.58 12.32L2.07 9.23L11.58 2.32Z", "#4fc16a"],
+];
+
 export function Logo({ size = 22 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="5" y="2" width="14" height="20" rx="2" stroke="currentColor" strokeWidth="1.8" />
-      <path
-        d="M12 8v8M8 12h8"
-        stroke="var(--color-accent)"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      {LOGO_FACETS.map(([d, fill]) => (
+        <path key={fill} d={d} fill={fill} />
+      ))}
     </svg>
   );
 }
