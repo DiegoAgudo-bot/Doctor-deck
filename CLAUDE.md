@@ -410,7 +410,10 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     En un mazo mío guardado **todo se guarda solo** (UX U2: `analyze(…, { persist: true })` →
     `persistDeck`): aplicar cambios, tema, «Cambiar lista», editor y edición; candados y
     descartes al momento. Ahí el botón de la cabecera es «Guardar como nuevo». La lista de temas
-    de EDHREC se recuerda (la página de un tema no la trae).
+    de EDHREC se recuerda (la página de un tema no la trae). En su página, un mazo mío guardado
+    tiene «Exportar» y «Ajustes» (`DeckSettingsDialog`: nombre, visibilidad, duplicar —abre
+    «Guardar como nuevo»—, reemplazar la lista y borrar con confirmación); el bracket objetivo
+    sigue en Estadísticas y la lista de deseos en «Qué me falta».
 - **Usuarios** (Fase 8, Better Auth, `src/server/auth.ts`): email + contraseña (scrypt, mínimo 8)
   y Google si hay `GOOGLE_CLIENT_ID/SECRET`; "olvidé mi contraseña" solo si hay `SMTP_URL`
   (`adapters/mail`; con el SMTP de Resend se usa su API HTTPS, porque el VPS bloquea los puertos
