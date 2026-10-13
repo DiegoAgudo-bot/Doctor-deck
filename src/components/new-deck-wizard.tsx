@@ -23,7 +23,7 @@ import { localCollection, notifyDecksChanged, ownedPairs } from "./local-collect
 import { ColorPips } from "./mana";
 import { Banner, Loading, fmt } from "./ui";
 
-type Mode = "average" | "empty";
+type Mode = "average" | "owned" | "empty";
 /** De dónde sale el mazo: el comandante (mazo medio o vacío) o una lista/enlace que ya tengo. */
 type Source = "commander" | "list";
 
@@ -74,6 +74,13 @@ export function NewDeckWizard() {
   const [list, setList] = useState("");
   /** Cartas de mi colección que pueden ser comandante (atajos del paso 1). */
   const [mine, setMine] = useState<CardDTO[] | null>(null);
+  /** Sin cuenta, si hay colección en este navegador (para «Con mis cartas»). */
+  const [hasLocal, setHasLocal] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage, tras montar
+    setHasLocal(localCollection.get() !== null);
+  }, []);
+  const hasCollection = loggedIn || hasLocal;
 
   // ?from=list: abrir en «Importar una lista».
   useEffect(() => {
@@ -197,12 +204,16 @@ export function NewDeckWizard() {
         body: JSON.stringify({
           commanderIds: commanders.map((c) => c.oracleId),
           mode,
-          ...(mode === "average" && theme ? { theme } : {}),
+          ...(mode !== "empty" && theme ? { theme } : {}),
+          // Sin cuenta, «con mis cartas» usa la colección del navegador.
+          ...(mode === "owned" && !loggedIn
+            ? { collection: ownedPairs(localCollection.get()) }
+            : {}),
           ...(finalName.trim() ? { name: finalName.trim() } : {}),
           visibility,
         }),
       });
-      const tab = mode === "empty" ? "list&edit=1" : "missing";
+      const tab = mode === "empty" ? "list&edit=1" : mode === "owned" ? "list" : "missing";
       if (res.saved && res.id) {
         notifyDecksChanged();
         router.push(`/decks/${res.id}?tab=${tab}`);
@@ -419,7 +430,9 @@ export function NewDeckWizard() {
               <div className="flex flex-col gap-4 p-3.5">
                 <div
                   className="grid-1-sm grid gap-3"
-                  style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
+                  style={{
+                    gridTemplateColumns: `repeat(${hasCollection ? 3 : 2}, minmax(0, 1fr))`,
+                  }}
                 >
                   {(
                     [
@@ -428,6 +441,15 @@ export function NewDeckWizard() {
                         "Con el mazo medio de EDHREC",
                         "Las ~99 cartas que juega de media la gente con este comandante. Después te digo qué tienes, qué te falta y qué cambiar.",
                       ],
+                      ...(hasCollection
+                        ? ([
+                            [
+                              "owned",
+                              "Con mis cartas",
+                              "Lo que EDHREC recomienda para este comandante y tienes libre en tu colección, más básicas hasta 36 tierras. Si no llega a 99, completas el resto.",
+                            ],
+                          ] as const)
+                        : []),
                       [
                         "empty",
                         "Desde cero",
@@ -453,7 +475,7 @@ export function NewDeckWizard() {
                   ))}
                 </div>
 
-                {mode === "average" && (
+                {mode !== "empty" && (
                   <div className="field">
                     <span className="label">Tema de EDHREC</span>
                     {loadingInfo ? (
@@ -515,18 +537,24 @@ export function NewDeckWizard() {
                   <button
                     type="button"
                     className="btn btn-primary btn-lg full-sm"
-                    disabled={busy || (mode === "average" && loadingInfo)}
+                    disabled={busy || (mode !== "empty" && loadingInfo)}
                     onClick={() => void create()}
                   >
                     {busy
                       ? "Creando…"
                       : mode === "average"
                         ? "Crear con el mazo medio"
-                        : "Crear vacío"}
+                        : mode === "owned"
+                          ? "Crear con mis cartas"
+                          : "Crear vacío"}
                   </button>
                 </div>
-                {busy && mode === "average" && (
-                  <Loading>Montando el mazo medio con los datos de EDHREC…</Loading>
+                {busy && mode !== "empty" && (
+                  <Loading>
+                    {mode === "owned"
+                      ? "Buscando en tu colección lo que recomienda EDHREC…"
+                      : "Montando el mazo medio con los datos de EDHREC…"}
+                  </Loading>
                 )}
               </div>
             </section>

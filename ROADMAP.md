@@ -313,7 +313,7 @@ PR por fase, que se mergea cuando el CI está en verde.
 | U6   | Barra inferior del móvil con Mazos y «Más»                                          | Medio      | ✅     |
 | U7   | Registro sin fricción y sin perder lo hecho antes de tener cuenta                   | Medio      | ✅     |
 | U8   | Portada pintada en el servidor, mazos reales de la comunidad y preguntas frecuentes | Medio      | ✅     |
-| U9   | Crear un mazo «Con mis cartas» (recomendadas de EDHREC que tengo libres)            | Alto       |        |
+| U9   | Crear un mazo «Con mis cartas» (recomendadas de EDHREC que tengo libres)            | Alto       | ✅     |
 | U10  | Barra de acción fija en el mazo (móvil) y letra más legible en el móvil             | Bajo       |        |
 
 Ya hecho antes de este plan (PR #20): mazo de ejemplo, aviso de colección encima del analizador,

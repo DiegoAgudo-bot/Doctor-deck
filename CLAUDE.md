@@ -488,6 +488,12 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   «Importar una lista o enlace» (`?from=list`; con sesión `POST /api/decks` y se abre el mazo; si
   la lista no dice el comandante —`no_commander`— o no hay sesión, se abre en el analizador).
   Con sesión, la barra superior dice «Mis mazos» en vez de «Analizar mazo».
+  UX U9: tercer modo `owned` («Con mis cartas», si hay colección): `buildOwnedDeck`
+  (`domain/deck/owned-deck.ts`) toma las recomendaciones de EDHREC (general o del tema) que tengo
+  libres (colección − `decks.usage()`; sin cuenta, la del navegador en `collection`), legales y
+  de la identidad, por inclusión + sinergia; hasta 36 tierras (no básicas mías y el resto
+  básicas repartidas, Wastes si es incoloro) y hasta 63 hechizos. Si no llega, `warning` dice
+  cuántos faltan y el mazo se abre en la Lista.
   Editor: en la pestaña Lista de un mazo propio o sin guardar, "Añadir cartas" (buscador con
   `identity=` de los colores del comandante y recomendadas de tu colección) y −/+ en la tabla;
   cada cambio (`changeCard` en `domain/deck/export.ts`) reanaliza y, si es un mazo guardado, lo
