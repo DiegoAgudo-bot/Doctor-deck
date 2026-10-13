@@ -309,7 +309,7 @@ PR por fase, que se mergea cuando el CI está en verde.
 | U2   | Los mazos guardados se guardan solos (cambios aplicados, tema, candados, descartes) | Medio      | ✅     |
 | U3   | Ajustes del mazo en su página (nombre, visibilidad, duplicar, reemplazar, borrar)   | Bajo-medio | ✅     |
 | U4   | Colección y cartas → mazos: «Añadir a un mazo», «Crear mazo», comandantes que tengo | Medio      | ✅     |
-| U5   | Un único «Nuevo mazo» (comandante o lista/enlace, siempre se guarda)                | Medio      |        |
+| U5   | Un único «Nuevo mazo» (comandante o lista/enlace, siempre se guarda)                | Medio      | ✅     |
 | U6   | Barra inferior del móvil con Mazos y «Más»                                          | Medio      |        |
 | U7   | Registro sin fricción y sin perder lo hecho antes de tener cuenta                   | Medio      |        |
 | U8   | Portada pintada en el servidor, mazos reales de la comunidad y preguntas frecuentes | Medio      |        |

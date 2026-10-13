@@ -122,7 +122,7 @@ export function SavedDecks() {
           )}
         </h1>
         <div className="flex flex-wrap gap-2">
-          <Link className="btn" href="/analyze?new=1">
+          <Link className="btn" href="/decks/new?from=list">
             Importar lista
           </Link>
           <Link className="btn btn-primary" href="/decks/new">
@@ -162,7 +162,7 @@ export function SavedDecks() {
                 <Link className="btn btn-primary" href="/decks/new">
                   Crear desde un comandante
                 </Link>
-                <Link className="btn" href="/analyze?new=1">
+                <Link className="btn" href="/decks/new?from=list">
                   Importar una lista
                 </Link>
               </div>

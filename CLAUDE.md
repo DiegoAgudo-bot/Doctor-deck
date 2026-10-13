@@ -469,6 +469,11 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   Aristócratas" (combinaciones Boros/Jund/… y temas de EDHREC traducidos). API: `GET
 /api/commanders?ids=` (temas y nombre) y `POST /api/decks/new` (con sesión guarda y devuelve
   `id`; sin ella devuelve la lista para abrirla en `/analyze?analyze=1`).
+  UX U5: «Nuevo mazo» es la única entrada para crear: pestañas «Desde un comandante» (con
+  atajos «De tu colección»: mis cartas que pueden ser comandante, `filters.commander`) e
+  «Importar una lista o enlace» (`?from=list`; con sesión `POST /api/decks` y se abre el mazo; si
+  la lista no dice el comandante —`no_commander`— o no hay sesión, se abre en el analizador).
+  Con sesión, la barra superior dice «Mis mazos» en vez de «Analizar mazo».
   Editor: en la pestaña Lista de un mazo propio o sin guardar, "Añadir cartas" (buscador con
   `identity=` de los colores del comandante y recomendadas de tu colección) y −/+ en la tabla;
   cada cambio (`changeCard` en `domain/deck/export.ts`) reanaliza y, si es un mazo guardado, lo
