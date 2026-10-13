@@ -405,6 +405,10 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     colección, mazos, buscador, errores y, en móvil (`mobile.spec.ts`), la hoja de carta y que
     ninguna página tenga scroll horizontal. El CI las corre tras la build. Las especificaciones
     usan `test` de `e2e/fixtures.ts`, que falla si la página lanza errores de JavaScript.
+  - **Barra inferior del móvil** (UX U6, `BottomNav`): con cuenta Inicio · Mazos · Colección ·
+    Jugar · Más (hoja `Dialog` con perfil, nuevo mazo, cartas, comunidad, actividad, grupos,
+    intercambios, préstamos, ajustes y salir; va fuera de `nav.bottomnav` para no heredar sus
+    estilos); sin cuenta Inicio · Analizar · Colección · Jugar · Entrar.
   - **Móvil**: las tablas con `.rtable` pasan a tarjetas (celdas `rt-qty`, `rt-main`, `rt-end`
     en la primera línea; el resto debajo) y todos los `.dialog` salen desde abajo como hojas.
     **Buscador global** (`GlobalSearch` en la cabecera, atajo `/`; en el móvil, hoja a pantalla
