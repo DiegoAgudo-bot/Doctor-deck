@@ -407,6 +407,10 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
   - Estado del mazo (lista, tema, bloqueadas, descartadas) en `localStorage` del navegador.
     "Aplicar cambios y recalcular" reescribe la lista con `applySwaps` + `exportDecklist`
     (`domain/deck/export.ts`) y vuelve a analizar excluyendo las cartas descartadas.
+    En un mazo mío guardado **todo se guarda solo** (UX U2: `analyze(…, { persist: true })` →
+    `persistDeck`): aplicar cambios, tema, «Cambiar lista», editor y edición; candados y
+    descartes al momento. Ahí el botón de la cabecera es «Guardar como nuevo». La lista de temas
+    de EDHREC se recuerda (la página de un tema no la trae).
 - **Usuarios** (Fase 8, Better Auth, `src/server/auth.ts`): email + contraseña (scrypt, mínimo 8)
   y Google si hay `GOOGLE_CLIENT_ID/SECRET`; "olvidé mi contraseña" solo si hay `SMTP_URL`
   (`adapters/mail`; con el SMTP de Resend se usa su API HTTPS, porque el VPS bloquea los puertos
