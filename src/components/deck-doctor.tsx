@@ -1057,6 +1057,25 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             </div>
           )}
 
+          {/* Móvil: el botón de aplicar queda arriba de la lista; con cambios aceptados, siempre a mano. */}
+          {tab === "changes" && accepted.length > 0 && (
+            <div className="actionbar only-sm" role="region" aria-label="Cambios aceptados">
+              <span className="text-[13px]">
+                {accepted.length === 1
+                  ? "1 cambio aceptado"
+                  : `${accepted.length} cambios aceptados`}
+              </span>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy !== null}
+                onClick={() => void applyAndRecalculate()}
+              >
+                {analyzing ? "Recalculando…" : `Aplicar ${accepted.length}`}
+              </button>
+            </div>
+          )}
+
           {tab === "missing" && (
             <OwnershipPanel
               ownership={ok.ownership}

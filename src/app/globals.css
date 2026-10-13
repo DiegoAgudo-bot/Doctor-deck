@@ -557,6 +557,20 @@
     .shell-notice {
       padding: 12px 14px 0;
     }
+    /* Barra fija de acción (p. ej. «Aplicar N» en los cambios de un mazo), sobre la inferior. */
+    .actionbar {
+      position: sticky;
+      bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+      z-index: 25;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--color-line-strong);
+      border-radius: var(--radius-md);
+      background: var(--color-panel);
+      box-shadow: var(--shadow-pop);
+    }
     .bottomnav {
       display: flex;
       position: sticky;
@@ -3327,5 +3341,29 @@
     display: flex;
     gap: 6px;
     font-size: 11.5px;
+  }
+}
+
+/* Letra del móvil al final, para que gane a las reglas de cada componente (UX U10). */
+@layer components {
+  @container app (max-width: 760px) {
+    /* Letra algo mayor en el móvil: la de escritorio (13–14 px) cansa en pantalla pequeña. */
+    .main {
+      font-size: 15px;
+    }
+    .h2 {
+      font-size: 16px;
+    }
+    .label {
+      font-size: 13.5px;
+    }
+    .hint,
+    .cap {
+      font-size: 12.5px;
+    }
+    .bottomnav a,
+    .bottomnav button {
+      font-size: 11.5px;
+    }
   }
 }
