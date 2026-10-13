@@ -55,6 +55,7 @@ import {
   ownedPairs,
 } from "./local-collection";
 import { ColorPips } from "./mana";
+import { SAMPLE_DECK } from "./sample-deck";
 import { Banner, Loading } from "./ui";
 
 interface Saved {
@@ -93,6 +94,11 @@ type Ok = Extract<AnalyzeResponse, { status: "ok" }>;
 type Tab = "changes" | "missing" | "list" | "combos" | "stats" | "buy";
 type Filter = "todos" | "pendientes" | "aceptados" | "descartados";
 
+/**
+ * Pestaña con la que se abre un análisis: sin colección no hay cambios que proponer (solo se
+ * proponen cartas que tengo), así que se empieza por lo que falta.
+ */
+const firstTab = (hasCollection: boolean): Tab => (hasCollection ? "changes" : "missing");
 const isLink = (s: string) => /^\s*https?:\/\//i.test(s);
 const shortName = (name: string) => name.split(/,| \/\/ /)[0] ?? name;
 
@@ -208,7 +214,15 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
         });
       return;
     }
-    if (params.has("new")) {
+    if (params.has("sample")) {
+      // Desde la portada: el mazo de ejemplo, analizado al momento.
+      window.history.replaceState(null, "", "/analyze");
+      const sample = { ...EMPTY, input: SAMPLE_DECK };
+      setSaved(sample);
+      setTab(firstTab(loggedIn || localCollection.get() !== null));
+      setOpening(true);
+      void analyze(sample, []).finally(() => setOpening(false));
+    } else if (params.has("new")) {
       window.history.replaceState(null, "", "/analyze");
       setSaved(EMPTY);
     } else {
@@ -605,8 +619,14 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           onCancel={ok ? () => setEditing(false) : null}
           onSubmit={() => {
             setChosen([]);
-            setTab("changes");
+            setTab(firstTab(hasCollection));
             void analyze({}, []);
+          }}
+          onSample={() => {
+            setChosen([]);
+            setMode("texto");
+            setTab(firstTab(hasCollection));
+            void analyze({ ...EMPTY, input: SAMPLE_DECK }, []);
           }}
           openDeck={saved.deckId !== null ? saved.name : null}
           onCloseDeck={() => {
@@ -1019,6 +1039,7 @@ function EntryForm({
   analyzing,
   onCancel,
   onSubmit,
+  onSample,
   openDeck,
   onCloseDeck,
 }: {
@@ -1034,12 +1055,30 @@ function EntryForm({
   analyzing: boolean;
   onCancel: (() => void) | null;
   onSubmit: () => void;
+  /** Analizar el mazo de ejemplo (sustituye la lista). */
+  onSample: () => void;
   openDeck: string | null;
   onCloseDeck: () => void;
 }) {
   return (
     <>
       <h1 className="h1">{title}</h1>
+      {!hasCollection && (
+        <Banner
+          tone="warn"
+          action={
+            <Link className="btn btn-sm" href="/collection">
+              Importar colección
+            </Link>
+          }
+        >
+          <b>Aún no tengo tu colección.</b>{" "}
+          <span className="muted">
+            Puedo analizar el mazo y decirte qué le falta y qué comprar, pero para proponerte
+            cambios con tus cartas sube el CSV de ManaBox.
+          </span>
+        </Banner>
+      )}
       <div
         className="grid-1-sm grid items-start gap-4"
         style={{ gridTemplateColumns: "minmax(0, 1fr) 300px" }}
@@ -1112,6 +1151,16 @@ function EntryForm({
               </label>
             )}
             <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
+              {!openDeck && !onCancel && (
+                <button
+                  type="button"
+                  className="btn btn-ghost mr-auto"
+                  disabled={analyzing}
+                  onClick={onSample}
+                >
+                  Probar con un mazo de ejemplo
+                </button>
+              )}
               {openDeck && (
                 <button type="button" className="btn btn-ghost mr-auto" onClick={onCloseDeck}>
                   Cerrar «{openDeck}»
@@ -1157,12 +1206,10 @@ function EntryForm({
               <span className="mono">Commander</span>/<span className="mono">Deck</span> o{" "}
               <span className="mono">*CMDR*</span>, y exports de Moxfield y Archidekt.
             </p>
-            {!hasCollection && (
-              <Banner tone="warn">
-                Sin colección solo puedo proponerte compras.{" "}
-                <Link href="/collection">Importa tu CSV de ManaBox</Link>.
-              </Banner>
-            )}
+            <p className="muted">
+              ¿No tienes la lista a mano? <Link href="/decks/new">Créalo desde un comandante</Link>{" "}
+              con el mazo medio de EDHREC.
+            </p>
           </div>
         </aside>
       </div>

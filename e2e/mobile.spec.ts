@@ -15,6 +15,7 @@ test("al tocar una carta sale su hoja con enlace a la ficha", async ({ page }) =
 
 for (const path of [
   "/",
+  "/analyze",
   "/collection",
   "/cards",
   "/decks",

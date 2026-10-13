@@ -612,9 +612,19 @@
   .btn:hover {
     background: var(--color-hover);
   }
-  .btn:focus-visible {
+  .btn:focus-visible,
+  .chipbtn:focus-visible,
+  .tabs > *:focus-visible,
+  .nav:focus-visible,
+  .deckrow:focus-visible,
+  .bottomnav a:focus-visible,
+  .linkbtn:focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 1px;
+  }
+  /* Dentro de una barra con scroll, el contorno por fuera se recortaría. */
+  .tabs > *:focus-visible {
+    outline-offset: -2px;
   }
   .btn-primary {
     background: var(--color-accent);
@@ -655,6 +665,9 @@
   }
   .btn-sm {
     height: 26px;
+  }
+  .btn-icon.btn-sm {
+    width: 26px;
   }
   .btn-group {
     display: inline-flex;
@@ -742,6 +755,42 @@
     flex: none;
   }
 
+  /*
+   * Pantallas táctiles: zonas de toque más grandes (los 26–32 px de escritorio se fallan con el
+   * dedo) y campos de 16 px, que con menos iOS amplía la página al enfocarlos.
+   */
+  @media (pointer: coarse) {
+    .btn {
+      min-height: 38px;
+    }
+    .btn-sm {
+      min-height: 34px;
+    }
+    .btn-icon {
+      min-width: 38px;
+    }
+    .btn-icon.btn-sm {
+      min-width: 34px;
+    }
+    .chipbtn {
+      min-height: 34px;
+    }
+    .input,
+    .select,
+    .textarea,
+    .gsearch .gsearch-input {
+      font-size: 16px;
+    }
+    .input,
+    .select {
+      min-height: 40px;
+    }
+    .check input {
+      width: 18px;
+      height: 18px;
+      margin-top: 0;
+    }
+  }
   /* ---------- Etiquetas ---------- */
   .pill {
     display: inline-flex;
