@@ -196,6 +196,27 @@ describe("collectionView", () => {
     expect(view.find((v) => v.card.name === "Sol Ring")?.printing).toBeNull();
   });
 
+  it("por variante (como ManaBox): una fila por edición, foil, idioma y estado", async () => {
+    const deps = {
+      cards,
+      collection: new PrismaCollectionRepository(db, "u1"),
+      decks: new PrismaDeckRepository(db, "u1"),
+      classifier: new HeuristicRoleClassifier(),
+    };
+    const sol = byName("Sol Ring");
+    const byCard = (await collectionView(deps)).filter((v) => v.card.oracleId === sol.oracleId);
+    const byCopy = (await collectionView(deps, "copy")).filter(
+      (v) => v.card.oracleId === sol.oracleId,
+    );
+    expect(byCard).toHaveLength(1);
+    expect(byCard[0]?.variant).toBeNull();
+    // Las 3 del CSV (en inglés) y la añadida a mano (sin idioma) van por separado.
+    expect(byCopy.length).toBeGreaterThan(1);
+    expect(byCopy.reduce((n, v) => n + v.quantity, 0)).toBe(byCard[0]?.quantity);
+    expect(new Set(byCopy.map((v) => v.key)).size).toBe(byCopy.length);
+    expect(byCopy.every((v) => v.variant !== null)).toBe(true);
+  });
+
   it("sin cuenta usa la colección que manda el navegador", async () => {
     const view = await collectionView({
       cards,

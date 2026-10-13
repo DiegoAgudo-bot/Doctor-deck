@@ -17,6 +17,7 @@ import { CardThumb, FoilMark } from "~/components/card-bits";
 import { Chip, Empty, ErrorView, IconButton, Loading, SearchField, T } from "~/components/ui";
 import { api } from "~/lib/api";
 import { euros, thousands } from "~/lib/format";
+import { conditionShort } from "~/lib/copies";
 import { useDebounced, useStoredState } from "~/lib/hooks";
 import { pickImportFile } from "~/lib/import-file";
 import { colors, manaColors } from "~/lib/theme";
@@ -40,6 +41,8 @@ export default function Collection() {
   const [grid, setGrid] = useStoredState("collection.grid", false);
   const [sort, setSort] = useStoredState<Sort>("collection.sort", "valor");
   const [desc, setDesc] = useStoredState("collection.desc", true);
+  // Como ManaBox: una fila por variante (edición, foil, idioma, estado); o todas juntas por carta.
+  const [by, setBy] = useStoredState<"copy" | "card">("collection.by", "copy");
   const [q, setQ] = useState("");
   const [colorsOn, setColorsOn] = useState<string[]>([]);
   const [foil, setFoil] = useState(false);
@@ -54,10 +57,11 @@ export default function Collection() {
         ...(foil ? { foil: true } : {}),
         ...(free ? { use: "libres" } : {}),
       },
+      by,
       sort,
       dir: desc ? "desc" : "asc",
     }),
-    [query, colorsOn, foil, free, sort, desc],
+    [query, colorsOn, foil, free, sort, desc, by],
   );
 
   const list = useInfiniteQuery({
@@ -115,6 +119,12 @@ export default function Collection() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 6, paddingRight: 16 }}
         >
+          <Chip
+            label={by === "copy" ? "Por copia" : "Por carta"}
+            icon={by === "copy" ? "copy-outline" : "albums-outline"}
+            onPress={() => setBy(by === "copy" ? "card" : "copy")}
+          />
+          <View style={{ width: 1, backgroundColor: colors.line, marginHorizontal: 4 }} />
           {SORTS.map((s) => (
             <Chip
               key={s.key}
@@ -149,7 +159,8 @@ export default function Collection() {
         </ScrollView>
         {first && (
           <T variant="small">
-            {thousands(first.total.cards)} cartas · {thousands(first.total.copies)} copias ·{" "}
+            {thousands(first.total.cards)} {by === "copy" ? "filas" : "cartas"} ·{" "}
+            {thousands(first.total.copies)} copias ·{" "}
             <T variant="small" style={{ color: colors.text, fontWeight: "600" }}>
               {euros(first.total.value)}
             </T>
@@ -183,7 +194,7 @@ export default function Collection() {
           key={grid ? "grid" : "list"}
           data={items}
           numColumns={columns}
-          keyExtractor={(c) => c.card.oracleId}
+          keyExtractor={(c) => c.key}
           contentContainerStyle={{ padding: 16, gap: grid ? 8 : 0 }}
           {...(grid ? { columnWrapperStyle: { gap: 8 } } : {})}
           onEndReached={() => list.hasNextPage && !list.isFetchingNextPage && list.fetchNextPage()}
@@ -230,6 +241,24 @@ function addMenu() {
 
 const open = (c: CollectionCardDTO) => router.push(`/card/${c.card.oracleId}`);
 
+/** Por carta: sus ediciones y el tipo. */
+const cardLine = (c: CollectionCardDTO) =>
+  [c.sets.slice(0, 3).join(" · "), c.card.typeLine.split("—")[0]?.trim()]
+    .filter(Boolean)
+    .join("  ·  ");
+
+/** Por variante, como ManaBox: «HOB #33 · ES · NM». */
+const variantLine = (c: CollectionCardDTO) => {
+  const p = c.card.printing;
+  return [
+    p ? `${p.setCode.toUpperCase()} #${p.collectorNumber}` : (c.sets[0] ?? "Edición sin indicar"),
+    c.variant?.language && c.variant.language !== "en" ? c.variant.language.toUpperCase() : null,
+    conditionShort(c.variant?.condition ?? null),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+};
+
 function Row({ item }: { item: CollectionCardDTO }) {
   return (
     <Pressable
@@ -253,9 +282,7 @@ function Row({ item }: { item: CollectionCardDTO }) {
           {item.foilQuantity > 0 && <FoilMark />}
         </View>
         <T variant="small" numberOfLines={1}>
-          {[item.sets.slice(0, 3).join(" · "), item.card.typeLine.split("—")[0]?.trim()]
-            .filter(Boolean)
-            .join("  ·  ")}
+          {item.variant ? variantLine(item) : cardLine(item)}
         </T>
         {item.inUse > 0 && (
           <T variant="small" style={{ color: colors.inuse }} numberOfLines={1}>
