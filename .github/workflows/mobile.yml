@@ -1,0 +1,115 @@
+name: App móvil
+
+# La app Android (Expo, en mobile/). En cada PR que la toca: tipos, tests y que el JS empaqueta.
+# En main (o a mano desde Actions › "App móvil" › Run workflow): además compila el APK (para
+# instalar en el móvil) y el AAB (para Google Play) y los deja como artefactos del run.
+#
+# Secretos opcionales del repositorio:
+# - GOOGLE_SERVICES_JSON_B64: google-services.json de Firebase en base64 (notificaciones push).
+# - ANDROID_KEYSTORE_B64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD: la
+#   clave de subida de Google Play. Sin ella se firma con la de depuración (sirve para instalar el
+#   APK a mano, no para subirlo a la tienda).
+on:
+  pull_request:
+    paths:
+      ["mobile/**", "src/server/dto.ts", "src/server/card-dto.ts", ".github/workflows/mobile.yml"]
+  push:
+    branches: [main]
+    paths:
+      ["mobile/**", "src/server/dto.ts", "src/server/card-dto.ts", ".github/workflows/mobile.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Tipos, tests y bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
+      # La app usa los tipos de la API de la web (src/server/dto.ts), que importan los de la web.
+      - run: npm ci
+      - run: npm ci
+        working-directory: mobile
+      - run: npm run typecheck
+        working-directory: mobile
+      - run: npm test
+        working-directory: mobile
+      - run: npx expo export --platform android --output-dir "$RUNNER_TEMP/bundle"
+        working-directory: mobile
+        env:
+          EXPO_OFFLINE: "1"
+          CI: "1"
+
+  android:
+    name: Compilar APK y AAB
+    needs: check
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci
+        working-directory: mobile
+      - name: Firebase y clave de firma (si hay secretos)
+        working-directory: mobile
+        env:
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_B64" ]; then
+            echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > google-services.json
+            echo "Con notificaciones push (google-services.json)."
+          else
+            echo "::warning::Sin GOOGLE_SERVICES_JSON_B64: la app no recibirá notificaciones push."
+          fi
+          if [ -n "$ANDROID_KEYSTORE_B64" ]; then
+            echo "$ANDROID_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+            echo "Firmada con la clave de subida de Google Play."
+          else
+            echo "::warning::Sin ANDROID_KEYSTORE_B64: se firma con la clave de depuración (no vale para Google Play)."
+          fi
+      - name: Generar el proyecto Android
+        working-directory: mobile
+        env:
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
+          CI: "1"
+        run: npx expo prebuild --platform android --clean --no-install
+      - name: Compilar
+        working-directory: mobile/android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          NODE_ENV: production
+        run: ./gradlew assembleRelease bundleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+      - uses: actions/upload-artifact@v4
+        with:
+          name: doctor-deck-android-${{ github.run_number }}
+          path: |
+            mobile/android/app/build/outputs/apk/release/app-release.apk
+            mobile/android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30

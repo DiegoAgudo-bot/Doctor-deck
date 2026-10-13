@@ -63,7 +63,8 @@ Sin entrar por SSH: GitHub › Actions › **Configurar el VPS** › Run workflo
 `DECK_DOCTOR_HOST` (entrada; antes comprueba que el DNS ya apunta al VPS y deja el dominio anterior
 en `DECK_DOCTOR_OLD_HOST` para que redirija) y, si existen como secretos del repositorio
 (Settings › Secrets and variables › Actions), `ADMIN_EMAILS`, `LEGAL_OWNER`, `LEGAL_EMAIL`,
-`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_URL` y `MAIL_FROM`. Guarda
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_URL`, `MAIL_FROM` y `FCM_SERVICE_ACCOUNT_B64`
+(→ `FCM_SERVICE_ACCOUNT`). Guarda
 una copia `.env.bak-…`, reinicia y comprueba que la web responde. El repositorio es público: los
 datos personales van como secretos, nunca en el código ni como entrada del workflow.
 
@@ -108,6 +109,12 @@ Los demás scripts CLI se ejecutan igual, p. ej.
   (Google puede no aceptar dominios `nip.io`; con un dominio propio no hay problema.)
 - **"He olvidado la contraseña" (opcional).** Necesita enviar emails: `SMTP_URL`
   (p. ej. `smtps://usuario:clave@smtp.tuproveedor.com:465`) y `MAIL_FROM`. Sin ellas no aparece.
+  Con Resend (`smtp.resend.com`, la contraseña es la API key) se usa su API HTTPS: el VPS bloquea
+  los puertos SMTP de salida.
+- **App móvil.** Notificaciones push: `FCM_SERVICE_ACCOUNT` (clave de una cuenta de servicio de
+  Firebase, JSON en base64; ver `mobile/README.md`). Sin ella no se mandan push (los avisos siguen
+  en la app). `MOBILE_MIN_VERSION` (por defecto `1.0.0`): las versiones anteriores de la app piden
+  actualizar.
 - **Datos de antes de los usuarios** (colección y mazos importados cuando había una contraseña
   única): regístrate en la web y después
   `docker compose exec deck-doctor npm run users:claim -- --user "tu@email.com"`.

@@ -31,7 +31,8 @@ recomendaciones de EDHREC, priorizando cartas de la colección del usuario (expo
 | `… deck:suggest -- … [--deck-id uuid] [--ignore-other-decks] [--buy N --max-price 1 --budget 10]` | Igual, con mazo guardado / sin descontar otros mazos / modo compra             |
 
 Antes de cada commit: `npm run typecheck && npm run lint && npm run format:check && npm test`
-(y, si se toca la UI, `npm run build && npm run e2e`).
+(y, si se toca la UI, `npm run build && npm run e2e`; si se toca `mobile/` o la API que usa,
+`cd mobile && npm run typecheck && npm test`).
 
 **CI/CD**: `.github/workflows/ci.yml` ejecuta esos checks + build en cada push/PR; en push a `main`
 despliega en el VPS (`root@37.27.32.222:/doctor-deck`) por SSH (`scripts/deploy.sh`: pull +
@@ -501,6 +502,29 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   (`localImageUrl`, `domain/cards/images.ts`) y `FileImageCache` las guarda en `IMAGE_CACHE_DIR` la
   primera vez (tope `IMAGE_CACHE_MAX_MB`; lleno, se sirven sin guardar). Solo acepta rutas con la
   forma de las de Scryfall.
+- **App móvil** (Fase 22, `mobile/`, ver `mobile/README.md`): Expo + React Native con
+  `expo-router`, solo Android. Pestañas como ManaBox (Colección, Mazos, Buscar, Avisos, Más), ficha
+  de carta con añadir copias (edición, foil, idioma, estado), mazo (lista, me falta, cambios,
+  datos) y lo demás (intercambios, grupos, préstamos, contador, ajustes) en un WebView con la
+  sesión. Solo importa **tipos** de la web (`@/server/dto`, `@/server/card-dto`); su código usa
+  `~/…`. Servidor para la app:
+  - Sesión: plugin `expo` de Better Auth (`trustedOrigins: doctordeck://`, cookie en cabecera;
+    Google vuelve a `doctordeck://` con la sesión). `GET /api/app/web?next=/ruta` copia la cookie
+    de sesión de la cabecera al WebView y redirige (solo rutas propias).
+  - Compartir desde ManaBox: `POST /api/import/shared` (`{text, save}`; `importShared` en
+    `application/shared-import.ts`): CSV (`looksLikeCsv`) o lista `1 Carta (SET) 123 *F*`
+    (`(SET) número` → impresión con `findPrintingsBySetNumbers`), primero sin guardar (vista previa
+    con `BrowserCollectionRepository`) y luego como cartas sueltas; `looksLikeDeck` si trae
+    comandante o 60–101 cartas. Reemplazar con el CSV sigue siendo `POST /api/collection`.
+  - Push: `PushDevice` (token de FCM, `POST|DELETE /api/me/devices`); `PrismaSocialRepository`
+    llama a `afterCreate` con cada aviso guardado y el container lo manda con `pushNotifications`
+    (`application/push.ts`) por `FcmSender` (`adapters/push/fcm.ts`, FCM HTTP v1 con la cuenta de
+    servicio de `FCM_SERVICE_ACCOUNT`; borra los tokens que ya no valen). El texto de cada aviso
+    sale de `notificationMessage` (`domain/social/notification-text.ts`), que también va en
+    `GET /api/notifications` (`message: {title, body, path}`) para la app.
+  - `GET /api/app`: versión mínima (`MOBILE_MIN_VERSION`) y qué hay (push, Google, recuperar).
+  - CI: `.github/workflows/mobile.yml` (tipos, tests, bundle; en main compila APK y AAB con la
+    clave de subida si está en los secretos).
 - **Mazo**: `DeckSource.load` → `parseDecklist` → `resolveDecklist` (agrupa por oracleId, detecta
   comandante: marcado → único candidato o pareja válida → si no, `commanderCandidates` para que
   elija el usuario con `chooseCommanders`) → `validateDeck`.
@@ -592,15 +616,16 @@ Purchase price currency, Added`.
 
 21. Social: grupos de juego, contador de vidas y partidas con clasificación, préstamos, feed de
     actividad y comentarios con moderación (bloquear y denunciar) ✅
+22. App móvil Android (Expo): colección, mazos, buscador, avisos con push y compartir desde
+    ManaBox; servidor listo para la app (sesión, importar lo compartido, push, versión mínima) ✅
+    (el escáner de cartas queda para la v2)
 
-La fase siguiente (22 app móvil) está en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
+Lo siguiente (escáner de cartas en la app, v2) está en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
 diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)
 
-- **App móvil**. Requisito ya fijado: debe aparecer como destino al **compartir desde ManaBox**
-  (share sheet de Android/iOS) y aceptar tanto el **CSV** como el **texto** compartido, importándolo
-  directamente como colección (o como mazo si es una lista). Reutilizará la API JSON (`/api/*`);
-  para autenticarse desde la app, añadir el plugin `bearer` de Better Auth.
+- **Escáner de cartas** en la app (v2): cámara → `POST /api/collection/cards` con `scryfallId`.
+- **iOS**: la app está hecha con Expo, pero hace falta cuenta de Apple Developer.
 
 Al terminar cada fase: parar y esperar el OK del usuario.
