@@ -899,6 +899,13 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                     </div>
                   </div>
                 )}
+                {ok.swaps.length > 0 && !analyzing && (
+                  <p className="subtle text-[12.5px]">
+                    La cifra de cada cambio es la mejora estimada: cuánto más se juega con tu
+                    comandante la carta que entra que la que sale (sinergia e inclusión en EDHREC),
+                    con un extra si cubre el mismo rol o uno que te falta.
+                  </p>
+                )}
                 {analyzing ? (
                   <DiffSkeleton />
                 ) : ok.swaps.length === 0 ? (
@@ -1155,7 +1162,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           />
         </>
       )}
-      {deckId && saved.visibility !== "private" && (
+      {/* Los comentarios van con la lista (no debajo de Estadísticas, Combos…). */}
+      {deckId && saved.visibility !== "private" && (tab === "list" || tab === "missing") && (
         <DeckComments deckId={deckId} loggedIn={loggedIn} />
       )}
     </main>

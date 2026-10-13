@@ -1646,13 +1646,12 @@
   }
 
   /* Filtros plegables en el móvil (la colección): solo el buscador y el botón "Filtros". */
-  .filters-toggle {
-    display: none;
+  /* Colección: los filtros secundarios, plegados detrás de «Más filtros» (en el móvil, también
+     los colores). */
+  .filters:not(.is-open) .filters-more {
+    display: none !important;
   }
   @media (max-width: 640px) {
-    .filters-toggle {
-      display: inline-flex;
-    }
     /* !important: las utilidades de Tailwind (flex) van en una capa posterior. */
     .filters:not(.is-open) .filters-extra {
       display: none !important;

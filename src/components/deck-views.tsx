@@ -101,7 +101,10 @@ export function SwapDiff({
             {owned}
           </span>
         )}
-        <span className="score ml-auto" title="Mejora de la puntuación">
+        <span
+          className="score ml-auto"
+          title="Mejora estimada: cuánto más se juega la que entra que la que sale (EDHREC), más el rol"
+        >
           +{points(swap.score)}
         </span>
         {decision ? (
