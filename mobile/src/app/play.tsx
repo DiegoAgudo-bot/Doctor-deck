@@ -299,7 +299,7 @@ function Table({
     <View
       style={{
         flex: 1,
-        backgroundColor: "#070a10",
+        backgroundColor: "#08090a",
         paddingTop: insets.top + 6,
         paddingBottom: insets.bottom + 6,
         paddingHorizontal: 6,

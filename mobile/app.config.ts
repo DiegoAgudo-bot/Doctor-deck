@@ -17,11 +17,11 @@ const config: ExpoConfig = {
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "dark",
-  backgroundColor: "#0e131b",
+  backgroundColor: "#111214",
   android: {
     package: "app.doctordeck",
     versionCode: VERSION_CODE,
-    adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#0e131b" },
+    adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#111214" },
     ...(googleServices ? { googleServicesFile: googleServices } : {}),
     // Los enlaces https://doctordeck.app/decks/… (y cartas, invitaciones, perfiles y propuestas)
     // abren la app si está instalada.
@@ -48,7 +48,7 @@ const config: ExpoConfig = {
     "expo-router",
     [
       "expo-splash-screen",
-      { image: "./assets/icon.png", imageWidth: 160, backgroundColor: "#0e131b" },
+      { image: "./assets/icon.png", imageWidth: 160, backgroundColor: "#111214" },
     ],
     "expo-secure-store",
     "expo-web-browser",

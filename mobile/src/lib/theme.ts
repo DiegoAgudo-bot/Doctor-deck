@@ -1,17 +1,17 @@
 /**
- * Colores de la web en modo oscuro (`globals.css`, tema «Medianoche»: el azul noche del icono),
- * para que app y web se vean iguales.
+ * Colores de la web en modo oscuro (`globals.css`, tema «Pentacromo»: base neutra y la gema del
+ * logo como firma), para que app y web se vean iguales.
  */
 export const colors = {
-  bg: "#0e131b",
-  panel: "#131a24",
-  raised: "#1a2230",
-  hover: "#212b3b",
-  line: "#232d3c",
-  lineStrong: "#2f3b4e",
-  text: "#e6e9ee",
-  text2: "#a3acba",
-  text3: "#7f8a9b",
+  bg: "#111214",
+  panel: "#17181b",
+  raised: "#1e2024",
+  hover: "#26282d",
+  line: "#2a2c31",
+  lineStrong: "#383b41",
+  text: "#e8e6e3",
+  text2: "#aba7a1",
+  text3: "#8a8680",
   accent: "#6cb0ff",
   onAccent: "#06182e",
   in: "#4fc16a",
@@ -19,9 +19,12 @@ export const colors = {
   warn: "#e0ae3f",
   owned: "#4fc16a",
   inuse: "#b78cf0",
-  missing: "#7f8a9b",
+  missing: "#8a8680",
   foil: "#e5c76b",
 } as const;
+
+/** Las cinco caras de la gema del logo, en orden (la franja bajo la cabecera). */
+export const gem = ["#4fc16a", "#f3e6c2", "#6cb0ff", "#8a7f9a", "#f06a5f"] as const;
 
 /** Colores de maná para los puntos de identidad. */
 export const manaColors: Record<string, string> = {

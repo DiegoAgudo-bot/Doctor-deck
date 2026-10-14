@@ -3,6 +3,7 @@ import { Tabs } from "expo-router/js-tabs";
 import type { ColorValue } from "react-native";
 import { View } from "react-native";
 import { Bell } from "~/components/bell";
+import { GemHeaderBackground } from "~/components/gem-stripe";
 import type { IconName } from "~/components/ui";
 import { colors } from "~/lib/theme";
 
@@ -21,6 +22,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerStyle: { backgroundColor: colors.panel },
+        headerBackground: () => <GemHeaderBackground />,
         headerTintColor: colors.text,
         headerShadowVisible: false,
         headerRight: () => (

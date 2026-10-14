@@ -1,7 +1,7 @@
 # Doctor Deck · app Android
 
 App nativa (Expo + React Native, `expo-router`) que usa la misma API JSON que la web
-(`https://doctordeck.app/api/*`), con los mismos colores (tema «Medianoche»). Barra inferior con lo
+(`https://doctordeck.app/api/*`), con los mismos colores (tema «Pentacromo»: base neutra y la franja de la gema bajo la cabecera). Barra inferior con lo
 que más se usa: **Colección**, **Mazos**, **Buscar**, **Jugar** y **Más**; los avisos van en la
 campana de la cabecera (con los sin leer).
 
