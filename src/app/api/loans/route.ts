@@ -5,6 +5,7 @@ import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
 import { socialDeps } from "@/server/social";
 import { loanDTO, type LoansDTO } from "@/server/social-dto";
+import { readJson } from "@/server/body";
 
 /** Lo que he prestado y lo que me han prestado (`?all=1`: también los devueltos). */
 export async function GET(req: NextRequest) {
@@ -37,7 +38,7 @@ const loanSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser(req);
-    const id = await lendCard(user.id, loanSchema.parse(await req.json()), socialDeps());
+    const id = await lendCard(user.id, loanSchema.parse(await readJson(req)), socialDeps());
     return Response.json({ id }, { status: 201 });
   } catch (err) {
     return errorResponse(err);

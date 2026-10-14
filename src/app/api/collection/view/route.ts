@@ -10,6 +10,7 @@ import { errorResponse } from "@/server/http";
 import { browserRoleEditsSchema, loadRoleEdits, overridesOf } from "@/server/role-edits";
 import { currentUser } from "@/server/session";
 import { Timing } from "@/server/timing";
+import { BODY_LIMIT, readJson } from "@/server/body";
 
 const schema = z.object({
   /** La colección de otro usuario (si la tiene pública). */
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
   try {
     const user = await currentUser(request);
     const { collection, username, roleEdits, by, ...query } = schema.parse(
-      await request.json().catch(() => ({})),
+      await readJson(request, BODY_LIMIT.large).catch(() => ({})),
     );
     const c = getContainer();
     // De quién es la colección: de otro (si es pública o soy yo), la mía o la del navegador.
@@ -100,7 +101,11 @@ export async function POST(request: Request) {
     });
     const result = browseCollectionView(view, query);
     const body: CollectionViewResponse = {
-      items: result.items.map(collectionCardDTO),
+      // En la colección de otro no salen los nombres de sus mazos (pueden ser privados) ni a
+      // quién presta: solo cuántas copias tiene ocupadas.
+      items: result.items
+        .map(collectionCardDTO)
+        .map((i) => (ownerId && ownerId !== user?.id ? { ...i, usedIn: [] } : i)),
       total: result.total,
       overall: result.overall,
     };

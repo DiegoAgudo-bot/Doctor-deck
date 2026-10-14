@@ -441,6 +441,25 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     tiene «Exportar» y «Ajustes» (`DeckSettingsDialog`: nombre, visibilidad, duplicar —abre
     «Guardar como nuevo»—, reemplazar la lista y borrar con confirmación); el bracket objetivo
     sigue en Estadísticas y la lista de deseos en «Qué me falta».
+- **Seguridad** (revisión de octubre de 2026):
+  - Redirecciones: todo `?next=` pasa por `internalPath` (`domain/security/internal-path.ts`), que
+    rechaza `//`, `\`, tabuladores y saltos de línea. El puente de la app (`GET /api/app/web`)
+    solo pone la sesión si llega la cabecera `X-DoctorDeck-App: 1`, que manda el WebView; en él
+    solo se navega por nuestra web y lo demás se abre en el navegador.
+  - Administrar (`isAdmin`) exige que el email de `ADMIN_EMAILS` esté **verificado**. Borrar la
+    cuenta (`DELETE /api/me`) pide la contraseña o, con solo Google, una sesión de menos de 15 min
+    (`confirmIdentity` en `server/session.ts`).
+  - Cuerpos con tope: las rutas leen con `readJson`/`readText` (`server/body.ts`, `BODY_LIMIT`:
+    256 KB, 8 MB con la colección del navegador, 21 MB el CSV) → 413. Límite por minuto y
+    cliente (usuario o IP, `clientKey`; la IP es el último `X-Forwarded-For`) en analizar, combos,
+    nuevo mazo, «lo que se juega», importar e imágenes que hay que pedir fuera (`routeLimits` en
+    `server/rate-limit.ts`) → 429. `HttpClient` corta a los 20 s. El proxy de imágenes solo pide
+    fuera ids de impresiones del catálogo.
+  - Cabeceras en `next.config.ts` (HSTS, `X-Frame-Options: DENY`, CSP `frame-ancestors 'none'`,
+    nosniff, Referrer-Policy, Permissions-Policy) y sin `X-Powered-By`.
+  - Datos de otros: el mazo de otro llega sin `excluded`, `locked` ni `inWishlist`; la colección
+    pública de otro sin `usedIn` (nombres de mazos o a quién presta). La app no hace copia de
+    seguridad de Android (`allowBackup: false`).
 - **Usuarios** (Fase 8, Better Auth, `src/server/auth.ts`): email + contraseña (scrypt, mínimo 8)
   y Google si hay `GOOGLE_CLIENT_ID/SECRET`; "olvidé mi contraseña" solo si hay `SMTP_URL`
   (`adapters/mail`; con el SMTP de Resend se usa su API HTTPS, porque el VPS bloquea los puertos

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getContainer } from "@/server/container";
 import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
+import { readJson } from "@/server/body";
 
 /** Marcar (o desmarcar) una carta como "no la cambio": sale de mi lista para cambiar. */
 export async function PUT(req: NextRequest, ctx: RouteContext<"/api/trades/keeps/[oracleId]">) {
@@ -13,7 +14,7 @@ export async function PUT(req: NextRequest, ctx: RouteContext<"/api/trades/keeps
       .min(1)
       .max(64)
       .parse((await ctx.params).oracleId);
-    const { keep } = z.object({ keep: z.boolean() }).parse(await req.json());
+    const { keep } = z.object({ keep: z.boolean() }).parse(await readJson(req));
     await getContainer().tradesFor(user.id).setKeep(oracleId, keep);
     return Response.json({ oracleId, keep });
   } catch (err) {

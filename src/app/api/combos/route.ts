@@ -15,6 +15,8 @@ import {
   overridesOf,
 } from "@/server/role-edits";
 import { currentUser } from "@/server/session";
+import { BODY_LIMIT, readJson } from "@/server/body";
+import { clientKey, enforceLimit, routeLimits } from "@/server/rate-limit";
 
 /** Combos a una carta que se mandan (los primeros, ya ordenados). */
 const ONE_AWAY_LIMIT = 60;
@@ -38,7 +40,10 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const user = await currentUser(request);
-    const { collection, roleEdits, ...req } = schema.parse(await request.json());
+    enforceLimit(routeLimits.combos, clientKey(request, user?.id));
+    const { collection, roleEdits, ...req } = schema.parse(
+      await readJson(request, BODY_LIMIT.large),
+    );
     const c = getContainer();
     const result = await deckCombos(req, {
       sources: c.deckSources,

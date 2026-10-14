@@ -8,6 +8,8 @@ import { errorResponse } from "@/server/http";
 import { browserRoleEditsSchema, loadDeckRoleEdits, loadRoleEdits } from "@/server/role-edits";
 import { currentUser } from "@/server/session";
 import { Timing } from "@/server/timing";
+import { BODY_LIMIT, readJson } from "@/server/body";
+import { clientKey, enforceLimit, routeLimits } from "@/server/rate-limit";
 
 const ids = z.array(z.string().min(1).max(64)).max(200).optional();
 
@@ -43,7 +45,10 @@ export async function POST(request: Request) {
   try {
     // Sin sesión también se analiza: con la colección que manda el navegador y sin mazos guardados.
     const user = await currentUser(request);
-    const { collection, roleEdits, ...req } = analyzeRequestSchema.parse(await request.json());
+    enforceLimit(routeLimits.analyze, clientKey(request, user?.id));
+    const { collection, roleEdits, ...req } = analyzeRequestSchema.parse(
+      await readJson(request, BODY_LIMIT.large),
+    );
     const c = getContainer();
     const t = new Timing();
     const result = await t.step("total", async () =>

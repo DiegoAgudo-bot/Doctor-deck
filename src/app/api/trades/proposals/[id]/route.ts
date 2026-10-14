@@ -5,6 +5,7 @@ import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
 import { proposalLinesSchema } from "@/server/trade-lines";
 import { proposalDTO, tradeDeps } from "@/server/trades";
+import { readJson } from "@/server/body";
 
 type Ctx = RouteContext<"/api/trades/proposals/[id]">;
 
@@ -35,7 +36,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   try {
     const user = await requireUser(req);
     const id = z.uuid().parse((await ctx.params).id);
-    const act = actionSchema.parse(await req.json());
+    const act = actionSchema.parse(await readJson(req));
     const deps = tradeDeps();
     await actOnProposal(user.id, id, act, deps);
     if (act.action === "delete") return Response.json({ deleted: true });

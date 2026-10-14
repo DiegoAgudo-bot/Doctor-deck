@@ -5,6 +5,7 @@ import { getContainer } from "@/server/container";
 import { cardDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
 import { currentUser } from "@/server/session";
+import { clientKey, enforceLimit, routeLimits } from "@/server/rate-limit";
 
 /**
  * Lo que se juega con un comandante según EDHREC, por listas (alta sinergia, criaturas,
@@ -14,6 +15,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/cards/[oracl
   await connection();
   try {
     const viewer = await currentUser(req);
+    enforceLimit(routeLimits.staples, clientKey(req, viewer?.id));
     const c = getContainer();
     const theme = req.nextUrl.searchParams.get("theme");
     const s = await commanderStaples(

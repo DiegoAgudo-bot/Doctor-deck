@@ -7,6 +7,7 @@ import { deckSummaries } from "@/server/deck-summaries";
 import type { CommunityResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
 import { currentUser } from "@/server/session";
+import { BODY_LIMIT, readJson } from "@/server/body";
 
 const schema = z.object({
   filters: z
@@ -40,7 +41,7 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const user = await currentUser(request);
-    const { filters, collection, ...req } = schema.parse(await request.json());
+    const { filters, collection, ...req } = schema.parse(await readJson(request, BODY_LIMIT.large));
     const c = getContainer();
     const [owned, usage] = user
       ? await Promise.all([c.collectionFor(user.id).ownedQuantities(), c.decksFor(user.id).usage()])

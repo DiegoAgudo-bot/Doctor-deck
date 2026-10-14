@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { isScryfallImagePath, SCRYFALL_IMAGE_ORIGIN } from "@/domain/cards/images";
+import { imagePrintingId, isScryfallImagePath, SCRYFALL_IMAGE_ORIGIN } from "@/domain/cards/images";
 import type { ImageStore } from "@/domain/ports/image-store";
 import type { HttpClient } from "../http/http-client";
 
@@ -17,16 +17,20 @@ export class FileImageCache implements ImageStore {
     private readonly dir: string,
     private readonly maxBytes: number,
     private readonly http: HttpClient,
+    /** Si el id es de una impresión que conocemos (si no, no se pide a Scryfall). */
+    private readonly isKnown: (scryfallId: string) => Promise<boolean> = async () => true,
   ) {}
 
-  async get(imagePath: string) {
+  async get(imagePath: string, options: { canFetch?: () => boolean } = {}) {
     if (!isScryfallImagePath(imagePath)) return null;
     const file = path.join(this.dir, imagePath);
     try {
       return { body: await readFile(file), contentType: contentTypeOf(imagePath), cached: true };
     } catch {
-      // No la teníamos: a Scryfall.
+      // No la teníamos: a Scryfall, si es de una carta del catálogo y no se pasa del límite.
     }
+    if (!(await this.isKnown(imagePrintingId(imagePath)))) return null;
+    if (options.canFetch && !options.canFetch()) return null;
     let body: Uint8Array;
     try {
       const res = await this.http.get(`${SCRYFALL_IMAGE_ORIGIN}/${imagePath}`);

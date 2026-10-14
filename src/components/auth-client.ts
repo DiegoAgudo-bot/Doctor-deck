@@ -1,6 +1,7 @@
 "use client";
 
 import { createAuthClient } from "better-auth/react";
+import { internalPath } from "@/domain/security/internal-path";
 
 /** Cliente de Better Auth (usa /api/auth del mismo origen). */
 export const authClient = createAuthClient();
@@ -31,5 +32,5 @@ export function authErrorMessage(
 
 /** Solo rutas internas como destino tras entrar (evita redirecciones a otros dominios). */
 export function safeNext(next: string | null, fallback = "/analyze"): string {
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : fallback;
+  return internalPath(next) ?? fallback;
 }

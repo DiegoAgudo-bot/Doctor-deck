@@ -5,6 +5,7 @@ import { notFound } from "@/application/errors";
 import { getContainer } from "@/server/container";
 import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
+import { readJson } from "@/server/body";
 
 const oracleId = z.string().min(1).max(64);
 const addSchema = z.object({ oracleId });
@@ -27,7 +28,7 @@ async function deps(req: NextRequest, ctx: RouteContext<"/api/decks/[id]/cards">
 export async function POST(req: NextRequest, ctx: RouteContext<"/api/decks/[id]/cards">) {
   try {
     const { id, deps: d } = await deps(req, ctx);
-    const body = addSchema.parse(await req.json());
+    const body = addSchema.parse(await readJson(req));
     return Response.json(await addCardToDeck(id, body.oracleId, d));
   } catch (err) {
     return errorResponse(err);
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/decks/[id]/
 export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/decks/[id]/cards">) {
   try {
     const { id, deps: d } = await deps(req, ctx);
-    const body = changeSchema.parse(await req.json());
+    const body = changeSchema.parse(await readJson(req));
     return Response.json(await changeDeckCards(id, body.changes, d));
   } catch (err) {
     return errorResponse(err);

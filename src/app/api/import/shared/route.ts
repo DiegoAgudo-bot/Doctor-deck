@@ -7,6 +7,8 @@ import { getContainer } from "@/server/container";
 import { cardWithPrintingDTO, type SharedImportResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
 import { currentUser, requireUser } from "@/server/session";
+import { BODY_LIMIT, readJson } from "@/server/body";
+import { clientKey, enforceLimit, routeLimits } from "@/server/rate-limit";
 
 const schema = z.object({
   /** El texto o el CSV tal cual llega al compartir. */
@@ -23,8 +25,9 @@ const schema = z.object({
  */
 export async function POST(request: Request) {
   try {
-    const { text, save } = schema.parse(await request.json());
+    const { text, save } = schema.parse(await readJson(request, BODY_LIMIT.large));
     const user = save ? await requireUser(request) : await currentUser(request);
+    enforceLimit(routeLimits.importShared, clientKey(request, user?.id));
     const c = getContainer();
     const result = await importShared(text, {
       cards: c.cards,

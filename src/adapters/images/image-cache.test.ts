@@ -54,4 +54,12 @@ describe("FileImageCache", () => {
     expect(await cache.get(OTHER)).toMatchObject({ cached: false });
     await expect(readFile(path.join(dir, OTHER))).rejects.toThrow();
   });
+
+  it("no pide fuera ids que no son del catálogo ni pasa del límite del cliente", async () => {
+    const unknown = new FileImageCache(dir, 1_000_000, http(), async () => false);
+    expect(await unknown.get(IMG)).toBeNull();
+    const limited = new FileImageCache(dir + "-2", 1_000_000, http());
+    expect(await limited.get(IMG, { canFetch: () => false })).toBeNull();
+    expect(calls).toEqual([]);
+  });
 });

@@ -2,7 +2,8 @@ import { z } from "zod";
 import { ERROR_LIMITS } from "@/domain/errors/report";
 import { getContainer } from "@/server/container";
 import { errorResponse } from "@/server/http";
-import { RateLimiter } from "@/server/rate-limit";
+import { clientIp, RateLimiter } from "@/server/rate-limit";
+import { readJson } from "@/server/body";
 
 const schema = z.object({
   message: z
@@ -29,9 +30,9 @@ const overall = new RateLimiter(300, 60_000);
  */
 export async function POST(request: Request) {
   try {
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "?";
+    const ip = clientIp(request);
     if (!perClient.allow(ip) || !overall.allow("all")) return new Response(null, { status: 429 });
-    const body = schema.parse(await request.json().catch(() => null));
+    const body = schema.parse(await readJson(request).catch(() => null));
     await getContainer().errorLog.record({
       source: "client",
       message: body.message,

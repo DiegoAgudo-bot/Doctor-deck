@@ -6,6 +6,7 @@ import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
 import { socialDeps } from "@/server/social";
 import { groupDTO } from "@/server/social-dto";
+import { readJson } from "@/server/body";
 
 async function view(groupId: string, userId: string) {
   const deps = socialDeps();
@@ -36,7 +37,7 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/groups/[id
   try {
     const user = await requireUser(req);
     const { id } = await ctx.params;
-    const body = patchSchema.parse(await req.json());
+    const body = patchSchema.parse(await readJson(req));
     const deps = socialDeps();
     if (body.name !== undefined || body.description !== undefined) {
       await updateGroup(id, user.id, body, deps);

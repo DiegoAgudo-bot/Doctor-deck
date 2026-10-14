@@ -17,8 +17,18 @@ export function scryfallImagePath(url: string): string | null {
   return isScryfallImagePath(path) ? path : null;
 }
 
-/** ¿Es una ruta que podemos pedir a Scryfall? (evita usar el proxy para cualquier otra cosa). */
-export const isScryfallImagePath = (path: string) => IMAGE_PATH.test(path);
+/**
+ * ¿Es una ruta que podemos pedir a Scryfall? (evita usar el proxy para cualquier otra cosa). Las
+ * dos carpetas son los dos primeros caracteres del id, como en las URL de Scryfall.
+ */
+export function isScryfallImagePath(path: string): boolean {
+  if (!IMAGE_PATH.test(path)) return false;
+  const [, , a, b, file] = path.split("/");
+  return file?.[0] === a && file?.[1] === b;
+}
+
+/** El id de la impresión (de Scryfall) de una ruta de imagen válida. */
+export const imagePrintingId = (path: string) => path.split("/")[4]?.slice(0, 36) ?? "";
 
 /** URL que debe usar el navegador: la nuestra si es una imagen de Scryfall; si no, la misma. */
 export function localImageUrl(url: string | null): string | null {

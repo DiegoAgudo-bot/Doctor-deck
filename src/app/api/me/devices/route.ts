@@ -2,6 +2,7 @@ import { z } from "zod";
 import { getContainer } from "@/server/container";
 import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
+import { readJson } from "@/server/body";
 
 const registerSchema = z.object({
   /** Token de Firebase Cloud Messaging del móvil. */
@@ -14,7 +15,7 @@ const registerSchema = z.object({
 export async function POST(request: Request) {
   try {
     const user = await requireUser(request);
-    const { token, platform, appVersion } = registerSchema.parse(await request.json());
+    const { token, platform, appVersion } = registerSchema.parse(await readJson(request));
     await getContainer().pushDevices.register(user.id, {
       token,
       platform,
@@ -30,7 +31,9 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const user = await requireUser(request);
-    const { token } = z.object({ token: z.string().min(1).max(4096) }).parse(await request.json());
+    const { token } = z
+      .object({ token: z.string().min(1).max(4096) })
+      .parse(await readJson(request));
     await getContainer().pushDevices.unregister(user.id, token);
     return new Response(null, { status: 204 });
   } catch (err) {

@@ -5,6 +5,7 @@ import type { CardRoleEditDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
 import { roleEditSchema, toRoleEdit } from "@/server/role-edits";
 import { requireUser } from "@/server/session";
+import { readJson } from "@/server/body";
 
 /**
  * Corrige los roles y etiquetas de una carta solo en uno de mis mazos (mandan sobre las
@@ -19,7 +20,7 @@ export async function PUT(
     const params = await ctx.params;
     const deckId = z.uuid().safeParse(params.id);
     const oracleId = z.string().min(1).max(64).parse(params.oracleId);
-    const edit = toRoleEdit(roleEditSchema.parse(await req.json()));
+    const edit = toRoleEdit(roleEditSchema.parse(await readJson(req)));
     const ok =
       deckId.success &&
       (await getContainer().roleOverridesFor(user.id).setForDeck(deckId.data, oracleId, edit));
