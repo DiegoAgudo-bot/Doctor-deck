@@ -288,6 +288,10 @@ export function OwnershipPanel({
         </section>
       )}
 
+      {ownership.alternatives.length > 0 && (
+        <Alternatives groups={ownership.alternatives} hasCollection={hasCollection} />
+      )}
+
       {elsewhere.length > 0 && (
         <section className="panel">
           <div className="panel-h">
@@ -347,5 +351,57 @@ export function OwnershipPanel({
       )}
       <CardPriceDialog card={priceCard} onClose={() => setPriceCard(null)} />
     </div>
+  );
+}
+
+/** Para lo caro que falta: cartas del mismo papel que tengo libres o cuestan mucho menos. */
+function Alternatives({
+  groups,
+  hasCollection,
+}: {
+  groups: OwnershipDTO["alternatives"];
+  hasCollection: boolean;
+}) {
+  return (
+    <section className="panel">
+      <div className="panel-h">
+        <span className="h2">Alternativas más baratas</span>
+        <span className="subtle text-xs">Hacen el mismo papel y la comunidad las juega</span>
+      </div>
+      <ul className="flex flex-col">
+        {groups.map((g) => (
+          <li
+            key={g.card.oracleId}
+            className="flex flex-col gap-1.5 border-t border-line px-3.5 py-2.5 first:border-t-0"
+          >
+            <span className="flex flex-wrap items-baseline gap-x-2">
+              <span className="muted text-xs">En vez de</span>
+              <CardHover card={g.card}>{g.card.name}</CardHover>
+              <span className="mono subtle text-xs">{formatEuros(g.price)}</span>
+            </span>
+            <span className="flex flex-wrap gap-1.5">
+              {g.alternatives.map((a) => (
+                <CardHover
+                  key={a.card.oracleId}
+                  card={a.card}
+                  className="pill inline-flex items-center gap-1.5"
+                >
+                  {a.card.name}
+                  <span className={`mono text-xs ${a.owned ? "" : "subtle"}`}>
+                    {a.owned
+                      ? hasCollection
+                        ? "la tienes"
+                        : "gratis"
+                      : a.price !== null
+                        ? formatEuros(a.price)
+                        : "—"}
+                  </span>
+                </CardHover>
+              ))}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

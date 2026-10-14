@@ -162,6 +162,9 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   lateral. Propuestas descartadas y capturas en `branding/themes/`.
 - **PWA** (Fase 20): `app/manifest.ts`, iconos en `public/icons/` y `mobile/assets/` (logo: gema de cinco colores, `LOGO_FACETS` en `components/icons.tsx`; `npx tsx scripts/make-icons.tsx`
   los regenera), `themeColor` y márgenes `safe-area` en las barras.
+  Sin conexión: `public/sw.js` (lo registra `ServiceWorker` en el layout, solo en producción)
+  guarda `/play` y sus archivos de `/_next/static` al instalarse y en cada visita (red primero), y
+  los símbolos de maná; no toca nada más. Se borra al entrar o salir (`clearCached`).
 - **Copias de seguridad** (Fase 20): `backupDatabase` (`adapters/db/backup.ts`, API `backup` de
   SQLite + `integrity_check` + gzip, rotación `BACKUP_KEEP`); cron diario que añade `deploy.sh`.
 - **Recomendaciones**: `EdhrecClient` (puerto `RecommendationSource`) → caché `ResponseCache`
@@ -181,6 +184,11 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   También `deckOwnership` (`domain/deck/ownership.ts`): carta a carta, si la tengo libre, está en
   otros mazos, me falta (con precio de lo que hay que comprar) o es básica; pestaña "Qué me falta"
   (lista de compra para Cardmarket). Al abrir el mazo público de otro se abre en esa pestaña.
+  Ahí también «Alternativas más baratas» (`cheaperAlternatives`, `domain/suggestions/alternatives.ts`):
+  para cada carta que falta de ≥ 3 € (sin comandantes), hasta 3 recomendadas de la identidad, fuera
+  del mazo, con su rol principal, que tengo libres o cuestan ≤ 50 %; primero las que tengo, luego
+  por puntuación (`OwnershipDTO.alternatives`). Solo se piden los precios de las recomendadas si
+  hace falta.
 - **Mazos guardados** (Fase 6): tablas `Deck` (`publicId` uuid para URL y API)/`DeckCard` (por oracleId; comandantes con
   `isCommander`, bloqueadas con `locked`; `input` original, `source`, `theme`, `excluded`).
   `PrismaDeckRepository.usage(excludeDeckId)` suma las copias usadas en los demás mazos (comandantes
