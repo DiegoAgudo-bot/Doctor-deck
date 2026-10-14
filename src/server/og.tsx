@@ -14,7 +14,7 @@ const MANA: Record<Color, string> = {
   G: "#7fb86a",
 };
 
-const BG = "#131313";
+const BG = "#0e131b";
 
 /** Instrument Sans (OFL, `assets/fonts`): la de por defecto de Satori no trae negrita. */
 let fonts: Promise<{ name: string; data: Buffer; weight: 400 | 700 }[]> | null = null;
@@ -73,7 +73,7 @@ export async function ogImage({
         display: "flex",
         position: "relative",
         background: BG,
-        color: "#e8e6e3",
+        color: "#e6e9ee",
         fontFamily: "Instrument Sans",
       }}
     >
@@ -119,7 +119,7 @@ export async function ogImage({
               width: 36,
               height: 46,
               borderRadius: 6,
-              border: "3px solid #e8e6e3",
+              border: "3px solid #e6e9ee",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

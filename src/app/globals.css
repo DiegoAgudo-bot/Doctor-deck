@@ -19,15 +19,15 @@
   --radius-lg: 8px;
   --radius-mtg: 4.75% / 3.4%;
 
-  --color-bg: #131313;
-  --color-panel: #1a1a1a;
-  --color-raised: #222222;
-  --color-hover: #2a2a2a;
-  --color-line: #2c2c2c;
-  --color-line-strong: #3a3a3a;
-  --color-text: #e8e6e3;
-  --color-text-2: #aba7a1;
-  --color-text-3: #8a8680;
+  --color-bg: #0e131b;
+  --color-panel: #131a24;
+  --color-raised: #1a2230;
+  --color-hover: #212b3b;
+  --color-line: #232d3c;
+  --color-line-strong: #2f3b4e;
+  --color-text: #e6e9ee;
+  --color-text-2: #a3acba;
+  --color-text-3: #7f8a9b;
   --color-link: #6cb0ff;
   --color-accent: #6cb0ff;
   --color-on-accent: #06182e;
@@ -65,15 +65,15 @@
 }
 
 :root[data-theme="light"] {
-  --color-bg: #f4f3f1;
+  --color-bg: #f2f5f9;
   --color-panel: #ffffff;
-  --color-raised: #f7f6f4;
-  --color-hover: #efedea;
-  --color-line: #e2dfdb;
-  --color-line-strong: #cfcbc5;
-  --color-text: #1c1b19;
-  --color-text-2: #55524d;
-  --color-text-3: #6f6b65;
+  --color-raised: #f6f8fb;
+  --color-hover: #eaeff5;
+  --color-line: #dde3eb;
+  --color-line-strong: #c9d2de;
+  --color-text: #141a22;
+  --color-text-2: #4b5563;
+  --color-text-3: #6b7482;
   --color-link: #0b63c9;
   --color-accent: #0b63c9;
   --color-on-accent: #ffffff;
@@ -241,7 +241,7 @@
     color: var(--color-text) !important;
   }
   .deckrow.is-active {
-    background: var(--color-hover);
+    background: color-mix(in oklab, var(--color-accent) 12%, var(--color-panel));
     color: var(--color-text) !important;
     box-shadow: inset 2px 0 0 var(--color-accent);
   }
@@ -305,7 +305,7 @@
   }
   .side .nav.is-active,
   .morenav .nav.is-active {
-    background: var(--color-hover);
+    background: color-mix(in oklab, var(--color-accent) 12%, var(--color-panel));
     color: var(--color-text) !important;
     box-shadow: inset 2px 0 0 var(--color-accent);
   }
@@ -718,9 +718,9 @@
     border-radius: 0 var(--radius-md) var(--radius-md) 0;
   }
   .btn-group .btn.is-on {
-    background: var(--color-hover);
-    color: var(--color-text) !important;
-    border-color: var(--color-line-strong);
+    background: color-mix(in oklab, var(--color-accent) 12%, transparent);
+    color: var(--color-accent) !important;
+    border-color: var(--color-accent);
   }
   .btn[disabled],
   .btn[aria-disabled="true"] {
@@ -892,9 +892,9 @@
     color: var(--color-text-3);
   }
   .chipbtn.is-on {
-    border-color: var(--color-text-2);
-    color: var(--color-text);
-    background: var(--color-hover);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: color-mix(in oklab, var(--color-accent) 12%, transparent);
   }
   .chipbtn[disabled] {
     opacity: 0.5;
