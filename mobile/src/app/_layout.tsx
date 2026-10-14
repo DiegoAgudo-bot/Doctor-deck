@@ -107,7 +107,20 @@ function Root() {
         <Stack.Screen name="deck/[id]" options={{ title: "" }} />
         <Stack.Screen name="deck-new" options={{ title: "Nuevo mazo" }} />
         <Stack.Screen name="share" options={{ title: "Importar" }} />
-        <Stack.Screen name="web" options={{ title: "" }} />
+        <Stack.Screen name="play" options={{ title: "Contador de vidas" }} />
+        <Stack.Screen name="groups/index" options={{ title: "Grupos de juego" }} />
+        <Stack.Screen name="groups/[id]" options={{ title: "" }} />
+        <Stack.Screen name="groups/join/[code]" options={{ title: "Invitación" }} />
+        <Stack.Screen name="games/[id]" options={{ title: "Partida" }} />
+        <Stack.Screen name="trades/index" options={{ title: "Intercambios" }} />
+        <Stack.Screen name="trades/with/[username]" options={{ title: "" }} />
+        <Stack.Screen name="trades/proposals/[id]" options={{ title: "" }} />
+        <Stack.Screen name="loans" options={{ title: "Préstamos" }} />
+        <Stack.Screen name="community" options={{ title: "Comunidad" }} />
+        <Stack.Screen name="feed" options={{ title: "Actividad" }} />
+        <Stack.Screen name="u/[username]" options={{ title: "" }} />
+        <Stack.Screen name="settings" options={{ title: "Ajustes" }} />
+        <Stack.Screen name="deck-comments/[id]" options={{ title: "Comentarios" }} />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />

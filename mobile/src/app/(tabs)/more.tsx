@@ -11,9 +11,6 @@ import { unregisterPush } from "~/lib/push";
 import { clearCache } from "~/lib/query";
 import { colors } from "~/lib/theme";
 
-const web = (path: string, title: string) =>
-  router.push(`/web?path=${encodeURIComponent(path)}&title=${encodeURIComponent(title)}`);
-
 const SECTIONS: {
   title: string;
   items: { icon: IconName; label: string; detail?: string; path: string }[];
@@ -61,7 +58,7 @@ const SECTIONS: {
   },
 ];
 
-/** Todo lo demás (como el menú "Más" de ManaBox): perfil, secciones de la web y ajustes. */
+/** Todo lo demás (como el menú "Más" de ManaBox): perfil, jugar, intercambios, comunidad y ajustes. */
 export default function More() {
   const { data: session } = useSession();
   const profile = useQuery({
@@ -96,7 +93,7 @@ export default function More() {
         <MenuRow
           icon="person-circle-outline"
           label="Mi perfil público"
-          onPress={() => web(`/u/${profile.data.username}`, "Perfil")}
+          onPress={() => router.push(`/u/${profile.data.username}`)}
         />
       )}
       {SECTIONS.map((s) => (
@@ -110,7 +107,7 @@ export default function More() {
               icon={i.icon}
               label={i.label}
               detail={i.detail}
-              onPress={() => web(i.path, i.label)}
+              onPress={() => router.push(i.path as never)}
             />
           ))}
         </View>
@@ -121,8 +118,8 @@ export default function More() {
       <MenuRow
         icon="settings-outline"
         label="Ajustes"
-        detail="Perfil, avisos de precio, privacidad, vincular Google"
-        onPress={() => web("/settings", "Ajustes")}
+        detail="Perfil, avisos de precio, privacidad, bloqueados y tus datos"
+        onPress={() => router.push("/settings")}
       />
       <MenuRow
         icon="document-text-outline"

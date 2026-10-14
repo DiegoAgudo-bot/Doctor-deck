@@ -58,13 +58,15 @@ const STATUS_COLOR: Record<OwnershipItemDTO["status"], string> = {
 export default function DeckScreen() {
   const { id, tab: initialTab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const [tab, setTab] = useState<Tab>(initialTab === "missing" ? "missing" : "list");
+  /** Comandantes elegidos aquí (si la lista no lo dice); en un mazo mío se guardan. */
+  const [chosen, setChosen] = useState<string[] | null>(null);
   const deck = useQuery({
     queryKey: ["deck", id],
     queryFn: () => api<DeckViewDTO>(`/api/decks/${id}`),
   });
   const d = deck.data;
   const analysis = useQuery({
-    queryKey: ["analysis", id, d?.updatedAt],
+    queryKey: ["analysis", id, d?.updatedAt, chosen],
     enabled: Boolean(d),
     staleTime: 5 * 60_000,
     // Al aplicar un cambio se vuelve a analizar: mientras, se sigue viendo lo de antes.
@@ -73,7 +75,7 @@ export default function DeckScreen() {
       api<AnalyzeResponse>("/api/analyze", {
         body: {
           input: d!.input,
-          commanders: d!.commanders,
+          commanders: chosen ?? d!.commanders,
           locked: d!.locked,
           excluded: d!.excluded,
           ...(d!.theme ? { theme: d!.theme } : {}),
@@ -98,6 +100,14 @@ export default function DeckScreen() {
             <View style={{ flexDirection: "row" }}>
               {!d.isMine && (
                 <IconButton
+                  icon={d.liked ? "heart" : "heart-outline"}
+                  color={d.liked ? colors.out : colors.text}
+                  label={d.liked ? `Quitar me gusta (${d.likes})` : `Me gusta (${d.likes})`}
+                  onPress={() => actions.like.mutate(!d.liked)}
+                />
+              )}
+              {!d.isMine && (
+                <IconButton
                   icon="copy-outline"
                   label="Guardar una copia"
                   onPress={() => actions.copy.mutate()}
@@ -110,11 +120,13 @@ export default function DeckScreen() {
                   Share.share({ message: `${d.name} · https://doctordeck.app/decks/${d.id}` })
                 }
               />
-              <IconButton
-                icon="open-outline"
-                label="Abrir en la web"
-                onPress={() => router.push(`/web?path=${encodeURIComponent(`/decks/${d.id}`)}`)}
-              />
+              {d.visibility !== "private" && (
+                <IconButton
+                  icon="chatbubble-outline"
+                  label="Comentarios"
+                  onPress={() => router.push(`/deck-comments/${d.id}`)}
+                />
+              )}
             </View>
           ),
         }}
@@ -128,7 +140,11 @@ export default function DeckScreen() {
         refreshing={analysis.isPlaceholderData || analysis.isFetching}
         error={analysis.error}
         retry={() => analysis.refetch()}
-        needsCommander={analysis.data?.status === "needs_commander"}
+        candidates={analysis.data?.status === "needs_commander" ? analysis.data.candidates : null}
+        onChooseCommanders={(ids) => {
+          setChosen(ids);
+          if (d.isMine) actions.saveCommanders.mutate(ids);
+        }}
         actions={actions}
       />
     </>
@@ -224,7 +240,39 @@ function useDeckActions(d: DeckViewDTO | undefined) {
     },
     onError: (e) => toast(e.message),
   });
-  return { apply, discard, remove, wishlist, copy };
+  const like = useMutation({
+    mutationFn: (on: boolean) =>
+      api<{ likes: number; liked: boolean }>(`/api/decks/${d!.id}/like`, {
+        method: on ? "POST" : "DELETE",
+      }),
+    onSuccess: (r) => {
+      tapFeedback();
+      qc.setQueryData<DeckViewDTO>(["deck", d?.id], (old) =>
+        old ? { ...old, likes: r.likes, liked: r.liked } : old,
+      );
+    },
+    onError: (e) => toast(e.message),
+  });
+  const saveCommanders = useMutation({
+    mutationFn: (commanders: string[]) =>
+      api("/api/decks", {
+        body: {
+          id: d!.id,
+          name: d!.name,
+          input: d!.input,
+          commanders,
+          locked: d!.locked,
+          excluded: d!.excluded,
+          ...(d!.theme ? { theme: d!.theme } : {}),
+        },
+      }),
+    onSuccess: () => {
+      toast("Comandante guardado");
+      reload();
+    },
+    onError: (e) => toast(e.message),
+  });
+  return { apply, discard, remove, wishlist, copy, like, saveCommanders };
 }
 type DeckActions = ReturnType<typeof useDeckActions>;
 
@@ -237,7 +285,8 @@ function DeckBody({
   refreshing,
   error,
   retry,
-  needsCommander,
+  candidates,
+  onChooseCommanders,
   actions,
 }: {
   deck: DeckViewDTO;
@@ -248,7 +297,8 @@ function DeckBody({
   refreshing: boolean;
   error: Error | null;
   retry: () => void;
-  needsCommander: boolean;
+  candidates: CardDTO[] | null;
+  onChooseCommanders: (ids: string[]) => void;
   actions: DeckActions;
 }) {
   const mine = deck.isMine;
@@ -362,20 +412,7 @@ function DeckBody({
           />
         )}
         {a?.edhrec.warning && <Banner text={a.edhrec.warning} />}
-        {needsCommander && (
-          <>
-            <Banner text="Este mazo no dice cuál es el comandante: elígelo en la web." />
-            <Button
-              label="Elegir comandante"
-              kind="secondary"
-              onPress={() =>
-                router.push(
-                  `/web?path=${encodeURIComponent(`/decks/${deck.id}`)}&title=${encodeURIComponent(deck.name)}`,
-                )
-              }
-            />
-          </>
-        )}
+        {candidates && <CommanderPicker candidates={candidates} onChoose={onChooseCommanders} />}
         {tab === "missing" && a && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <T style={{ flex: 1 }}>
@@ -503,6 +540,55 @@ function DeckBody({
         />
       )}
     />
+  );
+}
+
+/** La lista no dice cuál es el comandante: elegir uno (o dos, si son pareja) de los candidatos. */
+function CommanderPicker({
+  candidates,
+  onChoose,
+}: {
+  candidates: CardDTO[];
+  onChoose: (ids: string[]) => void;
+}) {
+  const [picked, setPicked] = useState<string[]>([]);
+  const toggle = (id: string) =>
+    setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id].slice(-2)));
+  return (
+    <View style={{ gap: 8 }}>
+      <Banner text="Esta lista no dice cuál es el comandante. Elígelo (dos si son pareja)." />
+      {candidates.map((c) => (
+        <Pressable
+          key={c.oracleId}
+          onPress={() => toggle(c.oracleId)}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            padding: 8,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: picked.includes(c.oracleId) ? colors.accent : colors.line,
+            backgroundColor: pressed ? colors.hover : colors.panel,
+          })}
+        >
+          <CardThumb uri={c.imageUrl} width={40} name={c.name} />
+          <T style={{ flex: 1 }} numberOfLines={1}>
+            {c.name}
+          </T>
+          <Ionicons
+            name={picked.includes(c.oracleId) ? "checkmark-circle" : "ellipse-outline"}
+            size={22}
+            color={picked.includes(c.oracleId) ? colors.accent : colors.text3}
+          />
+        </Pressable>
+      ))}
+      <Button
+        label={picked.length > 1 ? "Usar estos comandantes" : "Usar este comandante"}
+        disabled={picked.length === 0}
+        onPress={() => onChoose(picked)}
+      />
+    </View>
   );
 }
 

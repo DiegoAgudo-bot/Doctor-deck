@@ -1,9 +1,10 @@
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { Platform } from "react-native";
 import { api } from "./api";
-import { APP_VERSION } from "./config";
+import { API_URL, APP_VERSION } from "./config";
 import { appRoute } from "./paths";
 
 let registeredToken: string | null = null;
@@ -57,4 +58,12 @@ export function useNotificationTaps() {
   return typeof path === "string" ? path : null;
 }
 
-export const openWebPath = (path: string) => router.push(appRoute(path) as never);
+/**
+ * Abre una ruta de la web (de un aviso o un enlace) en su pantalla de la app; lo que no tiene
+ * pantalla (privacidad, aviso legal…), en el navegador del sistema.
+ */
+export function openWebPath(path: string) {
+  const route = appRoute(path);
+  if (route) router.push(route as never);
+  else WebBrowser.openBrowserAsync(new URL(path, API_URL).toString()).catch(() => {});
+}
