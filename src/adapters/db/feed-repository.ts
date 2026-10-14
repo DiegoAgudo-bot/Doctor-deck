@@ -81,7 +81,10 @@ export class PrismaFeedSource implements FeedSource {
           },
         },
         orderBy: { game: { playedAt: "desc" } },
-        take: limit,
+        // Una fila por jugador y luego una entrada por partida: con varios amigos en la misma,
+        // `limit` filas darían menos partidas (y la página se cortaría antes de tiempo). Una
+        // partida tiene como mucho 8 jugadores.
+        take: limit * 8,
       }),
       this.db.tradeProposal.findMany({
         where: {

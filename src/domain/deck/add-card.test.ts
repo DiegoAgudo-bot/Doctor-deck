@@ -23,7 +23,7 @@ const deck: ResolvedDeck = {
   commanderSource: "marked",
   commanderCandidates: [],
   cards: [
-    { card: solRing, quantity: 1, lines: [3] },
+    { card: solRing, quantity: 1, lines: [3], tags: ["Ramp"] },
     { card: island, quantity: 30, lines: [4] },
   ],
   unresolved: [
@@ -79,7 +79,7 @@ describe("decklistWithCard", () => {
         "Deck",
         "1 Counterspell",
         "30 Island",
-        "1 Sol Ring (C21) 263",
+        "1 Sol Ring (C21) 263 #Ramp",
         "1 Carta Inventada",
         "",
       ].join("\n"),

@@ -11,7 +11,7 @@ import type { AddCardsResult, CollectionCard } from "@/application/collection-ca
 import type { CollectionImportSummary } from "@/application/import-collection";
 import type { Card, Color, Printing } from "@/domain/cards/types";
 import type { SkippedLine } from "@/domain/deck/decklist";
-import type { DeckIssue } from "@/domain/deck/resolve";
+import { maxCopies, type DeckIssue } from "@/domain/deck/resolve";
 import type { CollectionSummary } from "@/domain/ports/collection-repository";
 import type { ThemeLink } from "@/domain/recommendations/types";
 import { ROLE_LABELS, type Role } from "@/domain/roles/types";
@@ -100,6 +100,8 @@ export interface DeckCardDTO {
   /** Etiquetas libres (de la lista y mías). */
   tags: string[];
   isBasicLand: boolean;
+  /** Copias que se permiten (null = sin límite: básicas, Relentless Rats…; 7 Seven Dwarves). */
+  maxCopies: number | null;
 }
 
 /** Una carta del mazo frente a mi colección. */
@@ -717,6 +719,7 @@ export function analyzeResponse(result: AnalyzeDeckResult, config: EngineConfig)
         roleSource: result.roles.sourceOf(card),
         tags: result.tags.get(card.oracleId) ?? [],
         isBasicLand: card.isBasicLand,
+        maxCopies: Number.isFinite(maxCopies(card)) ? maxCopies(card) : null,
       };
     }),
     totalCards: deck.commanders.length + deck.cards.reduce((n, c) => n + c.quantity, 0),

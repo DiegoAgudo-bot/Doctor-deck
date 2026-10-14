@@ -419,6 +419,13 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             ...(c.isBasicLand || c.primaryRole === "synergy" ? [] : [ROLE_TAGS[c.primaryRole]]),
             ...c.tags,
           ],
+          // Las que venían en la lista (roles de la lista y etiquetas): se conservan al guardarla.
+          listTags: [
+            ...(c.roleSource === "list"
+              ? c.roles.filter((r) => r !== "synergy" && r !== "land").map((r) => ROLE_TAGS[r])
+              : []),
+            ...c.tags,
+          ],
         })),
       }
     : null;

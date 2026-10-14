@@ -1,5 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { MissingCopiesError, type ProposalItem } from "@/domain/ports/trade-proposals";
+import {
+  MissingCopiesError,
+  ProposalNotPendingError,
+  type ProposalItem,
+} from "@/domain/ports/trade-proposals";
 import { createTestDb, createTestUser } from "../../../tests/helpers/test-db";
 import { PrismaCollectionRepository } from "./collection-repository";
 import type { Db } from "./prisma";
@@ -110,5 +114,10 @@ describe("PrismaTradeProposalRepository", () => {
     });
     expect((await carla.ownedQuantities()).has("tithe")).toBe(false);
     expect((await repo.get(id))?.status).toBe("accepted");
+
+    // Aceptar otra vez (doble clic, otro dispositivo) no vuelve a mover nada.
+    await expect(repo.accept(id)).rejects.toBeInstanceOf(ProposalNotPendingError);
+    expect((await ana.ownedQuantities()).get("ring")).toBe(2);
+    expect((await carla.entries()).filter((e) => e.oracleId === "ring")).toHaveLength(1);
   });
 });

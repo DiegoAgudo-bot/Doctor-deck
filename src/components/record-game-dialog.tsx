@@ -27,7 +27,18 @@ interface Row {
   winner: boolean;
 }
 
-const today = () => new Date().toISOString().slice(0, 10);
+/** Hoy en la hora de aquí (con `toISOString`, de 00:00 a 02:00 en España salía ayer). */
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+/**
+ * Cuándo se jugó: si es hoy, ahora (así sale ya en la actividad y en orden con las demás); otro
+ * día, a mediodía de ese día.
+ */
+const playedAtFor = (date: string) =>
+  date === today() ? new Date().toISOString() : new Date(`${date}T12:00:00`).toISOString();
 
 /**
  * Registrar una partida: en un grupo (los jugadores con cuenta son sus miembros, cada uno con
@@ -142,7 +153,7 @@ export function RecordGameDialog({
         method: "POST",
         ...json({
           groupId: groupId || undefined,
-          playedAt: new Date(`${date}T12:00:00`).toISOString(),
+          playedAt: playedAtFor(date),
           turns: turns ? Number(turns) : undefined,
           notes: notes || undefined,
           players: rows.map((r) => ({

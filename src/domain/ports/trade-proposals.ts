@@ -37,6 +37,14 @@ export interface NewProposal {
 }
 
 /** No se puede aceptar: a quien da le faltan copias (las ha quitado de su colección). */
+/** La propuesta ya no está pendiente (otra petición la ha aceptado o cerrado antes). */
+export class ProposalNotPendingError extends Error {
+  constructor() {
+    super("La propuesta ya no está pendiente");
+    this.name = "ProposalNotPendingError";
+  }
+}
+
 export class MissingCopiesError extends Error {
   constructor(
     readonly giverId: string,

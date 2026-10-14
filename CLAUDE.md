@@ -124,8 +124,12 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   puedes montar» (`/community?sort=owned`, Comunidad lee `?sort=`).
   `PATCH /api/decks/{id}/cards` (`{changes: [{oracleId, delta}]}`, `changeDeckCards`): varias
   cartas a la vez, primero quita y luego añade (`cardChangesProblem`: no tocar el comandante, no
-  quitar lo que no está, identidad y una copia; `decklistWithChanges`). La app lo usa para aplicar
-  cambios sugeridos y quitar cartas.
+  quitar lo que no está, identidad y copias permitidas; `decklistWithChanges`). La app lo usa para
+  aplicar cambios sugeridos y quitar cartas; `PATCH /api/decks/{id}` con `{exclude}` descarta uno
+  sobre la versión guardada (`excludeFromDeck`). Los cambios a un mismo mazo van de uno en uno
+  (`withDeckLock`). Al reescribir la lista se conservan sus etiquetas (`ExportableCard.listTags`).
+  Copias permitidas: `maxCopies` (`domain/deck/resolve.ts`: básicas y «any number» sin límite,
+  «up to seven/nine cards named» ese número, el resto 1; `DeckCardDTO.maxCopies`).
 - **Cuenta y RGPD** (Fase 20, `application/account.ts`): `GET /api/me/export` (todos mis datos en
   JSON, sin ids internos) y `DELETE /api/me` (`{confirm: email}`; borra en cascada). Páginas
   `/privacy` y `/legal` (titular y contacto de `LEGAL_OWNER`/`LEGAL_EMAIL`), pie `LegalFooter` con el
@@ -225,7 +229,8 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
     de los dos retira una pendiente). Las líneas se validan con `priceItems` contra lo que cada uno
     tiene para cambiar (`TradeProposalError` `unavailable`).
   - **Aceptar mueve las cartas** entre las dos colecciones de Doctor Deck (la idea es dejar ManaBox):
-    en una transacción, `accept` quita las copias a quien las da (primero las de esa impresión, foil
+    en una transacción que primero la marca aceptada solo si sigue `pending` (si no,
+    `ProposalNotPendingError` → `closed`: un doble clic no mueve nada dos veces), `accept` quita las copias a quien las da (primero las de esa impresión, foil
     e idioma; si no, otras de la carta) y se las añade a quien las recibe como cartas sueltas
     (`matchMethod = "manual"`, sobreviven a reimportar el CSV); si a alguien le faltan copias no
     cambia nada (`MissingCopiesError` → `trade_missing_copies`). Lo recibido sale de la lista de
