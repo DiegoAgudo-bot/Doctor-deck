@@ -127,6 +127,18 @@ export interface OwnershipItemDTO {
 export interface OwnershipDTO {
   items: OwnershipItemDTO[];
   totals: { cards: number; have: number; fromOtherDecks: number; toBuy: number; cost: number };
+  /** Para lo caro que falta: otras cartas del mismo papel que tengo libres o cuestan mucho menos. */
+  alternatives: {
+    card: CardDTO;
+    price: number;
+    alternatives: {
+      card: CardDTO;
+      price: number | null;
+      owned: boolean;
+      synergy: number | null;
+      inclusion: number | null;
+    }[];
+  }[];
 }
 
 export interface IssueDTO {
@@ -768,6 +780,17 @@ export function analyzeResponse(result: AnalyzeDeckResult, config: EngineConfig)
         price: result.ownership.prices.get(i.card.oracleId) ?? null,
       })),
       totals: { ...result.ownership.totals, cost: result.ownership.cost },
+      alternatives: result.ownership.alternatives.map((a) => ({
+        card: cardDTO(a.card),
+        price: a.price,
+        alternatives: a.alternatives.map((x) => ({
+          card: cardDTO(x.card),
+          price: x.price,
+          owned: x.owned,
+          synergy: x.synergy,
+          inclusion: x.inclusion,
+        })),
+      })),
     },
   };
 }

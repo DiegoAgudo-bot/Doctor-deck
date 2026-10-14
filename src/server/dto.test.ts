@@ -65,6 +65,7 @@ describe("analyzeResponse", () => {
         ...deckOwnership(deck.commanders, deck.cards, new Map()),
         prices: new Map([[bolt.oracleId, 0.5]]),
         cost: 0.5,
+        alternatives: [],
       },
       suggestions: suggestSwaps({
         deck,
