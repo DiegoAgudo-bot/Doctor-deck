@@ -103,7 +103,7 @@ export function SwapDiff({
         )}
         <span
           className="score ml-auto"
-          title="Mejora estimada: cuánto más se juega la que entra que la que sale (EDHREC), más el rol"
+          title="Mejora estimada: cuánto más se juega la que entra que la que sale, más el rol"
         >
           +{points(swap.score)}
         </span>

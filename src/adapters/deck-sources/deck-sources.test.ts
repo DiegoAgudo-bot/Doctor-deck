@@ -128,7 +128,7 @@ describe("Moxfield", () => {
       moxfieldDeckSource(client).load("https://moxfield.com/decks/x"),
       "blocked",
     );
-    expect(err.message).toMatch(/Moxfield ha rechazado la petición \(HTTP 403\)/);
+    expect(err.message).toMatch(/La web del mazo ha rechazado la petición \(HTTP 403\)/);
     expect(calls).toHaveLength(1);
   });
 

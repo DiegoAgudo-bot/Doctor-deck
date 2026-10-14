@@ -21,8 +21,8 @@ import { Banner, Loading, ago, fmt } from "./ui";
 
 const SOURCE: Record<string, string> = {
   text: "texto",
-  archidekt: "Archidekt",
-  moxfield: "Moxfield",
+  archidekt: "enlace",
+  moxfield: "enlace",
 };
 
 export function Home() {
@@ -100,8 +100,8 @@ export function Home() {
         <Banner tone="out">
           <b>El catálogo de cartas está vacío.</b>{" "}
           <span className="muted">
-            Hay que descargar los datos de Scryfall en el servidor (
-            <code>npm run scryfall:sync</code>).
+            Hay que descargar los datos de cartas en el servidor (<code>npm run scryfall:sync</code>
+            ).
           </span>
         </Banner>
       )}
@@ -110,7 +110,7 @@ export function Home() {
           tone="warn"
           action={
             <Link className="btn btn-sm" href="/collection">
-              Importar CSV de ManaBox
+              Importar mi colección
             </Link>
           }
         >

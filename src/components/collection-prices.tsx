@@ -188,9 +188,9 @@ export function CollectionPrices({
         />
       </div>
       <p className="subtle text-xs">
-        Precio de tendencia de Cardmarket (vía Scryfall) de la impresión más barata de cada carta,
-        guardado cada noche (hay datos desde el {first?.date ?? data.latest}). Ordenado por lo que
-        cambia el valor de tus copias.
+        Precio de referencia del mercado europeo de la impresión más barata de cada carta, guardado
+        cada noche (hay datos desde el {first?.date ?? data.latest}). Ordenado por lo que cambia el
+        valor de tus copias.
       </p>
       <CardPriceDialog card={priceCard} onClose={() => setPriceCard(null)} />
     </div>

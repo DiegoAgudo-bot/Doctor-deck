@@ -69,7 +69,7 @@ export default function Login() {
             />
             <T variant="title">Doctor Deck</T>
             <T variant="muted" style={{ textAlign: "center" }}>
-              Tu colección y tus mazos de Commander, con sugerencias de EDHREC.
+              Tu colección y tus mazos de Commander, con sugerencias de la comunidad.
             </T>
           </View>
           {error && <Banner text={error} />}

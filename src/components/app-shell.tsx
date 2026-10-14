@@ -124,8 +124,6 @@ export function BareShell({ children }: { children: ReactNode }) {
         </Link>
         {children}
         <p className="subtle fade text-center text-xs" style={{ ["--d" as string]: "160ms" }}>
-          Datos de cartas de Scryfall · Recomendaciones de EDHREC
-          <br />
           Contenido no oficial bajo la Fan Content Policy de Wizards of the Coast.
           <br />
           <Link href="/privacy">Privacidad</Link> · <Link href="/legal">Aviso legal</Link>

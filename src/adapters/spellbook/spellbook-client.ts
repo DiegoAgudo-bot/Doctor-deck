@@ -57,7 +57,7 @@ export class SpellbookClient implements ComboSource {
       if (!parsed) {
         throw new ComboSourceError(
           "format",
-          "Commander Spellbook ha devuelto algo que no entendemos (puede que haya cambiado su API).",
+          "El servicio de combos ha devuelto algo que no entendemos.",
         );
       }
       const fetchedAt = this.now();
@@ -76,11 +76,11 @@ export class SpellbookClient implements ComboSource {
           : err instanceof HttpError && (err.status === 403 || err.status === 429)
             ? new ComboSourceError(
                 "blocked",
-                "Commander Spellbook ha rechazado la petición. Prueba más tarde.",
+                "El servicio de combos no responde ahora mismo. Prueba más tarde.",
               )
             : new ComboSourceError(
                 "unavailable",
-                "No se ha podido contactar con Commander Spellbook.",
+                "No se ha podido contactar con el servicio de combos.",
               );
       if (cached) {
         return {

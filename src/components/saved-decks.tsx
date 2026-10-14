@@ -168,8 +168,8 @@ export function SavedDecks() {
               </div>
             }
           >
-            Elige un comandante y te monto el mazo con EDHREC, empieza desde cero o importa tu
-            lista.
+            Elige un comandante y te monto el mazo con lo que juega la comunidad, empieza desde cero
+            o importa tu lista.
           </EmptyState>
         </div>
       )}

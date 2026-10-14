@@ -79,7 +79,9 @@ export function CsvImport({
   const [showAll, setShowAll] = useState(false);
 
   async function upload(csv: string, fileName: string) {
-    setBusy(loggedIn ? "Importando y guardando en tu cuenta…" : "Emparejando con Scryfall…");
+    setBusy(
+      loggedIn ? "Importando y guardando en tu cuenta…" : "Buscando tus cartas en el catálogo…",
+    );
     setError(null);
     try {
       const { shown, stored } = await uploadCsv(csv, fileName, loggedIn);
@@ -124,18 +126,12 @@ export function CsvImport({
       >
         <section className="panel">
           <div className="panel-h">
-            <span className="h2">Importar desde ManaBox</span>
+            <span className="h2">Importar un CSV</span>
             <span className="subtle text-xs">Reemplaza lo importado antes</span>
           </div>
           <div className="flex flex-col gap-3 p-3.5">
             <ol className="muted m-0 flex list-decimal flex-col gap-0.5 pl-[18px] text-[13px]">
-              <li>
-                En ManaBox:{" "}
-                <b style={{ color: "var(--color-text)", fontWeight: 500 }}>
-                  Colección › Compartir › Exportar CSV
-                </b>
-                .
-              </li>
+              <li>Exporta tu colección en CSV desde tu app de colección.</li>
               <li>Sube el archivo aquí o arrástralo encima.</li>
               <li>Las cartas que hayas añadido a mano se conservan.</li>
             </ol>
@@ -147,7 +143,7 @@ export function CsvImport({
               <span className="flex min-w-0 flex-1 flex-col">
                 <span style={{ fontWeight: 500 }}>Elegir archivo .csv</span>
                 <span className="subtle mono truncate text-[11.5px]">
-                  {shown?.fileName ? `Actual: ${shown.fileName}` : "Export de ManaBox (CSV)"}
+                  {shown?.fileName ? `Actual: ${shown.fileName}` : "CSV de tu colección"}
                 </span>
               </span>
               <span className="btn">Examinar…</span>
@@ -156,7 +152,7 @@ export function CsvImport({
                 accept=".csv,text/csv"
                 disabled={busy !== null}
                 className="absolute inset-0 cursor-pointer opacity-0"
-                aria-label="Archivo CSV de ManaBox"
+                aria-label="Archivo CSV de tu colección"
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   e.target.value = "";
@@ -264,11 +260,9 @@ export function CsvImport({
                     <td className="r">
                       <a
                         className="btn btn-ghost btn-sm"
-                        href={`https://scryfall.com/search?q=${encodeURIComponent(r.name)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={`/cards?q=${encodeURIComponent(r.name)}`}
                       >
-                        Buscar en Scryfall ↗
+                        Buscar la carta
                       </a>
                     </td>
                   </tr>

@@ -124,7 +124,7 @@ export default function CardScreen() {
           >
             <Ionicons name="cart-outline" size={20} color={colors.accent} />
             <T variant="small" style={{ color: colors.accent }}>
-              Cardmarket
+              Comprar
             </T>
           </Pressable>
         </View>

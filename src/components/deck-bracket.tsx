@@ -113,7 +113,7 @@ export function BracketPanel({
         <p className="subtle text-xs">
           Es el bracket mínimo según game changers, destrucción masiva de tierras, turnos extra
           {bracket.combosChecked
-            ? " y combos (de Commander Spellbook)"
+            ? " y combos"
             : ". Los combos se están buscando o no se han podido comprobar"}
           . El 1 (temático) y el 5 (cEDH) dependen de la intención del mazo.
         </p>

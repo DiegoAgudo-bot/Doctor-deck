@@ -11,7 +11,7 @@ import { loadIndexForDecklist } from "./card-index-loader";
 
 export class UnsupportedDeckInputError extends Error {
   constructor() {
-    super("No sé leer esa entrada. Pega la lista como texto o un link de Archidekt o Moxfield.");
+    super("No sé leer esa entrada. Pega la lista como texto o el enlace de un mazo público.");
   }
 }
 

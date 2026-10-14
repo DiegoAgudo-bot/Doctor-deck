@@ -12,8 +12,8 @@ import { ago } from "./ui";
 
 const SOURCE_LABEL: Record<string, string> = {
   text: "Texto",
-  archidekt: "Archidekt",
-  moxfield: "Moxfield",
+  archidekt: "Enlace",
+  moxfield: "Enlace",
 };
 
 /**

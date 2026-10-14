@@ -24,7 +24,7 @@ const spectral = Spectral({
 export const metadata: Metadata = {
   title: "Doctor Deck",
   description:
-    "Mejora tus mazos de Commander con las cartas que ya tienes: cambios 1×1 con EDHREC, tu colección, combos e intercambios con otros jugadores.",
+    "Mejora tus mazos de Commander con las cartas que ya tienes: cambios 1×1 con lo que juega la comunidad, tu colección, combos e intercambios con otros jugadores.",
   applicationName: "Doctor Deck",
   icons: {
     icon: [

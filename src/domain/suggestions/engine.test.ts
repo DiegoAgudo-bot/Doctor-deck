@@ -107,7 +107,7 @@ describe("suggestSwaps: caso básico y motivo", () => {
       classifier: fakeClassifier({ "Pet Card": ["synergy"], Harmonize: ["draw"] }),
     });
     expect(result.swaps[0]?.reason).toBe(
-      "Sustituye a Pet Card (sinergia, no aparece en EDHREC para este comandante) por Harmonize (robo, 30 % inclusión, −5 synergy). La tienes en tu colección (3 copias). Cambia sinergia por robo.",
+      "Sustituye a Pet Card (sinergia, casi nadie la juega con este comandante) por Harmonize (robo, 30 % inclusión, −5 synergy). La tienes en tu colección (3 copias). Cambia sinergia por robo.",
     );
   });
 });
@@ -554,7 +554,7 @@ describe("suggestPurchases: modo compra", () => {
     ]);
     expect(r.totalCost).toBe(1.75);
     expect(r.purchases[1]?.reason).toContain(
-      "No la tienes: cuesta unos 0,25 € (precio de referencia de Cardmarket).",
+      "No la tienes: cuesta unos 0,25 € (precio de referencia).",
     );
   });
 

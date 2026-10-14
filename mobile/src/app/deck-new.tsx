@@ -24,7 +24,7 @@ type Visibility = (typeof VISIBILITY)[number]["key"];
 const MODES = [
   {
     key: "average",
-    label: "Mazo medio de EDHREC",
+    label: "Mazo medio de la comunidad",
     detail: "Lo que más se juega con este comandante",
   },
   {
@@ -256,7 +256,7 @@ function FromCommander({ initialId, ...common }: Common & { initialId?: string |
       />
       {create.isPending && mode !== "empty" && (
         <T variant="small" style={{ textAlign: "center" }}>
-          Pidiendo a EDHREC lo que se juega con {chosen.name}…
+          Buscando lo que se juega con {chosen.name}…
         </T>
       )}
     </View>
@@ -308,8 +308,8 @@ function FromList({ fromShare, ...common }: Common & { fromShare: boolean }) {
   return (
     <View style={{ gap: 14 }}>
       <T variant="muted">
-        Pega la lista (como la exporta ManaBox, Moxfield o Archidekt) o el enlace del mazo. El
-        comandante va en una sección «Commander» o marcado con *CMDR*.
+        Pega la lista (una carta por línea, como la exportan casi todas las apps) o el enlace del
+        mazo. El comandante va en una sección «Commander» o marcado con *CMDR*.
       </T>
       {save.error && <Banner text={save.error.message} />}
       <T variant="label">Lista o enlace</T>

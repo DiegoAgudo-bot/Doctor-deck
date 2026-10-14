@@ -72,7 +72,7 @@ export function PrintingDialog({
         <>
           <p className="subtle text-xs">
             {printings.length} {printings.length === 1 ? "edición" : "ediciones"}, de la más nueva a
-            la más vieja. Precio de Cardmarket (vía Scryfall), normal / foil.
+            la más vieja. Precio de referencia, normal / foil.
           </p>
           <div
             className="grid gap-3 overflow-y-auto"

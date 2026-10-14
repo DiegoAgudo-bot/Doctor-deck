@@ -279,7 +279,7 @@ export function CollectionCardDialog({
             {lines.some((l) => l.source === "csv") && (
               <p className="subtle text-xs">
                 Al editar una copia del CSV pasa a llevarse solo aquí. Si ya gestionas tu colección
-                en Doctor Deck, no vuelvas a importar el CSV de ManaBox: sus cartas se sumarían otra
+                en Doctor Deck, no vuelvas a importar tu CSV antiguo: sus cartas se sumarían otra
                 vez.
               </p>
             )}

@@ -57,7 +57,7 @@ export function parseMoxfieldDeck(json: unknown, url?: string): ParsedDecklist {
       throw new DeckSourceError(
         "format",
         "moxfield",
-        `La respuesta de Moxfield no tiene la estructura esperada (¿ha cambiado su formato?):\n${z.prettifyError(a.error)}`,
+        `La respuesta de la web del mazo no tiene la estructura esperada (¿ha cambiado su formato?):\n${z.prettifyError(a.error)}`,
         url,
       );
     }

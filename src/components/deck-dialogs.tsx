@@ -158,7 +158,7 @@ export function SaveDialog({
 const FORMAT: Record<ExportFormat, { label: string; hint: string; file: string }> = {
   text: {
     label: "Texto",
-    hint: "El formato que aceptan Moxfield, Archidekt y ManaBox.",
+    hint: "Una carta por línea; lo leen casi todas las webs y apps de mazos.",
     file: "mazo.txt",
   },
   arena: {
@@ -172,9 +172,9 @@ const FORMAT: Record<ExportFormat, { label: string; hint: string; file: string }
     file: "mazo-mtgo.txt",
   },
   moxfield: {
-    label: "Moxfield (con etiquetas)",
-    hint: "Texto con el rol de cada carta y tus etiquetas (#Ramp, #wincon); Moxfield las importa como etiquetas y aquí se vuelven a leer.",
-    file: "mazo-moxfield.txt",
+    label: "Texto con etiquetas",
+    hint: "Texto con el rol de cada carta y tus etiquetas (#Ramp, #wincon); al volver a importarlo aquí se leen igual.",
+    file: "mazo-etiquetas.txt",
   },
 };
 

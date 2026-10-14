@@ -317,7 +317,7 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
               Descargar todos mis datos (JSON)
             </a>
             <a className="btn" href="/api/collection/export" download>
-              Exportar mi colección (CSV de ManaBox)
+              Exportar mi colección (CSV)
             </a>
           </div>
           <p className="subtle text-xs">

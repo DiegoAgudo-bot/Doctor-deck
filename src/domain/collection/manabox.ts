@@ -57,7 +57,7 @@ export function parseManaboxCsv(text: string): ParsedCollection {
   const missing = REQUIRED.filter((c) => !header.includes(c));
   if (missing.length > 0) {
     throw new ManaboxFormatError(
-      `El CSV no parece un export de ManaBox: faltan las columnas ${missing.join(", ")}`,
+      `El CSV no tiene el formato de colección que espero: faltan las columnas ${missing.join(", ")}`,
     );
   }
 

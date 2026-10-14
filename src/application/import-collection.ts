@@ -25,7 +25,7 @@ export interface CollectionImportSummary {
 
 export class EmptyCatalogError extends Error {
   constructor() {
-    super("El catálogo de Scryfall está vacío. Ejecuta `npm run scryfall:sync` primero.");
+    super("El catálogo de cartas está vacío. Ejecuta `npm run scryfall:sync` primero.");
   }
 }
 

@@ -43,7 +43,7 @@ export function parseArchidektDeck(json: unknown, url?: string): ParsedDecklist 
     throw new DeckSourceError(
       "format",
       "archidekt",
-      `La respuesta de Archidekt no tiene la estructura esperada (¿ha cambiado su formato?):\n${z.prettifyError(parsed.error)}`,
+      `La respuesta de la web del mazo no tiene la estructura esperada (¿ha cambiado su formato?):\n${z.prettifyError(parsed.error)}`,
       url,
     );
   }

@@ -88,9 +88,6 @@ function ComboRow({ combo, extra }: { combo: ComboDTO; extra?: React.ReactNode }
           {combo.manaValueNeeded > 0 && (
             <span className="subtle text-xs">Maná para hacerlo: {combo.manaValueNeeded}</span>
           )}
-          <a className="text-xs" href={combo.url} target="_blank" rel="noopener noreferrer">
-            Cómo se hace, en Commander Spellbook ↗
-          </a>
         </div>
       </div>
     </li>
@@ -113,7 +110,7 @@ export function CombosPanel({
   const [filter, setFilter] = useState<Filter>("all");
 
   if (error) return <Banner tone="out">{error}</Banner>;
-  if (!data) return <Loading>Buscando combos en Commander Spellbook…</Loading>;
+  if (!data) return <Loading>Buscando combos…</Loading>;
 
   const owned = data.oneAway.filter((o) => o.status !== "buy");
   const shown =
@@ -244,12 +241,8 @@ export function CombosPanel({
       </section>
 
       <p className="subtle text-xs">
-        Datos de{" "}
-        <a href="https://commanderspellbook.com" target="_blank" rel="noopener noreferrer">
-          Commander Spellbook
-        </a>{" "}
-        ({new Date(data.fetchedAt).toLocaleDateString("es")}). Las etiquetas (temprano, fuerte…) son
-        las suyas y cuentan para el bracket estimado.
+        Combos actualizados el {new Date(data.fetchedAt).toLocaleDateString("es")}. Las etiquetas
+        (temprano, fuerte…) cuentan para el bracket estimado.
       </p>
     </div>
   );

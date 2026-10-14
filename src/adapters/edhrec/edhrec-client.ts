@@ -182,7 +182,11 @@ export class EdhrecClient implements RecommendationSource, AverageDeckSource {
     url: string,
   ): Promise<Fetched<T>> {
     if (redirectsLeft <= 0)
-      throw new EdhrecError("format", "EDHREC ha devuelto demasiadas redirecciones", url);
+      throw new EdhrecError(
+        "format",
+        "El servicio de recomendaciones ha devuelto demasiadas redirecciones",
+        url,
+      );
     return this.fetchPage(path, parse, redirectsLeft - 1);
   }
 }
@@ -191,25 +195,32 @@ function toEdhrecError(err: unknown, url: string): EdhrecError {
   if (err instanceof EdhrecError) return err;
   if (err instanceof HttpError) {
     if (err.status === 404) {
-      return new EdhrecError("not_found", "EDHREC no tiene página para ese comandante o tema", url);
+      return new EdhrecError("not_found", "No hay recomendaciones para ese comandante o tema", url);
     }
     if (err.status === 403 || err.status === 429) {
       return new EdhrecError(
         "blocked",
-        `EDHREC ha rechazado la petición (HTTP ${err.status}). No se reintenta automáticamente; espera un rato o revisa el User-Agent.`,
+        `El servicio de recomendaciones no responde ahora mismo (HTTP ${err.status}). Prueba dentro de un rato.`,
         url,
       );
     }
     return new EdhrecError(
       "unavailable",
-      `EDHREC ha respondido con un error (HTTP ${err.status})`,
+      `El servicio de recomendaciones ha respondido con un error (HTTP ${err.status})`,
       url,
     );
   }
-  if (err instanceof NetworkError) return new EdhrecError("unavailable", err.message, url);
+  // El mensaje llega al usuario: sin la URL (la guarda el propio error).
+  if (err instanceof NetworkError) {
+    return new EdhrecError(
+      "unavailable",
+      "No se ha podido contactar con el servicio de recomendaciones.",
+      url,
+    );
+  }
   return new EdhrecError("unavailable", err instanceof Error ? err.message : String(err), url);
 }
 
 function staleWarning(error: EdhrecError, fetchedAt: Date): string {
-  return `No se pudo actualizar desde EDHREC (${error.message}). Se usan datos guardados del ${fetchedAt.toISOString().slice(0, 10)}.`;
+  return `No se pudieron actualizar las recomendaciones (${error.message}). Se usan datos guardados del ${fetchedAt.toISOString().slice(0, 10)}.`;
 }
