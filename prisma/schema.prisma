@@ -150,6 +150,7 @@ model Deck {
   updatedAt      DateTime           @updatedAt
   cards          DeckCard[]
   decisions      SwapDecision[]
+  versions       DeckVersion[]
 
   @@index([userId])
   @@index([visibility, createdAt])
@@ -276,6 +277,7 @@ model Notification {
 
   @@index([userId, createdAt])
   @@index([userId, type, cardId])
+  @@index([userId, readAt])
 }
 
 model Session {
@@ -428,6 +430,7 @@ model TradeProposal {
 
   @@index([fromUserId])
   @@index([toUserId])
+  @@index([status, closedAt])
 }
 
 /// Una línea de una versión de una propuesta: copias iguales que da `giverId`, con su precio
@@ -507,6 +510,7 @@ model Game {
 
   @@index([groupId, playedAt])
   @@index([createdById])
+  @@index([playedAt])
 }
 
 /// Un jugador de una partida: usuario de Doctor Deck o invitado (solo nombre).
@@ -641,4 +645,21 @@ model PushDevice {
   lastSeenAt DateTime @default(now())
 
   @@index([userId])
+}
+
+/// Versiones anteriores de la lista de un mazo (historial): se guarda la de antes cada vez que
+/// cambia (como mucho una cada 2 minutos y las 30 últimas), para ver qué cambió y restaurarla.
+model DeckVersion {
+  id        Int      @id @default(autoincrement())
+  /// Identificador público (API). El `id` numérico no sale de la BD.
+  publicId  String   @unique @default(uuid())
+  deckId    Int
+  deck      Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  /// La lista tal cual estaba.
+  input     String
+  /// JSON `[[oracleId, copias, esComandante]]` de esa versión, para comparar sin volver a resolverla.
+  cards     String
+  createdAt DateTime @default(now())
+
+  @@index([deckId, createdAt])
 }

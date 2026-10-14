@@ -1,7 +1,7 @@
 import { combinedColorIdentity, fitsColorIdentity } from "../cards/commander";
 import type { Card } from "../cards/types";
 import { changeCard, exportDecklist, type ExportableDeck } from "./export";
-import type { ResolvedDeck } from "./resolve";
+import { maxCopies, type ResolvedDeck } from "./resolve";
 
 /** Por qué no se puede añadir una carta a un mazo (desde la colección, la ficha…). */
 export type AddCardProblem = "is_commander" | "off_color" | "already_in_deck";
@@ -11,8 +11,7 @@ export type CardChangeProblem = AddCardProblem | "not_in_deck";
 export const ADD_CARD_MESSAGES: Record<CardChangeProblem, (card: string) => string> = {
   is_commander: (card) => `${card} es el comandante de este mazo.`,
   off_color: (card) => `${card} está fuera de la identidad de color del comandante.`,
-  already_in_deck: (card) =>
-    `${card} ya está en el mazo (en Commander solo puede haber una copia).`,
+  already_in_deck: (card) => `${card} ya está en el mazo con todas las copias que se permiten.`,
   not_in_deck: (card) => `${card} no está en el mazo.`,
 };
 
@@ -22,13 +21,12 @@ export interface DeckCardChange {
   delta: number;
 }
 
-/** null si se puede añadir; si no, el motivo. Las tierras básicas se pueden repetir. */
+/** null si se puede añadir; si no, el motivo. Las básicas (y Relentless Rats…) se pueden repetir. */
 export function addCardProblem(deck: ResolvedDeck, card: Card): AddCardProblem | null {
   if (deck.commanders.some((c) => c.oracleId === card.oracleId)) return "is_commander";
   if (!fitsColorIdentity(card, combinedColorIdentity(deck.commanders))) return "off_color";
-  if (!card.isBasicLand && deck.cards.some((c) => c.card.oracleId === card.oracleId)) {
-    return "already_in_deck";
-  }
+  const have = deck.cards.find((c) => c.card.oracleId === card.oracleId)?.quantity ?? 0;
+  if (have + 1 > maxCopies(card)) return "already_in_deck";
   return null;
 }
 
@@ -50,6 +48,7 @@ export function exportableFromResolved(deck: ResolvedDeck): ExportableDeck {
       name: c.card.name,
       layout: c.card.layout,
       quantity: c.quantity,
+      ...(c.tags?.length ? { listTags: c.tags } : {}),
       ...printing(c.card.oracleId),
     })),
   };
@@ -76,7 +75,7 @@ export function cardChangesProblem(
     if (isCommander(card)) return { problem: "is_commander", card };
     if (!fitsColorIdentity(card, identity)) return { problem: "off_color", card };
     const next = (qty.get(card.oracleId) ?? 0) + delta;
-    if (!card.isBasicLand && next > 1) return { problem: "already_in_deck", card };
+    if (next > maxCopies(card)) return { problem: "already_in_deck", card };
     qty.set(card.oracleId, next);
   }
   return null;

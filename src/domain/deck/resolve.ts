@@ -200,9 +200,31 @@ export type DeckIssue =
   | { kind: "colorIdentity"; card: Card; identity: Color[] }
   | { kind: "notLegal"; card: Card };
 
-/** Cartas que dicen "A deck can have any number of cards named ~". */
-const anyNumberAllowed = (c: Card) =>
-  /deck can have any number of cards named/i.test(c.oracleText ?? "");
+const NUMBER_WORDS: Record<string, number> = {
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+};
+
+/**
+ * Cuántas copias puede haber de una carta en un mazo de Commander: las básicas y las que dicen
+ * "A deck can have any number of cards named ~" (Relentless Rats…), sin límite; las que dicen
+ * "up to seven/nine cards named ~" (Seven Dwarves, Nazgûl), ese número; el resto, una.
+ */
+export function maxCopies(c: Pick<Card, "isBasicLand" | "oracleText">): number {
+  if (c.isBasicLand) return Infinity;
+  const text = c.oracleText ?? "";
+  if (/deck can have any number of cards named/i.test(text)) return Infinity;
+  const upTo = /deck can have up to (\w+) cards named/i.exec(text)?.[1]?.toLowerCase();
+  if (upTo) return NUMBER_WORDS[upTo] ?? (Number(upTo) || 1);
+  return 1;
+}
 
 /** Comprobaciones básicas de Commander: 100 cartas, singleton, identidad de color y legalidad. */
 export function validateDeck(deck: ResolvedDeck): DeckIssue[] {
@@ -215,7 +237,7 @@ export function validateDeck(deck: ResolvedDeck): DeckIssue[] {
   for (const card of deck.commanders)
     if (!card.legalCommander) issues.push({ kind: "notLegal", card });
   for (const { card, quantity } of deck.cards) {
-    if (quantity > 1 && !card.isBasicLand && !anyNumberAllowed(card)) {
+    if (quantity > maxCopies(card)) {
       issues.push({ kind: "duplicate", card, quantity });
     }
     if (deck.commanders.length > 0 && !fitsColorIdentity(card, identity)) {

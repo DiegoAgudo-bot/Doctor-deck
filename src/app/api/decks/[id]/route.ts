@@ -7,6 +7,7 @@ import { savedDeckDTO, type DeckViewDTO } from "@/server/dto";
 import { errorResponse, jsonWithEtag } from "@/server/http";
 import { currentUser, requireUser } from "@/server/session";
 import { readJson } from "@/server/body";
+import { excludeFromDeck } from "@/application/add-card-to-deck";
 
 const notFound = () =>
   Response.json(
@@ -57,12 +58,14 @@ const patchSchema = z
       .nullable()
       .optional(),
     inWishlist: z.boolean().optional(),
+    /** Descartar un cambio sugerido: esa carta no se vuelve a proponer. */
+    exclude: z.string().min(1).max(64).optional(),
   })
   .refine((p) => Object.values(p).some((v) => v !== undefined), "Nada que cambiar");
 
 /**
- * Cambia la visibilidad (público / oculto / privado), el nombre, el bracket objetivo o si entra en
- * la lista de deseos de uno de tus mazos.
+ * Cambia la visibilidad (público / oculto / privado), el nombre, el bracket objetivo, si entra en
+ * la lista de deseos o descarta una carta (`exclude`) de uno de tus mazos.
  */
 export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">) {
   try {
@@ -78,6 +81,14 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/decks/[id]
       ok = await decks.setTargetBracket(id, changes.targetBracket);
     if (ok && id && changes.inWishlist !== undefined)
       ok = await decks.setInWishlist(id, changes.inWishlist);
+    if (ok && id && changes.exclude !== undefined) {
+      const c = getContainer();
+      await excludeFromDeck(id, changes.exclude, {
+        sources: c.deckSources,
+        cards: c.cards,
+        decks,
+      });
+    }
     return ok ? Response.json(changes) : notFound();
   } catch (err) {
     return errorResponse(err);

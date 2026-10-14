@@ -110,7 +110,7 @@ export default function DeckScreen() {
                 <IconButton
                   icon="copy-outline"
                   label="Guardar una copia"
-                  onPress={() => actions.copy.mutate()}
+                  onPress={() => !actions.copy.isPending && actions.copy.mutate()}
                 />
               )}
               <IconButton
@@ -137,7 +137,7 @@ export default function DeckScreen() {
         tab={tab}
         setTab={setTab}
         loading={analysis.isPending}
-        refreshing={analysis.isPlaceholderData || analysis.isFetching}
+        refreshing={analysis.isPlaceholderData || analysis.isFetching || deck.isFetching}
         error={analysis.error}
         retry={() => analysis.refetch()}
         candidates={analysis.data?.status === "needs_commander" ? analysis.data.candidates : null}
@@ -186,18 +186,10 @@ function useDeckActions(d: DeckViewDTO | undefined) {
     onError: (e) => toast(e.message),
   });
   const discard = useMutation({
+    // El servidor lo añade a los descartes de la versión guardada (no reenvía la lista de aquí,
+    // que puede ser vieja si se acaba de aplicar otro cambio).
     mutationFn: (swap: SwapDTO) =>
-      api("/api/decks", {
-        body: {
-          id: d!.id,
-          name: d!.name,
-          input: d!.input,
-          commanders: d!.commanders,
-          locked: d!.locked,
-          excluded: [...new Set([...d!.excluded, swap.in.card.oracleId])],
-          ...(d!.theme ? { theme: d!.theme } : {}),
-        },
-      }),
+      api(`/api/decks/${d!.id}`, { method: "PATCH", body: { exclude: swap.in.card.oracleId } }),
     onSuccess: (_r, swap) => {
       toast(`No se volverá a proponer ${swap.in.card.name}`);
       reload();

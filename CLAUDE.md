@@ -88,6 +88,11 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   las cartas necesarias en un `InMemoryCardIndex` (dominio, síncrono); el dominio trabaja contra la
   interfaz `CardIndex`. El índice prefiere cartas jugables frente a tokens/art series homónimos.
 - **Colección**: `parseManaboxCsv` → `matchCollection` (id → set+nº → nombre) → `replaceCollection`.
+  El CSV puede ser el de ManaBox o el de otras apps: `ALIASES` en `domain/collection/manabox.ts`
+  reconoce sus columnas (Moxfield `Count`/`Edition`, Deckbox `Card Number`, Dragon Shield `Card
+Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edition" solo cuenta
+  como código si lo parece (`SET_CODE_RE`). `looksLikeCollectionCsv` detecta la cabecera (también
+  al compartir con la app).
   Además, cartas sueltas (`addToCollection`, `application/collection-cards.ts`): se resuelven por
   `oracleId` (buscador web), `scryfallId` (lo que dará el escáner de la app móvil) o nombre, y se
   guardan con `matchMethod = "manual"`; reimportar el CSV **no** las borra. `collectionView` agrupa
@@ -124,8 +129,18 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   puedes montar» (`/community?sort=owned`, Comunidad lee `?sort=`).
   `PATCH /api/decks/{id}/cards` (`{changes: [{oracleId, delta}]}`, `changeDeckCards`): varias
   cartas a la vez, primero quita y luego añade (`cardChangesProblem`: no tocar el comandante, no
-  quitar lo que no está, identidad y una copia; `decklistWithChanges`). La app lo usa para aplicar
-  cambios sugeridos y quitar cartas.
+  quitar lo que no está, identidad y copias permitidas; `decklistWithChanges`). La app lo usa para
+  aplicar cambios sugeridos y quitar cartas; `PATCH /api/decks/{id}` con `{exclude}` descarta uno
+  sobre la versión guardada (`excludeFromDeck`). Los cambios a un mismo mazo van de uno en uno
+  (`withDeckLock`). Al reescribir la lista se conservan sus etiquetas (`ExportableCard.listTags`).
+  **Historial** (`DeckVersion`): al cambiar la lista de un mazo guardado, `PrismaDeckRepository.save`
+  guarda la anterior (`keepVersion`: con sus cartas en JSON; si la última versión es de hace menos
+  de 2 min no guarda otra; las 30 últimas, `domain/deck/versions.ts`). `GET
+/api/decks/{id}/versions` (`deckVersions`: cada versión con lo que entró y salió después,
+  `diffVersions`) y `POST /api/decks/{id}/versions/{versionId}` (`restoreDeckVersion`, que deja la
+  actual en el historial). UI: «Historial» en los ajustes del mazo.
+  Copias permitidas: `maxCopies` (`domain/deck/resolve.ts`: básicas y «any number» sin límite,
+  «up to seven/nine cards named» ese número, el resto 1; `DeckCardDTO.maxCopies`).
 - **Cuenta y RGPD** (Fase 20, `application/account.ts`): `GET /api/me/export` (todos mis datos en
   JSON, sin ids internos) y `DELETE /api/me` (`{confirm: email}`; borra en cascada). Páginas
   `/privacy` y `/legal` (titular y contacto de `LEGAL_OWNER`/`LEGAL_EMAIL`), pie `LegalFooter` con el
@@ -225,7 +240,8 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
     de los dos retira una pendiente). Las líneas se validan con `priceItems` contra lo que cada uno
     tiene para cambiar (`TradeProposalError` `unavailable`).
   - **Aceptar mueve las cartas** entre las dos colecciones de Doctor Deck (la idea es dejar ManaBox):
-    en una transacción, `accept` quita las copias a quien las da (primero las de esa impresión, foil
+    en una transacción que primero la marca aceptada solo si sigue `pending` (si no,
+    `ProposalNotPendingError` → `closed`: un doble clic no mueve nada dos veces), `accept` quita las copias a quien las da (primero las de esa impresión, foil
     e idioma; si no, otras de la carta) y se las añade a quien las recibe como cartas sueltas
     (`matchMethod = "manual"`, sobreviven a reimportar el CSV); si a alguien le faltan copias no
     cambia nada (`MissingCopiesError` → `trade_missing_copies`). Lo recibido sale de la lista de
@@ -395,10 +411,16 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     (€). `OracleCard.minPriceEur` (precio de la impresión más barata) lo rellena `insertPrintings`.
   - `CardImage` con `sizes` ofrece también la imagen pequeña de Scryfall (146 px) en miniaturas;
     `CardGridSkeleton` y `TilesSkeleton` mientras cargan las rejillas y listas.
-  - **Rendimiento** (bloque C del bugfix): `createDb` sube `dataEpoch()` con cada escritura en
-    colección, mazos, préstamos, roles corregidos o catálogo; `MemoCache` (`server/memo-cache.ts`)
+  - **Rendimiento** (bloque C del bugfix): `createDb` sube la época con cada escritura en
+    colección, mazos, préstamos, roles corregidos o catálogo: la del usuario si la escritura dice
+    `userId` (`userDataEpoch`), si no la global (`dataEpoch`). `MemoCache` (`server/memo-cache.ts`)
     guarda por usuario la colección calculada (`container.collectionViews`, válida hasta que cambie
-    la época o pasen 10 min) y `browseCollectionView` filtra sobre ella. `EdhrecClient` guarda en
+    la época de ese usuario o pasen 10 min) y `browseCollectionView` filtra sobre ella.
+    `communityDecks` guarda un minuto los mazos candidatos de Comunidad por filtros; los precios
+    mínimos salen de `OracleCard.minPriceEur`. El sitemap solo lee ids (mazos, perfiles y las
+    30 000 cartas más jugadas). Cada noche, `scryfall:sync` termina con `pruneOldData`
+    (`adapters/db/prune.ts`: caché de más de 30 días, avisos leídos de más de 90 y todos de más
+    de un año, precios de más de 400 días). `EdhrecClient` guarda en
     memoria las 32 últimas páginas validadas hasta que caducan. `/api/collection/view` y
     `/api/analyze` devuelven `Server-Timing` (`Timing`, `timing.wrap` cronometra los adaptadores).
     En el navegador, `swr-cache.ts` enseña lo de la última vez (mis mazos, totales y primera página

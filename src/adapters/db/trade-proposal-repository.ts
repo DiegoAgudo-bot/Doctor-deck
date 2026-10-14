@@ -1,6 +1,7 @@
 import {
   MissingCopiesError,
   PROPOSAL_STATUSES,
+  ProposalNotPendingError,
   type NewProposal,
   type ProposalItem,
   type ProposalStatus,
@@ -141,6 +142,13 @@ export class PrismaTradeProposalRepository implements TradeProposalRepository {
 
   async accept(id: string) {
     await this.db.$transaction(async (tx) => {
+      // Se marca aceptada solo si sigue pendiente, dentro de la transacción: con un doble clic o
+      // desde dos dispositivos, la segunda petición no vuelve a mover las cartas.
+      const claimed = await tx.tradeProposal.updateMany({
+        where: { publicId: id, status: "pending" },
+        data: { status: "accepted", turnUserId: null, closedAt: new Date() },
+      });
+      if (claimed.count === 0) throw new ProposalNotPendingError();
       const row = await tx.tradeProposal.findUniqueOrThrow({
         where: { publicId: id },
         include: currentItems,
@@ -172,12 +180,8 @@ export class PrismaTradeProposalRepository implements TradeProposalRepository {
         });
       }
       const [first] = missing;
-      // Lanzar deshace la transacción: o se mueve todo o nada.
+      // Lanzar deshace la transacción (también el «aceptada»): o se mueve todo o nada.
       if (first) throw new MissingCopiesError(first[0], first[1]);
-      await tx.tradeProposal.update({
-        where: { id: row.id },
-        data: { status: "accepted", turnUserId: null, closedAt: new Date() },
-      });
     });
   }
 

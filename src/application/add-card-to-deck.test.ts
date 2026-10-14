@@ -4,7 +4,7 @@ import { PrismaDeckRepository } from "@/adapters/db/deck-repository";
 import { textDeckSource } from "@/adapters/deck-sources/text-deck-source";
 import { fixtureCards, fixturePrintings } from "../../tests/helpers/scryfall-fixtures";
 import { createTestDb, createTestUser } from "../../tests/helpers/test-db";
-import { addCardToDeck, changeDeckCards } from "./add-card-to-deck";
+import { addCardToDeck, changeDeckCards, excludeFromDeck } from "./add-card-to-deck";
 import { AppError } from "./errors";
 import { saveDeck } from "./save-deck";
 
@@ -87,6 +87,18 @@ describe("addCardToDeck", () => {
         deps,
       ),
     ).rejects.toMatchObject({ code: "is_commander", status: 409 });
+  });
+
+  it("dos cambios a la vez no se pisan, y descartar se suma a lo guardado", async () => {
+    const before = (await deps.decks.get(deckId))!.cardCount;
+    await Promise.all([
+      changeDeckCards(deckId, [{ oracleId: await oracleIdOf("Island"), delta: -1 }], deps),
+      changeDeckCards(deckId, [{ oracleId: await oracleIdOf("Island"), delta: -1 }], deps),
+      excludeFromDeck(deckId, await oracleIdOf("Lantern Flare"), deps),
+    ]);
+    const saved = await deps.decks.get(deckId);
+    expect(saved?.cardCount).toBe(before - 2);
+    expect(saved?.excluded).toContain(await oracleIdOf("Lantern Flare"));
   });
 
   it("un mazo que no es mío no existe", async () => {

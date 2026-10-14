@@ -3,7 +3,13 @@ import { makeCard } from "../../../tests/helpers/cards";
 import { InMemoryCardIndex } from "../cards/card-index";
 import type { Card } from "../cards/types";
 import { parseDecklist } from "./decklist";
-import { chooseCommanders, fittingCandidates, resolveDecklist, validateDeck } from "./resolve";
+import {
+  chooseCommanders,
+  fittingCandidates,
+  maxCopies,
+  resolveDecklist,
+  validateDeck,
+} from "./resolve";
 
 const atraxa = makeCard({
   name: "Atraxa, Praetors' Voice",
@@ -227,5 +233,36 @@ describe("resolveDecklist: impresiones", () => {
     });
     const island = deck.cards.find((c) => c.card.name === "Island")!.card;
     expect(deck.printings?.has(island.oracleId)).toBe(false);
+  });
+});
+
+describe("maxCopies", () => {
+  it("una, salvo básicas, «any number» y «up to seven/nine»", () => {
+    expect(maxCopies(makeCard({ name: "Sol Ring" }))).toBe(1);
+    expect(maxCopies(makeCard({ name: "Island", isBasicLand: true }))).toBe(Infinity);
+    expect(
+      maxCopies(
+        makeCard({
+          name: "Relentless Rats",
+          oracleText: "A deck can have any number of cards named Relentless Rats.",
+        }),
+      ),
+    ).toBe(Infinity);
+    expect(
+      maxCopies(
+        makeCard({
+          name: "Seven Dwarves",
+          oracleText: "A deck can have up to seven cards named Seven Dwarves.",
+        }),
+      ),
+    ).toBe(7);
+    expect(
+      maxCopies(
+        makeCard({
+          name: "Nazgûl",
+          oracleText: "A deck can have up to nine cards named Nazgûl.",
+        }),
+      ),
+    ).toBe(9);
   });
 });

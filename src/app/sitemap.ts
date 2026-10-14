@@ -3,23 +3,22 @@ import { connection } from "next/server";
 import { getContainer } from "@/server/container";
 import { siteUrl } from "@/server/share";
 
-/** Portada, comunidad, mazos públicos y perfiles con mazos públicos. */
+/** Portada, comunidad, mazos públicos, perfiles con mazos públicos y fichas de cartas. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   await connection();
   const base = siteUrl();
   const url = (path: string) => new URL(path, base).toString();
-  const decks = await getContainer().publicDecks.search({}, 5000);
-  const owners = new Map<string, Date>();
+  const c = getContainer();
+  // Un sitemap admite 50 000 URLs: mazos, perfiles y las fichas de las cartas más jugadas.
+  const [decks, cards] = await Promise.all([
+    c.publicDecks.sitemapEntries(5000),
+    c.cards.sitemapCards(30_000),
+  ]);
+  const profiles = new Map<string, Date>();
   for (const d of decks) {
-    const prev = owners.get(d.ownerId);
-    if (!prev || d.updatedAt > prev) owners.set(d.ownerId, d.updatedAt);
+    const prev = profiles.get(d.username);
+    if (!prev || d.updatedAt > prev) profiles.set(d.username, d.updatedAt);
   }
-  const profiles = await Promise.all(
-    [...owners].map(async ([id, updated]) => ({
-      p: await getContainer().social.byId(id),
-      updated,
-    })),
-  );
   return [
     { url: url("/"), changeFrequency: "weekly", priority: 1 },
     { url: url("/community"), changeFrequency: "daily", priority: 0.8 },
@@ -29,16 +28,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.6,
     })),
-    ...profiles.flatMap(({ p, updated }) =>
-      p?.username
-        ? [
-            {
-              url: url(`/u/${p.username}`),
-              lastModified: updated,
-              changeFrequency: "weekly" as const,
-            },
-          ]
-        : [],
-    ),
+    ...cards.map((id) => ({
+      url: url(`/cards/${id}`),
+      changeFrequency: "monthly" as const,
+      priority: 0.4,
+    })),
+    ...[...profiles].map(([username, updated]) => ({
+      url: url(`/u/${username}`),
+      lastModified: updated,
+      changeFrequency: "weekly" as const,
+    })),
   ];
 }

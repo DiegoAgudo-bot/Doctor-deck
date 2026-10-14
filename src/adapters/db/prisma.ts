@@ -35,6 +35,35 @@ let epoch = 0;
 /** Sube con cada escritura en las tablas de `TRACKED` (y con SQL directo, por si acaso). */
 export const dataEpoch = () => epoch;
 
+/** Escrituras de cada usuario (las que dicen `userId`): solo invalidan lo de ese usuario. */
+const userEpochs = new Map<string, number>();
+
+/**
+ * Época de los datos de un usuario: cambia con sus escrituras y con las que no se sabe de quién
+ * son (catálogo, cambios por id…), no con las de otros usuarios.
+ */
+export const userDataEpoch = (userId: string) => `${epoch}:${userEpochs.get(userId) ?? 0}`;
+
+/** El `userId` de una escritura si lo dice (`where` o `data`, también en `createMany`). */
+function writerOf(args: unknown): string | null {
+  const a = args as { where?: { userId?: unknown }; data?: unknown } | undefined;
+  if (typeof a?.where?.userId === "string") return a.where.userId;
+  const data = Array.isArray(a?.data) ? a.data : [a?.data];
+  const ids = new Set(
+    data.map((d) => (d as { userId?: unknown } | undefined)?.userId).filter((u) => u !== undefined),
+  );
+  const [only] = ids;
+  return ids.size === 1 && typeof only === "string" ? only : null;
+}
+
+function bump(model: string, args: unknown) {
+  // El catálogo afecta a todos; lo demás, a quien lo escribe si se sabe.
+  const user =
+    model === "OracleCard" || model === "Printing" || model === "CardOtag" ? null : writerOf(args);
+  if (user === null) epoch += 1;
+  else userEpochs.set(user, (userEpochs.get(user) ?? 0) + 1);
+}
+
 /** `url` en formato Prisma (`file:./data/x.db`) o ruta directa. */
 export function createDb(url: string): Db {
   const file = url.replace(/^file:/, "");
@@ -44,7 +73,7 @@ export function createDb(url: string): Db {
       $allModels: {
         async $allOperations({ model, operation, args, query }) {
           const result = await query(args);
-          if (TRACKED.has(model) && WRITES.has(operation)) epoch += 1;
+          if (TRACKED.has(model) && WRITES.has(operation)) bump(model, args);
           return result;
         },
       },

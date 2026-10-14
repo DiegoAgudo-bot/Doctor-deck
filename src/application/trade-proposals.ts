@@ -7,6 +7,7 @@ import type {
 } from "@/domain/ports/social";
 import {
   MissingCopiesError,
+  ProposalNotPendingError,
   type ProposalItem,
   type TradeProposal,
   type TradeProposalRepository,
@@ -331,6 +332,7 @@ export async function actOnProposal(
         if (err instanceof MissingCopiesError) {
           throw new TradeProposalError("missing_copies", err.oracleIds);
         }
+        if (err instanceof ProposalNotPendingError) throw new TradeProposalError("closed");
         throw err;
       }
       await clearReceivedWishes(p, deps);

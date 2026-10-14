@@ -314,11 +314,21 @@ export function LifeCounter() {
   useEffect(() => {
     if (!playing || !("wakeLock" in navigator)) return;
     let lock: { release: () => Promise<void> } | null = null;
-    navigator.wakeLock
-      .request("screen")
-      .then((l) => (lock = l))
-      .catch(() => undefined);
-    return () => void lock?.release().catch(() => undefined);
+    const request = () =>
+      navigator.wakeLock
+        .request("screen")
+        .then((l) => (lock = l))
+        .catch(() => undefined);
+    // El navegador suelta el bloqueo al cambiar de pestaña o apagar la pantalla: al volver, otra vez.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void request();
+    };
+    void request();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      void lock?.release().catch(() => undefined);
+    };
   }, [playing]);
 
   const names = Array.from({ length: s.count }, (_, i) => s.names[i] ?? "");
