@@ -1,3 +1,4 @@
+import type { CommunityDeckRow } from "@/domain/ports/social";
 import { archidektDeckSource } from "@/adapters/deck-sources/archidekt";
 import { moxfieldDeckSource } from "@/adapters/deck-sources/moxfield";
 import { textDeckSource } from "@/adapters/deck-sources/text-deck-source";
@@ -20,7 +21,7 @@ import { PrismaGameRepository, PrismaGroupRepository } from "@/adapters/db/play-
 import { PrismaResponseCache } from "@/adapters/db/response-cache";
 import { EdhrecClient } from "@/adapters/edhrec/edhrec-client";
 import { SpellbookClient } from "@/adapters/spellbook/spellbook-client";
-import { createDb, dataEpoch } from "@/adapters/db/prisma";
+import { createDb, dataEpoch, userDataEpoch } from "@/adapters/db/prisma";
 import { HttpClient } from "@/adapters/http/http-client";
 import { FileImageCache } from "@/adapters/images/image-cache";
 import { ScryfallTagger } from "@/adapters/scryfall/tagger";
@@ -102,7 +103,17 @@ export function createContainer() {
      * La colección calculada de cada usuario (cartas, precios, roles y uso en mazos): se rehace
      * solo si algo cambia (`dataEpoch`) o cada 10 minutos (precios de `scryfall:sync`).
      */
-    collectionViews: new MemoCache<CollectionCard[]>(dataEpoch, 10 * 60_000, 200),
+    // Clave `${userId}|${agrupación}`: solo la invalidan las escrituras de ese usuario (o globales).
+    /**
+     * Mazos candidatos de Comunidad por filtros (con sus cartas): se cargan una vez por minuto y
+     * no en cada página u orden; cualquier cambio en mazos los renueva.
+     */
+    communityDecks: new MemoCache<CommunityDeckRow[]>(() => dataEpoch(), 60_000, 50),
+    collectionViews: new MemoCache<CollectionCard[]>(
+      (key) => userDataEpoch(key.split("|")[0] ?? ""),
+      10 * 60_000,
+      200,
+    ),
     /** Lista de deseos manual y cartas que no cambio de cada usuario. */
     tradesFor: (userId: string) => new PrismaTradeRepository(db, userId),
     /** Propuestas de intercambio entre usuarios (fase 19). */

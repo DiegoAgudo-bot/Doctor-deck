@@ -276,6 +276,7 @@ model Notification {
 
   @@index([userId, createdAt])
   @@index([userId, type, cardId])
+  @@index([userId, readAt])
 }
 
 model Session {
@@ -428,6 +429,7 @@ model TradeProposal {
 
   @@index([fromUserId])
   @@index([toUserId])
+  @@index([status, closedAt])
 }
 
 /// Una línea de una versión de una propuesta: copias iguales que da `giverId`, con su precio
@@ -507,6 +509,7 @@ model Game {
 
   @@index([groupId, playedAt])
   @@index([createdById])
+  @@index([playedAt])
 }
 
 /// Un jugador de una partida: usuario de Doctor Deck o invitado (solo nombre).

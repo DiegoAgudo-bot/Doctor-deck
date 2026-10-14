@@ -5,17 +5,21 @@
  * precios de `scryfall:sync`). Las peticiones simultáneas con la misma clave comparten el cálculo.
  */
 export class MemoCache<T> {
-  private readonly entries = new Map<string, { epoch: number; at: number; value: Promise<T> }>();
+  private readonly entries = new Map<
+    string,
+    { epoch: number | string; at: number; value: Promise<T> }
+  >();
 
   constructor(
-    private readonly epoch: () => number,
+    /** Época de los datos de esa clave (p. ej. la del usuario de la clave). */
+    private readonly epoch: (key: string) => number | string,
     private readonly ttlMs: number,
     private readonly maxEntries: number,
     private readonly now: () => number = Date.now,
   ) {}
 
   async get(key: string, load: () => Promise<T>): Promise<{ value: T; hit: boolean }> {
-    const epoch = this.epoch();
+    const epoch = this.epoch(key);
     const hit = this.entries.get(key);
     if (hit && hit.epoch === epoch && this.now() - hit.at < this.ttlMs) {
       // Al final del Map: la usada más recientemente.

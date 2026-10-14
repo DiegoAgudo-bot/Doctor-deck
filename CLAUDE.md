@@ -400,10 +400,16 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     (€). `OracleCard.minPriceEur` (precio de la impresión más barata) lo rellena `insertPrintings`.
   - `CardImage` con `sizes` ofrece también la imagen pequeña de Scryfall (146 px) en miniaturas;
     `CardGridSkeleton` y `TilesSkeleton` mientras cargan las rejillas y listas.
-  - **Rendimiento** (bloque C del bugfix): `createDb` sube `dataEpoch()` con cada escritura en
-    colección, mazos, préstamos, roles corregidos o catálogo; `MemoCache` (`server/memo-cache.ts`)
+  - **Rendimiento** (bloque C del bugfix): `createDb` sube la época con cada escritura en
+    colección, mazos, préstamos, roles corregidos o catálogo: la del usuario si la escritura dice
+    `userId` (`userDataEpoch`), si no la global (`dataEpoch`). `MemoCache` (`server/memo-cache.ts`)
     guarda por usuario la colección calculada (`container.collectionViews`, válida hasta que cambie
-    la época o pasen 10 min) y `browseCollectionView` filtra sobre ella. `EdhrecClient` guarda en
+    la época de ese usuario o pasen 10 min) y `browseCollectionView` filtra sobre ella.
+    `communityDecks` guarda un minuto los mazos candidatos de Comunidad por filtros; los precios
+    mínimos salen de `OracleCard.minPriceEur`. El sitemap solo lee ids (mazos, perfiles y las
+    30 000 cartas más jugadas). Cada noche, `scryfall:sync` termina con `pruneOldData`
+    (`adapters/db/prune.ts`: caché de más de 30 días, avisos leídos de más de 90 y todos de más
+    de un año, precios de más de 400 días). `EdhrecClient` guarda en
     memoria las 32 últimas páginas validadas hasta que caducan. `/api/collection/view` y
     `/api/analyze` devuelven `Server-Timing` (`Timing`, `timing.wrap` cronometra los adaptadores).
     En el navegador, `swr-cache.ts` enseña lo de la última vez (mis mazos, totales y primera página
