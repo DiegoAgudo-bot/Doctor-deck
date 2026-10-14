@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { makeCard } from "../../../tests/helpers/cards";
-import { addCardProblem, decklistWithCard } from "./add-card";
+import {
+  addCardProblem,
+  cardChangesProblem,
+  decklistWithCard,
+  decklistWithChanges,
+} from "./add-card";
 import type { ResolvedDeck } from "./resolve";
 
 const teferi = makeCard({
@@ -83,5 +88,36 @@ describe("decklistWithCard", () => {
 
   it("una básica más suma a las que hay", () => {
     expect(decklistWithCard(deck, island)).toContain("31 Island");
+  });
+});
+
+describe("cambios de varias cartas", () => {
+  it("aplica un cambio «quita X → mete Y»", () => {
+    const changes = [
+      { card: solRing, delta: -1 },
+      { card: counterspell, delta: 1 },
+    ];
+    expect(cardChangesProblem(deck, changes)).toBeNull();
+    const text = decklistWithChanges(deck, changes);
+    expect(text).toContain("1 Counterspell");
+    expect(text).not.toContain("Sol Ring");
+    expect(text).toContain("1 Carta Inventada");
+  });
+
+  it("quitar básicas resta copias", () => {
+    expect(decklistWithChanges(deck, [{ card: island, delta: -2 }])).toContain("28 Island");
+  });
+
+  it("no deja quitar el comandante ni lo que no está, ni meter otra copia", () => {
+    expect(cardChangesProblem(deck, [{ card: teferi, delta: -1 }])?.problem).toBe("is_commander");
+    expect(cardChangesProblem(deck, [{ card: counterspell, delta: -1 }])?.problem).toBe(
+      "not_in_deck",
+    );
+    expect(cardChangesProblem(deck, [{ card: solRing, delta: 1 }])?.problem).toBe(
+      "already_in_deck",
+    );
+    expect(cardChangesProblem(deck, [{ card: lightningBolt, delta: 1 }])?.problem).toBe(
+      "off_color",
+    );
   });
 });

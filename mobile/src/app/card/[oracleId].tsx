@@ -5,16 +5,24 @@ import * as WebBrowser from "expo-web-browser";
 import { useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
 import type { CardDetailDTO } from "@/server/card-dto";
-import type { AddCardsResponse, CollectionLineDTO, PrintingDTO } from "@/server/dto";
+import type { CollectionLineDTO, PrintingDTO } from "@/server/dto";
+import { AddToDeckSheet } from "~/components/add-to-deck";
 import { CardThumb, FoilMark, ManaCost } from "~/components/card-bits";
+import { Sheet } from "~/components/sheet";
 import { Stepper } from "~/components/stepper";
+import { toast } from "~/components/toast";
 import { Banner, Button, Chip, ErrorView, Loading, T } from "~/components/ui";
+import { useAddCopies, useCopyDefaults } from "~/lib/add-copies";
 import { api } from "~/lib/api";
+import { tapFeedback } from "~/lib/feedback";
 import { CONDITION_OPTIONS, conditionShort, LANGUAGE_OPTIONS } from "~/lib/copies";
 import { euros } from "~/lib/format";
 import { colors, radius } from "~/lib/theme";
 
-/** Ficha de una carta: imagen, texto, precios, mis copias (editables) y añadir más. */
+/**
+ * Ficha de una carta, como en ManaBox: imagen, precio, mis copias con «Añadir 1» (con la edición,
+ * idioma y estado de la última vez) y luego añadir a un mazo, lista de deseos y el texto.
+ */
 export default function CardScreen() {
   const { oracleId } = useLocalSearchParams<{ oracleId: string }>();
   const { width } = useWindowDimensions();
@@ -28,8 +36,11 @@ export default function CardScreen() {
     queryFn: () =>
       api<CollectionLineDTO[]>(`/api/collection/lines?oracleId=${encodeURIComponent(oracleId)}`),
   });
-  const [adding, setAdding] = useState(false);
+  const [sheet, setSheet] = useState<"add" | "deck" | null>(null);
+  // La edición que se ve y que añade «Añadir 1»: la elegida en «Opciones» o la de mi copia.
   const [shown, setShown] = useState<PrintingDTO | null>(null);
+  const [defaults, setDefaults] = useCopyDefaults();
+  const addCopies = useAddCopies();
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["lines", oracleId] });
@@ -40,16 +51,37 @@ export default function CardScreen() {
   const wish = useMutation({
     mutationFn: (quantity: number) =>
       api(`/api/trades/wishes/${oracleId}`, { method: "PUT", body: { quantity } }),
-    onSuccess: refresh,
+    onSuccess: (_r, quantity) => {
+      tapFeedback();
+      toast(quantity > 0 ? "En tu lista de deseos" : "Quitada de tu lista de deseos");
+      refresh();
+    },
+    onError: (e) => toast(e.message),
   });
 
   if (detail.isPending) return <Loading />;
   if (detail.isError) return <ErrorView error={detail.error} onRetry={() => detail.refetch()} />;
   const d = detail.data;
   const myLines = lines.data ?? [];
-  // La imagen: la edición elegida al añadir, la de mi copia o la de referencia.
+  const myPrinting = myLines[0]?.printing?.scryfallId;
+  const quickPrinting =
+    shown ??
+    d.printings.find((p) => p.scryfallId === myPrinting) ??
+    d.printings.find((p) => p.imageUrl) ??
+    null;
   const image = shown?.imageUrl ?? myLines[0]?.card.imageUrl ?? d.card.imageUrl;
-  const imgWidth = Math.min(width - 64, 320);
+  const imgWidth = Math.min(width - 96, 300);
+  const quickAdd = () =>
+    addCopies.mutate({
+      oracleId,
+      scryfallId: quickPrinting?.scryfallId,
+      printingLabel: quickPrinting
+        ? `${quickPrinting.setCode.toUpperCase()} #${quickPrinting.collectorNumber}`
+        : undefined,
+      quantity: 1,
+      foil: false,
+      ...defaults,
+    });
 
   return (
     <>
@@ -59,7 +91,7 @@ export default function CardScreen() {
           <CardThumb uri={image} width={imgWidth} name={d.card.name} large />
         </View>
 
-        <View style={{ gap: 6 }}>
+        <View style={{ gap: 4 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <T variant="title" style={{ flex: 1 }}>
               {d.card.name}
@@ -67,36 +99,7 @@ export default function CardScreen() {
             <ManaCost cost={d.card.manaCost} size={18} />
           </View>
           <T variant="small">{d.card.typeLine}</T>
-          {d.oracleText && (
-            <View
-              style={{
-                backgroundColor: colors.panel,
-                borderRadius: radius.md,
-                padding: 12,
-                marginTop: 4,
-              }}
-            >
-              <T style={{ lineHeight: 21 }}>{d.oracleText}</T>
-            </View>
-          )}
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-            {d.roles.map((r) => (
-              <View
-                key={r.role}
-                style={{
-                  paddingHorizontal: 8,
-                  paddingVertical: 2,
-                  borderRadius: 10,
-                  backgroundColor: r.primary ? colors.accent : colors.raised,
-                }}
-              >
-                <T variant="small" style={r.primary ? { color: colors.onAccent } : undefined}>
-                  {r.label}
-                </T>
-              </View>
-            ))}
-            {!d.legalCommander && <Banner text="No es legal en Commander" />}
-          </View>
+          {!d.legalCommander && <Banner text="No es legal en Commander" />}
         </View>
 
         {/* Precio, como en la cabecera de la carta en ManaBox. */}
@@ -104,19 +107,20 @@ export default function CardScreen() {
           <PriceBox label="Desde" value={euros(d.minPrice)} />
           <PriceBox label="Foil desde" value={euros(d.minFoilPrice)} />
           <Pressable
+            accessibilityRole="link"
             onPress={() =>
               WebBrowser.openBrowserAsync(
                 `https://www.cardmarket.com/es/Magic/Products/Search?searchString=${encodeURIComponent(d.card.name)}`,
               )
             }
-            style={{
+            style={({ pressed }) => ({
               flex: 1,
-              backgroundColor: colors.panel,
+              backgroundColor: pressed ? colors.hover : colors.panel,
               borderRadius: radius.md,
               padding: 10,
               justifyContent: "center",
               alignItems: "center",
-            }}
+            })}
           >
             <Ionicons name="cart-outline" size={20} color={colors.accent} />
             <T variant="small" style={{ color: colors.accent }}>
@@ -125,13 +129,12 @@ export default function CardScreen() {
           </Pressable>
         </View>
 
-        {/* Mis copias */}
+        {/* En mi colección: copias editables y añadir. */}
         <View style={{ gap: 8 }}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <T variant="label" style={{ flex: 1 }}>
-              Tus copias{d.mine ? ` · ${d.mine.owned} (${d.mine.free} libres)` : ""}
-            </T>
-          </View>
+          <T variant="label">
+            En tu colección
+            {d.mine && d.mine.owned > 0 ? ` · ${d.mine.owned} (${d.mine.free} libres)` : ""}
+          </T>
           {d.mine && d.mine.usedIn.length > 0 && (
             <T variant="small" style={{ color: colors.inuse }}>
               En: {d.mine.usedIn.join(", ")}
@@ -139,55 +142,82 @@ export default function CardScreen() {
           )}
           {lines.isPending ? (
             <Loading />
-          ) : myLines.length === 0 ? (
-            <T variant="muted">No la tienes.</T>
           ) : (
             myLines.map((l) => <LineRow key={l.id} line={l} onChanged={refresh} />)
           )}
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <Button
+              label={myLines.length > 0 ? "Añadir 1 más" : "Añadir 1"}
+              icon="add"
+              onPress={quickAdd}
+              busy={addCopies.isPending}
+              style={{ flex: 1 }}
+            />
+            <Button
+              label="Edición, foil…"
+              icon="options-outline"
+              kind="secondary"
+              onPress={() => setSheet("add")}
+              style={{ flex: 1 }}
+            />
+          </View>
+          {quickPrinting && (
+            <T variant="small">
+              «Añadir» usa {quickPrinting.setCode.toUpperCase()} #{quickPrinting.collectorNumber}
+              {defaults.language !== "en" ? ` · ${defaults.language.toUpperCase()}` : ""} ·{" "}
+              {conditionShort(defaults.condition)}
+            </T>
+          )}
         </View>
 
-        {adding ? (
-          <AddPanel
-            detail={d}
-            onPreview={setShown}
-            onDone={() => {
-              setAdding(false);
-              setShown(null);
-              refresh();
-            }}
-            onCancel={() => {
-              setAdding(false);
-              setShown(null);
-            }}
+        <View style={{ gap: 10 }}>
+          <Button
+            label="Añadir a un mazo"
+            icon="layers-outline"
+            kind="secondary"
+            onPress={() => setSheet("deck")}
           />
-        ) : (
-          <View style={{ gap: 10 }}>
+          <Button
+            label={d.mine?.wished ? "En tu lista de deseos" : "Añadir a la lista de deseos"}
+            icon={d.mine?.wished ? "heart" : "heart-outline"}
+            kind="secondary"
+            busy={wish.isPending}
+            onPress={() => wish.mutate(d.mine?.wished ? 0 : 1)}
+          />
+          {d.commander && (
             <Button
-              label="Añadir a la colección"
+              label="Crear un mazo con ella de comandante"
               icon="add-circle-outline"
-              onPress={() => setAdding(true)}
+              kind="ghost"
+              onPress={() => router.push(`/deck-new?commander=${oracleId}`)}
             />
-            <Button
-              label={
-                d.mine?.wished
-                  ? `En tu lista de deseos (${d.mine.wished}) · quitar`
-                  : "Añadir a la lista de deseos"
-              }
-              icon={d.mine?.wished ? "heart" : "heart-outline"}
-              kind="secondary"
-              busy={wish.isPending}
-              onPress={() => wish.mutate(d.mine?.wished ? 0 : 1)}
-            />
-            {d.commander && (
-              <Button
-                label="Crear un mazo con esta carta"
-                icon="layers-outline"
-                kind="secondary"
-                onPress={() =>
-                  router.push(`/web?path=${encodeURIComponent(`/decks/new?commander=${oracleId}`)}`)
-                }
-              />
+          )}
+        </View>
+
+        {(d.oracleText || d.roles.length > 0) && (
+          <View style={{ gap: 8 }}>
+            {d.oracleText && (
+              <View style={{ backgroundColor: colors.panel, borderRadius: radius.md, padding: 12 }}>
+                <T style={{ lineHeight: 21 }}>{d.oracleText}</T>
+              </View>
             )}
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+              {d.roles.map((r) => (
+                <View
+                  key={r.role}
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: 10,
+                    backgroundColor: r.primary ? colors.accent : colors.raised,
+                  }}
+                >
+                  <T variant="small" style={r.primary ? { color: colors.onAccent } : undefined}>
+                    {r.label}
+                  </T>
+                </View>
+              ))}
+            </View>
           </View>
         )}
 
@@ -198,7 +228,11 @@ export default function CardScreen() {
               <Pressable
                 key={deck.id}
                 onPress={() => router.push(`/deck/${deck.id}`)}
-                style={{ backgroundColor: colors.panel, borderRadius: radius.md, padding: 12 }}
+                style={({ pressed }) => ({
+                  backgroundColor: pressed ? colors.hover : colors.panel,
+                  borderRadius: radius.md,
+                  padding: 12,
+                })}
               >
                 <T style={{ fontWeight: "600" }}>{deck.name}</T>
                 <T variant="small">{deck.owner ? `@${deck.owner}` : ""}</T>
@@ -207,6 +241,25 @@ export default function CardScreen() {
           </View>
         )}
       </ScrollView>
+
+      <Sheet open={sheet === "add"} onClose={() => setSheet(null)} title="Añadir a la colección">
+        <AddPanel
+          detail={d}
+          initial={quickPrinting}
+          defaults={defaults}
+          onDefaults={setDefaults}
+          onDone={(p) => {
+            setShown(p);
+            setSheet(null);
+          }}
+        />
+      </Sheet>
+      <AddToDeckSheet
+        card={d.card}
+        canBeCommander={d.commander}
+        open={sheet === "deck"}
+        onClose={() => setSheet(null)}
+      />
     </>
   );
 }
@@ -226,7 +279,7 @@ function LineRow({ line, onChanged }: { line: CollectionLineDTO; onChanged: () =
     mutationFn: (quantity: number) =>
       api(`/api/collection/lines/${line.id}`, { method: "PATCH", body: { quantity } }),
     onSuccess: onChanged,
-    onError: (e) => Alert.alert("No se ha podido cambiar", e.message),
+    onError: (e) => toast(`No se ha podido cambiar: ${e.message}`),
   });
   const change = (q: number) => {
     if (q === 0) {
@@ -272,52 +325,52 @@ function LineRow({ line, onChanged }: { line: CollectionLineDTO; onChanged: () =
   );
 }
 
-/** Añadir copias: edición, cantidad, foil, idioma y estado. */
+/** Añadir copias eligiendo edición, cantidad, foil, idioma y estado (recuerda idioma y estado). */
 function AddPanel({
   detail,
-  onPreview,
+  initial,
+  defaults,
+  onDefaults,
   onDone,
-  onCancel,
 }: {
   detail: CardDetailDTO;
-  onPreview: (p: PrintingDTO | null) => void;
-  onDone: () => void;
-  onCancel: () => void;
+  initial: PrintingDTO | null;
+  defaults: { language: string; condition: string };
+  onDefaults: (d: { language: string; condition: string }) => void;
+  onDone: (printing: PrintingDTO | null) => void;
 }) {
   const printings = useMemo(
     () => detail.printings.filter((p) => p.imageUrl || p.priceEur),
     [detail],
   );
-  const [printing, setPrinting] = useState<PrintingDTO | null>(printings[0] ?? null);
+  const [printing, setPrinting] = useState<PrintingDTO | null>(initial ?? printings[0] ?? null);
   const [quantity, setQuantity] = useState(1);
   const [foil, setFoil] = useState(false);
-  const [language, setLanguage] = useState("en");
-  const [condition, setCondition] = useState("near_mint");
-  const add = useMutation({
-    mutationFn: () =>
-      api<AddCardsResponse>("/api/collection/cards", {
-        body: {
-          cards: [
-            {
-              ...(printing
-                ? { scryfallId: printing.scryfallId }
-                : { oracleId: detail.card.oracleId }),
-              quantity,
-              foil,
-              language,
-              condition,
-            },
-          ],
-        },
-      }),
-    onSuccess: onDone,
-    onError: (e) => Alert.alert("No se ha podido añadir", e.message),
-  });
+  const [language, setLanguage] = useState(defaults.language);
+  const [condition, setCondition] = useState(defaults.condition);
+  const add = useAddCopies();
   const price = printing ? (foil ? printing.priceEurFoil : printing.priceEur) : null;
 
+  const submit = () => {
+    onDefaults({ language, condition });
+    add.mutate(
+      {
+        oracleId: detail.card.oracleId,
+        scryfallId: printing?.scryfallId,
+        printingLabel: printing
+          ? `${printing.setCode.toUpperCase()} #${printing.collectorNumber}`
+          : undefined,
+        quantity,
+        foil,
+        language,
+        condition,
+      },
+      { onSuccess: () => onDone(printing) },
+    );
+  };
+
   return (
-    <View style={{ gap: 12, backgroundColor: colors.panel, borderRadius: radius.lg, padding: 14 }}>
-      <T variant="h2">Añadir a la colección</T>
+    <View style={{ gap: 12 }}>
       <T variant="label">Edición</T>
       <ScrollView
         horizontal
@@ -329,10 +382,10 @@ function AddPanel({
           return (
             <Pressable
               key={p.scryfallId}
-              onPress={() => {
-                setPrinting(p);
-                onPreview(p);
-              }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+              accessibilityLabel={`${p.setName ?? p.setCode} ${p.collectorNumber}`}
+              onPress={() => setPrinting(p)}
               style={{
                 padding: 6,
                 borderRadius: radius.md,
@@ -391,15 +444,12 @@ function AddPanel({
           />
         ))}
       </View>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <Button label="Cancelar" kind="secondary" onPress={onCancel} style={{ flex: 1 }} />
-        <Button
-          label={`Añadir ${quantity}`}
-          onPress={() => add.mutate()}
-          busy={add.isPending}
-          style={{ flex: 1 }}
-        />
-      </View>
+      <Button
+        label={quantity === 1 ? "Añadir 1 copia" : `Añadir ${quantity} copias`}
+        icon="add"
+        onPress={submit}
+        busy={add.isPending}
+      />
     </View>
   );
 }

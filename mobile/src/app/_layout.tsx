@@ -7,6 +7,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
 import { Linking, View } from "react-native";
 import type { AppInfoDTO } from "@/server/dto";
+import { ToastHost } from "~/components/toast";
 import { Button, Empty, Loading } from "~/components/ui";
 import { api } from "~/lib/api";
 import { useSession } from "~/lib/auth";
@@ -39,6 +40,7 @@ export default function RootLayout() {
         <ThemeProvider value={navTheme}>
           <StatusBar style="light" />
           <Root />
+          <ToastHost />
         </ThemeProvider>
       </PersistQueryClientProvider>
     </ShareIntentProvider>

@@ -8,14 +8,19 @@ App nativa (Expo + React Native, `expo-router`) que usa la misma API JSON que la
 
 - **Entrar**: email y contraseña o Google (se abre el navegador y vuelve a `doctordeck://` con la
   sesión; plugin `expo` de Better Auth). La cookie se guarda cifrada (`expo-secure-store`).
-- **Colección**: buscar, ordenar (valor, nombre, recientes, copias, precio, coste) con dirección,
-  colores, foil y libres; lista o rejilla. Lo último cargado se ve sin conexión (caché de
+- **Colección**: buscar; ordenar (valor, nombre, recientes, copias, precio, coste, con dirección)
+  y filtrar (colores, foil, libres) en hojas, con los filtros activos como pastillas; lista o
+  rejilla; «+» flotante para añadir. Lo último cargado se ve sin conexión (caché de
   TanStack Query guardada en el móvil).
-- **Ficha de carta**: imagen, texto, roles, precios, mis copias con − / + y **añadir** eligiendo
-  edición, foil, idioma y estado (como ManaBox); lista de deseos; Cardmarket.
-- **Mazos**: portada con el arte del comandante; dentro, lista por tipos (con qué tengo), **Me
-  falta** (con coste y "compartir lista"), **Cambios** sugeridos y **Datos** (curva, roles,
-  bracket). Nuevo mazo pegando la lista o un enlace.
+- **Ficha de carta**: imagen, precios, mis copias con − / +, **Añadir 1** (con la edición, idioma
+  y estado de la última vez) o eligiendo edición, foil, idioma y estado (como ManaBox); añadir a
+  un mazo; lista de deseos; Cardmarket; texto y roles. En **Buscar**, mantener pulsada una carta
+  añade 1 copia.
+- **Mazos**: portada con el arte del comandante; dentro, lista por tipos (con qué tengo; mantener
+  pulsada una carta la quita), **Me falta** (con coste, "compartir lista" y "En deseos"),
+  **Cambios** sugeridos que se aplican o descartan uno a uno o todos, y **Datos** (curva, roles,
+  bracket). De otro, "Guardar una copia". Nuevo mazo (el «+»): desde un comandante (mazo medio
+  de EDHREC, con mis cartas o vacío) o pegando la lista o un enlace.
 - **Compartir desde ManaBox**: la app sale en el menú de compartir de Android con texto
   (`1 Carta (SET) 123 *F*`) y con ficheros CSV/TXT. Enseña qué cartas son y deja añadirlas a la
   colección, crear un mazo o (con el CSV entero) reemplazar la colección. También desde

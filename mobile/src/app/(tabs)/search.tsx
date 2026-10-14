@@ -5,6 +5,7 @@ import { FlatList, Pressable, ScrollView, useWindowDimensions, View } from "reac
 import type { CatalogPageDTO } from "@/server/card-dto";
 import { CardThumb } from "~/components/card-bits";
 import { Chip, Empty, ErrorView, Loading, SearchField, T } from "~/components/ui";
+import { useAddCopies, useCopyDefaults } from "~/lib/add-copies";
 import { api } from "~/lib/api";
 import { euros, thousands } from "~/lib/format";
 import { useDebounced } from "~/lib/hooks";
@@ -30,6 +31,8 @@ export default function Search() {
   const [colorsOn, setColorsOn] = useState<string[]>([]);
   const [commander, setCommander] = useState(false);
   const query = useDebounced(q.trim());
+  const [defaults] = useCopyDefaults();
+  const addCopies = useAddCopies();
 
   const params = new URLSearchParams();
   if (query) params.set("q", query);
@@ -99,7 +102,9 @@ export default function Search() {
             />
           ))}
         </ScrollView>
-        {total !== undefined && <T variant="small">{thousands(total)} cartas</T>}
+        {total !== undefined && (
+          <T variant="small">{thousands(total)} cartas · mantén pulsada una para añadir 1 copia</T>
+        )}
       </View>
       {list.isPending ? (
         <Loading />
@@ -113,6 +118,7 @@ export default function Search() {
           numColumns={3}
           keyExtractor={(c) => c.oracleId}
           keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ padding: 16, gap: 8 }}
           columnWrapperStyle={{ gap: 8 }}
           onEndReached={() => list.hasNextPage && !list.isFetchingNextPage && list.fetchNextPage()}
@@ -120,7 +126,18 @@ export default function Search() {
           renderItem={({ item }) => (
             <Pressable
               onPress={() => router.push(`/card/${item.oracleId}`)}
-              style={{ width: tile, gap: 3 }}
+              onLongPress={() =>
+                addCopies.mutate({
+                  oracleId: item.oracleId,
+                  printingLabel: item.name,
+                  quantity: 1,
+                  foil: false,
+                  ...defaults,
+                })
+              }
+              accessibilityLabel={item.name}
+              accessibilityHint="Mantén pulsada para añadir 1 copia a tu colección"
+              style={({ pressed }) => ({ width: tile, gap: 3, opacity: pressed ? 0.8 : 1 })}
             >
               <CardThumb uri={item.imageUrl} width={tile} name={item.name} />
               <T variant="mono" style={{ textAlign: "center" }}>
