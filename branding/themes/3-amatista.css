@@ -1,0 +1,42 @@
+/* Amatista: la cara violeta de la gema; fondo con un punto morado y acento lavanda. */
+:root {
+  --color-bg: #121017;
+  --color-panel: #18151f;
+  --color-raised: #201c29;
+  --color-hover: #282333;
+  --color-line: #2a2535;
+  --color-line-strong: #3a3348;
+  --color-text: #e9e6ef;
+  --color-text-2: #ada6bb;
+  --color-text-3: #8a8398;
+  --color-link: #b7a6ee;
+  --color-accent: #b7a6ee;
+  --color-on-accent: #1b1233;
+  --color-inuse: #6cb0ff;
+}
+:root[data-theme="light"] {
+  --color-bg: #f5f3f8;
+  --color-panel: #ffffff;
+  --color-raised: #f8f6fb;
+  --color-hover: #eeeaf4;
+  --color-line: #e2dcea;
+  --color-line-strong: #cfc6dc;
+  --color-text: #1c1824;
+  --color-text-2: #554d63;
+  --color-text-3: #6f6780;
+  --color-link: #6a4fc4;
+  --color-accent: #6a4fc4;
+  --color-on-accent: #ffffff;
+  --color-inuse: #0b63c9;
+}
+/* El acento también en lo seleccionado: filtros, botones de grupo y fila activa del lateral. */
+.chipbtn.is-on,
+.btn-group .btn.is-on {
+  border-color: var(--color-accent);
+  color: var(--color-accent) !important;
+  background: color-mix(in oklab, var(--color-accent) 12%, transparent);
+}
+.side .nav.is-active,
+.deckrow.is-active {
+  background: color-mix(in oklab, var(--color-accent) 12%, var(--color-panel));
+}

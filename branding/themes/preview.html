@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Doctor Deck · Propuestas de tema</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 28px;
+        background: #0e0e0e;
+        color: #e8e6e3;
+        font:
+          14px/1.4 system-ui,
+          sans-serif;
+        width: 2000px;
+      }
+      h1 {
+        font-size: 24px;
+        margin: 0 0 20px;
+      }
+      .row {
+        background: #1a1a1a;
+        border: 1px solid #2c2c2c;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .row b {
+        font-size: 18px;
+      }
+      .row p {
+        margin: 4px 0 12px;
+        color: #aba7a1;
+      }
+      .shots {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+      .shots img {
+        width: 100%;
+        border-radius: 6px;
+        border: 1px solid #2c2c2c;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>
+      Doctor Deck — propuestas de tema coloridas (inicio, mazo y colección en oscuro; inicio en
+      claro)
+    </h1>
+    <div id="list"></div>
+    <script>
+      const themes = [
+        [
+          "5-gema",
+          "5 · Gema por secciones",
+          "Cada parte de la web con un color de la gema: Mazos azul, Colección verde, Cartas oro, Comunidad coral, Jugar violeta, Intercambios crema. Iconos del lateral en pastillas de color, pestañas de colores y franja de cinco colores arriba.",
+        ],
+        [
+          "6-aurora",
+          "6 · Aurora",
+          "Los colores por sección más luces suaves azul, violeta y verde en el fondo, resumen de la portada con degradados de color y botón principal azul→violeta.",
+        ],
+        [
+          "7-vitral",
+          "7 · Vitral",
+          "El más atrevido: barra superior en degradado azul-violeta-granate, cabeceras de panel teñidas, títulos con degradado, pastillas de color en el lateral y botón principal verde.",
+        ],
+      ];
+      document.getElementById("list").innerHTML = themes
+        .map(
+          ([s, n, d]) =>
+            `<div class="row"><b>${n}</b><p>${d}</p><div class="shots">${["inicio-dark", "mazo-dark", "coleccion-dark", "inicio-light"].map((v) => `<img src="shots/${s}-${v}.png">`).join("")}</div></div>`,
+        )
+        .join("");
+    </script>
+  </body>
+</html>

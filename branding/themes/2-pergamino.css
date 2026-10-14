@@ -1,0 +1,40 @@
+/* Pergamino: negro cálido y el crema/oro de la gema como acento. Aire de carta antigua. */
+:root {
+  --color-bg: #14120f;
+  --color-panel: #1b1814;
+  --color-raised: #23201a;
+  --color-hover: #2b2720;
+  --color-line: #2e2a23;
+  --color-line-strong: #3d382f;
+  --color-text: #ede6d6;
+  --color-text-2: #b3aa98;
+  --color-text-3: #8c8473;
+  --color-link: #e9cf8f;
+  --color-accent: #e9cf8f;
+  --color-on-accent: #2a2005;
+}
+:root[data-theme="light"] {
+  --color-bg: #f6f1e6;
+  --color-panel: #fffdf8;
+  --color-raised: #f9f5ec;
+  --color-hover: #f0e9da;
+  --color-line: #e6dccb;
+  --color-line-strong: #d4c7b0;
+  --color-text: #231d14;
+  --color-text-2: #5c5242;
+  --color-text-3: #7a6f5c;
+  --color-link: #8a6412;
+  --color-accent: #8a6412;
+  --color-on-accent: #ffffff;
+}
+/* El acento también en lo seleccionado: filtros, botones de grupo y fila activa del lateral. */
+.chipbtn.is-on,
+.btn-group .btn.is-on {
+  border-color: var(--color-accent);
+  color: var(--color-accent) !important;
+  background: color-mix(in oklab, var(--color-accent) 12%, transparent);
+}
+.side .nav.is-active,
+.deckrow.is-active {
+  background: color-mix(in oklab, var(--color-accent) 12%, var(--color-panel));
+}
