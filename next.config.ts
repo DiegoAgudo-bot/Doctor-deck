@@ -23,7 +23,14 @@ const SECURITY_HEADERS = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+    return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
+      // El service worker (contador de vidas sin conexión) se revisa siempre al cargar.
+      {
+        source: "/sw.js",
+        headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }],
+      },
+    ];
   },
   // Las URL antiguas (en español) llevan a las nuevas, para no romper enlaces guardados ni los
   // correos de "olvidé mi contraseña" ya enviados. La query (?token=, ?next=…) se conserva.

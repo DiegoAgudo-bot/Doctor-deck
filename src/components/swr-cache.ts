@@ -1,6 +1,7 @@
 "use client";
 
 import { storage } from "./api-client";
+import { clearOfflineCache } from "./service-worker";
 
 /**
  * Lo último que se cargó de algunas pantallas (mis mazos, la primera página de la colección…), en
@@ -35,6 +36,7 @@ export async function swr<T>(
 
 /** Borra todo lo guardado y las preferencias locales (al entrar o salir de la cuenta). */
 export function clearCached() {
+  clearOfflineCache();
   try {
     for (const k of Object.keys(window.localStorage)) {
       if (k.startsWith(PREFIX) || k.startsWith("deck-doctor:pref:")) {

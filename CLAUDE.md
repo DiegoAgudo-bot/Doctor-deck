@@ -159,6 +159,9 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   `sitemap.ts` (mazos públicos y perfiles) se generan al pedirlos.
 - **PWA** (Fase 20): `app/manifest.ts`, iconos en `public/icons/` y `mobile/assets/` (logo: gema de cinco colores, `LOGO_FACETS` en `components/icons.tsx`; `npx tsx scripts/make-icons.tsx`
   los regenera), `themeColor` y márgenes `safe-area` en las barras.
+  Sin conexión: `public/sw.js` (lo registra `ServiceWorker` en el layout, solo en producción)
+  guarda `/play` y sus archivos de `/_next/static` al instalarse y en cada visita (red primero), y
+  los símbolos de maná; no toca nada más. Se borra al entrar o salir (`clearCached`).
 - **Copias de seguridad** (Fase 20): `backupDatabase` (`adapters/db/backup.ts`, API `backup` de
   SQLite + `integrity_check` + gzip, rotación `BACKUP_KEEP`); cron diario que añade `deploy.sh`.
 - **Recomendaciones**: `EdhrecClient` (puerto `RecommendationSource`) → caché `ResponseCache`
