@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Doctor Deck · Propuestas de tema</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 28px;
+        background: #0e0e0e;
+        color: #e8e6e3;
+        font:
+          14px/1.4 system-ui,
+          sans-serif;
+        width: 1600px;
+      }
+      h1 {
+        font-size: 24px;
+        margin: 0 0 20px;
+      }
+      .row {
+        background: #1a1a1a;
+        border: 1px solid #2c2c2c;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .row b {
+        font-size: 18px;
+      }
+      .row p {
+        margin: 4px 0 12px;
+        color: #aba7a1;
+      }
+      .shots {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .shots img {
+        width: 100%;
+        border-radius: 6px;
+        border: 1px solid #2c2c2c;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Doctor Deck — propuestas de tema (inicio y mazo en oscuro, mazo en claro)</h1>
+    <div id="list"></div>
+    <script>
+      const themes = [
+        ["0-actual", "Actual", "Gris neutro con acento azul. Como está ahora, para comparar."],
+        [
+          "1-medianoche",
+          "1 · Medianoche",
+          "El azul noche del fondo del icono en toda la web y el azul de la gema como acento. El cambio más continuista.",
+        ],
+        [
+          "2-pergamino",
+          "2 · Pergamino",
+          "Negro cálido y el crema/oro de la gema como acento: botones dorados, aire de carta antigua. El más distinto.",
+        ],
+        [
+          "3-amatista",
+          "3 · Amatista",
+          "Fondo con un punto morado y acento lavanda, de la cara violeta de la gema. Moderno y con personalidad.",
+        ],
+        [
+          "4-pentacromo",
+          "4 · Pentacromo",
+          "Base neutra y la gema entera como firma: franja de cinco colores bajo la barra superior, en la pestaña activa y en el mazo seleccionado.",
+        ],
+      ];
+      document.getElementById("list").innerHTML = themes
+        .map(
+          ([s, n, d]) =>
+            `<div class="row"><b>${n}</b><p>${d}</p><div class="shots">${["inicio-dark", "mazo-dark", "mazo-light"].map((v) => `<img src="shots/${s}-${v}.png">`).join("")}</div></div>`,
+        )
+        .join("");
+    </script>
+  </body>
+</html>

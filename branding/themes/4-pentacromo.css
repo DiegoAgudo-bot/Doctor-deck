@@ -1,0 +1,47 @@
+/* Pentacromo: base neutra y la gema entera como firma: franja de cinco colores bajo la
+   barra superior y en la pestaña activa; acento azul. */
+:root {
+  --gem: linear-gradient(
+    90deg,
+    #4fc16a 0 20%,
+    #f3e6c2 20% 40%,
+    #6cb0ff 40% 60%,
+    #8a7f9a 60% 80%,
+    #f06a5f 80%
+  );
+  --color-bg: #111214;
+  --color-panel: #17181b;
+  --color-raised: #1e2024;
+  --color-hover: #26282d;
+  --color-line: #2a2c31;
+  --color-line-strong: #383b41;
+  --color-accent: #6cb0ff;
+  --color-link: #6cb0ff;
+}
+:root[data-theme="light"] {
+  --color-bg: #f4f4f5;
+  --color-panel: #ffffff;
+  --color-raised: #f8f8f9;
+  --color-hover: #eeeef0;
+  --color-line: #e1e1e4;
+  --color-line-strong: #cdcdd2;
+}
+.topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--gem);
+}
+.tabs > *::after,
+.topnav a::after {
+  background: var(--gem);
+}
+.side .nav.is-active,
+.deckrow.is-active {
+  box-shadow: none;
+  border-image: var(--gem) 1;
+  border-left: 3px solid;
+}

@@ -1,0 +1,40 @@
+/* Medianoche: el azul noche del fondo del icono; acento azul de la gema. */
+:root {
+  --color-bg: #0e131b;
+  --color-panel: #131a24;
+  --color-raised: #1a2230;
+  --color-hover: #212b3b;
+  --color-line: #232d3c;
+  --color-line-strong: #2f3b4e;
+  --color-text: #e6e9ee;
+  --color-text-2: #a3acba;
+  --color-text-3: #7f8a9b;
+  --color-link: #6cb0ff;
+  --color-accent: #6cb0ff;
+  --color-on-accent: #06182e;
+}
+:root[data-theme="light"] {
+  --color-bg: #f2f5f9;
+  --color-panel: #ffffff;
+  --color-raised: #f6f8fb;
+  --color-hover: #eaeff5;
+  --color-line: #dde3eb;
+  --color-line-strong: #c9d2de;
+  --color-text: #141a22;
+  --color-text-2: #4b5563;
+  --color-text-3: #6b7482;
+  --color-link: #0b63c9;
+  --color-accent: #0b63c9;
+  --color-on-accent: #ffffff;
+}
+/* El acento también en lo seleccionado: filtros, botones de grupo y fila activa del lateral. */
+.chipbtn.is-on,
+.btn-group .btn.is-on {
+  border-color: var(--color-accent);
+  color: var(--color-accent) !important;
+  background: color-mix(in oklab, var(--color-accent) 12%, transparent);
+}
+.side .nav.is-active,
+.deckrow.is-active {
+  background: color-mix(in oklab, var(--color-accent) 12%, var(--color-panel));
+}
