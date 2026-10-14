@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   changeCommander,
+  partnerDamage,
+  setPartner,
   changeLife,
   changePoison,
   isOut,
@@ -116,8 +118,20 @@ function PlayerTile({
   const minus = useHold(() => bump(-1));
   const plus = useHold(() => bump(1));
   const out = isOut(p);
-  const cmdTotal = p.commander.reduce((a, b) => a + b, 0);
-  const worstCmd = Math.max(0, ...p.commander);
+  const cmd2 = partnerDamage(p);
+  const cmdTotal = [...p.commander, ...cmd2].reduce((a, b) => a + b, 0);
+  const worstCmd = Math.max(0, ...p.commander, ...cmd2);
+  // Un contador por comandante rival (dos si juega con pareja).
+  const sources = game.players.flatMap((from, j) =>
+    j === index
+      ? []
+      : (from.partner ? ([0, 1] as const) : ([0] as const)).map((slot) => ({
+          from,
+          j,
+          slot,
+          value: (slot === 0 ? p.commander : cmd2)[j] ?? 0,
+        })),
+  );
 
   return (
     <section
@@ -199,18 +213,16 @@ function PlayerTile({
               </button>
             </div>
             <div className="lifepanel-grid">
-              {game.players.map((from, j) =>
-                j === index ? null : (
-                  <Counter
-                    key={j}
-                    label={`⚔ ${from.name}`}
-                    color={from.color}
-                    value={p.commander[j] ?? 0}
-                    danger={(p.commander[j] ?? 0) >= LETHAL_COMMANDER - 5}
-                    onDelta={(d) => onChange(changeCommander(gameRef.current, index, j, d))}
-                  />
-                ),
-              )}
+              {sources.map(({ from, j, slot, value }) => (
+                <Counter
+                  key={`${j}-${slot}`}
+                  label={`⚔ ${from.name}${from.partner ? ` ${slot + 1}` : ""}`}
+                  color={from.color}
+                  value={value}
+                  danger={value >= LETHAL_COMMANDER - 5}
+                  onDelta={(d) => onChange(changeCommander(gameRef.current, index, j, d, slot))}
+                />
+              ))}
               <Counter
                 label="Veneno"
                 value={p.poison}
@@ -218,6 +230,14 @@ function PlayerTile({
                 onDelta={(d) => onChange(changePoison(gameRef.current, index, d))}
               />
             </div>
+            <label className="check text-[13px]">
+              <input
+                type="checkbox"
+                checked={p.partner ?? false}
+                onChange={(e) => onChange(setPartner(gameRef.current, index, e.target.checked))}
+              />
+              <span>Juega con dos comandantes</span>
+            </label>
             <button
               type="button"
               className="btn btn-sm"

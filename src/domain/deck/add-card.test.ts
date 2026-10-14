@@ -6,6 +6,7 @@ import {
   decklistWithCard,
   decklistWithChanges,
 } from "./add-card";
+import { parseDecklist } from "./decklist";
 import type { ResolvedDeck } from "./resolve";
 
 const teferi = makeCard({
@@ -84,6 +85,20 @@ describe("decklistWithCard", () => {
         "",
       ].join("\n"),
     );
+  });
+
+  it("conserva el foil (*F*) y se vuelve a leer igual", () => {
+    const foiled = { ...deck, foils: new Set([teferi.oracleId, solRing.oracleId]) };
+    const text = decklistWithCard(foiled, counterspell);
+    expect(text).toContain("1 Teferi, Temporal Archmage *F*");
+    expect(text).toContain("1 Sol Ring (C21) 263 *F* #Ramp");
+    const sol = parseDecklist(text).entries.find((e) => e.name === "Sol Ring");
+    expect(sol).toMatchObject({
+      setCode: "c21",
+      collectorNumber: "263",
+      foil: true,
+      tags: ["Ramp"],
+    });
   });
 
   it("una básica más suma a las que hay", () => {

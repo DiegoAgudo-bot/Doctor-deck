@@ -209,7 +209,7 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
     ID o `(SET) número`), `saveDeck` la guarda en `DeckCard.scryfallId` y el análisis la devuelve en
     `CardDTO.printing` con su imagen (`cardWithPrintingDTO`). Elegirla (`PrintingDialog`, columna
     "Edición" de la tabla, `GET /api/cards/{oracleId}/printings`) reescribe la lista con
-    `setPrinting` → `1 Sol Ring (FRC) 21`, que exportan los formatos de texto (no Arena/MTGO).
+    `setPrinting` → `1 Sol Ring (FRC) 21` (y `*F*` si la lista la marcaba foil, `ResolvedDeck.foils`), que exportan los formatos de texto (no Arena/MTGO).
   - Colección: `CollectionEntryRow.scryfallId`; `collectionView` calcula `value` = cada copia al
     precio de su impresión (foil si es foil) o, si no se sabe, al de la más barata. Orden "valor".
   - Histórico: además de `PriceSnapshot` (por carta, la más barata: avisos y lista de deseos),
@@ -249,7 +249,7 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   - **Aceptar mueve las cartas** entre las dos colecciones de Doctor Deck (la idea es dejar ManaBox):
     en una transacción que primero la marca aceptada solo si sigue `pending` (si no,
     `ProposalNotPendingError` → `closed`: un doble clic no mueve nada dos veces), `accept` quita las copias a quien las da (primero las de esa impresión, foil
-    e idioma; si no, otras de la carta) y se las añade a quien las recibe como cartas sueltas
+    e idioma; si no, otras de la carta) y se las añade a quien las recibe, con el estado que tenían, como cartas sueltas
     (`matchMethod = "manual"`, sobreviven a reimportar el CSV); si a alguien le faltan copias no
     cambia nada (`MissingCopiesError` → `trade_missing_copies`). Lo recibido sale de la lista de
     deseos manual. Reimportar un CSV antiguo de ManaBox devolvería las cartas dadas (se avisa).
@@ -289,7 +289,8 @@ newInvite?}`), `DELETE /api/groups/{id}/members/{username}`, `GET /api/groups/{i
     (`GET /api/users/{u}`) trae `record` (jugadas y ganadas) y `blocked`.
   - **Contador de vidas** (`/play`, `components/life-counter.tsx`, lógica pura en
     `domain/play/life.ts`): 2–6 jugadores, 20/30/40 vidas, pulsar mitad izquierda/derecha (mantener
-    repite), daño de comandante por rival (resta vida; 21 elimina), veneno (10), conceder, turnos,
+    repite), daño de comandante por rival (resta vida; 21 elimina; con «Juega con dos
+    comandantes» cada uno lleva el suyo, `partner`/`commander2`), veneno (10), conceder, turnos,
     revancha. A pantalla completa (`.lifetable`, los de arriba girados 180°), estado en
     `localStorage` y Wake Lock para que no se apague la pantalla. Al quedar uno, "Registrar
     partida" (`RecordGameDialog`, también desde el grupo).

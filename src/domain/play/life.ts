@@ -10,6 +10,10 @@ export interface LifePlayer {
   poison: number;
   /** Daño de comandante recibido de cada asiento (índice del jugador que lo hizo). */
   commander: number[];
+  /** Juega con dos comandantes (parejas, trasfondo…): cada uno lleva su propio daño. */
+  partner?: boolean;
+  /** Daño recibido del segundo comandante de cada asiento (solo cuenta si ese jugador tiene pareja). */
+  commander2?: number[];
   /** Eliminado a mano (concede, se va…), aunque le quede vida. */
   conceded: boolean;
 }
@@ -50,18 +54,38 @@ export const changeLife = (g: LifeGame, i: number, delta: number) =>
 export const changePoison = (g: LifeGame, i: number, delta: number) =>
   update(g, i, (p) => ({ ...p, poison: Math.max(0, p.poison + delta) }));
 
-/** Daño de comandante de `from` a `to`: también resta (o devuelve) vida. */
-export function changeCommander(g: LifeGame, to: number, from: number, delta: number) {
-  const current = g.players[to]?.commander[from];
+/** Daño recibido del segundo comandante de cada asiento (los estados viejos no lo traen). */
+export const partnerDamage = (p: LifePlayer) => p.commander2 ?? p.commander.map(() => 0);
+
+/**
+ * Daño de comandante de `from` a `to` (`slot` 1 = su segundo comandante): también resta (o
+ * devuelve) vida.
+ */
+export function changeCommander(
+  g: LifeGame,
+  to: number,
+  from: number,
+  delta: number,
+  slot: 0 | 1 = 0,
+) {
+  const target = g.players[to];
+  const row = target && (slot === 0 ? target.commander : partnerDamage(target));
+  const current = row?.[from];
   if (current === undefined || to === from) return g;
+  if (slot === 1 && !g.players[from]?.partner) return g;
   const next = Math.max(0, current + delta);
   const applied = next - current;
+  const updated = row!.map((d, j) => (j === from ? next : d));
   return update(g, to, (p) => ({
     ...p,
     life: p.life - applied,
-    commander: p.commander.map((d, j) => (j === from ? next : d)),
+    ...(slot === 0 ? { commander: updated } : { commander2: updated }),
   }));
 }
+
+/** Marca que un jugador juega con dos comandantes (o deja de hacerlo). */
+export const setPartner = (g: LifeGame, i: number, partner: boolean) =>
+  update(g, i, (p) => ({ ...p, partner }));
 
 export const setConceded = (g: LifeGame, i: number, conceded: boolean) =>
   update(g, i, (p) => ({ ...p, conceded }));
@@ -74,7 +98,8 @@ export function isOut(p: LifePlayer) {
     p.conceded ||
     p.life <= 0 ||
     p.poison >= LETHAL_POISON ||
-    p.commander.some((d) => d >= LETHAL_COMMANDER)
+    p.commander.some((d) => d >= LETHAL_COMMANDER) ||
+    (p.commander2 ?? []).some((d) => d >= LETHAL_COMMANDER)
   );
 }
 
@@ -103,5 +128,12 @@ export const rematch = (g: LifeGame, now = Date.now()) => {
     g.startingLife,
     now,
   );
-  return { ...fresh, players: fresh.players.map((p, i) => ({ ...p, color: g.players[i]!.color })) };
+  return {
+    ...fresh,
+    players: fresh.players.map((p, i) => ({
+      ...p,
+      color: g.players[i]!.color,
+      ...(g.players[i]!.partner ? { partner: true } : {}),
+    })),
+  };
 };
