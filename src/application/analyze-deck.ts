@@ -7,6 +7,11 @@ import {
   type ResolvedDeck,
 } from "@/domain/deck/resolve";
 import { estimateBracket, type Bracket, type BracketEstimate } from "@/domain/deck/bracket";
+import {
+  ALTERNATIVES_MIN_PRICE,
+  cheaperAlternatives,
+  type CheaperAlternatives,
+} from "@/domain/suggestions/alternatives";
 import { deckOwnership, type CardOwnership, type OwnershipTotals } from "@/domain/deck/ownership";
 import { manaCurve } from "@/domain/deck/stats";
 import type { CardRepository } from "@/domain/ports/card-repository";
@@ -115,6 +120,8 @@ export type AnalyzeDeckResult =
         prices: Map<string, number>;
         /** Coste aproximado de comprar lo que falta. */
         cost: number;
+        /** Para lo caro que falta: recomendadas del mismo papel que tengo o cuestan mucho menos. */
+        alternatives: CheaperAlternatives[];
       };
     };
 
@@ -185,13 +192,30 @@ export async function analyzeDeck(
   const missing = own.items.filter((i) => i.toBuy > 0);
   const missingPrices = await deps.cards.findMinPrices(missing.map((i) => i.card.oracleId));
   const cost = missing.reduce((n, i) => n + (missingPrices.get(i.card.oracleId) ?? 0) * i.toBuy, 0);
+  // Precios de las recomendadas: solo si hacen falta (modo compra o algo caro que falta).
+  const pricey = missing.flatMap((i) => {
+    const price = missingPrices.get(i.card.oracleId);
+    return !i.isCommander && price !== undefined && price >= ALTERNATIVES_MIN_PRICE
+      ? [{ card: i.card, price }]
+      : [];
+  });
+  const recPrices =
+    req.buy || pricey.length > 0
+      ? await deps.cards.findMinPrices(recs.cards.map((r) => r.card.oracleId))
+      : new Map<string, number>();
   const purchases = req.buy
-    ? suggestPurchases({
-        ...engineInput,
-        prices: await deps.cards.findMinPrices(recs.cards.map((r) => r.card.oracleId)),
-        options: req.buy,
-      })
+    ? suggestPurchases({ ...engineInput, prices: recPrices, options: req.buy })
     : null;
+  const alternatives = cheaperAlternatives({
+    deck,
+    missing: pricey,
+    recommendations: recs.cards,
+    owned,
+    usage,
+    prices: recPrices,
+    classifier,
+    config: deps.config,
+  });
 
   return {
     status: "ok",
@@ -219,7 +243,12 @@ export async function analyzeDeck(
         roles: classifier.classify(card).roles,
       })),
     ),
-    ownership: { ...own, prices: missingPrices, cost: Math.round(cost * 100) / 100 },
+    ownership: {
+      ...own,
+      prices: missingPrices,
+      cost: Math.round(cost * 100) / 100,
+      alternatives,
+    },
     roles: { classifier, sourceOf: (card) => classifier.sourceOf(card) },
     tags,
   };
