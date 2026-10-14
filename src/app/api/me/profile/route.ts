@@ -6,6 +6,7 @@ import { publicProfileDTO, type MyProfileDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
 import { readJson } from "@/server/body";
+import { NOTIFICATION_GROUP_KEYS } from "@/domain/social/notification-prefs";
 
 /** Mi perfil: nombre de usuario (se genera si aún no hay), colección pública y avisos de precio. */
 export async function GET(request: Request) {
@@ -18,6 +19,7 @@ export async function GET(request: Request) {
       ...publicProfileDTO(profile),
       email: user.email,
       priceAlertPercent: await social.priceAlertPercent(user.id),
+      mutedNotifications: await social.mutedNotifications(user.id),
     };
     return Response.json(body);
   } catch (err) {
@@ -31,14 +33,19 @@ const schema = z.object({
   tradesPublic: z.boolean().optional(),
   /** null = sin avisos de precio. */
   priceAlertPercent: z.number().int().min(5).max(90).nullable().optional(),
+  mutedNotifications: z.array(z.enum(NOTIFICATION_GROUP_KEYS)).max(20).optional(),
 });
 
 export async function PATCH(request: Request) {
   try {
     const user = await requireUser(request);
-    const { priceAlertPercent, tradesPublic, ...changes } = schema.parse(await readJson(request));
+    const { priceAlertPercent, tradesPublic, mutedNotifications, ...changes } = schema.parse(
+      await readJson(request),
+    );
     const social = getContainer().social;
     if (tradesPublic !== undefined) await social.setTradesPublic(user.id, tradesPublic);
+    if (mutedNotifications !== undefined)
+      await social.setMutedNotifications(user.id, mutedNotifications);
     if (priceAlertPercent !== undefined)
       await social.setPriceAlertPercent(user.id, priceAlertPercent);
     const profile = await updateProfile(user.id, changes, { profiles: social });
@@ -46,6 +53,7 @@ export async function PATCH(request: Request) {
       ...publicProfileDTO(profile),
       email: user.email,
       priceAlertPercent: await social.priceAlertPercent(user.id),
+      mutedNotifications: await social.mutedNotifications(user.id),
     };
     return Response.json(body);
   } catch (err) {

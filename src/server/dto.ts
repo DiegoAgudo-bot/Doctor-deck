@@ -27,6 +27,7 @@ import type {
 } from "@/domain/suggestions/engine";
 import type { SavedDeck, SavedDeckSummary } from "@/domain/ports/deck-repository";
 import type { NotificationType } from "@/domain/ports/social";
+import type { NotificationGroup } from "@/domain/social/notification-prefs";
 
 /*
  * Formas JSON de la API (/api/*). Las consumen la UI web y, en el futuro, la app móvil.
@@ -266,6 +267,8 @@ export interface MyProfileDTO extends PublicProfileDTO {
   email: string;
   /** Avisar si algo que me falta baja este % (null = no avisar). */
   priceAlertPercent: number | null;
+  /** Grupos de avisos silenciados (`NOTIFICATION_GROUPS`). */
+  mutedNotifications: NotificationGroup[];
 }
 
 export interface ComboCardDTO {
