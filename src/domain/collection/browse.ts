@@ -105,6 +105,15 @@ export function matchesFilters(c: BrowsableCard, f: CollectionFilters): boolean 
 
 const byName = (a: BrowsableCard, b: BrowsableCard) => a.card.name.localeCompare(b.card.name);
 
+/**
+ * Lo que vale cada copia mía: según su edición y si es foil (`value` / copias). Si no se sabe, el
+ * de la impresión más barata. Es lo que ordena «precio por copia» y lo que se enseña en ese orden.
+ */
+export function unitPrice(c: Pick<BrowsableCard, "value" | "price" | "quantity">): number | null {
+  if (c.value !== null && c.quantity > 0) return Math.round((c.value / c.quantity) * 100) / 100;
+  return c.price;
+}
+
 export type SortDir = "asc" | "desc";
 /** La dirección natural de cada orden (la que se usa si no se elige otra). */
 export const COLLECTION_SORT_DEFAULT_DIR: Record<CollectionSort, SortDir> = {
@@ -123,7 +132,7 @@ const KEYS: Record<
 > = {
   coste: (c) => c.card.cmc,
   copias: (c) => c.quantity,
-  precio: (c) => c.price,
+  precio: (c) => unitPrice(c),
   valor: (c) => c.value,
   recientes: (c) => c.lastAdded,
 };
