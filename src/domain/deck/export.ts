@@ -11,16 +11,29 @@ interface ExportableCard {
   layout?: string | undefined;
   /** Etiquetas para el formato `moxfield` (`#Ramp`). */
   tags?: readonly string[] | undefined;
+  /**
+   * Etiquetas que traía la propia lista (`#!Ramp`, categorías): se escriben también en el texto
+   * normal para no perderlas al reescribir la lista (aplicar cambios, añadir una carta…).
+   */
+  listTags?: readonly string[] | undefined;
   /** Impresión elegida: se escribe como `(SET) número` en los formatos de texto. */
   printing?: { setCode: string; collectorNumber: string } | undefined;
 }
 
 /** Solo los campos de exportación (a veces llega una CardDTO entera). */
-const pick = ({ oracleId, name, layout, tags, printing }: ExportableCard): ExportableCard => ({
+const pick = ({
+  oracleId,
+  name,
+  layout,
+  tags,
+  listTags,
+  printing,
+}: ExportableCard): ExportableCard => ({
   oracleId,
   name,
   ...(layout === undefined ? {} : { layout }),
   ...(tags === undefined ? {} : { tags }),
+  ...(listTags === undefined ? {} : { listTags }),
   ...(printing === undefined ? {} : { printing }),
 });
 
@@ -92,7 +105,9 @@ export function exportDecklist(deck: ExportableDeck): string {
     "Deck",
   ];
   const sorted = [...deck.cards].sort((a, b) => a.name.localeCompare(b.name));
-  for (const c of sorted) lines.push(`${c.quantity} ${c.name}${printingSuffix(c)}`);
+  for (const c of sorted) {
+    lines.push(`${c.quantity} ${c.name}${printingSuffix(c)}${tagSuffix(c.listTags)}`);
+  }
   return `${lines.join("\n")}\n`;
 }
 

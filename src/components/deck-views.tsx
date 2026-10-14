@@ -529,12 +529,12 @@ export function DeckList({
                     {onChangeQuantity && (
                       <td className="rt-end">
                         <span className="flex justify-end gap-0.5">
-                          {c.isBasicLand && (
+                          {c.maxCopies !== 1 && (
                             <button
                               type="button"
                               className="btn btn-ghost btn-icon"
                               style={{ width: 26, height: 26 }}
-                              disabled={busy}
+                              disabled={busy || (c.maxCopies !== null && c.quantity >= c.maxCopies)}
                               aria-label={`Añadir otra ${c.card.name}`}
                               onClick={() => onChangeQuantity(c.card, 1)}
                             >
