@@ -4,6 +4,7 @@ import { isPrefKey, PREF_MAX_CHARS, validPrefValue } from "@/domain/prefs/prefs"
 import { getContainer } from "@/server/container";
 import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
+import { readJson } from "@/server/body";
 
 /** Guarda una preferencia (el cuerpo es el objeto entero; sustituye al anterior). */
 export async function PUT(req: NextRequest, ctx: RouteContext<"/api/me/prefs/[key]">) {
@@ -11,7 +12,7 @@ export async function PUT(req: NextRequest, ctx: RouteContext<"/api/me/prefs/[ke
     const user = await requireUser(req);
     const { key } = await ctx.params;
     if (!isPrefKey(key)) throw new AppError("invalid_pref", "Preferencia desconocida", 400);
-    const value: unknown = await req.json().catch(() => null);
+    const value: unknown = await readJson(req).catch(() => null);
     if (!validPrefValue(value)) {
       throw new AppError(
         "invalid_pref",

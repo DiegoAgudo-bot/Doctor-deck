@@ -4,6 +4,7 @@ import { closeLoan } from "@/application/loans";
 import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
 import { socialDeps } from "@/server/social";
+import { readJson } from "@/server/body";
 
 const patchSchema = z.object({ action: z.literal("returned") });
 
@@ -11,7 +12,7 @@ const patchSchema = z.object({ action: z.literal("returned") });
 export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/loans/[id]">) {
   try {
     const user = await requireUser(req);
-    patchSchema.parse(await req.json());
+    patchSchema.parse(await readJson(req));
     await closeLoan((await ctx.params).id, user.id, "returned", socialDeps());
     return Response.json({ returned: true });
   } catch (err) {

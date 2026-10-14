@@ -1,4 +1,5 @@
 import { Stack, useLocalSearchParams } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { WebView } from "react-native-webview";
@@ -39,6 +40,15 @@ export default function Web() {
         <WebView
           source={{
             uri: `${API_URL}/api/app/web?code=${encodeURIComponent(code)}&next=${encodeURIComponent(path)}`,
+            // Sin esta cabecera el servidor no pone la sesión (ver /api/app/web).
+            headers: { "X-DoctorDeck-App": "1" },
+          }}
+          originWhitelist={[API_URL]}
+          // Dentro, solo nuestra web; lo de fuera (la tienda…) en el navegador del sistema.
+          onShouldStartLoadWithRequest={(req) => {
+            if (req.url.startsWith(`${API_URL}/`) || req.url === API_URL) return true;
+            if (/^https?:\/\//i.test(req.url)) WebBrowser.openBrowserAsync(req.url).catch(() => {});
+            return false;
           }}
           style={{ backgroundColor: colors.bg }}
           injectedJavaScriptBeforeContentLoaded={HIDE_CHROME}

@@ -8,6 +8,8 @@ export interface HttpClientOptions {
   fetchFn?: FetchFn;
   clock?: Clock;
   accept?: string;
+  /** Tiempo máximo de cada petición (por defecto 20 s): un servicio colgado no deja esperando. */
+  timeoutMs?: number;
 }
 
 /** No se pudo conectar (DNS, proxy, red caída…). */
@@ -60,6 +62,7 @@ export class HttpClient {
       try {
         return await this.fetchFn(url, {
           ...(init ?? {}),
+          signal: AbortSignal.timeout(this.opts.timeoutMs ?? 20_000),
           headers: {
             "User-Agent": this.opts.userAgent,
             Accept: this.opts.accept ?? "application/json;q=0.9,*/*;q=0.8",

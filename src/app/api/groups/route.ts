@@ -5,6 +5,7 @@ import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
 import { socialDeps } from "@/server/social";
 import { groupSummaryDTO } from "@/server/social-dto";
+import { readJson } from "@/server/body";
 
 /** Mis grupos de juego. */
 export async function GET(req: NextRequest) {
@@ -27,7 +28,7 @@ const createSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser(req);
-    const id = await createGroup(user.id, createSchema.parse(await req.json()), socialDeps());
+    const id = await createGroup(user.id, createSchema.parse(await readJson(req)), socialDeps());
     return Response.json({ id }, { status: 201 });
   } catch (err) {
     return errorResponse(err);

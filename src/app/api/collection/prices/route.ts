@@ -5,6 +5,7 @@ import { getContainer } from "@/server/container";
 import { cardWithPrintingDTO, type CollectionPricesDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
 import { currentUser } from "@/server/session";
+import { BODY_LIMIT, readJson } from "@/server/body";
 
 const schema = z.object({
   days: z.number().int().min(7).max(365).default(30),
@@ -19,7 +20,7 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const user = await currentUser(request);
-    const { days, collection } = schema.parse(await request.json());
+    const { days, collection } = schema.parse(await readJson(request, BODY_LIMIT.large));
     const c = getContainer();
     // Con cuenta, cada copia con su impresión y si es foil; sin cuenta, solo cartas y copias.
     const entries = await (

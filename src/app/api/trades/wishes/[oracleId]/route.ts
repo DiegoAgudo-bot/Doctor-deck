@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getContainer } from "@/server/container";
 import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
+import { readJson } from "@/server/body";
 
 /** Cuántas copias quiero de una carta en mi lista de deseos (0 = quitarla). */
 export async function PUT(req: NextRequest, ctx: RouteContext<"/api/trades/wishes/[oracleId]">) {
@@ -15,7 +16,7 @@ export async function PUT(req: NextRequest, ctx: RouteContext<"/api/trades/wishe
       .parse((await ctx.params).oracleId);
     const { quantity } = z
       .object({ quantity: z.number().int().min(0).max(99) })
-      .parse(await req.json());
+      .parse(await readJson(req));
     await getContainer().tradesFor(user.id).setWish(oracleId, quantity);
     return Response.json({ oracleId, quantity });
   } catch (err) {

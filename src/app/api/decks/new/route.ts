@@ -8,6 +8,8 @@ import { getContainer } from "@/server/container";
 import type { NewDeckResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
 import { currentUser } from "@/server/session";
+import { BODY_LIMIT, readJson } from "@/server/body";
+import { clientKey, enforceLimit, routeLimits } from "@/server/rate-limit";
 
 const schema = z.object({
   commanderIds: z.array(z.string().min(1).max(64)).min(1).max(2),
@@ -33,7 +35,8 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const user = await currentUser(request);
-    const req = schema.parse(await request.json());
+    enforceLimit(routeLimits.newDeck, clientKey(request, user?.id));
+    const req = schema.parse(await readJson(request, BODY_LIMIT.large));
     const c = getContainer();
     const deck = await newDeckFromCommander(req, {
       cards: c.cards,

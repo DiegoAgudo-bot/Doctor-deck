@@ -6,6 +6,7 @@ import { getContainer } from "@/server/container";
 import { savedDeckDTO, type DeckViewDTO } from "@/server/dto";
 import { errorResponse, jsonWithEtag } from "@/server/http";
 import { currentUser, requireUser } from "@/server/session";
+import { readJson } from "@/server/body";
 
 const notFound = () =>
   Response.json(
@@ -30,9 +31,13 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">
       c.publicDecks.likes(found.deck.id),
       user ? c.publicDecks.likedBy(user.id, [found.deck.id]) : Promise.resolve(new Set<string>()),
     ]);
+    const isMine = user?.id === found.ownerId;
+    const deck = savedDeckDTO(found.deck);
     const body: DeckViewDTO = {
-      ...savedDeckDTO(found.deck),
-      isMine: user?.id === found.ownerId,
+      ...deck,
+      // Lo que solo usa su dueño (descartes, candados, lista de deseos) no sale a otros.
+      ...(isMine ? {} : { excluded: [], locked: [], inWishlist: false }),
+      isMine,
       owner: { username: owner?.username ?? null, name: owner?.name ?? "" },
       likes,
       liked: liked.has(found.deck.id),
@@ -63,7 +68,7 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/decks/[id]
   try {
     const user = await requireUser(req);
     const id = parseId((await ctx.params).id);
-    const changes = patchSchema.parse(await req.json());
+    const changes = patchSchema.parse(await readJson(req));
     const decks = getContainer().decksFor(user.id);
     let ok = id !== null;
     if (ok && id && changes.visibility !== undefined)

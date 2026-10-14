@@ -5,6 +5,7 @@ import { getContainer } from "@/server/container";
 import { publicProfileDTO, type MyProfileDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
+import { readJson } from "@/server/body";
 
 /** Mi perfil: nombre de usuario (se genera si aún no hay), colección pública y avisos de precio. */
 export async function GET(request: Request) {
@@ -35,7 +36,7 @@ const schema = z.object({
 export async function PATCH(request: Request) {
   try {
     const user = await requireUser(request);
-    const { priceAlertPercent, tradesPublic, ...changes } = schema.parse(await request.json());
+    const { priceAlertPercent, tradesPublic, ...changes } = schema.parse(await readJson(request));
     const social = getContainer().social;
     if (tradesPublic !== undefined) await social.setTradesPublic(user.id, tradesPublic);
     if (priceAlertPercent !== undefined)

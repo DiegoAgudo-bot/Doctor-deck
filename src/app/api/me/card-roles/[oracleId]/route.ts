@@ -5,6 +5,7 @@ import type { CardRoleEditDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
 import { roleEditSchema, toRoleEdit } from "@/server/role-edits";
 import { requireUser } from "@/server/session";
+import { readJson } from "@/server/body";
 
 /**
  * Corrige los roles y etiquetas de una carta (para todos mis mazos). Sin roles ni etiquetas,
@@ -18,7 +19,7 @@ export async function PUT(req: NextRequest, ctx: RouteContext<"/api/me/card-role
       .min(1)
       .max(64)
       .parse((await ctx.params).oracleId);
-    const edit = toRoleEdit(roleEditSchema.parse(await req.json()));
+    const edit = toRoleEdit(roleEditSchema.parse(await readJson(req)));
     await getContainer().roleOverridesFor(user.id).set(oracleId, edit);
     const body: CardRoleEditDTO = {
       roles: edit.override?.roles ?? [],

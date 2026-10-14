@@ -36,6 +36,8 @@ const config: ExpoConfig = {
       },
     ],
     predictiveBackGestureEnabled: false,
+    // Sin copia de seguridad de Android: la caché (colección, mazos) no sale del móvil.
+    allowBackup: false,
   },
   ios: { bundleIdentifier: "app.doctordeck", supportsTablet: false },
   plugins: [

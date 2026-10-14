@@ -5,6 +5,7 @@ import { forbidden } from "@/application/errors";
 import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
 import { isAdmin, socialDeps } from "@/server/social";
+import { readJson } from "@/server/body";
 
 const schema = z.object({ action: z.enum(["keep", "hide", "delete"]) });
 
@@ -13,7 +14,7 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/admin/repo
   try {
     const user = await requireUser(req);
     if (!isAdmin(user)) throw forbidden("Solo para administradores.");
-    const { action } = schema.parse(await req.json());
+    const { action } = schema.parse(await readJson(req));
     await moderateComment((await ctx.params).id, action, socialDeps());
     return Response.json({ done: action });
   } catch (err) {

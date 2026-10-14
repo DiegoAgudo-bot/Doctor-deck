@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api, ApiError, storage } from "./api-client";
 import { Banner, Dialog } from "./ui";
 
-/** Confirmar el borrado de la cuenta escribiendo el email (vale también para cuentas de Google). */
+/** Confirmar el borrado de la cuenta escribiendo el email y la contraseña (o, con Google, sin ella). */
 export function DeleteAccountDialog({
   open,
   email,
@@ -15,6 +15,7 @@ export function DeleteAccountDialog({
   onClose: () => void;
 }) {
   const [confirm, setConfirm] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const matches = confirm.trim().toLowerCase() === email.toLowerCase();
@@ -26,7 +27,7 @@ export function DeleteAccountDialog({
       await api("/api/me", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirm }),
+        body: JSON.stringify({ confirm, ...(password ? { password } : {}) }),
       });
       storage.remove("deck-doctor:mazo");
       window.location.assign(new URL("/?account=deleted", window.location.origin));
@@ -73,6 +74,23 @@ export function DeleteAccountDialog({
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
         />
+      </div>
+      <div className="field">
+        <label className="label" htmlFor="confirm-password">
+          Tu contraseña
+        </label>
+        <input
+          id="confirm-password"
+          className="input"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <span className="hint">
+          Si entras solo con Google, déjala vacía (te pedirá volver a entrar si hace rato que lo
+          hiciste).
+        </span>
       </div>
       {error && <Banner tone="out">{error}</Banner>}
     </Dialog>

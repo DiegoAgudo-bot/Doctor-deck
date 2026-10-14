@@ -8,6 +8,7 @@ import { getContainer } from "@/server/container";
 import { addCardsResponse, cardDTO, type AddedCardDTO } from "@/server/dto";
 import { errorResponse, jsonWithEtag } from "@/server/http";
 import { currentUser, requireUser } from "@/server/session";
+import { readJson } from "@/server/body";
 
 const schema = z.object({
   cards: z
@@ -39,7 +40,7 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const user = await currentUser(request);
-    const { cards } = schema.parse(await request.json());
+    const { cards } = schema.parse(await readJson(request));
     const c = getContainer();
     const result = await addToCollection(cards, {
       cards: c.cards,

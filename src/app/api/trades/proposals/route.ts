@@ -6,6 +6,7 @@ import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
 import { proposalLinesSchema } from "@/server/trade-lines";
 import { proposalSummaryDTO, tradeDeps } from "@/server/trades";
+import { readJson } from "@/server/body";
 
 /** Mis propuestas de intercambio: enviadas, recibidas y mis borradores. */
 export async function GET(req: NextRequest) {
@@ -33,7 +34,7 @@ const createSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser(req);
-    const input = createSchema.parse(await req.json());
+    const input = createSchema.parse(await readJson(req));
     const id = await createProposal(user.id, input, tradeDeps());
     return Response.json({ id }, { status: 201 });
   } catch (err) {

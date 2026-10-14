@@ -26,5 +26,9 @@ describe("imágenes de cartas", () => {
     );
     expect(isScryfallImagePath("normal/front/8/e/../../secret.jpg")).toBe(false);
     expect(isScryfallImagePath("normal/front/8/e/8ee443cc.jpg")).toBe(false);
+    // Las carpetas tienen que ser los dos primeros caracteres del id, como en Scryfall.
+    expect(isScryfallImagePath("normal/front/0/0/8ee443cc-e17a-493b-9c93-1f9e141a30e4.jpg")).toBe(
+      false,
+    );
   });
 });

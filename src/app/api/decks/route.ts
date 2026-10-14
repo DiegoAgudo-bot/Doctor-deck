@@ -8,6 +8,7 @@ import { deckSummaries } from "@/server/deck-summaries";
 import { getContainer } from "@/server/container";
 import { errorResponse, jsonWithEtag } from "@/server/http";
 import { requireUser } from "@/server/session";
+import { readJson } from "@/server/body";
 
 const ids = z.array(z.string().min(1).max(64)).max(200).optional();
 
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await requireUser(request);
-    const req = saveSchema.parse(await request.json());
+    const req = saveSchema.parse(await readJson(request));
     const c = getContainer();
     const saved = await saveDeck(req, {
       sources: c.deckSources,

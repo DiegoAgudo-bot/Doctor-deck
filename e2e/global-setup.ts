@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { request, type FullConfig } from "@playwright/test";
+import Database from "better-sqlite3";
 
 export const E2E_EMAIL = "e2e@example.com";
 
@@ -25,6 +26,10 @@ export default async function globalSetup(config: FullConfig) {
     data: { email, password: "password123", name: "Prueba" },
   });
   if (!signUp.ok()) throw new Error(`No se pudo crear la cuenta: ${signUp.status()}`);
+  // Administrar exige el email verificado (sin correo en las pruebas, se marca a mano).
+  const db = new Database("data/e2e.db");
+  db.prepare('UPDATE "user" SET "emailVerified" = 1 WHERE "email" = ?').run(email);
+  db.close();
   const names = ["Sol Ring", "Mana Crypt", "Dig Through Time", "Teferi, Temporal Archmage"];
   const added = await api.post("/api/collection/cards", {
     data: {

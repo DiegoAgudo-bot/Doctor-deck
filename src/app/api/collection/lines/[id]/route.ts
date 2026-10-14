@@ -4,6 +4,7 @@ import { editCollectionLine } from "@/application/collection-cards";
 import { getContainer } from "@/server/container";
 import { errorResponse } from "@/server/http";
 import { requireUser } from "@/server/session";
+import { readJson } from "@/server/body";
 
 type Ctx = RouteContext<"/api/collection/lines/[id]">;
 
@@ -32,7 +33,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     const id = z.uuid().safeParse((await ctx.params).id);
     if (!id.success) return notFound();
     const c = getContainer();
-    const ok = await editCollectionLine(id.data, patchSchema.parse(await req.json()), {
+    const ok = await editCollectionLine(id.data, patchSchema.parse(await readJson(req)), {
       cards: c.cards,
       collection: c.collectionFor(user.id),
     });

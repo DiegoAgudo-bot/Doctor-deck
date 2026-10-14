@@ -78,6 +78,7 @@ export function createContainer() {
         );
       }
     : undefined;
+  const cards = new PrismaCardRepository(db);
   return {
     env,
     edhrec,
@@ -87,7 +88,7 @@ export function createContainer() {
     mailer,
     authFeatures: authFeatures(env, mailer),
     /** Catálogo de cartas: compartido por todos los usuarios. */
-    cards: new PrismaCardRepository(db),
+    cards,
     /** Colección y mazos: siempre de un usuario concreto. */
     collectionFor: (userId: string) => new PrismaCollectionRepository(db, userId),
     decksFor: (userId: string) => new PrismaDeckRepository(db, userId),
@@ -136,6 +137,8 @@ export function createContainer() {
       env.IMAGE_CACHE_DIR,
       env.IMAGE_CACHE_MAX_MB * 1024 * 1024,
       new HttpClient({ userAgent: env.HTTP_USER_AGENT, minIntervalMs: 0, accept: "image/*" }),
+      // Solo imágenes de impresiones del catálogo: un id inventado no sale a Scryfall.
+      async (id) => (await cards.findPrintingsByIds([id])).length > 0,
     ),
   };
 }

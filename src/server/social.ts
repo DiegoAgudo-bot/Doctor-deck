@@ -23,9 +23,14 @@ export function socialDeps() {
   };
 }
 
-/** Si el usuario puede revisar denuncias (su email está en `ADMIN_EMAILS`). */
+/**
+ * Si el usuario puede revisar denuncias: su email está en `ADMIN_EMAILS` **y está verificado** (si
+ * no, cualquiera podría registrarse con ese email antes que su dueño).
+ */
 export const isAdmin = (user: SessionUser | null) =>
-  !!user && getContainer().env.ADMIN_EMAILS.includes(user.email.toLowerCase());
+  !!user &&
+  user.emailVerified === true &&
+  getContainer().env.ADMIN_EMAILS.includes(user.email.toLowerCase());
 
 export async function currentAdmin(req: Request) {
   const user = await currentUser(req);
