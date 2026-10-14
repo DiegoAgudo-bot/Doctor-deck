@@ -1,14 +1,17 @@
-/** Colores de la web en modo oscuro (`globals.css`), para que app y web se vean iguales. */
+/**
+ * Colores de la web en modo oscuro (`globals.css`, tema «Medianoche»: el azul noche del icono),
+ * para que app y web se vean iguales.
+ */
 export const colors = {
-  bg: "#131313",
-  panel: "#1a1a1a",
-  raised: "#222222",
-  hover: "#2a2a2a",
-  line: "#2c2c2c",
-  lineStrong: "#3a3a3a",
-  text: "#e8e6e3",
-  text2: "#aba7a1",
-  text3: "#8a8680",
+  bg: "#0e131b",
+  panel: "#131a24",
+  raised: "#1a2230",
+  hover: "#212b3b",
+  line: "#232d3c",
+  lineStrong: "#2f3b4e",
+  text: "#e6e9ee",
+  text2: "#a3acba",
+  text3: "#7f8a9b",
   accent: "#6cb0ff",
   onAccent: "#06182e",
   in: "#4fc16a",
@@ -16,7 +19,7 @@ export const colors = {
   warn: "#e0ae3f",
   owned: "#4fc16a",
   inuse: "#b78cf0",
-  missing: "#8a8680",
+  missing: "#7f8a9b",
   foil: "#e5c76b",
 } as const;
 

@@ -604,7 +604,10 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   primera vez (tope `IMAGE_CACHE_MAX_MB`; lleno, se sirven sin guardar). Solo acepta rutas con la
   forma de las de Scryfall.
 - **App móvil** (Fase 22, `mobile/`, ver `mobile/README.md`): Expo + React Native con
-  `expo-router`, solo Android. Pestañas como ManaBox (Colección, Mazos, Buscar, Avisos, Más), ficha
+  `expo-router`, solo Android, con los colores de la web (tema «Medianoche», `mobile/src/lib/theme.ts`).
+  Pestañas Colección, Mazos, Buscar, Jugar (`(tabs)/games.tsx`: contador —o seguir la partida
+  abierta, `lib/life-store.ts`—, registrar partida, mis grupos y últimas partidas) y Más; los
+  avisos en la campana de la cabecera (`components/bell.tsx`, con los sin leer) y en Más. Ficha
   de carta con añadir copias (edición, foil, idioma, estado), mazo (lista, me falta, cambios,
   datos) y todo lo demás **en pantallas nativas, sin WebView** (contador de vidas con registrar
   partida, grupos e invitaciones, partidas, intercambios con calculadora y propuestas, préstamos,

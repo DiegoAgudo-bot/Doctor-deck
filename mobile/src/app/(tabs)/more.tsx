@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { Alert, ScrollView, View } from "react-native";
 import type { MyProfileDTO } from "@/server/dto";
+import { useUnread } from "~/components/bell";
 import { MenuRow, T, type IconName } from "~/components/ui";
 import { api } from "~/lib/api";
 import { authClient, useSession } from "~/lib/auth";
@@ -15,23 +16,6 @@ const SECTIONS: {
   title: string;
   items: { icon: IconName; label: string; detail?: string; path: string }[];
 }[] = [
-  {
-    title: "Jugar",
-    items: [
-      {
-        icon: "heart-outline",
-        label: "Contador de vidas",
-        detail: "A pantalla completa, de 2 a 6 jugadores",
-        path: "/play",
-      },
-      {
-        icon: "people-outline",
-        label: "Grupos de juego",
-        detail: "Partidas, clasificación y quién tiene qué",
-        path: "/groups",
-      },
-    ],
-  },
   {
     title: "Cartas entre amigos",
     items: [
@@ -58,9 +42,10 @@ const SECTIONS: {
   },
 ];
 
-/** Todo lo demás (como el menú "Más" de ManaBox): perfil, jugar, intercambios, comunidad y ajustes. */
+/** Todo lo demás (como el menú "Más" de ManaBox): perfil, avisos, intercambios, comunidad y ajustes. */
 export default function More() {
   const { data: session } = useSession();
+  const unread = useUnread();
   const profile = useQuery({
     queryKey: ["me"],
     queryFn: () => api<MyProfileDTO>("/api/me/profile"),
@@ -89,6 +74,12 @@ export default function More() {
           {session?.user.email}
         </T>
       </View>
+      <MenuRow
+        icon="notifications-outline"
+        label="Avisos"
+        detail={unread ? `${unread} sin leer` : "Bajadas de precio, intercambios, partidas…"}
+        onPress={() => router.push("/notifications")}
+      />
       {profile.data?.username && (
         <MenuRow
           icon="person-circle-outline"

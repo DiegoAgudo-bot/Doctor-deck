@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import type { CollectionCardDTO, CollectionViewResponse } from "@/server/dto";
+import { Bell } from "~/components/bell";
 import { CardThumb, FoilMark } from "~/components/card-bits";
 import { OptionRow, Sheet } from "~/components/sheet";
 import {
@@ -102,12 +103,13 @@ export default function Collection() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <View style={{ marginRight: 8 }}>
+        <View style={{ marginRight: 10, flexDirection: "row", alignItems: "center", gap: 4 }}>
           <IconButton
             icon={grid ? "list" : "grid-outline"}
             label={grid ? "Ver en lista" : "Ver en rejilla"}
             onPress={() => setGrid(!grid)}
           />
+          <Bell />
         </View>
       ),
     });

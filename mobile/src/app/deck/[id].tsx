@@ -95,7 +95,8 @@ export default function DeckScreen() {
     <>
       <Stack.Screen
         options={{
-          title: d.name,
+          // El nombre ya va grande en la portada del mazo: la cabecera solo lleva las acciones.
+          title: "",
           headerRight: () => (
             <View style={{ flexDirection: "row" }}>
               {!d.isMine && (

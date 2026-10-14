@@ -31,9 +31,8 @@ import { Sheet } from "~/components/sheet";
 import { Button, Chip, T, styles } from "~/components/ui";
 import { api } from "~/lib/api";
 import { tapFeedback } from "~/lib/feedback";
+import { LIFE_KEY } from "~/lib/life-store";
 import { colors, radius } from "~/lib/theme";
-
-const KEY = "doctordeck:life";
 
 interface Stored {
   game: LifeGame | null;
@@ -101,13 +100,13 @@ export default function Play() {
   const me = profile.data?.username ?? null;
 
   useEffect(() => {
-    AsyncStorage.getItem(KEY)
+    AsyncStorage.getItem(LIFE_KEY)
       .then((raw) => raw && setS({ ...DEFAULTS, ...(JSON.parse(raw) as Partial<Stored>) }))
       .catch(() => {})
       .finally(() => setHydrated(true));
   }, []);
   useEffect(() => {
-    if (hydrated) AsyncStorage.setItem(KEY, JSON.stringify(s)).catch(() => {});
+    if (hydrated) AsyncStorage.setItem(LIFE_KEY, JSON.stringify(s)).catch(() => {});
   }, [s, hydrated]);
   // Yo en el primer asiento si aún no hay nombres.
   useEffect(() => {
@@ -300,7 +299,7 @@ function Table({
     <View
       style={{
         flex: 1,
-        backgroundColor: "#050505",
+        backgroundColor: "#070a10",
         paddingTop: insets.top + 6,
         paddingBottom: insets.bottom + 6,
         paddingHorizontal: 6,
@@ -436,7 +435,7 @@ const hub = {
   minHeight: 44,
   minWidth: 44,
   borderRadius: 22,
-  backgroundColor: "#1d1d1d",
+  backgroundColor: colors.raised,
   alignItems: "center" as const,
   justifyContent: "center" as const,
   paddingHorizontal: 12,

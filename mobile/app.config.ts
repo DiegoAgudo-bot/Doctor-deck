@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import type { ExpoConfig } from "expo/config";
 
 /** Versión de la app: súbela en cada publicación (el servidor puede exigir una mínima). */
-const VERSION = "1.1.0";
+const VERSION = "1.2.0";
 /** Para Google Play: entero que sube con cada build que se sube a la tienda. */
 const VERSION_CODE = Number(process.env.ANDROID_VERSION_CODE ?? 1);
 
@@ -17,11 +17,11 @@ const config: ExpoConfig = {
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "dark",
-  backgroundColor: "#131313",
+  backgroundColor: "#0e131b",
   android: {
     package: "app.doctordeck",
     versionCode: VERSION_CODE,
-    adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#131313" },
+    adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#0e131b" },
     ...(googleServices ? { googleServicesFile: googleServices } : {}),
     // Los enlaces https://doctordeck.app/decks/… (y cartas, invitaciones, perfiles y propuestas)
     // abren la app si está instalada.
@@ -48,7 +48,7 @@ const config: ExpoConfig = {
     "expo-router",
     [
       "expo-splash-screen",
-      { image: "./assets/icon.png", imageWidth: 160, backgroundColor: "#131313" },
+      { image: "./assets/icon.png", imageWidth: 160, backgroundColor: "#0e131b" },
     ],
     "expo-secure-store",
     "expo-web-browser",
