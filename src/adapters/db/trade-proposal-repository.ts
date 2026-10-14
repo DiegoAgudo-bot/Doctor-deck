@@ -158,26 +158,30 @@ export class PrismaTradeProposalRepository implements TradeProposalRepository {
         giver === row.fromUserId ? row.toUserId : row.fromUserId;
       const missing = new Map<string, string[]>();
       for (const item of items) {
-        const name = await takeCopies(tx, item);
-        if (name === null) {
+        const taken = await takeCopies(tx, item);
+        if (taken === null) {
           missing.set(item.giverId, [...(missing.get(item.giverId) ?? []), item.oracleId]);
           continue;
         }
-        await tx.collectionEntry.create({
-          data: {
-            userId: receiver(item.giverId),
-            oracleId: item.oracleId,
-            scryfallId: item.scryfallId,
-            name,
-            quantity: item.quantity,
-            foil: item.foil,
-            language: item.language,
-            status: "matched",
-            matchMethod: MANUAL,
-            line: 0,
-            raw: JSON.stringify({ trade: id }),
-          },
-        });
+        // Una línea por estado: la copia llega como estaba (near mint, jugada…).
+        for (const [condition, quantity] of taken.conditions) {
+          await tx.collectionEntry.create({
+            data: {
+              userId: receiver(item.giverId),
+              oracleId: item.oracleId,
+              scryfallId: item.scryfallId,
+              name: taken.name,
+              quantity,
+              foil: item.foil,
+              language: item.language,
+              condition,
+              status: "matched",
+              matchMethod: MANUAL,
+              line: 0,
+              raw: JSON.stringify({ trade: id }),
+            },
+          });
+        }
       }
       const [first] = missing;
       // Lanzar deshace la transacción (también el «aceptada»): o se mueve todo o nada.
@@ -193,9 +197,13 @@ export class PrismaTradeProposalRepository implements TradeProposalRepository {
 /**
  * Quita `item.quantity` copias de la colección de quien las da: primero las líneas de esa misma
  * copia (impresión, foil e idioma), después cualquier otra de la carta (las más recientes
- * primero). Devuelve el nombre de la carta, o null si no hay copias suficientes.
+ * primero). Devuelve el nombre de la carta y cuántas copias se han quitado de cada estado, o
+ * null si no hay copias suficientes.
  */
-async function takeCopies(tx: Tx, item: ProposalItem): Promise<string | null> {
+async function takeCopies(
+  tx: Tx,
+  item: ProposalItem,
+): Promise<{ name: string; conditions: Map<string | null, number> } | null> {
   const rows = await tx.collectionEntry.findMany({
     where: { userId: item.giverId, oracleId: item.oracleId, status: "matched" },
     orderBy: [{ importedAt: "desc" }, { id: "desc" }],
@@ -207,9 +215,11 @@ async function takeCopies(tx: Tx, item: ProposalItem): Promise<string | null> {
   ];
   if (ordered.reduce((n, r) => n + r.quantity, 0) < item.quantity) return null;
   let left = item.quantity;
+  const conditions = new Map<string | null, number>();
   for (const r of ordered) {
     if (left <= 0) break;
     const take = Math.min(left, r.quantity);
+    conditions.set(r.condition, (conditions.get(r.condition) ?? 0) + take);
     if (take === r.quantity) await tx.collectionEntry.delete({ where: { id: r.id } });
     else
       await tx.collectionEntry.update({
@@ -218,5 +228,5 @@ async function takeCopies(tx: Tx, item: ProposalItem): Promise<string | null> {
       });
     left -= take;
   }
-  return ordered[0]?.name ?? item.oracleId;
+  return { name: ordered[0]?.name ?? item.oracleId, conditions };
 }

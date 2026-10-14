@@ -9,6 +9,7 @@ import {
   nextTurn,
   rematch,
   setConceded,
+  setPartner,
 } from "./life";
 
 describe("contador de vidas", () => {
@@ -33,6 +34,20 @@ describe("contador de vidas", () => {
     expect(isOut(g.players[1]!)).toBe(true);
     // A uno mismo no.
     expect(changeCommander(g, 2, 2, 5)).toBe(g);
+  });
+
+  it("con pareja, cada comandante lleva su daño y 21 de uno solo elimina", () => {
+    let g = newLifeGame(["A", "B"]);
+    // Sin pareja, el segundo comandante no existe.
+    expect(changeCommander(g, 1, 0, 5, 1)).toBe(g);
+    g = setPartner(g, 0, true);
+    g = changeCommander(g, 1, 0, 15);
+    g = changeCommander(g, 1, 0, 15, 1);
+    expect(g.players[1]).toMatchObject({ life: 10, commander: [15, 0], commander2: [15, 0] });
+    expect(isOut(g.players[1]!)).toBe(false);
+    g = changeCommander(g, 1, 0, 6, 1);
+    expect(isOut(g.players[1]!)).toBe(true);
+    expect(rematch(g).players[0]!.partner).toBe(true);
   });
 
   it("veneno, vida a 0 y concesión eliminan; queda el último en pie", () => {

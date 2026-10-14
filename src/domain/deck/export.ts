@@ -18,6 +18,8 @@ interface ExportableCard {
   listTags?: readonly string[] | undefined;
   /** Impresión elegida: se escribe como `(SET) número` en los formatos de texto. */
   printing?: { setCode: string; collectorNumber: string } | undefined;
+  /** Foil en la lista (`*F*`): se escribe en los formatos de texto. */
+  foil?: boolean | undefined;
 }
 
 /** Solo los campos de exportación (a veces llega una CardDTO entera). */
@@ -28,6 +30,7 @@ const pick = ({
   tags,
   listTags,
   printing,
+  foil,
 }: ExportableCard): ExportableCard => ({
   oracleId,
   name,
@@ -35,11 +38,13 @@ const pick = ({
   ...(tags === undefined ? {} : { tags }),
   ...(listTags === undefined ? {} : { listTags }),
   ...(printing === undefined ? {} : { printing }),
+  ...(foil ? { foil } : {}),
 });
 
-/** " (LEA) 270" si la carta tiene impresión elegida. */
+/** " (LEA) 270" si la carta tiene impresión elegida, y " *F*" si es foil. */
 const printingSuffix = (c: ExportableCard) =>
-  c.printing ? ` (${c.printing.setCode.toUpperCase()}) ${c.printing.collectorNumber}` : "";
+  (c.printing ? ` (${c.printing.setCode.toUpperCase()}) ${c.printing.collectorNumber}` : "") +
+  (c.foil ? " *F*" : "");
 
 /**
  * Elige (o, con null, quita) la impresión de una carta del mazo (comandantes incluidos). Solo

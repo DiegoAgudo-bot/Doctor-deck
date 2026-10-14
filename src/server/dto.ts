@@ -50,6 +50,8 @@ export interface CardDTO {
   canBeCommander?: boolean;
   /** Impresión elegida en el mazo (su imagen es la de `imageUrl`); sin ella, la de por defecto. */
   printing?: PrintingDTO | undefined;
+  /** En un mazo: la lista la marca foil (`*F*`). */
+  foil?: boolean | undefined;
 }
 
 export interface PrintingDTO {
@@ -634,14 +636,16 @@ export const printingDTO = (p: Printing): PrintingDTO => ({
 });
 
 /** La carta con la imagen de la impresión elegida (si la hay). */
-export const cardWithPrintingDTO = (c: Card, p: Printing | undefined): CardDTO =>
-  p
+export const cardWithPrintingDTO = (c: Card, p: Printing | undefined, foil = false): CardDTO => ({
+  ...(p
     ? {
         ...cardDTO(c),
         imageUrl: localImageUrl(p.imageUrl) ?? localImageUrl(c.imageUrl),
         printing: printingDTO(p),
       }
-    : cardDTO(c);
+    : cardDTO(c)),
+  ...(foil ? { foil } : {}),
+});
 
 export const cardDTO = (c: Card): CardDTO => ({
   oracleId: c.oracleId,
@@ -711,11 +715,17 @@ export function analyzeResponse(result: AnalyzeDeckResult, config: EngineConfig)
     status: "ok",
     source: result.source,
     deckName: result.deckName,
-    commanders: deck.commanders.map((c) => cardWithPrintingDTO(c, deck.printings?.get(c.oracleId))),
+    commanders: deck.commanders.map((c) =>
+      cardWithPrintingDTO(c, deck.printings?.get(c.oracleId), deck.foils?.has(c.oracleId)),
+    ),
     cards: deck.cards.map(({ card, quantity }) => {
       const roles = result.roles.classifier.classify(card);
       return {
-        card: cardWithPrintingDTO(card, deck.printings?.get(card.oracleId)),
+        card: cardWithPrintingDTO(
+          card,
+          deck.printings?.get(card.oracleId),
+          deck.foils?.has(card.oracleId),
+        ),
         quantity,
         roles: roles.roles,
         primaryRole: roles.primary,

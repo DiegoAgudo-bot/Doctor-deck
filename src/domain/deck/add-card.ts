@@ -34,7 +34,10 @@ export function addCardProblem(deck: ResolvedDeck, card: Card): AddCardProblem |
 export function exportableFromResolved(deck: ResolvedDeck): ExportableDeck {
   const printing = (oracleId: string) => {
     const p = deck.printings?.get(oracleId);
-    return p ? { printing: { setCode: p.setCode, collectorNumber: p.collectorNumber } } : {};
+    return {
+      ...(p ? { printing: { setCode: p.setCode, collectorNumber: p.collectorNumber } } : {}),
+      ...(deck.foils?.has(oracleId) ? { foil: true } : {}),
+    };
   };
   return {
     commanders: deck.commanders.map((c) => ({

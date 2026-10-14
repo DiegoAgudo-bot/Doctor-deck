@@ -62,12 +62,19 @@ describe("PrismaTradeProposalRepository", () => {
     expect(await db.tradeProposalItem.count({ where: { version: 1 } })).toBe(2);
   });
 
-  it("al aceptar mueve las copias (primero las de esa impresión) y si faltan no cambia nada", async () => {
+  it("al aceptar mueve las copias (primero las de esa impresión, con su estado) y si faltan no cambia nada", async () => {
     const ana = new PrismaCollectionRepository(db, "ana");
     const carla = new PrismaCollectionRepository(db, "carla");
     await ana.addCards([
       { oracleId: "ring", name: "Sol Ring", quantity: 2, foil: false, scryfallId: "p-normal" },
-      { oracleId: "ring", name: "Sol Ring", quantity: 1, foil: true, scryfallId: "p-foil" },
+      {
+        oracleId: "ring",
+        name: "Sol Ring",
+        quantity: 1,
+        foil: true,
+        scryfallId: "p-foil",
+        condition: "lightly_played",
+      },
     ]);
     await carla.addCards([
       { oracleId: "tithe", name: "Smothering Tithe", quantity: 1, foil: false },
@@ -111,6 +118,8 @@ describe("PrismaTradeProposalRepository", () => {
       scryfallId: "p-foil",
       source: "manual",
       name: "Sol Ring",
+      // Llega como estaba.
+      condition: "lightly_played",
     });
     expect((await carla.ownedQuantities()).has("tithe")).toBe(false);
     expect((await repo.get(id))?.status).toBe("accepted");

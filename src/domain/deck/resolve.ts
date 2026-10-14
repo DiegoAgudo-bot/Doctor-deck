@@ -29,6 +29,8 @@ export interface ResolvedDeck {
   unresolved: DecklistEntry[];
   /** Impresión pedida en la lista (por Scryfall ID o edición + número), por oracleId. */
   printings?: ReadonlyMap<string, Printing>;
+  /** Cartas marcadas foil en la lista (`*F*`, `*E*`), por oracleId: se conserva al reescribirla. */
+  foils?: ReadonlySet<string>;
 }
 
 /** Resuelve las entradas a cartas, agrupa por oracleId y determina el comandante. */
@@ -36,6 +38,7 @@ export function resolveDecklist(parsed: ParsedDecklist, index: CardIndex): Resol
   const byOracle = new Map<string, DeckCard & { marked: boolean }>();
   const unresolved: DecklistEntry[] = [];
   const printings = new Map<string, Printing>();
+  const foils = new Set<string>();
 
   for (const entry of parsed.entries) {
     const found = lookup(entry, index);
@@ -46,6 +49,7 @@ export function resolveDecklist(parsed: ParsedDecklist, index: CardIndex): Resol
     const { card, printing } = found;
     // Si la misma carta sale en varias líneas, vale la primera impresión que se pida.
     if (printing && !printings.has(card.oracleId)) printings.set(card.oracleId, printing);
+    if (entry.foil) foils.add(card.oracleId);
     const prev = byOracle.get(card.oracleId);
     if (prev) {
       prev.quantity += entry.quantity;
@@ -83,6 +87,7 @@ export function resolveDecklist(parsed: ParsedDecklist, index: CardIndex): Resol
       cards: strip(marked),
       unresolved,
       printings,
+      foils,
     };
   }
 
@@ -98,6 +103,7 @@ export function resolveDecklist(parsed: ParsedDecklist, index: CardIndex): Resol
       cards: strip([first]),
       unresolved,
       printings,
+      foils,
     };
   }
   if (candidates.length === 2 && first && second && isValidCommanderPair(first, second)) {
@@ -108,6 +114,7 @@ export function resolveDecklist(parsed: ParsedDecklist, index: CardIndex): Resol
       cards: strip([first, second]),
       unresolved,
       printings,
+      foils,
     };
   }
   return {
@@ -117,6 +124,7 @@ export function resolveDecklist(parsed: ParsedDecklist, index: CardIndex): Resol
     cards: strip([]),
     unresolved,
     printings,
+    foils,
   };
 }
 

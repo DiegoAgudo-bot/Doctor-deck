@@ -407,6 +407,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           name: c.name,
           layout: c.layout,
           ...(c.printing ? { printing: c.printing } : {}),
+          ...(c.foil ? { foil: true } : {}),
         })),
         cards: ok.cards.map((c) => ({
           oracleId: c.card.oracleId,
@@ -414,6 +415,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           layout: c.card.layout,
           quantity: c.quantity,
           ...(c.card.printing ? { printing: c.card.printing } : {}),
+          ...(c.card.foil ? { foil: true } : {}),
           // Para exportar a Moxfield: el rol principal (si no es "sinergia") y mis etiquetas.
           tags: [
             ...(c.isBasicLand || c.primaryRole === "synergy" ? [] : [ROLE_TAGS[c.primaryRole]]),
