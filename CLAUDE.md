@@ -88,6 +88,11 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   las cartas necesarias en un `InMemoryCardIndex` (dominio, síncrono); el dominio trabaja contra la
   interfaz `CardIndex`. El índice prefiere cartas jugables frente a tokens/art series homónimos.
 - **Colección**: `parseManaboxCsv` → `matchCollection` (id → set+nº → nombre) → `replaceCollection`.
+  El CSV puede ser el de ManaBox o el de otras apps: `ALIASES` en `domain/collection/manabox.ts`
+  reconoce sus columnas (Moxfield `Count`/`Edition`, Deckbox `Card Number`, Dragon Shield `Card
+Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edition" solo cuenta
+  como código si lo parece (`SET_CODE_RE`). `looksLikeCollectionCsv` detecta la cabecera (también
+  al compartir con la app).
   Además, cartas sueltas (`addToCollection`, `application/collection-cards.ts`): se resuelven por
   `oracleId` (buscador web), `scryfallId` (lo que dará el escáner de la app móvil) o nombre, y se
   guardan con `matchMethod = "manual"`; reimportar el CSV **no** las borra. `collectionView` agrupa
@@ -128,6 +133,12 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   aplicar cambios sugeridos y quitar cartas; `PATCH /api/decks/{id}` con `{exclude}` descarta uno
   sobre la versión guardada (`excludeFromDeck`). Los cambios a un mismo mazo van de uno en uno
   (`withDeckLock`). Al reescribir la lista se conservan sus etiquetas (`ExportableCard.listTags`).
+  **Historial** (`DeckVersion`): al cambiar la lista de un mazo guardado, `PrismaDeckRepository.save`
+  guarda la anterior (`keepVersion`: con sus cartas en JSON; si la última versión es de hace menos
+  de 2 min no guarda otra; las 30 últimas, `domain/deck/versions.ts`). `GET
+/api/decks/{id}/versions` (`deckVersions`: cada versión con lo que entró y salió después,
+  `diffVersions`) y `POST /api/decks/{id}/versions/{versionId}` (`restoreDeckVersion`, que deja la
+  actual en el historial). UI: «Historial» en los ajustes del mazo.
   Copias permitidas: `maxCopies` (`domain/deck/resolve.ts`: básicas y «any number» sin límite,
   «up to seven/nine cards named» ese número, el resto 1; `DeckCardDTO.maxCopies`).
 - **Cuenta y RGPD** (Fase 20, `application/account.ts`): `GET /api/me/export` (todos mis datos en

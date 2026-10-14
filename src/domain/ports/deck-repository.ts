@@ -2,6 +2,7 @@ import type { Bracket } from "../deck/bracket";
 import type { DeckFacts } from "../deck/facts";
 import type { DeckVisibility } from "../deck/visibility";
 import type { CardUsage } from "../suggestions/engine";
+import type { DeckVersionInfo, VersionCard } from "../deck/versions";
 
 export interface SavedDeckSummary {
   /** Identificador público (uuid): el de las URL /decks/{id} y la API. */
@@ -62,4 +63,8 @@ export interface DeckRepository {
   wishlistDeckCards(): Promise<Map<string, number>>;
   /** Copias de cada carta usadas en los mazos guardados, salvo `excludeDeckId`. */
   usage(excludeDeckId?: string): Promise<Map<string, CardUsage>>;
+  /** Historial: las cartas de ahora y las versiones anteriores (la más nueva primero). */
+  versions(id: string): Promise<{ current: VersionCard[]; versions: DeckVersionInfo[] } | null>;
+  /** La lista de una versión anterior y sus comandantes, para restaurarla. */
+  version(id: string, versionId: string): Promise<{ input: string; commanders: string[] } | null>;
 }

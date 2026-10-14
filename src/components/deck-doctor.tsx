@@ -1147,6 +1147,9 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                 setEditing(true);
               }}
               onDelete={() => void deleteDeck()}
+              deckId={saved.deckId}
+              // La lista restaurada viene del servidor: se vuelve a abrir el mazo.
+              onRestored={() => window.location.reload()}
             />
           )}
           <SaveDialog

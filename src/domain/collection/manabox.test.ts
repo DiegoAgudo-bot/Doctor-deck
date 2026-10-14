@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { readFixture } from "../../../tests/helpers/scryfall-fixtures";
-import { ManaboxFormatError, parseManaboxCsv, toManaboxCsv } from "./manabox";
+import {
+  looksLikeCollectionCsv,
+  ManaboxFormatError,
+  parseManaboxCsv,
+  toManaboxCsv,
+} from "./manabox";
 
 const HEADER =
   "Name,Set code,Set name,Collector number,Foil,Rarity,Quantity,ManaBox ID,Scryfall ID,Purchase price,Misprint,Altered,Signed,Condition,Language,Proxy,Purchase price currency,Added";
@@ -76,8 +81,45 @@ describe("parseManaboxCsv: casos límite", () => {
     });
   });
 
-  it("rechaza CSV que no son de ManaBox", () => {
-    expect(() => parseManaboxCsv("Card,Count\nSol Ring,1")).toThrow(ManaboxFormatError);
+  it("rechaza CSV que no son de una colección", () => {
+    expect(() => parseManaboxCsv("Foo,Bar\nSol Ring,1")).toThrow(ManaboxFormatError);
+  });
+});
+
+describe("CSV de otras apps", () => {
+  it("Moxfield: Count, Edition (código), Foil", () => {
+    const { rows } = parseManaboxCsv(
+      'Count,Tradelist Count,Name,Edition,Condition,Language,Foil,Collector Number\n2,0,"Sol Ring",c21,Near Mint,English,foil,263',
+    );
+    expect(rows[0]).toMatchObject({
+      name: "Sol Ring",
+      quantity: 2,
+      setCode: "c21",
+      collectorNumber: "263",
+      foil: true,
+      language: "en",
+      condition: "near_mint",
+    });
+  });
+
+  it("Deckbox: Edition con el nombre (no es un código), Card Number", () => {
+    const { rows } = parseManaboxCsv(
+      "Count,Tradelist Count,Name,Edition,Card Number,Condition,Language,Foil\n1,0,Arcane Signet,Commander Masters,410,Near Mint,English,",
+    );
+    expect(rows[0]).toMatchObject({ setCode: null, collectorNumber: "410", foil: false });
+  });
+
+  it("Dragon Shield: sep=, Card Name, Set Code, Printing", () => {
+    const { rows } = parseManaboxCsv(
+      "sep=,\nFolder Name,Quantity,Trade Quantity,Card Name,Set Code,Set Name,Card Number,Condition,Printing,Language\nMain,3,0,Island,SLD,Secret Lair,1,NearMint,Foil,English",
+    );
+    expect(rows[0]).toMatchObject({ name: "Island", quantity: 3, setCode: "sld", foil: true });
+  });
+
+  it("detecta la cabecera de cualquiera de ellas", () => {
+    expect(looksLikeCollectionCsv("Count,Name,Edition\n1,Sol Ring,c21")).toBe(true);
+    expect(looksLikeCollectionCsv("sep=,\nCard Name,Quantity\nX,1")).toBe(true);
+    expect(looksLikeCollectionCsv("1 Sol Ring\n1 Island")).toBe(false);
   });
 });
 

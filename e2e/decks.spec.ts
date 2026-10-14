@@ -130,3 +130,31 @@ test("«Nuevo mazo» con mis cartas", async ({ page }) => {
   expect(deck.input).not.toContain("Sol Ring");
   await page.request.delete(`/api/decks/${id}`);
 });
+
+test("historial: se ve lo que cambió y se restaura la versión anterior", async ({ page }, info) => {
+  const name = `Historial ${info.project.name}`;
+  const saved = await page.request.post("/api/decks", { data: { name, input: DECK } });
+  const { id } = (await saved.json()) as { id: string };
+  const ring = (await (
+    await page.request.get("/api/cards/search?q=Sol%20Ring&limit=1")
+  ).json()) as {
+    oracleId: string;
+  }[];
+  await page.request.patch(`/api/decks/${id}/cards`, {
+    data: { changes: [{ oracleId: ring[0]!.oracleId, delta: -1 }] },
+  });
+
+  await page.goto(`/decks/${id}`);
+  await page.getByRole("button", { name: "Ajustes" }).click({ timeout: 30_000 });
+  const dialog = page.getByRole("dialog", { name: "Ajustes del mazo" });
+  await dialog.getByRole("button", { name: "Ver versiones anteriores" }).click();
+  await expect(dialog.getByText(/salieron Sol Ring/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Restaurar" }).first().click();
+  await expect
+    .poll(
+      async () =>
+        ((await (await page.request.get(`/api/decks/${id}`)).json()) as { input: string }).input,
+    )
+    .toContain("Sol Ring");
+  await page.request.delete(`/api/decks/${id}`);
+});

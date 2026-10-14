@@ -866,3 +866,12 @@ export interface ErrorLogEntryDTO {
   firstAt: string;
   lastAt: string;
 }
+
+/** `GET /api/decks/{id}/versions`: una versión anterior y lo que cambió después de ella. */
+export interface DeckVersionDTO {
+  id: string;
+  createdAt: string;
+  cardCount: number;
+  added: { name: string; copies: number }[];
+  removed: { name: string; copies: number }[];
+}
