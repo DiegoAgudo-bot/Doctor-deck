@@ -130,7 +130,7 @@ function useSharedContent(signedIn: boolean) {
       const text = file ? await new File(file.path).text() : (shareIntent.text ?? "");
       resetShareIntent();
       if (!text.trim()) return;
-      setPendingImport(text, file?.fileName ?? "ManaBox");
+      setPendingImport(text, file?.fileName ?? "Lista compartida");
       router.push("/share");
     })().catch(() => resetShareIntent());
   }, [hasShareIntent, signedIn, shareIntent, resetShareIntent]);

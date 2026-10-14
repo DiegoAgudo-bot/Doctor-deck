@@ -69,7 +69,11 @@ export function parseEdhrecPage(body: string, url?: string): PageOrRedirect {
   try {
     json = JSON.parse(body);
   } catch {
-    throw new EdhrecError("format", "EDHREC no ha devuelto JSON válido", url);
+    throw new EdhrecError(
+      "format",
+      "El servicio de recomendaciones no ha devuelto JSON válido",
+      url,
+    );
   }
 
   const redirect = redirectSchema.safeParse(json);
@@ -79,7 +83,7 @@ export function parseEdhrecPage(body: string, url?: string): PageOrRedirect {
   if (!parsed.success) {
     throw new EdhrecError(
       "format",
-      `La respuesta de EDHREC no tiene la estructura esperada (¿ha cambiado su formato?):\n${z.prettifyError(parsed.error)}`,
+      `La respuesta del servicio de recomendaciones no tiene la estructura esperada (¿ha cambiado su formato?):\n${z.prettifyError(parsed.error)}`,
       url,
     );
   }

@@ -418,7 +418,7 @@ function DeckBody({
     return (
       <View style={{ flex: 1 }}>
         {header}
-        <Loading label="Analizando con EDHREC…" />
+        <Loading label="Analizando el mazo…" />
       </View>
     );
   }

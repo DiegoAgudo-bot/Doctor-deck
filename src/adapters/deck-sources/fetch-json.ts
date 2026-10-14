@@ -1,15 +1,14 @@
 import { HttpError, NetworkError, type HttpClient } from "../http/http-client";
 import { DeckSourceError } from "./errors";
 
-const LABEL: Record<string, string> = { archidekt: "Archidekt", moxfield: "Moxfield" };
-
 /** GET JSON traduciendo cualquier fallo a DeckSourceError con un mensaje para el usuario. */
 export async function fetchDeckJson(
   http: HttpClient,
   url: string,
   source: string,
 ): Promise<unknown> {
-  const name = LABEL[source] ?? source;
+  // Los mensajes llegan al usuario: sin el nombre de la web de origen.
+  const name = "La web del mazo";
   let body: string;
   try {
     body = await (await http.get(url)).text();
@@ -27,7 +26,7 @@ export async function fetchDeckJson(
         throw new DeckSourceError(
           "blocked",
           source,
-          `${name} ha rechazado la petición (HTTP ${err.status}). Comprueba que el mazo es público o exporta la lista como texto desde ${name} y pégala aquí.`,
+          `${name} ha rechazado la petición (HTTP ${err.status}). Comprueba que el mazo es público o exporta la lista como texto y pégala aquí.`,
           url,
         );
       }
@@ -42,7 +41,7 @@ export async function fetchDeckJson(
       throw new DeckSourceError(
         "unavailable",
         source,
-        `${err.message}. Puedes exportar la lista como texto desde ${name} y pegarla aquí.`,
+        "No se ha podido abrir el enlace del mazo. Puedes exportar la lista como texto y pegarla aquí.",
         url,
       );
     }

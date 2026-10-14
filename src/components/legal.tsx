@@ -48,12 +48,6 @@ export function LegalFooter() {
       <nav>
         <Link href="/privacy">Privacidad</Link>
         <Link href="/legal">Aviso legal</Link>
-        <a href="https://scryfall.com" rel="noopener">
-          Datos e imágenes: Scryfall
-        </a>
-        <a href="https://edhrec.com" rel="noopener">
-          Recomendaciones: EDHREC
-        </a>
       </nav>
       <FanContentNotice />
     </footer>

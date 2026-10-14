@@ -79,7 +79,7 @@ describe("SpellbookClient", () => {
     now = new Date("2026-10-13T10:00:00Z");
     const stale = await c.findCombos(DECK);
     expect(stale.stale).toBe(true);
-    expect(stale.warning).toContain("No se ha podido contactar con Commander Spellbook");
+    expect(stale.warning).toContain("No se ha podido contactar con el servicio de combos");
     await expect(c.findCombos({ commanders: ["Otro"], main: [] })).rejects.toMatchObject({
       code: "unavailable",
     });

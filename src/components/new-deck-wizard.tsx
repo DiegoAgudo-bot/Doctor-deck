@@ -29,7 +29,7 @@ type Source = "commander" | "list";
 
 const isLink = (s: string) => /^\s*https?:\/\//i.test(s);
 const LIST_PLACEHOLDER =
-  "Pega la lista (Commander / Deck, una carta por línea) o un enlace de Moxfield o Archidekt";
+  "Pega la lista (Commander / Deck, una carta por línea) o el enlace de un mazo público";
 
 /** Deja la lista en el navegador y la abre en el analizador (sin cuenta, o para elegir comandante). */
 function openInAnalyzer(input: string, name: string, tab: string) {
@@ -133,7 +133,7 @@ export function NewDeckWizard() {
       .catch((e: unknown) => {
         if (cancelled) return;
         setInfo(null);
-        setError(e instanceof ApiError ? e.message : "No se pudo consultar EDHREC");
+        setError(e instanceof ApiError ? e.message : "No se pudieron cargar los temas");
       })
       .finally(() => !cancelled && setLoadingInfo(false));
     return () => {
@@ -242,8 +242,8 @@ export function NewDeckWizard() {
       <div className="flex flex-col gap-1">
         <h1 className="h1">Nuevo mazo</h1>
         <p className="muted text-[13px]">
-          Elige el comandante y te monto el mazo con lo que juega la comunidad en EDHREC (o empiezas
-          desde cero), o importa una lista que ya tengas.
+          Elige el comandante y te monto el mazo con lo que juega la comunidad (o empiezas desde
+          cero), o importa una lista que ya tengas.
         </p>
       </div>
 
@@ -303,7 +303,7 @@ export function NewDeckWizard() {
               <span className="hint">
                 Formatos: <span className="mono">1 Sol Ring</span>,{" "}
                 <span className="mono">1x Sol Ring (C21) 263</span>, secciones Commander/Deck o{" "}
-                <span className="mono">*CMDR*</span>, y enlaces públicos de Moxfield y Archidekt.
+                <span className="mono">*CMDR*</span>, y enlaces de mazos públicos.
               </span>
             </div>
             <div className="field" style={{ maxWidth: 480 }}>
@@ -424,7 +424,7 @@ export function NewDeckWizard() {
               <div className="panel-h">
                 <span className="h2">2 · Cómo lo montas</span>
                 {info?.totalDecks !== null && info?.totalDecks !== undefined && (
-                  <span className="subtle text-xs">{fmt(info.totalDecks)} mazos en EDHREC</span>
+                  <span className="subtle text-xs">{fmt(info.totalDecks)} mazos analizados</span>
                 )}
               </div>
               <div className="flex flex-col gap-4 p-3.5">
@@ -438,7 +438,7 @@ export function NewDeckWizard() {
                     [
                       [
                         "average",
-                        "Con el mazo medio de EDHREC",
+                        "Con el mazo medio de la comunidad",
                         "Las ~99 cartas que juega de media la gente con este comandante. Después te digo qué tienes, qué te falta y qué cambiar.",
                       ],
                       ...(hasCollection
@@ -446,7 +446,7 @@ export function NewDeckWizard() {
                             [
                               "owned",
                               "Con mis cartas",
-                              "Lo que EDHREC recomienda para este comandante y tienes libre en tu colección, más básicas hasta 36 tierras. Si no llega a 99, completas el resto.",
+                              "Lo que se recomienda para este comandante y tienes libre en tu colección, más básicas hasta 36 tierras. Si no llega a 99, completas el resto.",
                             ],
                           ] as const)
                         : []),
@@ -477,9 +477,9 @@ export function NewDeckWizard() {
 
                 {mode !== "empty" && (
                   <div className="field">
-                    <span className="label">Tema de EDHREC</span>
+                    <span className="label">Tema</span>
                     {loadingInfo ? (
-                      <Loading>Consultando EDHREC…</Loading>
+                      <Loading>Buscando los temas…</Loading>
                     ) : (
                       <div className="chips" role="radiogroup" aria-label="Tema">
                         {[
@@ -552,8 +552,8 @@ export function NewDeckWizard() {
                 {busy && mode !== "empty" && (
                   <Loading>
                     {mode === "owned"
-                      ? "Buscando en tu colección lo que recomienda EDHREC…"
-                      : "Montando el mazo medio con los datos de EDHREC…"}
+                      ? "Buscando en tu colección lo que se recomienda…"
+                      : "Montando el mazo medio de la comunidad…"}
                   </Loading>
                 )}
               </div>

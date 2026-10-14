@@ -392,7 +392,7 @@ function ownedSentence(c: AddCandidate): string {
 }
 
 function purchaseSentence(c: PurchaseCandidate): string {
-  const price = `cuesta unos ${formatEuros(c.price)} (precio de referencia de Cardmarket)`;
+  const price = `cuesta unos ${formatEuros(c.price)} (precio de referencia)`;
   return c.owned > 0
     ? `La tienes, pero ocupada en ${c.usedIn.join(", ")}: ${price}.`
     : `No la tienes: ${price}.`;

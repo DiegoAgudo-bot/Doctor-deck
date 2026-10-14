@@ -61,7 +61,7 @@ export function BuyPanel({
     <div className="flex flex-col gap-4">
       <p className="muted text-[13px]">
         ¿Qué cartas que no tienes (o tienes ocupadas en otros mazos) mejorarían más el mazo? Precio
-        de tendencia de Cardmarket según Scryfall (la impresión más barata).
+        de referencia del mercado europeo (la impresión más barata).
       </p>
       <form
         className="panel grid-1-sm grid items-end gap-3 p-3"
@@ -143,7 +143,7 @@ export function BuyPanel({
                   onClick={() => void copy()}
                   disabled={chosen.length === 0}
                 >
-                  {copied ? "¡Copiado!" : "Copiar para Cardmarket"}
+                  {copied ? "¡Copiado!" : "Copiar lista de compra"}
                 </button>
               </div>
             )}
@@ -242,9 +242,9 @@ export function BuyPanel({
                             href={cardmarketUrl(p.in.card.name)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            aria-label={`Ver ${p.in.card.name} en Cardmarket`}
+                            aria-label={`Comprar ${p.in.card.name}`}
                           >
-                            Cardmarket ↗
+                            Comprar ↗
                           </a>
                         </td>
                       </tr>

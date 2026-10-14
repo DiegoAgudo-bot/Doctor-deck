@@ -54,26 +54,14 @@ export default function Page() {
         <li>Podemos retirar contenido o cuentas que incumplan estas normas.</li>
       </ul>
       <p>
-        Los precios son orientativos (tendencia de Cardmarket a través de Scryfall) y las
-        recomendaciones vienen de datos de EDHREC: úsalos como guía, sin garantía.
+        Los precios son orientativos (referencia del mercado europeo) y las recomendaciones salen de
+        lo que juega la comunidad: úsalos como guía, sin garantía.
       </p>
 
       <h2>Propiedad intelectual</h2>
       <p>
         Magic: The Gathering, sus cartas, nombres, símbolos e ilustraciones son propiedad de Wizards
-        of the Coast LLC. Los datos e imágenes de cartas proceden de{" "}
-        <a href="https://scryfall.com" rel="noopener">
-          Scryfall
-        </a>
-        , las recomendaciones de{" "}
-        <a href="https://edhrec.com" rel="noopener">
-          EDHREC
-        </a>{" "}
-        y los combos de{" "}
-        <a href="https://commanderspellbook.com" rel="noopener">
-          Commander Spellbook
-        </a>
-        , sin relación con Doctor Deck.
+        of the Coast LLC.
       </p>
       <FanContentNotice />
 

@@ -164,7 +164,7 @@ export function RoleEditDialog({
           onChange={(e) => setTags(e.target.value)}
         />
         <span className="hint">
-          Separadas por comas. Salen en la lista y al exportar en formato Moxfield.
+          Separadas por comas. Salen en la lista y al exportar como texto con etiquetas.
         </span>
       </div>
     </Dialog>

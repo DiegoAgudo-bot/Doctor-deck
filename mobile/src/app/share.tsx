@@ -54,7 +54,7 @@ export default function ShareScreen() {
       <Empty
         icon="share-outline"
         title="Nada que importar"
-        text="Comparte una lista o el CSV desde ManaBox con Doctor Deck."
+        text="Comparte una lista o el CSV de tu colección con Doctor Deck desde otra app."
       />
     );
   }

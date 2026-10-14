@@ -77,7 +77,7 @@ interface Saved {
 }
 
 const KEY = "deck-doctor:mazo";
-const SOURCE_LABEL: Record<string, string> = { archidekt: "Archidekt", moxfield: "Moxfield" };
+const SOURCE_LABEL: Record<string, string> = { archidekt: "un enlace", moxfield: "un enlace" };
 const EMPTY: Saved = {
   input: "",
   theme: "",
@@ -781,7 +781,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
 
           {(themes.length > 0 || saved.theme !== "") && (
             <div className="field">
-              <span className="label">Tema de EDHREC</span>
+              <span className="label">Tema</span>
               <div className="chips scroll-sm" role="radiogroup" aria-label="Tema">
                 {[
                   { slug: "", name: "General", count: ok.edhrec.totalDecks },
@@ -902,8 +902,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                 {ok.swaps.length > 0 && !analyzing && (
                   <p className="subtle text-[12.5px]">
                     La cifra de cada cambio es la mejora estimada: cuánto más se juega con tu
-                    comandante la carta que entra que la que sale (sinergia e inclusión en EDHREC),
-                    con un extra si cubre el mismo rol o uno que te falta.
+                    comandante la carta que entra que la que sale (sinergia e inclusión en la
+                    comunidad), con un extra si cubre el mismo rol o uno que te falta.
                   </p>
                 )}
                 {analyzing ? (
@@ -1231,7 +1231,7 @@ function EntryForm({
           <b>Aún no tengo tu colección.</b>{" "}
           <span className="muted">
             Puedo analizar el mazo y decirte qué le falta y qué comprar, pero para proponerte
-            cambios con tus cartas sube el CSV de ManaBox.
+            cambios con tus cartas sube el CSV de tu colección.
           </span>
         </Banner>
       )}
@@ -1287,10 +1287,10 @@ function EntryForm({
                   className="input mono"
                   type="url"
                   value={isLink(input) ? input : ""}
-                  placeholder="https://www.moxfield.com/decks/…"
+                  placeholder="https://…/decks/…"
                   onChange={(e) => onInput(e.target.value)}
                 />
-                <span className="hint">Archidekt y Moxfield, mazos públicos o sin listar.</span>
+                <span className="hint">Enlace de un mazo público o sin listar.</span>
               </div>
             )}
             {loggedIn && (
@@ -1339,7 +1339,7 @@ function EntryForm({
           {analyzing && (
             <div className="border-t border-line px-3.5 py-3">
               <Loading>
-                Leyendo la lista y pidiendo recomendaciones a EDHREC…{" "}
+                Leyendo la lista y buscando recomendaciones…{" "}
                 <span className="subtle">
                   Luego lo cruzo con tu colección. Suele tardar unos segundos.
                 </span>
@@ -1353,18 +1353,18 @@ function EntryForm({
           </div>
           <div className="flex flex-col gap-2.5 p-3 text-[13px]">
             <p className="muted">
-              Detecto el comandante, pido a EDHREC lo que juega la gente con él y te propongo
-              cambios 1×1: qué carta sacar y cuál meter.
+              Detecto el comandante, miro lo que juega la comunidad con él y te propongo cambios
+              1×1: qué carta sacar y cuál meter.
             </p>
             <p className="muted">
               Formatos: <span className="mono">1 Sol Ring</span>,{" "}
               <span className="mono">1x Sol Ring (C21) 263</span>, secciones{" "}
               <span className="mono">Commander</span>/<span className="mono">Deck</span> o{" "}
-              <span className="mono">*CMDR*</span>, y exports de Moxfield y Archidekt.
+              <span className="mono">*CMDR*</span>, y enlaces de mazos públicos.
             </p>
             <p className="muted">
               ¿No tienes la lista a mano? <Link href="/decks/new">Créalo desde un comandante</Link>{" "}
-              con el mazo medio de EDHREC.
+              con el mazo medio de la comunidad.
             </p>
           </div>
         </aside>
@@ -1564,7 +1564,7 @@ function DeckHeader({
         <p className="subtle text-[13px]">
           {ok.totalCards} cartas · coste medio {averageCmc(ok.cards).toFixed(2).replace(".", ",")}
           {ok.edhrec.totalDecks !== null && (
-            <> · {ok.edhrec.totalDecks.toLocaleString("es")} mazos en EDHREC</>
+            <> · {ok.edhrec.totalDecks.toLocaleString("es")} mazos analizados</>
           )}
         </p>
         <OwnershipLine ownership={ok.ownership} onClick={onShowMissing} />
@@ -1683,9 +1683,7 @@ function DeckEditor({
           {busy && <span className="subtle text-xs">Actualizando el mazo…</span>}
           {suggestions.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <span className="label">
-                De tu colección, recomendadas por EDHREC para este comandante
-              </span>
+              <span className="label">De tu colección, recomendadas para este comandante</span>
               <div className="chips">
                 {suggestions.map((s) => (
                   <CardHover key={s.card.oracleId} card={s.card}>
@@ -1781,9 +1779,7 @@ function OpeningDeck() {
       </section>
       <Loading>
         Abriendo el mazo y comparándolo con tu colección…{" "}
-        <span className="subtle">
-          Pido las recomendaciones a EDHREC; suele tardar unos segundos.
-        </span>
+        <span className="subtle">Busco las recomendaciones; suele tardar unos segundos.</span>
       </Loading>
       <DiffSkeleton />
     </div>
@@ -1823,7 +1819,7 @@ function NoSwaps({ hasCollection }: { hasCollection: boolean }) {
       <span className="h2">No hay cambios que proponer</span>
       <span className="muted max-w-[420px] text-[13px]">
         {hasCollection
-          ? "Ninguna carta de tu colección mejora el mazo con la configuración actual. Prueba otro tema de EDHREC o la pestaña «Mejorar comprando»."
+          ? "Ninguna carta de tu colección mejora el mazo con la configuración actual. Prueba otro tema o la pestaña «Mejorar comprando»."
           : "Sin tu colección no sé qué cartas tienes. Impórtala, o mira la pestaña «Mejorar comprando»."}
       </span>
       {!hasCollection && (

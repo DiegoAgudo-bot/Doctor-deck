@@ -78,8 +78,8 @@ export function CardPriceDialog({ card, onClose }: { card: CardDTO | null; onClo
               </div>
             )}
             <p className="subtle text-xs">
-              Precio de tendencia de Cardmarket (vía Scryfall) de la impresión más barata. Se guarda
-              cada noche para las cartas que hay en alguna colección o mazo.
+              Precio de referencia del mercado europeo de la impresión más barata. Se guarda cada
+              noche para las cartas que hay en alguna colección o mazo.
             </p>
           </div>
         </div>

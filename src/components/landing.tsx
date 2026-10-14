@@ -75,12 +75,12 @@ const FAQ: [string, ReactNode][] = [
     "No para analizar un mazo: tu colección se queda en este navegador. Con una cuenta guardas tus mazos y tienes la colección en cualquier dispositivo.",
   ],
   [
-    "¿Necesito ManaBox?",
-    "No. ManaBox es la forma rápida de traer tu colección (exportas el CSV y lo subes), pero también puedes añadir las cartas a mano.",
+    "¿Cómo traigo mi colección?",
+    "Sube el CSV que exporta tu app de colección o añade las cartas a mano, con edición, foil, idioma y estado.",
   ],
   [
     "¿De dónde salen las recomendaciones?",
-    "De EDHREC: lo que juega la gente con tu comandante. Las cartas y los precios vienen de Scryfall (Cardmarket) y los combos, de Commander Spellbook.",
+    "De lo que juega la comunidad con tu comandante en miles de mazos. Los precios son los de referencia del mercado europeo.",
   ],
   [
     "¿Qué hacéis con mis datos?",
@@ -102,8 +102,8 @@ export function Landing({ decks = [] }: { decks?: LandingDeck[] }) {
             Mejora tus mazos con las cartas <em>que ya tienes</em>
           </h1>
           <p>
-            Doctor Deck cruza tus mazos con tu colección y con los datos de EDHREC: te dice qué
-            carta sacar y cuál meter, qué te falta y cuánto cuesta, y con quién de la comunidad
+            Doctor Deck cruza tus mazos con tu colección y con lo que juega la comunidad: te dice
+            qué carta sacar y cuál meter, qué te falta y cuánto cuesta, y con quién de la comunidad
             puedes cambiarla.
           </p>
           <div className="hero-cta">
@@ -116,8 +116,7 @@ export function Landing({ decks = [] }: { decks?: LandingDeck[] }) {
             </Link>
           </div>
           <span className="hero-trust">
-            <b>Gratis, sin anuncios y sin cuenta para probar.</b> Cartas de Scryfall ·
-            Recomendaciones de EDHREC · Combos de Commander Spellbook
+            <b>Gratis, sin anuncios y sin cuenta para probar.</b>
           </span>
         </div>
 
@@ -163,7 +162,7 @@ export function Landing({ decks = [] }: { decks?: LandingDeck[] }) {
           probabilidad de tu mano inicial.
         </Feature>
         <Feature icon={<IconCollection size={20} />} title="Tu colección" accent="#4fc16a">
-          Importa ManaBox o añade cartas a mano, con edición, foil, idioma y estado. Su valor real y
+          Importa tu CSV o añade cartas a mano, con edición, foil, idioma y estado. Su valor real y
           el histórico de precios.
         </Feature>
         <Feature icon={<IconSwap size={20} />} title="Intercambios" accent="#e0ae3f">
@@ -215,12 +214,12 @@ export function Landing({ decks = [] }: { decks?: LandingDeck[] }) {
             [
               "1",
               "Tu colección",
-              "Sube el CSV de ManaBox o añade tus cartas. Sin cuenta, se queda en tu navegador.",
+              "Sube el CSV de tu colección o añade tus cartas. Sin cuenta, se queda en tu navegador.",
             ],
             [
               "2",
               "Tu mazo",
-              "Pega la lista o un enlace de Archidekt o Moxfield. Detecto el comandante y leo EDHREC.",
+              "Pega la lista o el enlace del mazo. Detecto el comandante y miro qué juega la comunidad con él.",
             ],
             [
               "3",

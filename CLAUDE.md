@@ -625,6 +625,13 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
 - **Nunca se propone meter** una carta fuera de la identidad de color del comandante.
 - **Mínimos por defecto**: 36 tierras, 10 ramp, 10 robo, 8 removal, 2 wipes.
 - **Idioma**: textos de la UI en español; código e identificadores en inglés.
+- **Sin nombres de otras webs en lo que se ve** (web, app y mensajes de error que llegan al
+  usuario): ni EDHREC, Moxfield, Archidekt, ManaBox, Scryfall, Commander Spellbook ni Cardmarket.
+  Sus datos se usan, pero se habla de «la comunidad», «el mazo medio de la comunidad», «el enlace
+  de un mazo público», «el CSV de tu colección», «precio de referencia» o «Comprar ↗». Sin
+  enlaces de «Ver en…» a esas webs; solo «Comprar» (la tienda) y el aviso legal de Wizards. El
+  código, los comentarios, la CLI y el formato del CSV (columnas `ManaBox ID`, `Scryfall ID`)
+  sí pueden nombrarlas.
 - **Nombre**: **Doctor Deck** (antes "Deck Doctor") en todo lo que se ve. Lo interno conserva
   `deck-doctor` (BD `data/deck-doctor.db`, contenedor, claves de `localStorage`, copias de
   seguridad): cambiarlo no aporta nada y podría perder datos.

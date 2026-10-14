@@ -278,7 +278,7 @@ export function CardsSearchPage() {
             value={q.sort}
             onChange={(e) => set({ sort: e.target.value as CatalogQuery["sort"], dir: null })}
           >
-            <option value="popular">Más jugadas (EDHREC)</option>
+            <option value="popular">Más jugadas</option>
             <option value="price">Precio</option>
             <option value="name">Nombre</option>
             <option value="cmc">Coste</option>
@@ -435,8 +435,8 @@ export function CardDetailPage() {
               </span>
             ))}
             {d.edhrecRank !== null && (
-              <span className="pill subtle" title="Puesto en EDHREC por número de mazos">
-                #{fmt(d.edhrecRank)} en EDHREC
+              <span className="pill subtle" title="Puesto por número de mazos que la juegan">
+                #{fmt(d.edhrecRank)} en popularidad
               </span>
             )}
           </div>
@@ -461,7 +461,7 @@ export function CardDetailPage() {
               target="_blank"
               rel="noreferrer"
             >
-              Ver en Cardmarket
+              Comprar ↗
             </a>
           </div>
 
@@ -572,8 +572,8 @@ export function CardDetailPage() {
             <Loading>Cargando precios…</Loading>
           )}
           <p className="subtle text-xs">
-            Tendencia de Cardmarket (vía Scryfall) de la edición más barata. El histórico se guarda
-            cada noche para las cartas que hay en alguna colección o mazo.
+            Precio de referencia del mercado europeo de la edición más barata. El histórico se
+            guarda cada noche para las cartas que hay en alguna colección o mazo.
           </p>
         </section>
 

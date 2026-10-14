@@ -137,7 +137,11 @@ export function CollectionPage() {
             {loggedIn && (
               <>
                 {" · "}
-                <a href="/api/collection/export" download title="CSV con el formato de ManaBox">
+                <a
+                  href="/api/collection/export"
+                  download
+                  title="Tu colección en CSV, para llevarla a otra app"
+                >
                   Exportar CSV
                 </a>
               </>
@@ -190,7 +194,7 @@ export function CollectionPage() {
                     className="btn btn-primary"
                     onClick={() => setTab("importar")}
                   >
-                    Importar CSV de ManaBox
+                    Importar un CSV
                   </button>
                   <button type="button" className="btn" onClick={() => setTab("anadir")}>
                     Añadir cartas a mano
@@ -198,7 +202,7 @@ export function CollectionPage() {
                 </div>
               }
             >
-              Importa el CSV de ManaBox o añade cartas una a una.
+              Importa el CSV de tu colección o añade cartas una a una.
             </EmptyState>
           </div>
         ) : (

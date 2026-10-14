@@ -85,7 +85,12 @@ export function CommanderStaples({
         setError(null);
       })
       .catch((e: unknown) => {
-        if (!cancelled) setError(e instanceof ApiError ? e.message : "No se pudo consultar EDHREC");
+        if (!cancelled)
+          setError(
+            e instanceof ApiError
+              ? e.message
+              : "No se pudo cargar lo que se juega con este comandante",
+          );
       })
       .finally(() => !cancelled && setLoading(false));
     return () => {
@@ -108,28 +113,17 @@ export function CommanderStaples({
   const short = name.split(",")[0] ?? name;
 
   return (
-    <section className="flex flex-col gap-3" id="edhrec">
+    <section className="flex flex-col gap-3" id="staples">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div className="flex flex-col gap-0.5">
           <h2 className="h2" style={{ fontSize: 18 }}>
             Lo que se juega con {short}
           </h2>
           <span className="subtle text-[13px]">
-            Según EDHREC
-            {data?.totalDecks ? ` · ${fmt(data.totalDecks)} mazos` : ""}. Pulsa una carta para ver
-            su ficha.
+            {data?.totalDecks ? `En ${fmt(data.totalDecks)} mazos de la comunidad. ` : ""}Pulsa una
+            carta para ver su ficha.
           </span>
         </div>
-        {data && (
-          <a
-            className="text-[13px]"
-            href={`https://edhrec.com/commanders/${data.slug}${data.theme ? `/${data.theme}` : ""}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Ver en EDHREC
-          </a>
-        )}
       </div>
 
       {data && data.themes.length > 0 && (
@@ -159,23 +153,15 @@ export function CommanderStaples({
         </div>
       )}
 
-      {error && (
-        <Banner tone="warn">
-          {error} Puedes verlo directamente en{" "}
-          <a href="https://edhrec.com" target="_blank" rel="noreferrer">
-            EDHREC
-          </a>
-          .
-        </Banner>
-      )}
+      {error && <Banner tone="warn">{error}</Banner>}
       {data?.warning && <Banner tone="warn">{data.warning}</Banner>}
-      {loading && !data && !error && <Loading>Consultando EDHREC…</Loading>}
+      {loading && !data && !error && <Loading>Buscando lo que se juega…</Loading>}
 
       {data && (
         <>
           <nav className="staplenav" aria-label="Listas">
             {sections.map((s) => (
-              <a key={s.key} href={`#edhrec-${s.key}`} className="chipbtn">
+              <a key={s.key} href={`#staples-${s.key}`} className="chipbtn">
                 {s.label} <span className="n">{s.cards.length}</span>
               </a>
             ))}
@@ -200,7 +186,7 @@ export function CommanderStaples({
             {sections.map((s) => (
               <div
                 key={s.key}
-                id={`edhrec-${s.key}`}
+                id={`staples-${s.key}`}
                 className="flex flex-col gap-2"
                 style={{ scrollMarginTop: 70 }}
               >

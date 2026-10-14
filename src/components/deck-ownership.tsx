@@ -162,9 +162,7 @@ export function OwnershipPanel({
           }
         >
           <b>No sé qué cartas tienes.</b>{" "}
-          <span className="muted">
-            Importa tu colección de ManaBox para ver qué te falta de verdad.
-          </span>
+          <span className="muted">Importa tu colección para ver qué te falta de verdad.</span>
         </Banner>
       )}
 
@@ -229,7 +227,7 @@ export function OwnershipPanel({
                 Descargar .txt
               </button>
               <button type="button" className="btn btn-primary" onClick={() => void copy()}>
-                {copied ? "¡Copiada!" : "Copiar lista para Cardmarket"}
+                {copied ? "¡Copiada!" : "Copiar lista de compra"}
               </button>
             </div>
           </div>
@@ -274,9 +272,9 @@ export function OwnershipPanel({
                         href={cardmarketUrl(i.card.name)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        aria-label={`Buscar ${i.card.name} en Cardmarket`}
+                        aria-label={`Comprar ${i.card.name}`}
                       >
-                        Cardmarket ↗
+                        Comprar ↗
                       </a>
                     </td>
                   </tr>
@@ -285,8 +283,7 @@ export function OwnershipPanel({
             </table>
           </div>
           <p className="subtle px-3 py-2 text-xs">
-            Precio de tendencia de Cardmarket de la impresión más barata (según Scryfall). En
-            Cardmarket: Wants › Añadir lista › pega la lista.
+            Precio de referencia del mercado europeo de la impresión más barata.
           </p>
         </section>
       )}

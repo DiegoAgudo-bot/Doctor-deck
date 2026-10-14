@@ -23,7 +23,7 @@ export default function Decks() {
       <Empty
         icon="layers-outline"
         title="Aún no tienes mazos"
-        text="Empieza desde un comandante (con el mazo medio de EDHREC o con tus cartas), pega una lista o compártela desde ManaBox."
+        text="Empieza desde un comandante (con el mazo medio de la comunidad o con tus cartas), pega una lista o compártela desde otra app."
         action={<Button label="Nuevo mazo" icon="add" onPress={() => router.push("/deck-new")} />}
       />
     );

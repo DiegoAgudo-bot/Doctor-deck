@@ -4,8 +4,7 @@ import { CardsSearchPage } from "@/components/cards-pages";
 
 export const metadata: Metadata = {
   title: "Buscar cartas · Doctor Deck",
-  description:
-    "Busca cualquier carta de Magic: precio en Cardmarket, ediciones y mazos de Commander.",
+  description: "Busca cualquier carta de Magic: precio, ediciones y mazos de Commander.",
 };
 
 export default function Page() {

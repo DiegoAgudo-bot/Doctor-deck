@@ -206,7 +206,7 @@ export default function Collection() {
           <Empty
             icon="albums-outline"
             title="Tu colección está vacía"
-            text="Comparte tu colección o una lista desde ManaBox con Doctor Deck, o importa el CSV."
+            text="Busca tus cartas y añádelas, importa el CSV de tu colección o compártelo con Doctor Deck desde otra app."
             action={
               <View style={{ gap: 8, alignSelf: "stretch" }}>
                 <Button
@@ -300,7 +300,7 @@ export default function Collection() {
         />
         <T variant="small">
           {by === "copy"
-            ? "Una fila por edición, foil, idioma y estado, como en ManaBox."
+            ? "Una fila por edición, foil, idioma y estado."
             : "Todas las copias de una carta juntas."}
         </T>
       </Sheet>
@@ -372,14 +372,14 @@ export default function Collection() {
         />
         <OptionRow
           label="Importar fichero"
-          detail="El CSV de ManaBox o una lista de texto"
+          detail="El CSV de tu colección o una lista de texto"
           onPress={() => {
             setSheet(null);
             importFile();
           }}
         />
         <T variant="small">
-          Desde ManaBox también puedes compartir la colección o una lista con Doctor Deck (menú
+          Desde otra app también puedes compartir la colección o una lista con Doctor Deck (menú
           compartir de Android).
         </T>
       </Sheet>

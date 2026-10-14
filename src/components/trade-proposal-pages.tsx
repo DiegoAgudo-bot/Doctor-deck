@@ -341,8 +341,8 @@ export function TradeProposalPage() {
           en la de @{partner}). No se puede deshacer.
         </p>
         <p className="subtle text-xs">
-          Si después vuelves a importar un CSV de ManaBox antiguo, las cartas que has dado volverían
-          a aparecer: a partir de ahora, lleva tu colección en Doctor Deck.
+          Si después vuelves a importar un CSV antiguo de tu colección, las cartas que has dado
+          volverían a aparecer: a partir de ahora, lleva tu colección en Doctor Deck.
         </p>
       </Dialog>
     </main>

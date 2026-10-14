@@ -55,7 +55,7 @@ export default function Page() {
         <li>
           <b>App móvil</b>: si activas las notificaciones, un identificador del móvil para mandarlas
           (con el sistema y la versión de la app). Se borra al cerrar sesión en la app o al
-          desinstalarla. Lo que compartes con la app desde ManaBox solo se usa para importarlo.
+          desinstalarla. Lo que compartes con la app desde otras apps solo se usa para importarlo.
         </li>
       </ul>
       <p>Sin cuenta, tu colección y tu mazo se guardan solo en tu navegador, no en el servidor.</p>
@@ -87,8 +87,8 @@ export default function Page() {
           Firebase Cloud Messaging (Google) para entregar las notificaciones de la app.
         </li>
         <li>
-          Para buscar recomendaciones y combos se consulta a EDHREC y a Commander Spellbook con la
-          lista de cartas del mazo, sin ningún dato tuyo.
+          Para buscar recomendaciones y combos se consultan servicios externos de datos de cartas
+          con la lista de cartas del mazo, sin ningún dato tuyo.
         </li>
       </ul>
 

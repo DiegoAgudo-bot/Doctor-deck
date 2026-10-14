@@ -35,7 +35,11 @@ export function parseAverageDeck(body: string, url?: string): AverageDeckOrRedir
   try {
     json = JSON.parse(body);
   } catch {
-    throw new EdhrecError("format", "EDHREC no ha devuelto JSON válido", url);
+    throw new EdhrecError(
+      "format",
+      "El servicio de recomendaciones no ha devuelto JSON válido",
+      url,
+    );
   }
   const redirect = redirectSchema.safeParse(json);
   if (redirect.success) return { kind: "redirect", path: redirect.data.redirect };
@@ -44,7 +48,7 @@ export function parseAverageDeck(body: string, url?: string): AverageDeckOrRedir
   if (!parsed.success) {
     throw new EdhrecError(
       "format",
-      `El mazo medio de EDHREC no tiene la estructura esperada (¿ha cambiado su formato?):\n${z.prettifyError(parsed.error)}`,
+      `El mazo medio no tiene la estructura esperada (¿ha cambiado su formato?):\n${z.prettifyError(parsed.error)}`,
       url,
     );
   }
@@ -59,7 +63,7 @@ export function parseAverageDeck(body: string, url?: string): AverageDeckOrRedir
     }
   }
   if (byName.size === 0) {
-    throw new EdhrecError("format", "El mazo medio de EDHREC está vacío", url);
+    throw new EdhrecError("format", "El mazo medio de este comandante está vacío", url);
   }
   return {
     kind: "page",
