@@ -321,6 +321,19 @@ secundarios de la colección detrás de «Más filtros», comentarios solo en Li
 la cifra de cada cambio explicada, el perfil propio sin los botones de visibilidad (están en Mis
 mazos) y en Intercambios un aviso para hacer públicas las listas en vez de una casilla.
 
+### App móvil como ManaBox (A1–A4)
+
+Revisión de la app tomando ManaBox como referencia (es lo que usan los jugadores y es muy directa):
+pocas pantallas, añadir cartas en un toque y nada que obligue a ir a la web para lo básico. Se
+hizo en una PR, después de comprobar en producción la web y la API que usa la app.
+
+| Fase | Contenido                                                                                                     | Estado |
+| ---- | ------------------------------------------------------------------------------------------------------------- | ------ |
+| A1   | Colección: ordenar y filtrar en hojas, filtros activos como pastillas, «+» flotante                           | ✅     |
+| A2   | Ficha: «Añadir 1» con la última edición/idioma/estado, «Añadir a un mazo», deseos; Buscar con pulsación larga | ✅     |
+| A3   | Mazo: aplicar o descartar cambios (uno o todos), quitar cartas, «En deseos», guardar copia                    | ✅     |
+| A4   | Nuevo mazo nativo desde un comandante (medio de EDHREC, con mis cartas o vacío)                               | ✅     |
+
 Ya hecho antes de este plan (PR #20): mazo de ejemplo, aviso de colección encima del analizador,
 un solo CTA primario en la portada, zonas táctiles y campos de 16 px, contraste y foco.
 

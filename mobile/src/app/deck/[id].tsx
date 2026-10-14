@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, SectionList, Share, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, SectionList, Share, View } from "react-native";
 import type {
   AnalyzeResponse,
   CardDTO,
@@ -13,8 +13,19 @@ import type {
   SwapDTO,
 } from "@/server/dto";
 import { CardThumb, ColorPips, ManaCost } from "~/components/card-bits";
-import { Banner, Button, ErrorView, IconButton, Loading, Segmented, T } from "~/components/ui";
+import { toast } from "~/components/toast";
+import {
+  Banner,
+  Button,
+  Chip,
+  ErrorView,
+  IconButton,
+  Loading,
+  Segmented,
+  T,
+} from "~/components/ui";
 import { api, artUri } from "~/lib/api";
+import { tapFeedback } from "~/lib/feedback";
 import { euros } from "~/lib/format";
 import { colors, radius } from "~/lib/theme";
 
@@ -56,6 +67,8 @@ export default function DeckScreen() {
     queryKey: ["analysis", id, d?.updatedAt],
     enabled: Boolean(d),
     staleTime: 5 * 60_000,
+    // Al aplicar un cambio se vuelve a analizar: mientras, se sigue viendo lo de antes.
+    placeholderData: keepPreviousData,
     queryFn: () =>
       api<AnalyzeResponse>("/api/analyze", {
         body: {
@@ -70,6 +83,8 @@ export default function DeckScreen() {
       }),
   });
 
+  const actions = useDeckActions(d);
+
   if (deck.isPending) return <Loading />;
   if (deck.isError || !d) return <ErrorView error={deck.error} onRetry={() => deck.refetch()} />;
   const a = analysis.data?.status === "ok" ? analysis.data : null;
@@ -81,6 +96,13 @@ export default function DeckScreen() {
           title: d.name,
           headerRight: () => (
             <View style={{ flexDirection: "row" }}>
+              {!d.isMine && (
+                <IconButton
+                  icon="copy-outline"
+                  label="Guardar una copia"
+                  onPress={() => actions.copy.mutate()}
+                />
+              )}
               <IconButton
                 icon="share-social-outline"
                 label="Compartir"
@@ -103,13 +125,108 @@ export default function DeckScreen() {
         tab={tab}
         setTab={setTab}
         loading={analysis.isPending}
+        refreshing={analysis.isPlaceholderData || analysis.isFetching}
         error={analysis.error}
         retry={() => analysis.refetch()}
         needsCommander={analysis.data?.status === "needs_commander"}
+        actions={actions}
       />
     </>
   );
 }
+
+/**
+ * Lo que se puede hacer con un mazo desde la app: aplicar o descartar cambios, quitar cartas,
+ * marcarlo para la lista de deseos (los míos) y guardar una copia (los de otros). Después se
+ * vuelve a pedir el mazo, y con él el análisis.
+ */
+function useDeckActions(d: DeckViewDTO | undefined) {
+  const qc = useQueryClient();
+  const reload = () => {
+    qc.invalidateQueries({ queryKey: ["deck", d?.id] });
+    qc.invalidateQueries({ queryKey: ["decks"] });
+    qc.invalidateQueries({ queryKey: ["collection"] });
+  };
+  const changeCards = (changes: { oracleId: string; delta: number }[]) =>
+    api(`/api/decks/${d!.id}/cards`, { method: "PATCH", body: { changes } });
+
+  const apply = useMutation({
+    mutationFn: (swaps: SwapDTO[]) =>
+      changeCards(
+        swaps.flatMap((s) => [
+          { oracleId: s.out.card.oracleId, delta: -1 },
+          { oracleId: s.in.card.oracleId, delta: 1 },
+        ]),
+      ),
+    onSuccess: (_r, swaps) => {
+      tapFeedback();
+      toast(
+        swaps.length === 1
+          ? `Hecho: sale ${swaps[0]!.out.card.name}, entra ${swaps[0]!.in.card.name}`
+          : `${swaps.length} cambios aplicados`,
+      );
+      reload();
+    },
+    onError: (e) => toast(e.message),
+  });
+  const discard = useMutation({
+    mutationFn: (swap: SwapDTO) =>
+      api("/api/decks", {
+        body: {
+          id: d!.id,
+          name: d!.name,
+          input: d!.input,
+          commanders: d!.commanders,
+          locked: d!.locked,
+          excluded: [...new Set([...d!.excluded, swap.in.card.oracleId])],
+          ...(d!.theme ? { theme: d!.theme } : {}),
+        },
+      }),
+    onSuccess: (_r, swap) => {
+      toast(`No se volverá a proponer ${swap.in.card.name}`);
+      reload();
+    },
+    onError: (e) => toast(e.message),
+  });
+  const remove = useMutation({
+    mutationFn: (card: CardDTO) => changeCards([{ oracleId: card.oracleId, delta: -1 }]),
+    onSuccess: (_r, card) => {
+      tapFeedback();
+      toast(`Quitada ${card.name}`);
+      reload();
+    },
+    onError: (e) => toast(e.message),
+  });
+  const wishlist = useMutation({
+    mutationFn: (inWishlist: boolean) =>
+      api(`/api/decks/${d!.id}`, { method: "PATCH", body: { inWishlist } }),
+    onSuccess: (_r, on) => {
+      toast(on ? "Lo que falta va a tu lista de deseos" : "Fuera de tu lista de deseos");
+      reload();
+    },
+    onError: (e) => toast(e.message),
+  });
+  const copy = useMutation({
+    mutationFn: () =>
+      api<{ id: string }>("/api/decks", {
+        body: {
+          name: d!.name,
+          input: d!.input,
+          commanders: d!.commanders,
+          visibility: "private",
+          ...(d!.theme ? { theme: d!.theme } : {}),
+        },
+      }),
+    onSuccess: (r) => {
+      toast("Copia guardada en tus mazos (privada)");
+      qc.invalidateQueries({ queryKey: ["decks"] });
+      router.replace(`/deck/${r.id}`);
+    },
+    onError: (e) => toast(e.message),
+  });
+  return { apply, discard, remove, wishlist, copy };
+}
+type DeckActions = ReturnType<typeof useDeckActions>;
 
 function DeckBody({
   deck,
@@ -117,19 +234,27 @@ function DeckBody({
   tab,
   setTab,
   loading,
+  refreshing,
   error,
   retry,
   needsCommander,
+  actions,
 }: {
   deck: DeckViewDTO;
   analysis: Analysis | null;
   tab: Tab;
   setTab: (t: Tab) => void;
   loading: boolean;
+  refreshing: boolean;
   error: Error | null;
   retry: () => void;
   needsCommander: boolean;
+  actions: DeckActions;
 }) {
+  const mine = deck.isMine;
+  const busy = actions.apply.isPending || actions.discard.isPending || actions.remove.isPending;
+  // Hasta que llega el análisis nuevo, los cambios que se ven pueden estar ya aplicados.
+  const waiting = busy || refreshing;
   const ownership = useMemo(
     () => new Map((a?.ownership.items ?? []).map((i) => [i.card.oracleId, i])),
     [a],
@@ -194,23 +319,84 @@ function DeckBody({
         <Segmented<Tab>
           options={[
             { key: "list", label: "Lista" },
-            { key: "missing", label: "Me falta" },
-            { key: "changes", label: "Cambios" },
+            {
+              key: "missing",
+              label:
+                a && a.ownership.totals.toBuy > 0
+                  ? `Me falta ${a.ownership.totals.toBuy}`
+                  : "Me falta",
+            },
+            {
+              key: "changes",
+              label: a && a.swaps.length > 0 ? `Cambios ${a.swaps.length}` : "Cambios",
+            },
             { key: "stats", label: "Datos" },
           ]}
           value={tab}
           onChange={setTab}
         />
+        {(refreshing || busy) && a && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <ActivityIndicator size="small" color={colors.accent} />
+            <T variant="small">{busy ? "Guardando…" : "Recalculando…"}</T>
+          </View>
+        )}
+        {tab === "list" && mine && a && (
+          <T variant="small">Mantén pulsada una carta para quitarla del mazo.</T>
+        )}
+        {tab === "changes" && mine && a && a.swaps.length > 1 && (
+          <Button
+            label={`Aplicar los ${a.swaps.length} cambios`}
+            icon="checkmark-done"
+            disabled={waiting}
+            onPress={() =>
+              Alert.alert(
+                `¿Aplicar los ${a.swaps.length} cambios?`,
+                "Se guardan en el mazo. Puedes deshacerlos editando la lista.",
+                [
+                  { text: "Cancelar", style: "cancel" },
+                  { text: "Aplicar", onPress: () => actions.apply.mutate(a.swaps) },
+                ],
+              )
+            }
+          />
+        )}
         {a?.edhrec.warning && <Banner text={a.edhrec.warning} />}
-        {needsCommander && <Banner text="Este mazo no tiene comandante: elígelo en la web." />}
+        {needsCommander && (
+          <>
+            <Banner text="Este mazo no dice cuál es el comandante: elígelo en la web." />
+            <Button
+              label="Elegir comandante"
+              kind="secondary"
+              onPress={() =>
+                router.push(
+                  `/web?path=${encodeURIComponent(`/decks/${deck.id}`)}&title=${encodeURIComponent(deck.name)}`,
+                )
+              }
+            />
+          </>
+        )}
         {tab === "missing" && a && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <T style={{ flex: 1 }}>
               Comprar lo que falta:{" "}
               <T style={{ fontWeight: "700" }}>{euros(a.ownership.totals.cost)}</T>
             </T>
+            {mine && (
+              <Chip
+                label="En deseos"
+                icon={deck.inWishlist ? "heart" : "heart-outline"}
+                active={deck.inWishlist}
+                accessibilityLabel={
+                  deck.inWishlist
+                    ? "Quitar lo que falta de tu lista de deseos"
+                    : "Añadir lo que falta a tu lista de deseos"
+                }
+                onPress={() => actions.wishlist.mutate(!deck.inWishlist)}
+              />
+            )}
             <Button
-              label="Compartir lista"
+              label="Compartir"
               kind="secondary"
               icon="share-outline"
               onPress={() =>
@@ -256,13 +442,27 @@ function DeckBody({
             {tab === "stats" && a && <Stats analysis={a} />}
             {tab === "changes" && a && a.swaps.length === 0 && (
               <T variant="muted" style={{ paddingHorizontal: 16 }}>
-                Con tu colección no hay cambios que lo mejoren ahora mismo.
+                Con tu colección no hay cambios que lo mejoren ahora mismo. Añade cartas a tu
+                colección o mira «Me falta» para ver qué comprar.
               </T>
             )}
           </>
         }
         renderSectionHeader={() => null}
-        renderItem={({ item }) => <SwapRow swap={item} />}
+        renderItem={({ item }) => (
+          <SwapRow
+            swap={item}
+            actions={
+              mine
+                ? {
+                    apply: () => actions.apply.mutate([item]),
+                    discard: () => actions.discard.mutate(item),
+                    disabled: waiting,
+                  }
+                : undefined
+            }
+          />
+        )}
         contentContainerStyle={{ paddingBottom: 40 }}
       />
     );
@@ -287,6 +487,19 @@ function DeckBody({
           dot={ownership.get(item.card.oracleId)?.status}
           right={"price" in item && item.price != null ? euros(item.price as number) : undefined}
           note={"note" in item ? (item.note as string) : undefined}
+          onLongPress={
+            mine && tab === "list" && !a?.commanders.some((c) => c.oracleId === item.card.oracleId)
+              ? () =>
+                  Alert.alert(`¿Quitar ${item.card.name}?`, "Se quita una copia del mazo.", [
+                    { text: "Cancelar", style: "cancel" },
+                    {
+                      text: "Quitar",
+                      style: "destructive",
+                      onPress: () => actions.remove.mutate(item.card),
+                    },
+                  ])
+              : undefined
+          }
         />
       )}
     />
@@ -359,16 +572,19 @@ function CardLine({
   dot,
   right,
   note,
+  onLongPress,
 }: {
   card: CardDTO;
   quantity: number;
   dot?: OwnershipItemDTO["status"] | undefined;
   right?: string | undefined;
   note?: string | undefined;
+  onLongPress?: (() => void) | undefined;
 }) {
   return (
     <Pressable
       onPress={() => router.push(`/card/${card.oracleId}`)}
+      onLongPress={onLongPress}
       style={({ pressed }) => ({
         flexDirection: "row",
         alignItems: "center",
@@ -400,7 +616,13 @@ function CardLine({
   );
 }
 
-function SwapRow({ swap }: { swap: SwapDTO }) {
+function SwapRow({
+  swap,
+  actions,
+}: {
+  swap: SwapDTO;
+  actions?: { apply: () => void; discard: () => void; disabled: boolean } | undefined;
+}) {
   return (
     <View
       style={{
@@ -440,6 +662,24 @@ function SwapRow({ swap }: { swap: SwapDTO }) {
         </Pressable>
       </View>
       <T variant="small">{swap.reason}</T>
+      {actions && (
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <Button
+            label="Descartar"
+            kind="ghost"
+            onPress={actions.discard}
+            disabled={actions.disabled}
+            style={{ flex: 1, minHeight: 40 }}
+          />
+          <Button
+            label="Aplicar"
+            icon="checkmark"
+            onPress={actions.apply}
+            disabled={actions.disabled}
+            style={{ flex: 1, minHeight: 40 }}
+          />
+        </View>
+      )}
     </View>
   );
 }

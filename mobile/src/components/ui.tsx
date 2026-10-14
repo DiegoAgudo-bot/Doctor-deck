@@ -112,28 +112,78 @@ export function IconButton({
   );
 }
 
+/** Botón redondo flotante abajo a la derecha (el «+» de la colección y los mazos, como en ManaBox). */
+export function Fab({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        position: "absolute",
+        right: 16,
+        bottom: 16,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: colors.accent,
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: pressed ? 0.85 : 1,
+        elevation: 4,
+        shadowColor: "#000",
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+      })}
+    >
+      <Ionicons name={icon} size={28} color={colors.onAccent} />
+    </Pressable>
+  );
+}
+
 /** Pastilla seleccionable (filtros, orden) como las de ManaBox. */
 export function Chip({
   label,
   active,
   onPress,
   icon,
+  trailingIcon,
+  accessibilityLabel,
 }: {
   label: string;
   active?: boolean;
   onPress: () => void;
-  icon?: IconName;
+  icon?: IconName | undefined;
+  /** Detrás del texto: `chevron-down` (abre una hoja) o `close` (quita el filtro). */
+  trailingIcon?: IconName | undefined;
+  accessibilityLabel?: string | undefined;
 }) {
+  const fg = active ? colors.onAccent : colors.text2;
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: Boolean(active) }}
+      accessibilityLabel={accessibilityLabel}
       onPress={onPress}
-      style={[
+      hitSlop={{ top: 6, bottom: 6 }}
+      style={({ pressed }) => [
         styles.chip,
         active && { backgroundColor: colors.accent, borderColor: colors.accent },
+        pressed && { opacity: 0.75 },
       ]}
     >
-      {icon && <Ionicons name={icon} size={14} color={active ? colors.onAccent : colors.text2} />}
+      {icon && <Ionicons name={icon} size={14} color={fg} />}
       <Text style={[styles.chipText, active && { color: colors.onAccent }]}>{label}</Text>
+      {trailingIcon && <Ionicons name={trailingIcon} size={14} color={fg} />}
     </Pressable>
   );
 }

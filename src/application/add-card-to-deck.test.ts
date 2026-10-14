@@ -4,7 +4,7 @@ import { PrismaDeckRepository } from "@/adapters/db/deck-repository";
 import { textDeckSource } from "@/adapters/deck-sources/text-deck-source";
 import { fixtureCards, fixturePrintings } from "../../tests/helpers/scryfall-fixtures";
 import { createTestDb, createTestUser } from "../../tests/helpers/test-db";
-import { addCardToDeck } from "./add-card-to-deck";
+import { addCardToDeck, changeDeckCards } from "./add-card-to-deck";
 import { AppError } from "./errors";
 import { saveDeck } from "./save-deck";
 
@@ -63,6 +63,30 @@ describe("addCardToDeck", () => {
     );
     expect(err).toBeInstanceOf(AppError);
     expect((err as AppError).code).toBe("off_color");
+  });
+
+  it("aplica un cambio (quita una y mete otra) y no deja quitar el comandante", async () => {
+    const res = await changeDeckCards(
+      deckId,
+      [
+        { oracleId: await oracleIdOf("Dig Through Time"), delta: -1 },
+        { oracleId: await oracleIdOf("Lantern Flare"), delta: 0 },
+        { oracleId: await oracleIdOf("Island"), delta: -2 },
+      ],
+      deps,
+    );
+    expect(res.cards).toEqual(["Dig Through Time", "Island"]);
+    const saved = await deps.decks.get(deckId);
+    expect(saved?.input).not.toContain("Dig Through Time");
+    expect(saved?.input).toContain("8 Island");
+    expect(saved?.theme).toBe("control");
+    await expect(
+      changeDeckCards(
+        deckId,
+        [{ oracleId: await oracleIdOf("Teferi, Temporal Archmage"), delta: -1 }],
+        deps,
+      ),
+    ).rejects.toMatchObject({ code: "is_commander", status: 409 });
   });
 
   it("un mazo que no es mío no existe", async () => {

@@ -122,6 +122,10 @@ Los tests de repositorios y casos de uso usan una SQLite temporal con las migrac
   `saveDeck`. `CardDTO.canBeCommander` → «Crear mazo con X» (`/decks/new?commander=`) en la ficha
   de la colección; filtro `commander` («Pueden ser comandante») en la colección; enlace «Mazos que
   puedes montar» (`/community?sort=owned`, Comunidad lee `?sort=`).
+  `PATCH /api/decks/{id}/cards` (`{changes: [{oracleId, delta}]}`, `changeDeckCards`): varias
+  cartas a la vez, primero quita y luego añade (`cardChangesProblem`: no tocar el comandante, no
+  quitar lo que no está, identidad y una copia; `decklistWithChanges`). La app lo usa para aplicar
+  cambios sugeridos y quitar cartas.
 - **Cuenta y RGPD** (Fase 20, `application/account.ts`): `GET /api/me/export` (todos mis datos en
   JSON, sin ids internos) y `DELETE /api/me` (`{confirm: email}`; borra en cascada). Páginas
   `/privacy` y `/legal` (titular y contacto de `LEGAL_OWNER`/`LEGAL_EMAIL`), pie `LegalFooter` con el
@@ -554,7 +558,13 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   `expo-router`, solo Android. Pestañas como ManaBox (Colección, Mazos, Buscar, Avisos, Más), ficha
   de carta con añadir copias (edición, foil, idioma, estado), mazo (lista, me falta, cambios,
   datos) y lo demás (intercambios, grupos, préstamos, contador, ajustes) en un WebView con la
-  sesión. Solo importa **tipos** de la web (`@/server/dto`, `@/server/card-dto`); su código usa
+  sesión. Flujo como ManaBox (plan A1–A4): ordenar y filtrar la colección en hojas (`Sheet`), «+»
+  flotante (`Fab`) para añadir cartas y crear mazos, avisos cortos (`toast`) en vez de `Alert`;
+  en la ficha «Añadir 1» con la edición, idioma y estado de la última vez (`useCopyDefaults`) y
+  «Añadir a un mazo»; en Buscar, mantener pulsada una carta añade 1 copia; en un mazo propio,
+  aplicar / descartar cada cambio o todos, quitar cartas (mantener pulsada) y «En deseos»; en
+  los de otros, «Guardar una copia»; nuevo mazo desde un comandante (medio de EDHREC, con mis
+  cartas o vacío) o pegando la lista. Solo importa **tipos** de la web (`@/server/dto`, `@/server/card-dto`); su código usa
   `~/…`. Servidor para la app:
   - Sesión: plugin `expo` de Better Auth (`trustedOrigins: doctordeck://`, cookie en cabecera;
     Google vuelve a `doctordeck://` con la sesión). La app manda sus peticiones con
