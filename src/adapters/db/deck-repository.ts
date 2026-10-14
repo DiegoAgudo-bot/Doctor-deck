@@ -100,6 +100,24 @@ export class PrismaPublicDecks implements PublicDecks {
     );
   }
 
+  /**
+   * Lo que necesita el sitemap: id, fecha y dueño de los mazos públicos, sin cartas (con cartas
+   * eran cientos de miles de filas solo para sacar URLs).
+   */
+  async sitemapEntries(limit: number) {
+    const rows = await this.db.deck.findMany({
+      where: { visibility: "public", user: { username: { not: null } } },
+      orderBy: { updatedAt: "desc" },
+      take: limit,
+      select: { publicId: true, updatedAt: true, user: { select: { username: true } } },
+    });
+    return rows.flatMap((r) =>
+      r.user?.username
+        ? [{ id: r.publicId, updatedAt: r.updatedAt, username: r.user.username }]
+        : [],
+    );
+  }
+
   async likedBy(viewerId: string, deckIds: readonly string[]) {
     const rows = await this.db.deckLike.findMany({
       where: { userId: viewerId, deck: { publicId: { in: [...deckIds] } } },

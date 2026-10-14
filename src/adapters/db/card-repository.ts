@@ -90,6 +90,17 @@ export class PrismaCardRepository implements CardRepository, CardCatalogWriter, 
     });
   }
 
+  /** Las cartas más jugadas (por puesto de popularidad) para el sitemap: solo el id. */
+  async sitemapCards(limit: number): Promise<string[]> {
+    const rows = await this.db.oracleCard.findMany({
+      where: { edhrecRank: { not: null } },
+      orderBy: { edhrecRank: "asc" },
+      take: limit,
+      select: { oracleId: true },
+    });
+    return rows.map((r) => r.oracleId);
+  }
+
   async findCardsByOracleIds(oracleIds: readonly string[]) {
     const rows: OracleCard[] = [];
     for (const ids of chunks([...new Set(oracleIds)])) {
@@ -241,12 +252,12 @@ export class PrismaCardRepository implements CardRepository, CardCatalogWriter, 
   async findMinPrices(oracleIds: readonly string[]) {
     const prices = new Map<string, number>();
     for (const ids of chunks([...new Set(oracleIds)])) {
-      const rows = await this.db.printing.groupBy({
-        by: ["oracleId"],
-        where: { oracleId: { in: ids }, priceEur: { not: null } },
-        _min: { priceEur: true },
+      // Ya calculado al guardar las impresiones (`minPriceEur`): sin agrupar `Printing` cada vez.
+      const rows = await this.db.oracleCard.findMany({
+        where: { oracleId: { in: ids }, minPriceEur: { not: null } },
+        select: { oracleId: true, minPriceEur: true },
       });
-      for (const r of rows) if (r._min.priceEur !== null) prices.set(r.oracleId, r._min.priceEur);
+      for (const r of rows) if (r.minPriceEur !== null) prices.set(r.oracleId, r.minPriceEur);
     }
     return prices;
   }

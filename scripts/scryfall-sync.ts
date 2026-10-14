@@ -14,6 +14,7 @@ import { OTAGS } from "@/domain/roles/otags";
 import { createContainer } from "@/server/container";
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { pruneOldData } from "@/adapters/db/prune";
 
 /** Con --skip-download: el bulk ya descargado, en el formato nuevo (.jsonl.gz) o el antiguo. */
 function existingBulk(dir: string, type: string): string {
@@ -91,6 +92,10 @@ async function main() {
     { all: true },
   );
   console.log(`Bracket e identidad recalculados en ${facts} mazos.`);
+  const pruned = await pruneOldData(c.db);
+  console.log(
+    `Limpieza: ${pruned.cache} entradas de caché, ${pruned.notifications} avisos y ${pruned.prices} precios antiguos.`,
+  );
   await c.db.$disconnect();
 }
 

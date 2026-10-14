@@ -8,6 +8,7 @@ import type { CommunityResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
 import { currentUser } from "@/server/session";
 import { BODY_LIMIT, readJson } from "@/server/body";
+import type { CommunityFilters, PublicDecks } from "@/domain/ports/social";
 
 const schema = z.object({
   filters: z
@@ -38,6 +39,22 @@ const schema = z.object({
  * Mazos públicos de la comunidad con filtros y, para cada uno, cuánto tengo y cuánto cuesta lo que
  * falta (con sesión, con mi colección y mis mazos; sin ella, con la colección del navegador).
  */
+/**
+ * Los mismos mazos públicos, pero `search` pasa por la caché de un minuto (`communityDecks`):
+ * cambiar de página u orden no vuelve a cargar 500 mazos con sus cartas.
+ */
+function cachedSearch(c: ReturnType<typeof getContainer>): PublicDecks {
+  const decks = c.publicDecks;
+  return Object.assign(Object.create(decks) as PublicDecks, {
+    search: async (filters: CommunityFilters, limit: number) =>
+      (
+        await c.communityDecks.get(JSON.stringify([filters, limit]), () =>
+          decks.search(filters, limit),
+        )
+      ).value,
+  });
+}
+
 export async function POST(request: Request) {
   try {
     const user = await currentUser(request);
@@ -57,7 +74,7 @@ export async function POST(request: Request) {
         owned,
         usage,
       },
-      { publicDecks: c.publicDecks, cards: c.cards, follows: c.social, profiles: c.social },
+      { publicDecks: cachedSearch(c), cards: c.cards, follows: c.social, profiles: c.social },
     );
     const decks = items.map((i) => i.deck);
     const [summaries, owners] = await Promise.all([

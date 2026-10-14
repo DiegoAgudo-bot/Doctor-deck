@@ -4,7 +4,7 @@ import { createTestDb, createTestUser } from "../../../tests/helpers/test-db";
 import { nameKey } from "@/domain/cards/names";
 import { PrismaCardRepository } from "./card-repository";
 import { PrismaCollectionRepository } from "./collection-repository";
-import { dataEpoch, type Db } from "./prisma";
+import { dataEpoch, userDataEpoch, type Db } from "./prisma";
 
 let db: Db;
 let cleanup: () => Promise<void>;
@@ -115,12 +115,15 @@ describe("PrismaCollectionRepository", () => {
 });
 
 describe("dataEpoch", () => {
-  it("sube al escribir en la colección y no al leer", async () => {
+  it("sube al escribir en la colección (solo la de ese usuario) y no al leer", async () => {
     const { db: d, cleanup: c } = createTestDb();
     const user = await createTestUser(d, "epoch-user");
-    const before = dataEpoch();
+    const other = await createTestUser(d, "epoch-other");
+    const before = userDataEpoch(user);
+    const otherBefore = userDataEpoch(other);
+    const globalBefore = dataEpoch();
     await d.collectionEntry.findMany();
-    expect(dataEpoch()).toBe(before);
+    expect(userDataEpoch(user)).toBe(before);
     await d.collectionEntry.create({
       data: {
         userId: user,
@@ -131,7 +134,13 @@ describe("dataEpoch", () => {
         raw: "{}",
       },
     });
-    expect(dataEpoch()).toBeGreaterThan(before);
+    expect(userDataEpoch(user)).not.toBe(before);
+    // La escritura dice de quién es: no invalida lo de los demás.
+    expect(userDataEpoch(other)).toBe(otherBefore);
+    expect(dataEpoch()).toBe(globalBefore);
+    // Una escritura sin usuario (por id) invalida lo de todos.
+    await d.collectionEntry.updateMany({ where: { name: "Sol Ring" }, data: { quantity: 2 } });
+    expect(userDataEpoch(other)).not.toBe(otherBefore);
     await c();
   });
 });
