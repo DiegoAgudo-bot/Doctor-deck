@@ -195,47 +195,49 @@ model HttpCache {
 // ---------- Usuarios (tablas de Better Auth; nombres y campos los fija la librería) ----------
 
 model User {
-  id                String             @id
-  name              String
-  email             String             @unique
-  emailVerified     Boolean            @default(false)
-  image             String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  id                 String             @id
+  name               String
+  email              String             @unique
+  emailVerified      Boolean            @default(false)
+  image              String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
   /// Nombre público (perfil /u/{username}). Se genera la primera vez que hace falta.
-  username          String?            @unique
+  username           String?            @unique
   /// Si cualquiera puede ver su colección en su perfil.
-  collectionPublic  Boolean            @default(false)
+  collectionPublic   Boolean            @default(false)
   /// Lista de deseos y "para cambiar" visibles en el perfil y en los cruces de otros.
-  tradesPublic      Boolean            @default(false)
+  tradesPublic       Boolean            @default(false)
   /// Avisar si una carta que me falta baja este % respecto a su máximo de 30 días. null = no avisar.
-  priceAlertPercent Int?               @default(15)
-  prefs             UserPref[]
-  pushDevices       PushDevice[]
-  sessions          Session[]
-  accounts          Account[]
-  collection        CollectionEntry[]
-  decks             Deck[]
-  following         Follow[]           @relation("follower")
-  followers         Follow[]           @relation("followed")
-  notifications     Notification[]     @relation("recipient")
-  sentNotifications Notification[]     @relation("actor")
-  deckLikes         DeckLike[]
-  cardRoles         CardRoleOverride[]
-  wishlist          WishlistItem[]
-  tradeKeeps        TradeKeep[]
-  proposalsSent     TradeProposal[]    @relation("proposalFrom")
-  proposalsReceived TradeProposal[]    @relation("proposalTo")
-  groupsOwned       PlayGroup[]
-  groups            GroupMember[]
-  gamesCreated      Game[]
-  gamesPlayed       GamePlayer[]
-  loansGiven        Loan[]             @relation("lender")
-  loansReceived     Loan[]             @relation("borrower")
-  comments          DeckComment[]
-  blocking          Block[]            @relation("blocker")
-  blockedBy         Block[]            @relation("blocked")
-  reports           CommentReport[]
+  priceAlertPercent  Int?               @default(15)
+  /// Grupos de avisos que no quiere recibir (ni en la web ni push), separados por comas.
+  mutedNotifications String             @default("")
+  prefs              UserPref[]
+  pushDevices        PushDevice[]
+  sessions           Session[]
+  accounts           Account[]
+  collection         CollectionEntry[]
+  decks              Deck[]
+  following          Follow[]           @relation("follower")
+  followers          Follow[]           @relation("followed")
+  notifications      Notification[]     @relation("recipient")
+  sentNotifications  Notification[]     @relation("actor")
+  deckLikes          DeckLike[]
+  cardRoles          CardRoleOverride[]
+  wishlist           WishlistItem[]
+  tradeKeeps         TradeKeep[]
+  proposalsSent      TradeProposal[]    @relation("proposalFrom")
+  proposalsReceived  TradeProposal[]    @relation("proposalTo")
+  groupsOwned        PlayGroup[]
+  groups             GroupMember[]
+  gamesCreated       Game[]
+  gamesPlayed        GamePlayer[]
+  loansGiven         Loan[]             @relation("lender")
+  loansReceived      Loan[]             @relation("borrower")
+  comments           DeckComment[]
+  blocking           Block[]            @relation("blocker")
+  blockedBy          Block[]            @relation("blocked")
+  reports            CommentReport[]
 
   @@map("user")
 }

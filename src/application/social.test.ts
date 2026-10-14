@@ -161,3 +161,25 @@ describe("seguir y notificaciones", () => {
     expect(await social.unreadCount("beto")).toBe(0);
   });
 });
+
+describe("avisos silenciados", () => {
+  it("no guarda (ni manda) los avisos de un grupo silenciado; los demás sí", async () => {
+    await social.setMutedNotifications("carla", ["loans"]);
+    expect(await social.mutedNotifications("carla")).toEqual(["loans"]);
+    const sent: string[] = [];
+    const withPush = new PrismaSocialRepository(db, (items) =>
+      sent.push(...items.map((n) => `${n.userId}:${n.type}`)),
+    );
+    const base = { actorId: "ana", title: "Sol Ring" };
+    await withPush.create([
+      { ...base, userId: "carla", type: "loan_new" },
+      { ...base, userId: "carla", type: "deck_comment" },
+      { ...base, userId: "beto", type: "loan_new" },
+    ]);
+    expect(sent).toEqual(["carla:deck_comment", "beto:loan_new"]);
+    const carla = await social.list("carla", 50);
+    expect(carla.some((n) => n.type === "loan_new")).toBe(false);
+    await social.setMutedNotifications("carla", []);
+    expect(await social.mutedNotifications("carla")).toEqual([]);
+  });
+});

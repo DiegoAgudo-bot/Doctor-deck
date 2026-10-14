@@ -1,4 +1,5 @@
 import type { DeckFacts } from "../deck/facts";
+import type { NotificationGroup } from "../social/notification-prefs";
 import type { SavedDeck, SavedDeckSummary } from "./deck-repository";
 
 /** Lo que se puede enseñar de un usuario a otros. Nunca el email. */
@@ -33,6 +34,9 @@ export interface ProfileRepository {
   /** % de bajada de precio a partir del que avisar (null = no avisar). Ajuste privado. */
   priceAlertPercent(userId: string): Promise<number | null>;
   setPriceAlertPercent(userId: string, percent: number | null): Promise<void>;
+  /** Grupos de avisos que no quiere recibir (`domain/social/notification-prefs.ts`). */
+  mutedNotifications(userId: string): Promise<NotificationGroup[]>;
+  setMutedNotifications(userId: string, groups: readonly NotificationGroup[]): Promise<void>;
   /** Usuarios con avisos de precio activados. */
   priceAlertUsers(): Promise<{ id: string; percent: number }[]>;
   /** Por nombre o usuario (o, sin texto, los que más mazos públicos tienen). Solo con username. */

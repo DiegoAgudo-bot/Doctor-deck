@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ChangePassword, OpenSessions } from "./account-security";
 import { DeleteAccountDialog } from "./delete-account-dialog";
+import {
+  NOTIFICATION_GROUP_KEYS,
+  type NotificationGroup,
+} from "@/domain/social/notification-prefs";
 import { USERNAME_HELP } from "@/domain/social/username";
 import type { MyProfileDTO } from "@/server/dto";
 import type { MemberDTO } from "@/server/social-dto";
@@ -40,6 +45,7 @@ function AccountSection({ google, mail }: { google: boolean; mail: boolean }) {
   if (!session) return null;
   const verified = session.user.emailVerified;
   const hasGoogle = providers?.includes("google") ?? false;
+  const hasPassword = providers?.includes("credential") ?? false;
   return (
     <section className="panel">
       <div className="panel-h">
@@ -106,10 +112,32 @@ function AccountSection({ google, mail }: { google: boolean; mail: boolean }) {
             )}
           </div>
         )}
+        {hasPassword && <ChangePassword />}
+        <OpenSessions />
       </div>
     </section>
   );
 }
+
+/** Qué avisos puedo silenciar (`NOTIFICATION_GROUPS`), con lo que ve el usuario. */
+const GROUP_LABELS: Record<NotificationGroup, { label: string; hint: string }> = {
+  follows: {
+    label: "Gente que sigo",
+    hint: "Mazos nuevos y cartas caras que añaden a su colección.",
+  },
+  prices: { label: "Bajadas de precio", hint: "De cartas que te faltan para tus mazos." },
+  trades: { label: "Cruces de intercambio", hint: "Alguien tiene algo de tu lista de deseos." },
+  proposals: {
+    label: "Propuestas de intercambio",
+    hint: "Te mandan una, la contraproponen, la aceptan…",
+  },
+  groups: {
+    label: "Grupos y partidas",
+    hint: "Alguien entra en tu grupo o te apunta a una partida.",
+  },
+  comments: { label: "Comentarios en tus mazos", hint: "" },
+  loans: { label: "Préstamos", hint: "Alguien te presta una carta." },
+};
 
 /** /settings: nombre de usuario, privacidad de la colección, avisos de precio y salir. */
 export function SettingsPage({ google, mail }: { google: boolean; mail: boolean }) {
@@ -135,6 +163,7 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
     collectionPublic?: boolean;
     tradesPublic?: boolean;
     priceAlertPercent?: number | null;
+    mutedNotifications?: NotificationGroup[];
   }) {
     setBusy(true);
     setMessage(null);
@@ -270,9 +299,32 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
 
       <section className="panel">
         <div className="panel-h">
-          <span className="h2">Avisos de precio</span>
+          <span className="h2">Avisos</span>
         </div>
         <div className="flex flex-col gap-3 p-3.5">
+          <span className="hint">Los que desmarques no te llegarán ni a la web ni al móvil.</span>
+          {NOTIFICATION_GROUP_KEYS.map((g) => (
+            <label key={g} className="check">
+              <input
+                type="checkbox"
+                checked={!me.mutedNotifications.includes(g)}
+                disabled={busy}
+                onChange={(e) => {
+                  const mutedNotifications = e.target.checked
+                    ? me.mutedNotifications.filter((x) => x !== g)
+                    : [...me.mutedNotifications, g];
+                  setMe({ ...me, mutedNotifications });
+                  void save({ mutedNotifications });
+                }}
+              />
+              <span>
+                {GROUP_LABELS[g].label}
+                {GROUP_LABELS[g].hint && (
+                  <span className="subtle block text-xs">{GROUP_LABELS[g].hint}</span>
+                )}
+              </span>
+            </label>
+          ))}
           <div className="field">
             <label className="label" htmlFor="price-alert">
               Avisarme si algo que me falta baja de precio

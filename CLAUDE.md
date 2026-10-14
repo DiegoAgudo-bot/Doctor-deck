@@ -145,6 +145,13 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   JSON, sin ids internos) y `DELETE /api/me` (`{confirm: email}`; borra en cascada). Páginas
   `/privacy` y `/legal` (titular y contacto de `LEGAL_OWNER`/`LEGAL_EMAIL`), pie `LegalFooter` con el
   aviso de la Fan Content Policy, sección "Tus datos" en `/settings`.
+- **Ajustes de cuenta** (F3, `/settings`): «Cambiar la contraseña» (`authClient.changePassword`
+  con `revokeOtherSessions`, solo si la cuenta tiene contraseña), «Sesiones abiertas»
+  (`listSessions`, cerrar una o las demás; `account-security.tsx`) y avisos por grupo
+  (`User.mutedNotifications`, `domain/social/notification-prefs.ts`: `NOTIFICATION_GROUPS` →
+  `follows`, `prices`, `trades`, `proposals`, `groups`, `comments`, `loans`). `PrismaSocialRepository.create`
+  descarta los silenciados antes de guardar, así que tampoco hay push. `PATCH /api/me/profile`
+  acepta `{mutedNotifications}`.
 - **Compartir y SEO** (Fase 20, `server/share.ts`, `server/og.tsx`): `generateMetadata` y
   `opengraph-image` en `/decks/[id]` (solo públicos u ocultos; los ocultos con `noindex`) y
   `/u/[username]`: imagen 1200×630 con el arte del comandante (`art_crop` de la caché de imágenes),

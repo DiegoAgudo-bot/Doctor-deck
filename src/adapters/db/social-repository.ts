@@ -6,6 +6,12 @@ import type {
   ProfileRepository,
   PublicProfile,
 } from "@/domain/ports/social";
+import {
+  formatMutedGroups,
+  isMuted,
+  parseMutedGroups,
+  type NotificationGroup,
+} from "@/domain/social/notification-prefs";
 import { Prisma } from "@/generated/prisma/client";
 import type { Db } from "./prisma";
 
@@ -109,6 +115,21 @@ export class PrismaSocialRepository
     await this.db.user.update({ where: { id: userId }, data: { priceAlertPercent: percent } });
   }
 
+  async mutedNotifications(userId: string) {
+    const row = await this.db.user.findUnique({
+      where: { id: userId },
+      select: { mutedNotifications: true },
+    });
+    return parseMutedGroups(row?.mutedNotifications ?? "");
+  }
+
+  async setMutedNotifications(userId: string, groups: readonly NotificationGroup[]) {
+    await this.db.user.update({
+      where: { id: userId },
+      data: { mutedNotifications: formatMutedGroups(groups) },
+    });
+  }
+
   async priceAlertUsers() {
     const rows = await this.db.user.findMany({
       where: { priceAlertPercent: { not: null } },
@@ -184,7 +205,18 @@ export class PrismaSocialRepository
 
   // ---------- notificaciones ----------
 
-  async create(items: readonly NewNotification[]) {
+  /** Guarda los avisos (sin los de grupos que cada destinatario ha silenciado) y manda el push. */
+  async create(all: readonly NewNotification[]) {
+    if (all.length === 0) return;
+    const users = await this.db.user.findMany({
+      where: {
+        id: { in: [...new Set(all.map((n) => n.userId))] },
+        mutedNotifications: { not: "" },
+      },
+      select: { id: true, mutedNotifications: true },
+    });
+    const muted = new Map(users.map((u) => [u.id, parseMutedGroups(u.mutedNotifications)]));
+    const items = all.filter((n) => !isMuted(n.type, muted.get(n.userId) ?? []));
     if (items.length === 0) return;
     await this.db.notification.createMany({
       data: items.map((n) => ({
