@@ -9,7 +9,7 @@ export function redirectSystemPath({ path }: { path: string; initial: boolean })
     if (path.includes("dataUrl=")) return "/";
     if (path.startsWith("https://")) {
       const url = new URL(path);
-      return appRoute(url.pathname + url.search);
+      return appRoute(url.pathname + url.search + url.hash) ?? "/";
     }
     if (path.startsWith("doctordeck://")) return "/";
     return path;

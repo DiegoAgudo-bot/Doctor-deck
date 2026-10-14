@@ -444,8 +444,8 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
 - **Seguridad** (revisión de octubre de 2026):
   - Redirecciones: todo `?next=` pasa por `internalPath` (`domain/security/internal-path.ts`), que
     rechaza `//`, `\`, tabuladores y saltos de línea. El puente de la app (`GET /api/app/web`)
-    solo pone la sesión si llega la cabecera `X-DoctorDeck-App: 1`, que manda el WebView; en él
-    solo se navega por nuestra web y lo demás se abre en el navegador.
+    solo pone la sesión si llega la cabecera `X-DoctorDeck-App: 1`, que manda el WebView de la
+    app 1.0.0 (desde la 1.1.0 la app no tiene WebView).
   - Administrar (`isAdmin`) exige que el email de `ADMIN_EMAILS` esté **verificado**. Borrar la
     cuenta (`DELETE /api/me`) pide la contraseña o, con solo Google, una sesión de menos de 15 min
     (`confirmIdentity` en `server/session.ts`).
@@ -576,21 +576,28 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
 - **App móvil** (Fase 22, `mobile/`, ver `mobile/README.md`): Expo + React Native con
   `expo-router`, solo Android. Pestañas como ManaBox (Colección, Mazos, Buscar, Avisos, Más), ficha
   de carta con añadir copias (edición, foil, idioma, estado), mazo (lista, me falta, cambios,
-  datos) y lo demás (intercambios, grupos, préstamos, contador, ajustes) en un WebView con la
-  sesión. Flujo como ManaBox (plan A1–A4): ordenar y filtrar la colección en hojas (`Sheet`), «+»
+  datos) y todo lo demás **en pantallas nativas, sin WebView** (contador de vidas con registrar
+  partida, grupos e invitaciones, partidas, intercambios con calculadora y propuestas, préstamos,
+  comunidad, actividad, perfiles, comentarios de mazos y ajustes con exportar datos y borrar la
+  cuenta; `appRoute` en `mobile/src/lib/paths.ts` lleva cada ruta de la web a su pantalla y lo
+  que no tiene —privacidad, legal— se abre en el navegador del sistema). Flujo como ManaBox (plan A1–A4): ordenar y filtrar la colección en hojas (`Sheet`), «+»
   flotante (`Fab`) para añadir cartas y crear mazos, avisos cortos (`toast`) en vez de `Alert`;
   en la ficha «Añadir 1» con la edición, idioma y estado de la última vez (`useCopyDefaults`) y
   «Añadir a un mazo»; en Buscar, mantener pulsada una carta añade 1 copia; en un mazo propio,
   aplicar / descartar cada cambio o todos, quitar cartas (mantener pulsada) y «En deseos»; en
   los de otros, «Guardar una copia»; nuevo mazo desde un comandante (medio de EDHREC, con mis
-  cartas o vacío) o pegando la lista. Solo importa **tipos** de la web (`@/server/dto`, `@/server/card-dto`); su código usa
-  `~/…`. Servidor para la app:
+  cartas o vacío) o pegando la lista. De la web importa **tipos** (`@/server/dto`,
+  `@/server/card-dto`, `@/server/social-dto`) y, como código, solo lo puro de `src/domain`
+  (`@/domain/play/life`, `@/domain/trades/proposal`; `mobile/metro.config.js` añade
+  `../src/domain` a `watchFolders`, así que el dominio no puede importar nada de fuera); su
+  código usa `~/…`. Servidor para la app:
   - Sesión: plugin `expo` de Better Auth (`trustedOrigins: doctordeck://`, cookie en cabecera;
     Google vuelve a `doctordeck://` con la sesión). La app manda sus peticiones con
-    `credentials: "omit"` (si no, el almacén de cookies de Android pisa la cabecera → 401). WebView:
+    `credentials: "omit"` (si no, el almacén de cookies de Android pisa la cabecera → 401).
+    **Heredado** (solo para la app 1.0.0, que abría partes en un WebView; la 1.1.0 ya no lo usa):
     `POST /api/app/web` (con sesión) da un código de un solo uso (60 s, en memoria,
     `server/app-handoff.ts`) y `GET /api/app/web?code=…&next=/ruta` le pone la cookie de sesión al
-    WebView y redirige (solo rutas propias).
+    WebView y redirige (solo rutas propias). Se puede borrar cuando `MOBILE_MIN_VERSION` ≥ 1.1.0.
   - Compartir desde ManaBox: `POST /api/import/shared` (`{text, save}`; `importShared` en
     `application/shared-import.ts`): CSV (`looksLikeCsv`) o lista `1 Carta (SET) 123 *F*`
     (`(SET) número` → impresión con `findPrintingsBySetNumbers`), primero sin guardar (vista previa

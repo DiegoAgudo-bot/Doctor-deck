@@ -27,8 +27,20 @@ App nativa (Expo + React Native, `expo-router`) que usa la misma API JSON que la
   Colección › + › Importar fichero.
 - **Avisos** y **notificaciones push** (si el servidor tiene `FCM_SERVICE_ACCOUNT` y la build lleva
   `google-services.json`). Tocar una abre su pantalla.
-- **Más**: contador de vidas, grupos, intercambios, préstamos, comunidad, actividad y ajustes se
-  abren de la web dentro de la app, con la sesión (`/api/app/web`).
+- **Más** (todo en pantallas nativas, sin WebView):
+  - **Contador de vidas** a pantalla completa (2–6 jugadores, daño de comandante, veneno, turnos,
+    revancha; no deja que se apague la pantalla) y **registrar la partida**.
+  - **Grupos**: crear, entrar con el enlace de invitación (también abre la app desde
+    `doctordeck.app/groups/join/…`), clasificación y partidas, miembros, mazos del grupo, «¿quién
+    tiene…?» y «te lo pueden dejar».
+  - **Intercambios**: cruces, propuestas (calculadora cuadrada por valor, borradores,
+    contrapropuestas, aceptar/rechazar), lista de deseos (a mano y por mazos) y «para cambiar».
+  - **Préstamos**, **comunidad** (mazos públicos con cuánto tienes de cada uno, «me gusta» y buscar
+    gente), **actividad**, **perfiles** (seguir, bloquear, sus mazos y su colección pública) y
+    **comentarios** de los mazos (escribir, borrar, denunciar, cerrarlos).
+  - **Ajustes**: perfil público, privacidad, avisos de precio, vincular Google, bloqueados,
+    descargar tus datos o la colección (se comparten como fichero) y borrar la cuenta.
+  - Lo que no tiene pantalla (privacidad, aviso legal) se abre en el navegador del sistema.
 - Si la versión es menor que `MOBILE_MIN_VERSION` del servidor (`GET /api/app`), pide actualizar.
 
 Pendiente (v2): escáner de cartas con la cámara (el endpoint `POST /api/collection/cards` con
@@ -47,8 +59,11 @@ npx expo run:android     # con un móvil o emulador conectado
 
 Contra otro servidor: `EXPO_PUBLIC_API_URL=http://192.168.1.10:3000 npx expo run:android`.
 
-La app importa **solo tipos** de la web (`@/server/dto`); el código de la app usa `~/…` (`src/`).
-Las rutas están en `src/app/` (cada fichero es una pantalla).
+La app importa **tipos** de la web (`@/server/dto`, `@/server/social-dto`…) y, como código, solo
+lo **puro** de `../src/domain` (sin dependencias: p. ej. `@/domain/play/life` para el contador o
+`@/domain/trades/proposal` para el balance de un intercambio); `metro.config.js` deja a Metro
+verlo. El código de la app usa `~/…` (`src/`). Las rutas están en `src/app/` (cada fichero es una
+pantalla).
 
 ## Compilar e instalar
 

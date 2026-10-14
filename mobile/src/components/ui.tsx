@@ -23,15 +23,23 @@ export function T({
   style,
   numberOfLines,
   onPress,
+  selectable,
 }: {
   children: ReactNode;
   variant?: "title" | "h2" | "body" | "small" | "muted" | "mono" | "label";
   style?: StyleProp<TextStyle>;
   numberOfLines?: number;
-  onPress?: () => void;
+  onPress?: (() => void) | undefined;
+  /** Se puede seleccionar y copiar (enlaces de invitación…). */
+  selectable?: boolean;
 }) {
   return (
-    <Text style={[styles[variant], style]} numberOfLines={numberOfLines} onPress={onPress}>
+    <Text
+      style={[styles[variant], style]}
+      numberOfLines={numberOfLines}
+      onPress={onPress}
+      selectable={selectable}
+    >
       {children}
     </Text>
   );

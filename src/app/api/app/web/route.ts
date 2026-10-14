@@ -15,8 +15,9 @@ const safePath = (next: string | null) => internalPath(next) ?? "/";
 const APP_BRIDGE_HEADER = "x-doctordeck-app";
 
 /**
- * Puente de la app móvil a la web (las páginas que la app no tiene en nativo: intercambios,
- * grupos…). 1) La app, con su sesión en la cabecera, pide aquí un código de un solo uso (60 s).
+ * Puente de la app móvil a la web, **heredado**: solo lo usa la app 1.0.0, que abría intercambios,
+ * grupos… en un WebView (desde la 1.1.0 todo es nativo). Borrarlo cuando `MOBILE_MIN_VERSION`
+ * sea ≥ 1.1.0. 1) La app, con su sesión en la cabecera, pide aquí un código de un solo uso (60 s).
  * 2) Su WebView abre `GET ?code=…&next=/ruta`, que le pone la cookie de sesión y redirige. Así no
  * hace falta mandar la cookie en las cabeceras del WebView (Android no siempre las respeta). El
  * paso 2 exige `APP_BRIDGE_HEADER`.

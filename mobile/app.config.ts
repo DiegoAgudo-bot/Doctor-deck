@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import type { ExpoConfig } from "expo/config";
 
 /** Versión de la app: súbela en cada publicación (el servidor puede exigir una mínima). */
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 /** Para Google Play: entero que sube con cada build que se sube a la tienda. */
 const VERSION_CODE = Number(process.env.ANDROID_VERSION_CODE ?? 1);
 
@@ -23,7 +23,8 @@ const config: ExpoConfig = {
     versionCode: VERSION_CODE,
     adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#131313" },
     ...(googleServices ? { googleServicesFile: googleServices } : {}),
-    // Los enlaces https://doctordeck.app/decks/… abren la app si está instalada.
+    // Los enlaces https://doctordeck.app/decks/… (y cartas, invitaciones, perfiles y propuestas)
+    // abren la app si está instalada.
     intentFilters: [
       {
         action: "VIEW",
@@ -31,6 +32,9 @@ const config: ExpoConfig = {
         data: [
           { scheme: "https", host: "doctordeck.app", pathPrefix: "/decks/" },
           { scheme: "https", host: "doctordeck.app", pathPrefix: "/cards/" },
+          { scheme: "https", host: "doctordeck.app", pathPrefix: "/groups/join/" },
+          { scheme: "https", host: "doctordeck.app", pathPrefix: "/u/" },
+          { scheme: "https", host: "doctordeck.app", pathPrefix: "/trades/proposals/" },
         ],
         category: ["BROWSABLE", "DEFAULT"],
       },

@@ -12,11 +12,25 @@ name: App móvil
 on:
   pull_request:
     paths:
-      ["mobile/**", "src/server/dto.ts", "src/server/card-dto.ts", ".github/workflows/mobile.yml"]
+      [
+        "mobile/**",
+        "src/server/dto.ts",
+        "src/server/card-dto.ts",
+        "src/server/social-dto.ts",
+        "src/domain/**",
+        ".github/workflows/mobile.yml",
+      ]
   push:
     branches: [main]
     paths:
-      ["mobile/**", "src/server/dto.ts", "src/server/card-dto.ts", ".github/workflows/mobile.yml"]
+      [
+        "mobile/**",
+        "src/server/dto.ts",
+        "src/server/card-dto.ts",
+        "src/server/social-dto.ts",
+        "src/domain/**",
+        ".github/workflows/mobile.yml",
+      ]
   workflow_dispatch:
 
 permissions:
@@ -39,7 +53,8 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             mobile/package-lock.json
-      # La app usa los tipos de la API de la web (src/server/dto.ts), que importan los de la web.
+      # La app usa los tipos de la API de la web (src/server/dto.ts), que importan los de la web,
+      # y empaqueta código puro del dominio (src/domain: contador de vidas, balance de intercambios).
       - run: npm ci
       - run: npm ci
         working-directory: mobile

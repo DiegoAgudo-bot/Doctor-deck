@@ -45,7 +45,7 @@ export default function Login() {
     if (e) {
       setError(
         e.code === "ACCOUNT_NOT_LINKED" || e.message?.includes("account_not_linked")
-          ? "Ya tienes cuenta con ese email: entra con tu contraseña y vincula Google desde Ajustes en la web."
+          ? "Ya tienes cuenta con ese email: entra con tu contraseña y vincula Google desde Más › Ajustes."
           : (e.message ?? "No se ha podido entrar con Google."),
       );
     }

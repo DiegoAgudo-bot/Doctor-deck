@@ -8,6 +8,7 @@ import type { CardDetailDTO } from "@/server/card-dto";
 import type { CollectionLineDTO, PrintingDTO } from "@/server/dto";
 import { AddToDeckSheet } from "~/components/add-to-deck";
 import { CardThumb, FoilMark, ManaCost } from "~/components/card-bits";
+import { LendSheet } from "~/components/lend";
 import { Sheet } from "~/components/sheet";
 import { Stepper } from "~/components/stepper";
 import { toast } from "~/components/toast";
@@ -36,7 +37,7 @@ export default function CardScreen() {
     queryFn: () =>
       api<CollectionLineDTO[]>(`/api/collection/lines?oracleId=${encodeURIComponent(oracleId)}`),
   });
-  const [sheet, setSheet] = useState<"add" | "deck" | null>(null);
+  const [sheet, setSheet] = useState<"add" | "deck" | "lend" | null>(null);
   // La edición que se ve y que añade «Añadir 1»: la elegida en «Opciones» o la de mi copia.
   const [shown, setShown] = useState<PrintingDTO | null>(null);
   const [defaults, setDefaults] = useCopyDefaults();
@@ -184,6 +185,14 @@ export default function CardScreen() {
             busy={wish.isPending}
             onPress={() => wish.mutate(d.mine?.wished ? 0 : 1)}
           />
+          {d.mine && d.mine.free > 0 && (
+            <Button
+              label="Prestar"
+              icon="hand-left-outline"
+              kind="secondary"
+              onPress={() => setSheet("lend")}
+            />
+          )}
           {d.commander && (
             <Button
               label="Crear un mazo con ella de comandante"
@@ -254,6 +263,7 @@ export default function CardScreen() {
           }}
         />
       </Sheet>
+      <LendSheet card={d.card} open={sheet === "lend"} onClose={() => setSheet(null)} />
       <AddToDeckSheet
         card={d.card}
         canBeCommander={d.commander}
