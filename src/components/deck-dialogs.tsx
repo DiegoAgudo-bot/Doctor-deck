@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { exportDeck, type ExportableDeck, type ExportFormat } from "@/domain/deck/export";
 import type { DeckVisibility } from "@/domain/deck/visibility";
+import type { DeckVersionDTO } from "@/server/dto";
+import { api, ApiError } from "./api-client";
 import { VisibilityPicker } from "./deck-visibility";
-import { Dialog } from "./ui";
+import { Banner, Dialog, Loading } from "./ui";
 
 /** Tras crear la cuenta o entrar: de vuelta al mazo (sigue en el navegador) y a guardarlo. */
 const AFTER_ACCOUNT = encodeURIComponent("/analyze?analyze=1&save=1");
@@ -298,6 +300,8 @@ export function DeckSettingsDialog({
   onDuplicate,
   onReplaceList,
   onDelete,
+  deckId,
+  onRestored,
 }: {
   open: boolean;
   onClose: () => void;
@@ -309,6 +313,9 @@ export function DeckSettingsDialog({
   onDuplicate: () => void;
   onReplaceList: () => void;
   onDelete: () => void;
+  /** Para el historial de versiones. */
+  deckId: string;
+  onRestored: () => void;
 }) {
   const [draft, setDraft] = useState(name);
   const [confirming, setConfirming] = useState(false);
@@ -377,6 +384,8 @@ export function DeckSettingsDialog({
           </span>
         </div>
 
+        <DeckHistory deckId={deckId} open={open} onRestored={onRestored} />
+
         <div className="field border-t border-line pt-3">
           {confirming ? (
             <div className="flex flex-col gap-2">
@@ -404,5 +413,114 @@ export function DeckSettingsDialog({
         </div>
       </div>
     </Dialog>
+  );
+}
+
+const fmtWhen = (iso: string) =>
+  new Date(iso).toLocaleString("es", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+/** "Sol Ring, Island ×2 y 3 más". */
+const cardsLine = (rows: { name: string; copies: number }[]) => {
+  const shown = rows.slice(0, 3).map((r) => (r.copies > 1 ? `${r.name} ×${r.copies}` : r.name));
+  return rows.length > 3 ? `${shown.join(", ")} y ${rows.length - 3} más` : shown.join(", ");
+};
+
+/**
+ * Historial del mazo: las versiones anteriores de la lista, con lo que cambió después de cada una,
+ * y «Restaurar» (la de ahora pasa a su vez al historial, así que se puede deshacer).
+ */
+function DeckHistory({
+  deckId,
+  open,
+  onRestored,
+}: {
+  deckId: string;
+  open: boolean;
+  onRestored: () => void;
+}) {
+  const [shown, setShown] = useState(false);
+  const [versions, setVersions] = useState<DeckVersionDTO[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- al cerrar, se vuelve a pedir al abrir
+      setShown(false);
+      setVersions(null);
+    }
+  }, [open]);
+
+  async function load() {
+    setShown(true);
+    setError(null);
+    try {
+      setVersions(await api<DeckVersionDTO[]>(`/api/decks/${encodeURIComponent(deckId)}/versions`));
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "No se pudo cargar el historial");
+    }
+  }
+
+  async function restore(v: DeckVersionDTO) {
+    setRestoring(v.id);
+    setError(null);
+    try {
+      await api(`/api/decks/${encodeURIComponent(deckId)}/versions/${v.id}`, { method: "POST" });
+      onRestored();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "No se pudo restaurar");
+      setRestoring(null);
+    }
+  }
+
+  return (
+    <div className="field">
+      <span className="label">Historial</span>
+      {!shown ? (
+        <button type="button" className="btn self-start" onClick={() => void load()}>
+          Ver versiones anteriores
+        </button>
+      ) : versions === null && !error ? (
+        <Loading>Cargando el historial…</Loading>
+      ) : versions?.length === 0 ? (
+        <span className="hint">
+          Aún no hay versiones anteriores: se guarda una cada vez que cambia la lista.
+        </span>
+      ) : (
+        <ul className="flex flex-col gap-2" aria-label="Versiones anteriores">
+          {(versions ?? []).map((v) => (
+            <li key={v.id} className="flex items-start gap-2 text-[13px]">
+              <span className="flex min-w-0 flex-1 flex-col">
+                <b>
+                  {fmtWhen(v.createdAt)} · {v.cardCount} cartas
+                </b>
+                {v.added.length + v.removed.length > 0 && (
+                  <span className="subtle text-xs">
+                    Después
+                    {v.removed.length > 0 && <> salieron {cardsLine(v.removed)}</>}
+                    {v.removed.length > 0 && v.added.length > 0 && " y"}
+                    {v.added.length > 0 && <> entraron {cardsLine(v.added)}</>}
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                className="btn btn-sm"
+                disabled={restoring !== null}
+                onClick={() => void restore(v)}
+              >
+                {restoring === v.id ? "Restaurando…" : "Restaurar"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {error && <Banner tone="out">{error}</Banner>}
+    </div>
   );
 }

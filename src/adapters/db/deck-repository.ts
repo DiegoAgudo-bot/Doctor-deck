@@ -16,6 +16,7 @@ import type {
 import { withLoans } from "@/domain/collection/loans";
 import type { CardUsage } from "@/domain/suggestions/engine";
 import type { Db } from "./prisma";
+import { MAX_DECK_VERSIONS, VERSION_COALESCE_MS, type VersionCard } from "@/domain/deck/versions";
 
 const parseIds = (json: string): string[] => {
   try {
@@ -245,6 +246,7 @@ export class PrismaDeckRepository implements DeckRepository {
           select: { id: true },
         });
         if (!own) throw new DeckNotFoundError();
+        await keepVersion(tx, own.id, data.input);
         await tx.deckCard.deleteMany({ where: { deckId: own.id } });
         await tx.deck.update({
           where: { id: own.id },
@@ -257,6 +259,38 @@ export class PrismaDeckRepository implements DeckRepository {
       });
       return created.publicId;
     });
+  }
+
+  async versions(id: string) {
+    const deck = await this.db.deck.findFirst({
+      where: { publicId: id, userId: this.userId },
+      select: {
+        cards: { select: { oracleId: true, quantity: true, isCommander: true } },
+        versions: { orderBy: { createdAt: "desc" }, take: MAX_DECK_VERSIONS },
+      },
+    });
+    if (!deck) return null;
+    return {
+      current: deck.cards.map((c): VersionCard => [c.oracleId, c.quantity, c.isCommander]),
+      versions: deck.versions.map((v) => ({
+        id: v.publicId,
+        createdAt: v.createdAt,
+        cards: parseVersionCards(v.cards),
+      })),
+    };
+  }
+
+  async version(id: string, versionId: string) {
+    const v = await this.db.deckVersion.findFirst({
+      where: { publicId: versionId, deck: { publicId: id, userId: this.userId } },
+    });
+    if (!v) return null;
+    return {
+      input: v.input,
+      commanders: parseVersionCards(v.cards)
+        .filter(([, , commander]) => commander)
+        .map(([oracleId]) => oracleId),
+    };
   }
 
   async setVisibility(id: string, visibility: DeckVisibility): Promise<boolean> {
@@ -350,4 +384,55 @@ export class PrismaDeckRepository implements DeckRepository {
       })),
     );
   }
+}
+
+type Tx = Parameters<Parameters<Db["$transaction"]>[0]>[0];
+
+const parseVersionCards = (json: string): VersionCard[] => {
+  try {
+    const rows = JSON.parse(json) as unknown;
+    return Array.isArray(rows)
+      ? rows.flatMap((r) =>
+          Array.isArray(r) && typeof r[0] === "string" && typeof r[1] === "number"
+            ? [[r[0], r[1], r[2] === true] as VersionCard]
+            : [],
+        )
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Antes de cambiar la lista de un mazo, guarda la de ahora como versión (si cambia de verdad y la
+ * última versión no es de hace menos de `VERSION_COALESCE_MS`: los cambios seguidos cuentan como
+ * uno) y deja solo las `MAX_DECK_VERSIONS` más nuevas.
+ */
+async function keepVersion(tx: Tx, deckId: number, nextInput: string) {
+  const deck = await tx.deck.findUnique({
+    where: { id: deckId },
+    select: {
+      input: true,
+      cards: { select: { oracleId: true, quantity: true, isCommander: true } },
+      versions: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
+    },
+  });
+  if (!deck || deck.input === nextInput || deck.cards.length === 0) return;
+  const last = deck.versions[0]?.createdAt;
+  if (last && Date.now() - last.getTime() < VERSION_COALESCE_MS) return;
+  await tx.deckVersion.create({
+    data: {
+      deckId,
+      input: deck.input,
+      cards: JSON.stringify(deck.cards.map((c) => [c.oracleId, c.quantity, c.isCommander])),
+    },
+  });
+  const old = await tx.deckVersion.findMany({
+    where: { deckId },
+    orderBy: { createdAt: "desc" },
+    skip: MAX_DECK_VERSIONS,
+    select: { id: true },
+  });
+  if (old.length > 0)
+    await tx.deckVersion.deleteMany({ where: { id: { in: old.map((o) => o.id) } } });
 }

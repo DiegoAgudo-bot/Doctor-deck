@@ -1,5 +1,5 @@
 import { parseDecklist } from "@/domain/deck/decklist";
-import { parseManaboxCsv } from "@/domain/collection/manabox";
+import { looksLikeCollectionCsv, parseManaboxCsv } from "@/domain/collection/manabox";
 import type { CardRepository } from "@/domain/ports/card-repository";
 import type { CollectionRepository } from "@/domain/ports/collection-repository";
 import { addToCollection, type AddCardInput, type AddCardsResult } from "./collection-cards";
@@ -24,10 +24,7 @@ export interface SharedImport extends AddCardsResult {
 }
 
 /** CSV con cabecera de ManaBox (o de cualquier export con "Name" y "Quantity"). */
-export const looksLikeCsv = (text: string) => {
-  const first = text.trimStart().split(/\r?\n/, 1)[0] ?? "";
-  return /(^|,)"?Name"?(,|$)/.test(first) && /(^|,)"?Quantity"?(,|$)/.test(first);
-};
+export const looksLikeCsv = looksLikeCollectionCsv;
 
 /** Las entradas a añadir a partir del texto compartido, sin tocar la colección. */
 async function sharedInputs(

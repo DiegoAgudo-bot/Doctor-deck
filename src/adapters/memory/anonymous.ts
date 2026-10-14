@@ -97,4 +97,6 @@ export const noSavedDecks: DeckRepository = {
   setInWishlist: async () => false,
   wishlistDeckCards: async () => new Map(),
   usage: async () => new Map(),
+  versions: async () => null,
+  version: async () => null,
 };

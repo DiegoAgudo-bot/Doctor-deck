@@ -131,7 +131,10 @@ export function CsvImport({
           </div>
           <div className="flex flex-col gap-3 p-3.5">
             <ol className="muted m-0 flex list-decimal flex-col gap-0.5 pl-[18px] text-[13px]">
-              <li>Exporta tu colección en CSV desde tu app de colección.</li>
+              <li>
+                Exporta tu colección en CSV desde tu app o web de colección (vale el de las más
+                usadas: reconozco sus columnas de nombre, cantidad, edición, foil, idioma y estado).
+              </li>
               <li>Sube el archivo aquí o arrástralo encima.</li>
               <li>Las cartas que hayas añadido a mano se conservan.</li>
             </ol>

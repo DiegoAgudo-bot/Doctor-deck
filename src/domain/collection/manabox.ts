@@ -32,62 +32,106 @@ export interface ParsedCollection {
 
 export class ManaboxFormatError extends Error {}
 
-const COL = {
-  name: "Name",
-  setCode: "Set code",
-  collectorNumber: "Collector number",
-  foil: "Foil",
-  quantity: "Quantity",
-  scryfallId: "Scryfall ID",
-  language: "Language",
-  condition: "Condition",
+/**
+ * Nombres de columna que se aceptan para cada dato (sin distinguir mayúsculas). Además del CSV de
+ * ManaBox, los de las apps y webs de colección más usadas: Moxfield ("Count", "Edition" con el
+ * código), Archidekt ("Edition Code", "Finish"), Deckbox ("Card Number", "Edition" con el nombre),
+ * Dragon Shield ("Card Name", "Set Code", "Printing"), TCGplayer ("Set Code", "Printing")…
+ */
+const ALIASES = {
+  name: ["name", "card name", "card", "cardname"],
+  quantity: ["quantity", "count", "qty", "amount", "quantityx"],
+  setCode: ["set code", "edition code", "setcode", "set_code", "edition", "set"],
+  collectorNumber: ["collector number", "card number", "collector_number", "number", "cn"],
+  scryfallId: ["scryfall id", "scryfall_id", "scryfallid"],
+  foil: ["foil", "printing", "finish", "foiling"],
+  language: ["language", "lang"],
+  condition: ["condition"],
 } as const;
+type Field = keyof typeof ALIASES;
 
-const REQUIRED = [COL.name, COL.quantity] as const;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Un código de edición (`cmm`, `PLST`, `30a`…), no su nombre ("Commander Masters"). */
+const SET_CODE_RE = /^[a-z0-9]{2,6}$/i;
 
 const blankToNull = (v: string | undefined) => {
   const t = v?.trim() ?? "";
   return t === "" ? null : t;
 };
 
-/** Parsea el CSV exportado por ManaBox. Las filas inválidas se devuelven en `errors`. */
+/** "foil", "Foil", "etched", "true", "yes" → foil; "normal", "nonfoil", "false", "" → no. */
+const isFoil = (v: string) => {
+  const t = v.trim().toLowerCase();
+  return t !== "" && !["normal", "nonfoil", "non-foil", "false", "no", "0", "regular"].includes(t);
+};
+
+/** Para cada dato, la columna del CSV que lo trae (la primera que coincida). */
+function columns(header: readonly string[]): Partial<Record<Field, string>> {
+  const byLower = new Map(header.map((h) => [h.trim().toLowerCase(), h] as const));
+  const out: Partial<Record<Field, string>> = {};
+  for (const field of Object.keys(ALIASES) as Field[]) {
+    const found = ALIASES[field].map((a) => byLower.get(a)).find((h) => h !== undefined);
+    if (found) out[field] = found;
+  }
+  return out;
+}
+
+/** Algunas apps ponen `sep=,` en la primera línea (para Excel). */
+const withoutSepLine = (text: string) => text.replace(/^\uFEFF?sep=.\r?\n/i, "");
+
+/** ¿Tiene cabecera de colección? (nombre y cantidad, con cualquiera de sus nombres). */
+export function looksLikeCollectionCsv(text: string): boolean {
+  const first = withoutSepLine(text.trimStart()).split(/\r?\n/, 1)[0] ?? "";
+  const header = first.split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+  const cols = columns(header);
+  return cols.name !== undefined && cols.quantity !== undefined;
+}
+
+/**
+ * Parsea el CSV de una colección: el de ManaBox o el de otras apps (ver `ALIASES`). Las filas
+ * inválidas se devuelven en `errors`.
+ */
 export function parseManaboxCsv(text: string): ParsedCollection {
-  const { header, records } = csvToRecords(text);
-  const missing = REQUIRED.filter((c) => !header.includes(c));
+  const { header, records } = csvToRecords(withoutSepLine(text));
+  const col = columns(header);
+  const missing = [col.name ? null : "Name", col.quantity ? null : "Quantity"].filter(Boolean);
   if (missing.length > 0) {
     throw new ManaboxFormatError(
       `El CSV no tiene el formato de colección que espero: faltan las columnas ${missing.join(", ")}`,
     );
   }
+  const get = (raw: Record<string, string>, field: Field) => {
+    const h = col[field];
+    return h === undefined ? undefined : raw[h];
+  };
 
   const rows: CollectionRow[] = [];
   const errors: CollectionRowError[] = [];
 
   records.forEach((raw, idx) => {
     const line = idx + 2;
-    const name = blankToNull(raw[COL.name]);
-    const quantity = Number(raw[COL.quantity]);
+    const name = blankToNull(get(raw, "name"));
+    const quantity = Number((get(raw, "quantity") ?? "").trim().replace(/x$/i, ""));
     if (!name) {
       errors.push({ line, reason: "Fila sin nombre de carta", raw });
       return;
     }
     if (!Number.isInteger(quantity) || quantity <= 0) {
-      errors.push({ line, reason: `Cantidad inválida: "${raw[COL.quantity] ?? ""}"`, raw });
+      errors.push({ line, reason: `Cantidad inválida: "${get(raw, "quantity") ?? ""}"`, raw });
       return;
     }
-    const scryfallId = blankToNull(raw[COL.scryfallId]);
-    const foil = (raw[COL.foil] ?? "").trim().toLowerCase();
+    const scryfallId = blankToNull(get(raw, "scryfallId"));
+    const setCode = blankToNull(get(raw, "setCode"));
     rows.push({
       line,
       name,
-      setCode: blankToNull(raw[COL.setCode])?.toLowerCase() ?? null,
-      collectorNumber: blankToNull(raw[COL.collectorNumber]),
+      setCode: setCode && SET_CODE_RE.test(setCode) ? setCode.toLowerCase() : null,
+      collectorNumber: blankToNull(get(raw, "collectorNumber")),
       scryfallId: scryfallId && UUID_RE.test(scryfallId) ? scryfallId.toLowerCase() : null,
       quantity,
-      foil: foil !== "" && foil !== "normal",
-      language: normalizeLanguage(raw[COL.language]),
-      condition: normalizeCondition(raw[COL.condition]),
+      foil: isFoil(get(raw, "foil") ?? ""),
+      language: normalizeLanguage(get(raw, "language")),
+      condition: normalizeCondition(get(raw, "condition")),
       raw,
     });
   });
