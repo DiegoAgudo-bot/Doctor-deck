@@ -1,0 +1,216 @@
+/* 7 · Vitral: el más atrevido; cabeceras de panel teñidas, botón principal verde y cifras de color. */
+/* Base común de los temas coloridos: fondo azul noche (el del icono) y un color de la gema por
+   sección. Mazos = azul, Colección = verde, Cartas = oro, Comunidad/Actividad = coral,
+   Jugar/Grupos = violeta, Intercambios/Préstamos = crema. */
+:root {
+  --gem-g: #4fc16a;
+  --gem-w: #f1dfa8;
+  --gem-u: #6cb0ff;
+  --gem-b: #b3a6e8;
+  --gem-r: #f06a5f;
+  --gem-o: #e9c46a;
+  --gem: linear-gradient(
+    90deg,
+    var(--gem-g) 0 20%,
+    var(--gem-w) 20% 40%,
+    var(--gem-u) 40% 60%,
+    var(--gem-b) 60% 80%,
+    var(--gem-r) 80%
+  );
+  --color-bg: #0e131b;
+  --color-panel: #131a24;
+  --color-raised: #1a2230;
+  --color-hover: #212b3b;
+  --color-line: #232d3c;
+  --color-line-strong: #2f3b4e;
+  --color-text: #e6e9ee;
+  --color-text-2: #a3acba;
+  --color-text-3: #7f8a9b;
+  --color-link: #6cb0ff;
+  --color-accent: #6cb0ff;
+  --color-on-accent: #06182e;
+  --color-inuse: #b3a6e8;
+}
+:root[data-theme="light"] {
+  --gem-g: #1f8a3c;
+  --gem-w: #a57a12;
+  --gem-u: #0b63c9;
+  --gem-b: #6a4fc4;
+  --gem-r: #c9392e;
+  --gem-o: #b07d08;
+  --color-bg: #f2f5f9;
+  --color-panel: #ffffff;
+  --color-raised: #f6f8fb;
+  --color-hover: #eaeff5;
+  --color-line: #dde3eb;
+  --color-line-strong: #c9d2de;
+  --color-text: #141a22;
+  --color-text-2: #4b5563;
+  --color-text-3: #6b7482;
+  --color-link: #0b63c9;
+  --color-accent: #0b63c9;
+  --color-on-accent: #ffffff;
+  --color-inuse: #6a4fc4;
+}
+/* Dentro de la capa de componentes para poder con sus !important. */
+@layer components {
+  .tabs > :not(.is-active) {
+    color: color-mix(in oklab, var(--sec) 70%, var(--color-text-2)) !important;
+  }
+  .side .nav svg {
+    box-sizing: content-box;
+    padding: 4px;
+    border-radius: 6px;
+    background: color-mix(in oklab, var(--sec, var(--color-text-3)) 22%, transparent);
+  }
+  /* Color de cada sección en la barra superior y el lateral. */
+  a[href^="/decks"],
+  a[href="/decks/new"] {
+    --sec: var(--gem-u);
+  }
+  a[href^="/collection"] {
+    --sec: var(--gem-g);
+  }
+  a[href^="/cards"] {
+    --sec: var(--gem-o);
+  }
+  a[href^="/community"],
+  a[href^="/feed"] {
+    --sec: var(--gem-r);
+  }
+  a[href^="/play"],
+  a[href^="/groups"] {
+    --sec: var(--gem-b);
+  }
+  a[href^="/trades"],
+  a[href^="/loans"] {
+    --sec: var(--gem-w);
+  }
+  .side .nav svg,
+  .topnav a svg,
+  .morenav .nav svg {
+    color: var(--sec, var(--color-text-3));
+  }
+  .topnav a::after {
+    background: var(--sec, var(--color-accent));
+  }
+  .topnav a.is-active {
+    color: var(--sec, var(--color-text)) !important;
+  }
+  .side .nav.is-active {
+    background: color-mix(in oklab, var(--sec, var(--color-accent)) 14%, transparent);
+    box-shadow: inset 3px 0 0 var(--sec, var(--color-accent));
+  }
+  .deckrow.is-active {
+    background: color-mix(in oklab, var(--gem-u) 14%, transparent);
+    box-shadow: inset 3px 0 0 var(--gem-u);
+  }
+  /* Franja de la gema bajo la barra superior. */
+  .topbar::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 3px;
+    background: var(--gem);
+  }
+  /* Pestañas del mazo: cada una con su color. */
+  .tabs > :nth-child(5n + 1) {
+    --sec: var(--gem-u);
+  }
+  .tabs > :nth-child(5n + 2) {
+    --sec: var(--gem-g);
+  }
+  .tabs > :nth-child(5n + 3) {
+    --sec: var(--gem-o);
+  }
+  .tabs > :nth-child(5n + 4) {
+    --sec: var(--gem-r);
+  }
+  .tabs > :nth-child(5n + 5) {
+    --sec: var(--gem-b);
+  }
+  .tabs > *::after {
+    background: var(--sec);
+  }
+  .tabs > .is-active {
+    color: var(--sec) !important;
+  }
+  /* Filtros activos y avatar. */
+  .chipbtn.is-on,
+  .btn-group .btn.is-on {
+    border-color: var(--color-accent);
+    color: var(--color-accent) !important;
+    background: color-mix(in oklab, var(--color-accent) 14%, transparent);
+  }
+  .avatar {
+    background: conic-gradient(
+      var(--gem-g),
+      var(--gem-w),
+      var(--gem-u),
+      var(--gem-b),
+      var(--gem-r),
+      var(--gem-g)
+    );
+    color: #10141a !important;
+  }
+  .topbar {
+    background: linear-gradient(90deg, #17325a, #2b1f4d 55%, #47202a);
+  }
+  :root[data-theme="light"] .topbar {
+    background: linear-gradient(90deg, #e6eefb, #efe9fb 60%, #fbeceb);
+  }
+  .side {
+    background: color-mix(in oklab, var(--gem-u) 6%, var(--color-panel));
+  }
+  .panel:nth-of-type(5n + 1) > .panel-h {
+    background: color-mix(in oklab, var(--gem-u) 24%, transparent);
+  }
+  .panel:nth-of-type(5n + 2) > .panel-h {
+    background: color-mix(in oklab, var(--gem-g) 24%, transparent);
+  }
+  .panel:nth-of-type(5n + 3) > .panel-h {
+    background: color-mix(in oklab, var(--gem-r) 24%, transparent);
+  }
+  .panel:nth-of-type(5n + 4) > .panel-h {
+    background: color-mix(in oklab, var(--gem-b) 26%, transparent);
+  }
+  .panel:nth-of-type(5n + 5) > .panel-h {
+    background: color-mix(in oklab, var(--gem-o) 24%, transparent);
+  }
+  .panel.grid > :nth-child(1) .num,
+  .panel.grid > :nth-child(1) .mono {
+    color: var(--gem-g);
+  }
+  .panel.grid > :nth-child(2) .num,
+  .panel.grid > :nth-child(2) .mono {
+    color: var(--gem-u);
+  }
+  .panel.grid > :nth-child(3) .num,
+  .panel.grid > :nth-child(3) .mono {
+    color: var(--gem-w);
+  }
+  .panel.grid > :nth-child(1) {
+    background: color-mix(in oklab, var(--gem-g) 20%, transparent);
+  }
+  .panel.grid > :nth-child(2) {
+    background: color-mix(in oklab, var(--gem-u) 20%, transparent);
+  }
+  .panel.grid > :nth-child(3) {
+    background: color-mix(in oklab, var(--gem-w) 20%, transparent);
+  }
+  .btn-primary {
+    background: var(--gem-g);
+    color: #06200e !important;
+  }
+  :root[data-theme="light"] .btn-primary {
+    color: #fff !important;
+  }
+  .h1 {
+    background: linear-gradient(90deg, var(--gem-u), var(--gem-b) 60%, var(--gem-r));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}

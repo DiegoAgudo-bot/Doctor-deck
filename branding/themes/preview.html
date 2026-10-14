@@ -12,7 +12,7 @@
         font:
           14px/1.4 system-ui,
           sans-serif;
-        width: 1600px;
+        width: 2000px;
       }
       h1 {
         font-size: 24px;
@@ -34,7 +34,7 @@
       }
       .shots {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 10px;
       }
       .shots img {
@@ -45,36 +45,33 @@
     </style>
   </head>
   <body>
-    <h1>Doctor Deck — propuestas de tema (inicio y mazo en oscuro, mazo en claro)</h1>
+    <h1>
+      Doctor Deck — propuestas de tema coloridas (inicio, mazo y colección en oscuro; inicio en
+      claro)
+    </h1>
     <div id="list"></div>
     <script>
       const themes = [
-        ["0-actual", "Actual", "Gris neutro con acento azul. Como está ahora, para comparar."],
         [
-          "1-medianoche",
-          "1 · Medianoche",
-          "El azul noche del fondo del icono en toda la web y el azul de la gema como acento. El cambio más continuista.",
+          "5-gema",
+          "5 · Gema por secciones",
+          "Cada parte de la web con un color de la gema: Mazos azul, Colección verde, Cartas oro, Comunidad coral, Jugar violeta, Intercambios crema. Iconos del lateral en pastillas de color, pestañas de colores y franja de cinco colores arriba.",
         ],
         [
-          "2-pergamino",
-          "2 · Pergamino",
-          "Negro cálido y el crema/oro de la gema como acento: botones dorados, aire de carta antigua. El más distinto.",
+          "6-aurora",
+          "6 · Aurora",
+          "Los colores por sección más luces suaves azul, violeta y verde en el fondo, resumen de la portada con degradados de color y botón principal azul→violeta.",
         ],
         [
-          "3-amatista",
-          "3 · Amatista",
-          "Fondo con un punto morado y acento lavanda, de la cara violeta de la gema. Moderno y con personalidad.",
-        ],
-        [
-          "4-pentacromo",
-          "4 · Pentacromo",
-          "Base neutra y la gema entera como firma: franja de cinco colores bajo la barra superior, en la pestaña activa y en el mazo seleccionado.",
+          "7-vitral",
+          "7 · Vitral",
+          "El más atrevido: barra superior en degradado azul-violeta-granate, cabeceras de panel teñidas, títulos con degradado, pastillas de color en el lateral y botón principal verde.",
         ],
       ];
       document.getElementById("list").innerHTML = themes
         .map(
           ([s, n, d]) =>
-            `<div class="row"><b>${n}</b><p>${d}</p><div class="shots">${["inicio-dark", "mazo-dark", "mazo-light"].map((v) => `<img src="shots/${s}-${v}.png">`).join("")}</div></div>`,
+            `<div class="row"><b>${n}</b><p>${d}</p><div class="shots">${["inicio-dark", "mazo-dark", "coleccion-dark", "inicio-light"].map((v) => `<img src="shots/${s}-${v}.png">`).join("")}</div></div>`,
         )
         .join("");
     </script>
