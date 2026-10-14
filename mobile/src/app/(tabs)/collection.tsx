@@ -261,7 +261,11 @@ export default function Collection() {
             />
           }
           renderItem={({ item }) =>
-            grid ? <GridTile item={item} width={tile} /> : <Row item={item} />
+            grid ? (
+              <GridTile item={item} width={tile} perCopy={sort === "precio"} />
+            ) : (
+              <Row item={item} perCopy={sort === "precio"} />
+            )
           }
           ListFooterComponent={list.isFetchingNextPage ? <Loading /> : null}
         />
@@ -412,7 +416,17 @@ const variantLine = (c: CollectionCardDTO) => {
     .join(" · ");
 };
 
-function Row({ item }: { item: CollectionCardDTO }) {
+/**
+ * Lo que se enseña de precio: ordenando por precio, lo que vale cada copia («c/u», que es lo que
+ * ordena el servidor); si no, lo que valen todas.
+ */
+function priceText(item: CollectionCardDTO, perCopy: boolean) {
+  if (!perCopy || item.quantity <= 1) return euros(item.value ?? item.price);
+  const unit = item.value !== null ? item.value / item.quantity : item.price;
+  return `${euros(unit)} c/u`;
+}
+
+function Row({ item, perCopy }: { item: CollectionCardDTO; perCopy: boolean }) {
   return (
     <Pressable
       onPress={() => open(item)}
@@ -445,13 +459,21 @@ function Row({ item }: { item: CollectionCardDTO }) {
       </View>
       <View style={{ alignItems: "flex-end", gap: 2 }}>
         <T style={{ fontWeight: "700" }}>×{item.quantity}</T>
-        <T variant="mono">{euros(item.value)}</T>
+        <T variant="mono">{priceText(item, perCopy)}</T>
       </View>
     </Pressable>
   );
 }
 
-function GridTile({ item, width }: { item: CollectionCardDTO; width: number }) {
+function GridTile({
+  item,
+  width,
+  perCopy,
+}: {
+  item: CollectionCardDTO;
+  width: number;
+  perCopy: boolean;
+}) {
   return (
     <Pressable onPress={() => open(item)} style={{ width, gap: 4 }}>
       <View>
@@ -477,7 +499,7 @@ function GridTile({ item, width }: { item: CollectionCardDTO; width: number }) {
         </View>
       </View>
       <T variant="mono" style={{ textAlign: "center" }}>
-        {euros(item.value)}
+        {priceText(item, perCopy)}
       </T>
     </Pressable>
   );

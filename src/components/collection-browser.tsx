@@ -8,6 +8,7 @@ import {
   type CollectionFilters,
   type CollectionSort,
   type SortDir,
+  unitPrice,
 } from "@/domain/collection/browse";
 import { ROLES, type Role } from "@/domain/roles/types";
 import { formatEuros } from "@/domain/suggestions/format";
@@ -160,6 +161,12 @@ const valueTitle = (c: CollectionCardDTO) =>
   `${c.quantity} ${c.quantity === 1 ? "copia" : "copias"}: lo que valen según su edición y si son foil${
     c.price !== null ? ` (la más barata, ${formatEuros(c.price)} c/u)` : ""
   }. Clic para ver el histórico de precio.`;
+
+/** Ordenando por precio, lo que vale cada copia («c/u»); si no, lo que valen todas. */
+const priceLabel = (c: CollectionCardDTO, sort: Sort) =>
+  sort === "precio" && c.quantity > 1
+    ? `${formatEuros(unitPrice(c) ?? 0)} c/u`
+    : formatEuros(c.value ?? c.price ?? 0);
 
 /** Idiomas de las copias que no son en inglés ("ES ×2"); en inglés no se marca nada. */
 function LanguagePills({ card }: { card: CollectionCardDTO }) {
@@ -637,7 +644,7 @@ export function CollectionBrowser({
                     title={valueTitle(c)}
                     onClick={() => setPriceCard(c.card)}
                   >
-                    {formatEuros(c.value ?? c.price ?? 0)}
+                    {priceLabel(c, f.sort)}
                   </button>
                 )}
               </figcaption>
@@ -710,7 +717,7 @@ export function CollectionBrowser({
                         title={valueTitle(c)}
                         onClick={() => setPriceCard(c.card)}
                       >
-                        {formatEuros(c.value ?? c.price ?? 0)}
+                        {priceLabel(c, f.sort)}
                       </button>
                     ) : (
                       "—"

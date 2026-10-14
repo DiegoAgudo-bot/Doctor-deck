@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Role } from "../roles/types";
-import { browseCollection, colorMatch, type BrowsableCard } from "./browse";
+import { browseCollection, colorMatch, unitPrice, type BrowsableCard } from "./browse";
 
 const card = (
   name: string,
@@ -120,6 +120,19 @@ describe("valor de las copias", () => {
     expect(page.items.map((c) => c.card.name)).toEqual(["Foil cara", "Barata pero muchas"]);
     expect(page.total.value).toBe(40);
     expect(browseCollection(cards, {}, "precio", 0, 10).items[0]?.card.name).toBe("Foil cara");
+  });
+});
+
+describe("precio por copia", () => {
+  it("ordena por lo que vale mi copia (su edición), no por la impresión más barata", () => {
+    const cards = [
+      card("Edición antigua", { price: 0.1, quantity: 1, value: 15 }),
+      card("Normal", { price: 2, quantity: 1 }),
+      card("Tres baratas", { price: 1, quantity: 3, value: 3 }),
+    ];
+    const asc = browseCollection(cards, {}, "precio", 0, 10, "asc").items.map((c) => c.card.name);
+    expect(asc).toEqual(["Tres baratas", "Normal", "Edición antigua"]);
+    expect(unitPrice(cards[2]!)).toBe(1);
   });
 });
 
