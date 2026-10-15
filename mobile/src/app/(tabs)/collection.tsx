@@ -264,9 +264,9 @@ export default function Collection() {
           }
           renderItem={({ item }) =>
             grid ? (
-              <GridTile item={item} width={tile} perCopy={sort === "precio"} />
+              <GridTile item={item} width={tile} />
             ) : (
-              <Row item={item} perCopy={sort === "precio"} />
+              <Row item={item} />
             )
           }
           ListFooterComponent={list.isFetchingNextPage ? <Loading /> : null}
@@ -427,16 +427,14 @@ const variantLine = (c: CollectionCardDTO) => {
 };
 
 /**
- * Lo que se enseña de precio: ordenando por precio, lo que vale cada copia («c/u», que es lo que
- * ordena el servidor); si no, lo que valen todas.
+ * El precio que se enseña es siempre el de una copia, aunque tenga varias: lo que vale de verdad
+ * la carta (el total de la colección sale arriba).
  */
-function priceText(item: CollectionCardDTO, perCopy: boolean) {
-  if (!perCopy || item.quantity <= 1) return euros(item.value ?? item.price);
-  const unit = item.value !== null ? item.value / item.quantity : item.price;
-  return `${euros(unit)} c/u`;
+function priceText(item: CollectionCardDTO) {
+  return euros(item.value !== null ? item.value / item.quantity : item.price);
 }
 
-function Row({ item, perCopy }: { item: CollectionCardDTO; perCopy: boolean }) {
+function Row({ item }: { item: CollectionCardDTO }) {
   return (
     <Pressable
       onPress={() => open(item)}
@@ -469,7 +467,7 @@ function Row({ item, perCopy }: { item: CollectionCardDTO; perCopy: boolean }) {
       </View>
       <View style={{ alignItems: "flex-end", gap: 2 }}>
         <T style={{ fontWeight: "700" }}>×{item.quantity}</T>
-        <T variant="mono">{priceText(item, perCopy)}</T>
+        <T variant="mono">{priceText(item)}</T>
       </View>
     </Pressable>
   );
@@ -478,11 +476,9 @@ function Row({ item, perCopy }: { item: CollectionCardDTO; perCopy: boolean }) {
 function GridTile({
   item,
   width,
-  perCopy,
 }: {
   item: CollectionCardDTO;
   width: number;
-  perCopy: boolean;
 }) {
   return (
     <Pressable onPress={() => open(item)} style={{ width, gap: 4 }}>
@@ -509,7 +505,7 @@ function GridTile({
         </View>
       </View>
       <T variant="mono" style={{ textAlign: "center" }}>
-        {priceText(item, perCopy)}
+        {priceText(item)}
       </T>
     </Pressable>
   );
