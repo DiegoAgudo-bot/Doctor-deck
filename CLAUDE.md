@@ -621,7 +621,8 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   abierta, `lib/life-store.ts`—, registrar partida, mis grupos y últimas partidas) y Más; los
   avisos en la campana de la cabecera (`components/bell.tsx`, con los sin leer) y en Más. Ficha
   de carta con añadir copias (edición, foil, idioma, estado), mazo (lista, me falta, cambios,
-  datos) y todo lo demás **en pantallas nativas, sin WebView** (contador de vidas con registrar
+  datos; en la de un comandante, «Lo que se juega con X», `components/staples.tsx`, con la misma
+  API que la web: temas, listas que se deslizan de lado y filtro de las que tengo) y todo lo demás **en pantallas nativas, sin WebView** (contador de vidas con registrar
   partida, grupos e invitaciones, partidas, intercambios con calculadora y propuestas, préstamos,
   comunidad, actividad, perfiles, comentarios de mazos y ajustes con exportar datos y borrar la
   cuenta; `appRoute` en `mobile/src/lib/paths.ts` lleva cada ruta de la web a su pantalla y lo
