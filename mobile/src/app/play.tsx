@@ -457,15 +457,16 @@ function PlayerTile({
   openPanel: () => void;
 }) {
   const p = game.players[index]!;
-  const [delta, setDelta] = useState<number>(0);
+  // Lo ganado/perdido seguido: se ve mientras se sigue pulsando y se va 1,6 s después del último.
+  const [delta, setDelta] = useState<{ n: number } | null>(null);
   useEffect(() => {
-    if (delta === 0) return;
-    const t = setTimeout(() => setDelta(0), 1600);
+    if (!delta) return;
+    const t = setTimeout(() => setDelta(null), 1600);
     return () => clearTimeout(t);
   }, [delta]);
   const bump = (d: number) => {
     change((g) => changeLife(g, index, d));
-    setDelta((x) => x + d);
+    setDelta((x) => ({ n: (x?.n ?? 0) + d }));
   };
   const minus = useHold(() => bump(-1));
   const plus = useHold(() => bump(1));
@@ -543,11 +544,15 @@ function PlayerTile({
           pointerEvents="none"
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         >
-          {delta !== 0 && (
+          {delta && (
             <Text
-              style={{ color: delta > 0 ? "#b8f5c4" : "#ffc1b8", fontSize: 18, fontWeight: "700" }}
+              style={{
+                color: delta.n >= 0 ? "#b8f5c4" : "#ffc1b8",
+                fontSize: 18,
+                fontWeight: "700",
+              }}
             >
-              {delta > 0 ? `+${delta}` : delta}
+              {delta.n > 0 ? `+${delta.n}` : delta.n}
             </Text>
           )}
           <Text

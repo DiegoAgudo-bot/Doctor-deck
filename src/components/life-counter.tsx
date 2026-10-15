@@ -100,20 +100,23 @@ function PlayerTile({
 }) {
   const p = game.players[index]!;
   const [panel, setPanel] = useState(false);
-  const [delta, setDelta] = useState<{ n: number; key: number } | null>(null);
+  // Lo ganado/perdido seguido: se ve mientras se sigue pulsando y se va 1,3 s después del último.
+  const [delta, setDelta] = useState<{ n: number; key: number; leaving: boolean } | null>(null);
   const gameRef = useRef(game);
   useEffect(() => {
     gameRef.current = game;
   });
   useEffect(() => {
     if (!delta) return;
-    const t = setTimeout(() => setDelta(null), 1600);
+    const t = delta.leaving
+      ? setTimeout(() => setDelta(null), 300)
+      : setTimeout(() => setDelta((x) => x && { ...x, leaving: true }), 1300);
     return () => clearTimeout(t);
   }, [delta]);
 
   const bump = (d: number) => {
     onChange(changeLife(gameRef.current, index, d));
-    setDelta((x) => ({ n: (x?.n ?? 0) + d, key: x?.key ?? Date.now() }));
+    setDelta((x) => ({ n: (x?.n ?? 0) + d, key: x?.key ?? Date.now(), leaving: false }));
   };
   const minus = useHold(() => bump(-1));
   const plus = useHold(() => bump(1));
@@ -163,8 +166,11 @@ function PlayerTile({
         </button>
 
         <div className="lifetile-life" aria-live="polite">
-          {delta && delta.n !== 0 && (
-            <span key={delta.key} className={`lifedelta ${delta.n > 0 ? "up" : "down"}`}>
+          {delta && (
+            <span
+              key={delta.key}
+              className={`lifedelta ${delta.n >= 0 ? "up" : "down"}${delta.leaving ? " leaving" : ""}`}
+            >
               {delta.n > 0 ? `+${delta.n}` : delta.n}
             </span>
           )}

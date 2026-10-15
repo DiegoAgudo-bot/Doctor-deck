@@ -2467,7 +2467,10 @@
     position: absolute;
     top: 12%;
     font: 700 clamp(18px, 4vmin, 30px) / 1 var(--font-mono);
-    animation: dd-delta 1.6s var(--ease-out) forwards;
+    animation: dd-delta-in 0.24s var(--ease-out);
+  }
+  .lifedelta.leaving {
+    animation: dd-delta-out 0.3s var(--ease-out) forwards;
   }
   .lifedelta.up {
     color: #b8ffc8;
@@ -2736,19 +2739,14 @@
   }
 }
 
-@keyframes dd-delta {
-  0% {
+@keyframes dd-delta-in {
+  from {
     opacity: 0;
     transform: translateY(6px);
   }
-  15% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  80% {
-    opacity: 1;
-  }
-  100% {
+}
+@keyframes dd-delta-out {
+  to {
     opacity: 0;
     transform: translateY(-10px);
   }
