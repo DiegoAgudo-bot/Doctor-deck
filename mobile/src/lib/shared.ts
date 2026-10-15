@@ -13,3 +13,5 @@ export const takePendingImport = () => {
   pending = null;
   return p;
 };
+
+export const hasPendingImport = () => pending !== null;
