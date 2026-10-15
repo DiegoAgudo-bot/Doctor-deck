@@ -1,0 +1,74 @@
+diff --git a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
+index ff5b100..c73630b 100644
+--- a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
++++ b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
+@@ -66,13 +66,23 @@ class ExpoShareIntentModule : Module() {
+                     "filePath" to instance?.getAbsolutePath(uri),
+                 )
+             }
+-            val queryResult: Cursor = resolver.query(uri, null, null, null, null)!!
+-            queryResult.moveToFirst()
+-            val fileName = queryResult.getString(queryResult.getColumnIndex(OpenableColumns.DISPLAY_NAME))
+-            val fileSize = queryResult.getString(queryResult.getColumnIndex(OpenableColumns.SIZE))
+-            queryResult.close()
++            var fileName: String? = null
++            var fileSize: String? = null
++            try {
++                resolver.query(uri, null, null, null, null)?.use { c ->
++                    if (c.moveToFirst()) {
++                        val ni = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
++                        val si = c.getColumnIndex(OpenableColumns.SIZE)
++                        if (ni >= 0) fileName = c.getString(ni)
++                        if (si >= 0) fileSize = c.getString(si)
++                    }
++                }
++            } catch (e: Exception) {
++                notifyError("Cannot query shared file: ${e.message}")
++            }
++            if (fileName == null) fileName = uri.lastPathSegment
+ 
+-            val mimeType = resolver.getType(uri)!!
++            val mimeType = resolver.getType(uri) ?: "application/octet-stream"
+ 
+             var mediaWidth: String? = null;
+             var mediaHeight: String? = null;
+@@ -122,7 +132,12 @@ class ExpoShareIntentModule : Module() {
+                 return
+             }
+             if (intent.type == null) return
+-            if (intent.type!!.startsWith("text/plain")) {
++            // Doctor Deck: algunas apps comparten un fichero (CSV/TXT) como "text/plain" con
++            // EXTRA_STREAM y sin EXTRA_TEXT; sin esto se perdía y no llegaba nada a JS.
++            val hasText = intent.getStringExtra(Intent.EXTRA_TEXT) != null
++            val hasStream = intent.action == Intent.ACTION_SEND_MULTIPLE ||
++                intent.parcelable<Uri>(Intent.EXTRA_STREAM) != null
++            if (intent.type!!.startsWith("text/plain") && (hasText || !hasStream)) {
+                 // text / urls
+                 if (intent.action == Intent.ACTION_SEND) {
+                     notifyShareIntent(mapOf(
+@@ -183,7 +198,11 @@ class ExpoShareIntentModule : Module() {
+             // get the Intent from onCreate activity (app not running in background)
+             ExpoShareIntentSingleton.isPending = false
+             if (ExpoShareIntentSingleton.intent?.type != null) {
+-                handleShareIntent(ExpoShareIntentSingleton.intent!!);
++                try {
++                    handleShareIntent(ExpoShareIntentSingleton.intent!!);
++                } catch (e: Exception) {
++                    notifyError("Cannot read shared content: ${e.message}")
++                }
+                 ExpoShareIntentSingleton.intent = null
+             }
+         }
+@@ -197,7 +216,11 @@ class ExpoShareIntentModule : Module() {
+         }
+ 
+         OnNewIntent {
+-            handleShareIntent(it)
++            try {
++                handleShareIntent(it)
++            } catch (e: Exception) {
++                notifyError("Cannot read shared content: ${e.message}")
++            }
+         }
+ 
+         OnCreate {

@@ -655,6 +655,9 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     (`shareFileUri`: los nombres con espacios rompían la lectura; 20 s de tope), lo parte en tandas
     (`splitImportText`: el CSV repite la cabecera, como mucho 12) y enseña las cartas según se
     reconocen con una barra de progreso; añadirlas va también por tandas.
+    `expo-share-intent` va parcheado (`mobile/patches/`, `patch-package` en `postinstall`): un
+    fichero compartido como `text/plain` sin texto se trata como fichero, sin `!!` al leer su
+    nombre y tipo, y cualquier excepción llega a JS como `error` (`/share` la enseña).
   - Push: `PushDevice` (token de FCM, `POST|DELETE /api/me/devices`); `PrismaSocialRepository`
     llama a `afterCreate` con cada aviso guardado y el container lo manda con `pushNotifications`
     (`application/push.ts`) por `FcmSender` (`adapters/push/fcm.ts`, FCM HTTP v1 con la cuenta de

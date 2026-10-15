@@ -138,13 +138,15 @@ function Root() {
  * app desde «Compartir» lo hace la portada (`index.tsx`); esto cubre la app ya abierta.
  */
 function useSharedContent(signedIn: boolean) {
-  const { hasShareIntent, shareIntent } = useShareIntentContext();
+  const { hasShareIntent, shareIntent, error } = useShareIntentContext();
   const opened = useRef<unknown>(null);
   useEffect(() => {
-    if (!hasShareIntent || !signedIn || opened.current === shareIntent) return;
-    opened.current = shareIntent;
+    // Si no se ha podido recibir, también: la pantalla de importar enseña el error.
+    const key = hasShareIntent ? shareIntent : error;
+    if (!key || !signedIn || opened.current === key) return;
+    opened.current = key;
     openShareScreen();
-  }, [hasShareIntent, signedIn, shareIntent]);
+  }, [hasShareIntent, signedIn, shareIntent, error]);
 }
 
 /** La navegación puede no estar lista justo al arrancar: se reintenta unas cuantas veces. */
