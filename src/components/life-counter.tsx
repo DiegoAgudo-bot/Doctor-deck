@@ -76,6 +76,46 @@ function useHold(action: () => void) {
   };
 }
 
+/**
+ * Pulsar suma 1 (al soltar); mantener pulsado suma 10 a los 400 ms y otros 10 cada 600 ms
+ * mientras se siga pulsando.
+ */
+function useLifeHold(step: (n: number) => void) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const held = useRef(false);
+  const ref = useRef(step);
+  useEffect(() => {
+    ref.current = step;
+  });
+  const clear = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  };
+  useEffect(() => clear, []);
+  return {
+    onPointerDown: (e: ReactPointerEvent) => {
+      e.preventDefault();
+      held.current = false;
+      clear();
+      const loop = (delay: number) => {
+        timer.current = setTimeout(() => {
+          held.current = true;
+          ref.current(10);
+          loop(600);
+        }, delay);
+      };
+      loop(400);
+    },
+    onPointerUp: () => {
+      if (timer.current && !held.current) ref.current(1);
+      clear();
+    },
+    onPointerLeave: clear,
+    onPointerCancel: clear,
+    onContextMenu: (e: { preventDefault: () => void }) => e.preventDefault(),
+  };
+}
+
 /** Disposición de la mesa: cuántos arriba (girados) y cuántos abajo, en una rejilla de 6. */
 function layout(n: number) {
   const top = n === 3 ? 1 : Math.ceil(n / 2);
@@ -118,8 +158,8 @@ function PlayerTile({
     onChange(changeLife(gameRef.current, index, d));
     setDelta((x) => ({ n: (x?.n ?? 0) + d, key: x?.key ?? Date.now(), leaving: false }));
   };
-  const minus = useHold(() => bump(-1));
-  const plus = useHold(() => bump(1));
+  const minus = useLifeHold((n) => bump(-n));
+  const plus = useLifeHold((n) => bump(n));
   const out = isOut(p);
   const cmd2 = partnerDamage(p);
   const cmdTotal = [...p.commander, ...cmd2].reduce((a, b) => a + b, 0);

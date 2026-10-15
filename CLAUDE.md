@@ -300,7 +300,7 @@ newInvite?}`), `DELETE /api/groups/{id}/members/{username}`, `GET /api/groups/{i
     (`GET /api/users/{u}`) trae `record` (jugadas y ganadas) y `blocked`.
   - **Contador de vidas** (`/play`, `components/life-counter.tsx`, lógica pura en
     `domain/play/life.ts`): 2–6 jugadores, 20/30/40 vidas, pulsar mitad izquierda/derecha (mantener
-    repite), daño de comandante por rival (resta vida; 21 elimina; con «Juega con dos
+    pulsado: de 10 en 10), daño de comandante por rival (resta vida; 21 elimina; con «Juega con dos
     comandantes» cada uno lleva el suyo, `partner`/`commander2`), veneno (10), conceder, turnos,
     revancha. A pantalla completa (`.lifetable`, los de arriba girados 180°), estado en
     `localStorage` y Wake Lock para que no se apague la pantalla. Al quedar uno, "Registrar

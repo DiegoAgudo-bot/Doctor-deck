@@ -79,6 +79,40 @@ function useHold(action: () => void) {
   };
 }
 
+/**
+ * Pulsar suma 1 (al soltar); mantener pulsado suma 10 a los 400 ms y otros 10 cada 600 ms
+ * mientras se siga pulsando.
+ */
+function useLifeHold(step: (n: number) => void) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const held = useRef(false);
+  const ref = useRef(step);
+  ref.current = step;
+  const clear = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  };
+  useEffect(() => clear, []);
+  return {
+    onPressIn: () => {
+      held.current = false;
+      clear();
+      const loop = (delay: number) => {
+        timer.current = setTimeout(() => {
+          held.current = true;
+          ref.current(10);
+          loop(600);
+        }, delay);
+      };
+      loop(400);
+    },
+    onPressOut: () => {
+      if (timer.current && !held.current) ref.current(1);
+      clear();
+    },
+  };
+}
+
 /** Con la mesa abierta, que no se apague la pantalla. */
 function KeepAwake() {
   useKeepAwake();
@@ -87,7 +121,7 @@ function KeepAwake() {
 
 /**
  * Contador de vidas de Commander a pantalla completa (como `/play` en la web): 2–6 jugadores,
- * pulsar la mitad izquierda o derecha (mantener repite), daño de comandante, veneno, conceder,
+ * pulsar la mitad izquierda o derecha (mantener pulsado: de 10 en 10), daño de comandante, veneno, conceder,
  * turnos y revancha. Al quedar uno, se registra la partida.
  */
 export default function Play() {
@@ -468,8 +502,8 @@ function PlayerTile({
     change((g) => changeLife(g, index, d));
     setDelta((x) => ({ n: (x?.n ?? 0) + d }));
   };
-  const minus = useHold(() => bump(-1));
-  const plus = useHold(() => bump(1));
+  const minus = useLifeHold((n) => bump(-n));
+  const plus = useLifeHold((n) => bump(n));
   const out = isOut(p);
   const active = game.active === index && !out;
   const cmdWorst = Math.max(0, ...p.commander);
