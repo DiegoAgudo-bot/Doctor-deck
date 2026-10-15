@@ -650,9 +650,11 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     (`(SET) número` → impresión con `findPrintingsBySetNumbers`), primero sin guardar (vista previa
     con `BrowserCollectionRepository`) y luego como cartas sueltas; `looksLikeDeck` si trae
     comandante o 60–101 cartas. Reemplazar con el CSV sigue siendo `POST /api/collection`.
-    En la app, `useSharedContent` (`_layout.tsx`) lee el fichero con la ruta codificada
-    (`shareFileUri`: los nombres con espacios rompían la lectura), avisa si falla y reintenta abrir
-    `/share` si la navegación aún no está lista; `index.tsx` no redirige mientras hay algo compartido.
+    En la app, lo compartido abre `/share` (al arrancar, `index.tsx` redirige allí; con la app
+    abierta, `useSharedContent` en `_layout.tsx`), que lee el fichero con la ruta codificada
+    (`shareFileUri`: los nombres con espacios rompían la lectura; 20 s de tope), lo parte en tandas
+    (`splitImportText`: el CSV repite la cabecera, como mucho 12) y enseña las cartas según se
+    reconocen con una barra de progreso; añadirlas va también por tandas.
   - Push: `PushDevice` (token de FCM, `POST|DELETE /api/me/devices`); `PrismaSocialRepository`
     llama a `afterCreate` con cada aviso guardado y el container lo manda con `pushNotifications`
     (`application/push.ts`) por `FcmSender` (`adapters/push/fcm.ts`, FCM HTTP v1 con la cuenta de

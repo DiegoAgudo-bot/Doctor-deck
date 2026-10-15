@@ -1,14 +1,12 @@
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { useQuery } from "@tanstack/react-query";
-import { File } from "expo-file-system";
-import { readAsStringAsync } from "expo-file-system/legacy";
 import { Stack, ThemeProvider, DarkTheme, router } from "expo-router";
 import { ShareIntentProvider, useShareIntentContext } from "expo-share-intent";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
-import { Alert, Linking, View } from "react-native";
+import { Linking, View } from "react-native";
 import type { AppInfoDTO } from "@/server/dto";
-import { toast, ToastHost } from "~/components/toast";
+import { ToastHost } from "~/components/toast";
 import { Button, Empty, Loading } from "~/components/ui";
 import { api } from "~/lib/api";
 import { useSession } from "~/lib/auth";
@@ -16,8 +14,6 @@ import { APP_VERSION } from "~/lib/config";
 import { isOlder } from "~/lib/format";
 import { openWebPath, registerForPush, useNotificationTaps } from "~/lib/push";
 import { persister, queryClient } from "~/lib/query";
-import { setPendingImport, takePendingImport } from "~/lib/shared";
-import { shareFileUri } from "~/lib/share-path";
 import { colors } from "~/lib/theme";
 
 const navTheme = {
@@ -103,6 +99,7 @@ function Root() {
         headerShadowVisible: false,
       }}
     >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="card/[oracleId]" options={{ title: "" }} />
@@ -136,69 +133,28 @@ function Root() {
 }
 
 /**
- * Lo compartido desde ManaBox (texto o fichero CSV/TXT) va a la pantalla de importar. Si aún no
- * hay sesión, espera a que se entre. Si no se puede leer, se avisa (antes fallaba en silencio y
- * solo se abría la app).
+ * Al compartir algo con la app (texto o fichero CSV/TXT), se abre la pantalla de importar, que lo
+ * lee y lo reconoce con su progreso. Si aún no hay sesión, espera a que se entre. Al arrancar la
+ * app desde «Compartir» lo hace la portada (`index.tsx`); esto cubre la app ya abierta.
  */
 function useSharedContent(signedIn: boolean) {
-  const { hasShareIntent, shareIntent, resetShareIntent, error } = useShareIntentContext();
+  const { hasShareIntent, shareIntent } = useShareIntentContext();
+  const opened = useRef<unknown>(null);
   useEffect(() => {
-    if (error) toast(`No se ha podido recibir lo compartido: ${error}`);
-  }, [error]);
-  // `resetShareIntent` cambia en cada render: sin esto, el mismo envío se leería varias veces.
-  const handled = useRef<typeof shareIntent | null>(null);
-  useEffect(() => {
-    if (!hasShareIntent || !signedIn || handled.current === shareIntent) return;
-    handled.current = shareIntent;
-    (async () => {
-      const file = shareIntent.files?.[0];
-      const text = file ? await readSharedFile(file.path) : (shareIntent.text ?? "");
-      if (!text.trim()) {
-        resetShareIntent();
-        toast("Lo compartido está vacío.");
-        return;
-      }
-      setPendingImport(text, file?.fileName ?? "Lista compartida");
-      resetShareIntent();
-      openShareScreen();
-    })().catch((e: unknown) => {
-      resetShareIntent();
-      Alert.alert(
-        "No se ha podido abrir lo compartido",
-        `${e instanceof Error ? e.message : String(e)}\n\nPrueba a exportar el CSV y elegirlo desde Colección › + › Importar.`,
-      );
-    });
-  }, [hasShareIntent, signedIn, shareIntent, resetShareIntent]);
+    if (!hasShareIntent || !signedIn || opened.current === shareIntent) return;
+    opened.current = shareIntent;
+    openShareScreen();
+  }, [hasShareIntent, signedIn, shareIntent]);
 }
 
-/** Lee el fichero compartido; si la API nueva no puede con la ruta, con la antigua. */
-async function readSharedFile(path: string): Promise<string> {
-  try {
-    return await new File(shareFileUri(path)).text();
-  } catch (first) {
-    try {
-      return await readAsStringAsync(shareFileUri(path));
-    } catch {
-      throw first;
-    }
-  }
-}
-
-/**
- * Abre la pantalla de importar. Al arrancar la app desde «Compartir», la navegación puede no
- * estar lista todavía: se reintenta unas cuantas veces.
- */
+/** La navegación puede no estar lista justo al arrancar: se reintenta unas cuantas veces. */
 function openShareScreen(attempt = 0) {
   setTimeout(
     () => {
       try {
-        router.push("/share");
+        router.navigate("/share");
       } catch {
         if (attempt < 10) openShareScreen(attempt + 1);
-        else {
-          takePendingImport();
-          toast("No se ha podido abrir la pantalla de importar. Vuelve a compartirlo.");
-        }
       }
     },
     attempt === 0 ? 0 : 300,
