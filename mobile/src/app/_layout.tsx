@@ -1,13 +1,14 @@
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { useQuery } from "@tanstack/react-query";
 import { File } from "expo-file-system";
+import { readAsStringAsync } from "expo-file-system/legacy";
 import { Stack, ThemeProvider, DarkTheme, router } from "expo-router";
 import { ShareIntentProvider, useShareIntentContext } from "expo-share-intent";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
-import { Linking, View } from "react-native";
+import { Alert, Linking, View } from "react-native";
 import type { AppInfoDTO } from "@/server/dto";
-import { ToastHost } from "~/components/toast";
+import { toast, ToastHost } from "~/components/toast";
 import { Button, Empty, Loading } from "~/components/ui";
 import { api } from "~/lib/api";
 import { useSession } from "~/lib/auth";
@@ -15,7 +16,8 @@ import { APP_VERSION } from "~/lib/config";
 import { isOlder } from "~/lib/format";
 import { openWebPath, registerForPush, useNotificationTaps } from "~/lib/push";
 import { persister, queryClient } from "~/lib/query";
-import { setPendingImport } from "~/lib/shared";
+import { setPendingImport, takePendingImport } from "~/lib/shared";
+import { shareFileUri } from "~/lib/share-path";
 import { colors } from "~/lib/theme";
 
 const navTheme = {
@@ -134,19 +136,70 @@ function Root() {
 
 /**
  * Lo compartido desde ManaBox (texto o fichero CSV/TXT) va a la pantalla de importar. Si aún no
- * hay sesión, espera a que se entre.
+ * hay sesión, espera a que se entre. Si no se puede leer, se avisa (antes fallaba en silencio y
+ * solo se abría la app).
  */
 function useSharedContent(signedIn: boolean) {
-  const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntentContext();
+  const { hasShareIntent, shareIntent, resetShareIntent, error } = useShareIntentContext();
   useEffect(() => {
-    if (!hasShareIntent || !signedIn) return;
+    if (error) toast(`No se ha podido recibir lo compartido: ${error}`);
+  }, [error]);
+  // `resetShareIntent` cambia en cada render: sin esto, el mismo envío se leería varias veces.
+  const handled = useRef<typeof shareIntent | null>(null);
+  useEffect(() => {
+    if (!hasShareIntent || !signedIn || handled.current === shareIntent) return;
+    handled.current = shareIntent;
     (async () => {
       const file = shareIntent.files?.[0];
-      const text = file ? await new File(file.path).text() : (shareIntent.text ?? "");
-      resetShareIntent();
-      if (!text.trim()) return;
+      const text = file ? await readSharedFile(file.path) : (shareIntent.text ?? "");
+      if (!text.trim()) {
+        resetShareIntent();
+        toast("Lo compartido está vacío.");
+        return;
+      }
       setPendingImport(text, file?.fileName ?? "Lista compartida");
-      router.push("/share");
-    })().catch(() => resetShareIntent());
+      resetShareIntent();
+      openShareScreen();
+    })().catch((e: unknown) => {
+      resetShareIntent();
+      Alert.alert(
+        "No se ha podido abrir lo compartido",
+        `${e instanceof Error ? e.message : String(e)}\n\nPrueba a exportar el CSV y elegirlo desde Colección › + › Importar.`,
+      );
+    });
   }, [hasShareIntent, signedIn, shareIntent, resetShareIntent]);
+}
+
+/** Lee el fichero compartido; si la API nueva no puede con la ruta, con la antigua. */
+async function readSharedFile(path: string): Promise<string> {
+  try {
+    return await new File(shareFileUri(path)).text();
+  } catch (first) {
+    try {
+      return await readAsStringAsync(shareFileUri(path));
+    } catch {
+      throw first;
+    }
+  }
+}
+
+/**
+ * Abre la pantalla de importar. Al arrancar la app desde «Compartir», la navegación puede no
+ * estar lista todavía: se reintenta unas cuantas veces.
+ */
+function openShareScreen(attempt = 0) {
+  setTimeout(
+    () => {
+      try {
+        router.push("/share");
+      } catch {
+        if (attempt < 10) openShareScreen(attempt + 1);
+        else {
+          takePendingImport();
+          toast("No se ha podido abrir la pantalla de importar. Vuelve a compartirlo.");
+        }
+      }
+    },
+    attempt === 0 ? 0 : 300,
+  );
 }

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useKeepAwake } from "expo-keep-awake";
 import { router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -32,6 +32,7 @@ import { Button, Chip, T, styles } from "~/components/ui";
 import { api } from "~/lib/api";
 import { tapFeedback } from "~/lib/feedback";
 import { LIFE_KEY } from "~/lib/life-store";
+import { type Facing, seatLayout } from "~/lib/seats";
 import { colors, radius } from "~/lib/theme";
 
 interface Stored {
@@ -278,9 +279,6 @@ function Setup({
   );
 }
 
-/** Cuántos arriba (girados) y cuántos abajo. */
-const topCount = (n: number) => (n === 3 ? 1 : Math.ceil(n / 2));
-
 function Table({
   game,
   me,
@@ -310,23 +308,22 @@ function Table({
   };
 
   const n = game.players.length;
-  const top = topCount(n);
+  const seats = seatLayout(n);
   const winner = lastStanding(game);
   const minutes = Math.max(0, Math.round((now - game.startedAt) / 60000));
-  const tiles = (from: number, to: number, rotated: boolean) => (
-    <View style={{ flex: 1, flexDirection: "row", gap: 6 }}>
-      {game.players.slice(from, to).map((_, k) => (
-        <PlayerTile
-          key={from + k}
-          game={game}
-          index={from + k}
-          rotated={rotated}
-          compact={n >= 5}
-          change={change}
-          openPanel={() => setPanel(from + k)}
-        />
-      ))}
-    </View>
+  const tile = (index: number, facing: Facing) => (
+    <PlayerTile
+      key={index}
+      game={game}
+      index={index}
+      facing={facing}
+      compact={n >= 5}
+      change={change}
+      openPanel={() => setPanel(index)}
+    />
+  );
+  const column = (indices: number[], facing: Facing) => (
+    <View style={{ flex: 1, gap: 6 }}>{indices.map((i) => tile(i, facing))}</View>
   );
 
   return (
@@ -343,34 +340,39 @@ function Table({
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar hidden />
       <KeepAwake />
-      {tiles(0, top, true)}
-
-      <View
-        style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 }}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Menú"
-          onPress={() => setMenu(true)}
-          style={({ pressed }) => [hub, pressed && { opacity: 0.7 }]}
-        >
-          <Text style={{ color: "#fff", fontSize: 20 }}>≡</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Pasar turno"
-          onPress={() => {
-            tapFeedback();
-            change(nextTurn);
-          }}
-          style={({ pressed }) => [hub, { paddingHorizontal: 18 }, pressed && { opacity: 0.7 }]}
-        >
-          <Text style={{ color: "#fff", fontWeight: "700" }}>T{game.turn}</Text>
-          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}>Pasar turno</Text>
-        </Pressable>
+      <View style={{ flex: 1, flexDirection: "row", gap: 6 }}>
+        {column(seats.left, "left")}
+        {/* En medio, entre los dos lados: menú y pasar turno. */}
+        <View style={{ justifyContent: "center", alignItems: "center", gap: 12 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Menú"
+            onPress={() => setMenu(true)}
+            style={({ pressed }) => [hub, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={{ color: "#fff", fontSize: 20 }}>≡</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Turno ${game.turn}: pasar turno`}
+            onPress={() => {
+              tapFeedback();
+              change(nextTurn);
+            }}
+            style={({ pressed }) => [hub, { minHeight: 64 }, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700" }}>T{game.turn}</Text>
+            <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 16 }}>↻</Text>
+          </Pressable>
+        </View>
+        {column(seats.right, "right")}
       </View>
 
-      {tiles(top, n, false)}
+      {seats.bottom !== null && (
+        <View style={{ flex: n === 3 ? 0.8 : 0.6, flexDirection: "row" }}>
+          {tile(seats.bottom, "bottom")}
+        </View>
+      )}
 
       <Sheet
         open={menu}
@@ -467,25 +469,60 @@ function Table({
 
 const hub = {
   minHeight: 44,
-  minWidth: 44,
-  borderRadius: 22,
+  width: 48,
+  borderRadius: 24,
   backgroundColor: colors.raised,
   alignItems: "center" as const,
   justifyContent: "center" as const,
-  paddingHorizontal: 12,
 };
+
+/**
+ * El contenido de una casilla de cara a su jugador. Girado 90° no basta con `transform` (no cambia
+ * el tamaño con el que se coloca): se mide la casilla y el contenido se coloca con el ancho y el
+ * alto cambiados, centrado, antes de girarlo.
+ */
+function FacingBox({ facing, children }: { facing: Facing; children: ReactNode }) {
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  if (facing === "bottom") return <View style={{ flex: 1 }}>{children}</View>;
+  return (
+    <View
+      style={{ flex: 1 }}
+      onLayout={(e) => {
+        const { width: w, height: h } = e.nativeEvent.layout;
+        setSize((x) => (x && x.w === w && x.h === h ? x : { w, h }));
+      }}
+    >
+      {size && (
+        <View
+          style={{
+            position: "absolute",
+            width: size.h,
+            height: size.w,
+            left: (size.w - size.h) / 2,
+            top: (size.h - size.w) / 2,
+            // Quien se sienta a la izquierda ve la parte de abajo de su contador hacia el borde
+            // izquierdo (giro a la derecha); el de la derecha, al revés.
+            transform: [{ rotate: facing === "left" ? "90deg" : "-90deg" }],
+          }}
+        >
+          {children}
+        </View>
+      )}
+    </View>
+  );
+}
 
 function PlayerTile({
   game,
   index,
-  rotated,
+  facing,
   compact,
   change,
   openPanel,
 }: {
   game: LifeGame;
   index: number;
-  rotated: boolean;
+  facing: Facing;
   compact: boolean;
   change: (f: (g: LifeGame) => LifeGame) => void;
   openPanel: () => void;
@@ -521,7 +558,7 @@ function PlayerTile({
         borderColor: active ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.08)",
       }}
     >
-      <View style={{ flex: 1, transform: rotated ? [{ rotate: "180deg" }] : [] }}>
+      <FacingBox facing={facing}>
         {/* Las dos mitades: restar a la izquierda, sumar a la derecha. */}
         <View style={{ position: "absolute", inset: 0, flexDirection: "row" }}>
           <Pressable
@@ -630,7 +667,7 @@ function PlayerTile({
             <Text style={{ color: "#fff", fontSize: 13 }}>⚔ ☠ …</Text>
           </Pressable>
         </View>
-      </View>
+      </FacingBox>
     </View>
   );
 }
