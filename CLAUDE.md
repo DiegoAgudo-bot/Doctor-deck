@@ -617,8 +617,8 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
 - **App móvil** (Fase 22, `mobile/`, ver `mobile/README.md`): Expo + React Native con
   `expo-router`, solo Android, con los colores de la web (tema «Pentacromo», `mobile/src/lib/theme.ts`; franja de la gema
   bajo la cabecera de las pestañas, `components/gem-stripe.tsx`).
-  Pestañas Colección, Mazos, Buscar, Jugar (`(tabs)/games.tsx`: contador —o seguir la partida
-  abierta, `lib/life-store.ts`—, registrar partida, mis grupos y últimas partidas) y Escanear
+  Pestañas Colección, Mazos, Buscar, Jugar (`(tabs)/games.tsx`: contador —jugadores a izquierda y derecha mirando a su lado e impar
+  abajo, `lib/seats.ts`—, o seguir la partida abierta, `lib/life-store.ts`—, registrar partida, mis grupos y últimas partidas) y Escanear
   (abre `/scan` a pantalla completa; `(tabs)/scanner.tsx` no pinta nada); en la cabecera, la
   campana de avisos (`components/bell.tsx`, con los sin leer) y un botón redondo con la inicial
   de la cuenta (`components/account-button.tsx`) que abre el menú de la cuenta (`app/menu.tsx`). Ficha
@@ -650,6 +650,9 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     (`(SET) número` → impresión con `findPrintingsBySetNumbers`), primero sin guardar (vista previa
     con `BrowserCollectionRepository`) y luego como cartas sueltas; `looksLikeDeck` si trae
     comandante o 60–101 cartas. Reemplazar con el CSV sigue siendo `POST /api/collection`.
+    En la app, `useSharedContent` (`_layout.tsx`) lee el fichero con la ruta codificada
+    (`shareFileUri`: los nombres con espacios rompían la lectura), avisa si falla y reintenta abrir
+    `/share` si la navegación aún no está lista; `index.tsx` no redirige mientras hay algo compartido.
   - Push: `PushDevice` (token de FCM, `POST|DELETE /api/me/devices`); `PrismaSocialRepository`
     llama a `afterCreate` con cada aviso guardado y el container lo manda con `pushNotifications`
     (`application/push.ts`) por `FcmSender` (`adapters/push/fcm.ts`, FCM HTTP v1 con la cuenta de
