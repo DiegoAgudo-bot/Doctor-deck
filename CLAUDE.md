@@ -655,6 +655,26 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     sale de `notificationMessage` (`domain/social/notification-text.ts`), que también va en
     `GET /api/notifications` (`message: {title, body, path}`) para la app.
   - `GET /api/app`: versión mínima (`MOBILE_MIN_VERSION`) y qué hay (push, Google, recuperar).
+  - **Escáner de cartas** (app 1.2.0, `mobile/src/app/scan.tsx`; Colección › + › Escanear):
+    Vision Camera 5 + OCR de ML Kit en el móvil (`react-native-vision-camera-ocr-plus`, fotogramas
+    1080p RGB, zona de la carta; Android ≥ 8.0 con `expo-build-properties`, permiso CAMERA, sin
+    micrófono). Poca luz: `enableLowLightBoost` si el móvil lo admite, linterna y aviso si no se
+    lee nada en 2,5 s; tocar enfoca, pellizcar hace zoom. El worklet manda a JS el texto solo
+    cuando cambia o cada 300 ms (`createSynchronizable`). `orderLines` (de arriba abajo) →
+    `POST /api/scan/identify` (`{lines}`; una petición a la vez, caché en el móvil) →
+    `identifyScan` (`application/scan.ts`): `readCardText` (`domain/cards/scan-text.ts`: número de
+    coleccionista `123/280 R` o `R 0123` —no la fuerza/resistencia—, edición e idioma `MKM • ES`,
+    líneas candidatas a nombre) → edición + número con variantes de OCR (`setCodeVariants`, 0↔O,
+    1↔I) = impresión exacta, también en español u otros idiomas (si en inglés el nombre lo
+    contradice, manda el nombre) → si no, `NameIndex` (`domain/cards/name-match.ts`: trigramas +
+    distancia de edición, tolera el coste de maná pegado; ~3 ms con 35 000 nombres;
+    `CardRepository.nameEntries`, en memoria 6 h en `container.scanNames`, y lo reconocido en
+    `scanResults`). Por debajo de 0,72 de confianza no se devuelve nada. En la app,
+    `ScanTracker` (`mobile/src/lib/scan.ts`) acepta con dos lecturas iguales (una si ≥ 0,95), no
+    cuenta dos veces la carta que sigue delante (otra copia: quitarla 0,7 s), y si luego lee la
+    impresión exacta la corrige (`upgradeLatest`). La lista (`addScanned`: misma copia suma) se
+    guarda en el móvil; «Añadir N a la colección» → `POST /api/collection/cards` (foil, idioma
+    impreso o el de la última vez, estado). Límite `routeLimits.scan` 900/min.
   - CI: `.github/workflows/mobile.yml` (tipos, tests, bundle; en main compila APK y AAB con la
     clave de subida si está en los secretos).
 - **Mazo**: `DeckSource.load` → `parseDecklist` → `resolveDecklist` (agrupa por oracleId, detecta
@@ -757,14 +777,12 @@ Purchase price currency, Added`.
     actividad y comentarios con moderación (bloquear y denunciar) ✅
 22. App móvil Android (Expo): colección, mazos, buscador, avisos con push y compartir desde
     ManaBox; servidor listo para la app (sesión, importar lo compartido, push, versión mínima) ✅
-    (el escáner de cartas queda para la v2)
+23. Escáner de cartas en la app (OCR en el móvil, edición + número o nombre, poca luz) ✅
 
-Lo siguiente (escáner de cartas en la app, v2) está en `ROADMAP.md`. Se hacen en ese orden salvo que el usuario
-diga otra cosa, y cada una se empieza solo cuando el usuario lo pida.
+Lo siguiente se empieza solo cuando el usuario lo pida.
 
 ### Futuro (no empezar hasta que el usuario lo pida)
 
-- **Escáner de cartas** en la app (v2): cámara → `POST /api/collection/cards` con `scryfallId`.
 - **iOS**: la app está hecha con Expo, pero hace falta cuenta de Apple Developer.
 
 Al terminar cada fase: parar y esperar el OK del usuario.

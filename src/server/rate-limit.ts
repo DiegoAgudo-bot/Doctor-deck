@@ -50,6 +50,8 @@ export const routeLimits = {
   staples: new RateLimiter(60, 60_000),
   importCollection: new RateLimiter(10, 60_000),
   importShared: new RateLimiter(30, 60_000),
+  /** El escáner manda varias lecturas por segundo mientras enfoca una carta. */
+  scan: new RateLimiter(900, 60_000),
   /** Imágenes que no tenemos y hay que pedir fuera (las guardadas no cuentan). */
   imageFetch: new RateLimiter(300, 60_000),
 };

@@ -7,6 +7,8 @@ import { PrismaCollectionRepository } from "@/adapters/db/collection-repository"
 import { PrismaDeckRepository, PrismaPublicDecks } from "@/adapters/db/deck-repository";
 import { PrismaPriceHistory } from "@/adapters/db/price-history";
 import { MemoCache } from "./memo-cache";
+import type { ScanResult } from "@/application/scan";
+import type { NameIndex } from "@/domain/cards/name-match";
 import type { CollectionCard } from "@/application/collection-cards";
 import { PrismaErrorLog } from "@/adapters/db/error-log";
 import { PrismaPrefsRepository } from "@/adapters/db/prefs-repository";
@@ -109,6 +111,13 @@ export function createContainer() {
      * no en cada página u orden; cualquier cambio en mazos los renueva.
      */
     communityDecks: new MemoCache<CommunityDeckRow[]>(() => dataEpoch(), 60_000, 50),
+    /**
+     * Escáner de la app: índice con el nombre de cada cara de cada carta (se rehace cada 6 h; el
+     * catálogo lo cambia `scryfall:sync`, que va en otro proceso) y lo último reconocido, porque
+     * la cámara manda la misma lectura muchas veces seguidas.
+     */
+    scanNames: new MemoCache<NameIndex>(() => 0, 6 * 60 * 60_000, 1),
+    scanResults: new MemoCache<ScanResult>(() => 0, 10 * 60_000, 2000),
     collectionViews: new MemoCache<CollectionCard[]>(
       (key) => userDataEpoch(key.split("|")[0] ?? ""),
       10 * 60_000,

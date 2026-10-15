@@ -42,6 +42,9 @@ const config: ExpoConfig = {
     predictiveBackGestureEnabled: false,
     // Sin copia de seguridad de Android: la caché (colección, mazos) no sale del móvil.
     allowBackup: false,
+    // El escáner de cartas usa la cámara (nada de micrófono: no se graba vídeo).
+    permissions: ["android.permission.CAMERA"],
+    blockedPermissions: ["android.permission.RECORD_AUDIO"],
   },
   ios: { bundleIdentifier: "app.doctordeck", supportsTablet: false },
   plugins: [
@@ -62,6 +65,8 @@ const config: ExpoConfig = {
       },
     ],
     ["expo-notifications", { color: "#6cb0ff", defaultChannel: "default" }],
+    // El reconocimiento de texto del escáner (ML Kit en el móvil) pide Android 8.0 o más.
+    ["expo-build-properties", { android: { minSdkVersion: 26 } }],
     "./plugins/with-release-signing.js",
   ],
   experiments: { typedRoutes: false },

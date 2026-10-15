@@ -1,4 +1,5 @@
 import type { CatalogQuery } from "../cards/catalog-search";
+import type { NameEntry } from "../cards/name-match";
 import type { Card, Printing } from "../cards/types";
 
 /** Lectura del catálogo de cartas (Scryfall volcado en local). */
@@ -28,6 +29,8 @@ export interface CardRepository {
   /** De estas cartas, las que son tierras básicas. */
   findBasicLandIds(oracleIds: readonly string[]): Promise<Set<string>>;
   counts(): Promise<{ cards: number; printings: number }>;
+  /** El nombre de cada cara de cada carta jugable, para reconocerlas con la cámara. */
+  nameEntries(): Promise<NameEntry[]>;
 }
 
 /** Escritura del catálogo, usada solo por la sincronización con Scryfall. */

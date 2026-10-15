@@ -619,6 +619,21 @@ export interface SharedImportResponse {
   saved: boolean;
 }
 
+/** `POST /api/scan/identify`: lo que el escáner de la app ha reconocido. */
+export interface ScanIdentifyResponse {
+  /** Lo que se ha sacado del texto (para enseñar «Leyendo… MKM 123»). */
+  reading: { setCode: string | null; collectorNumber: string | null; language: string | null };
+  match: {
+    /** Con la imagen de la impresión reconocida, si se sabe. */
+    card: CardDTO;
+    printing: PrintingDTO | null;
+    /** Precio de referencia de esa impresión (o de la más barata). */
+    price: number | null;
+    confidence: number;
+    via: "set_number" | "name";
+  } | null;
+}
+
 /** `GET /api/app`: lo que la app móvil consulta al abrirse. */
 export interface AppInfoDTO {
   /** Versión mínima de la app (semver); con una anterior, pide actualizar. */
