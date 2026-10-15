@@ -108,6 +108,7 @@ function Root() {
         <Stack.Screen name="deck-new" options={{ title: "Nuevo mazo" }} />
         <Stack.Screen name="share" options={{ title: "Importar" }} />
         <Stack.Screen name="scan" options={{ headerShown: false }} />
+        <Stack.Screen name="menu" options={{ title: "Tu cuenta" }} />
         <Stack.Screen name="play" options={{ title: "Contador de vidas" }} />
         <Stack.Screen name="notifications" options={{ title: "Avisos" }} />
         <Stack.Screen name="groups/index" options={{ title: "Grupos de juego" }} />

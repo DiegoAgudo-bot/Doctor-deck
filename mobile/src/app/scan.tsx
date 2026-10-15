@@ -65,7 +65,9 @@ const RESEND_MS = 300;
 const DARK_HINT_MS = 2500;
 
 type Status =
-  { kind: "idle" } | { kind: "reading"; detail: string | null } | { kind: "found"; name: string };
+  | { kind: "idle" }
+  | { kind: "reading"; detail: string | null }
+  | { kind: "found"; name: string };
 
 /**
  * Escáner de cartas: la cámara lee el texto de la carta en el móvil (ML Kit), el servidor la
@@ -360,12 +362,16 @@ function Scanner() {
           isActive={focused && appActive}
           outputs={[frameOutput]}
           torchMode={torch && device.hasTorch ? "on" : "off"}
-          // Exposiciones más largas cuando hay poca luz (en los móviles que lo permiten).
-          enableLowLightBoost={device.supportsLowLightBoost}
+          // Sin `enableLowLightBoost`: CameraX lanza una excepción al tocarlo (también al pasar
+          // `false`) en los móviles que no lo admiten. Con poca luz, la linterna.
           enableNativeTapToFocusGesture
           enableNativeZoomGesture
           resizeMode="cover"
-          onError={(e) => toast(`Cámara: ${e.message}`)}
+          onError={(e) => {
+            // Sin el texto de la excepción de Java: no le dice nada a quien escanea.
+            console.warn("Cámara", e);
+            toast("La cámara ha fallado. Ciérrala y vuelve a abrirla.");
+          }}
         />
       ) : (
         <Empty icon="camera-outline" title="No se encuentra la cámara trasera" />

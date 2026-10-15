@@ -618,8 +618,10 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   `expo-router`, solo Android, con los colores de la web (tema «Pentacromo», `mobile/src/lib/theme.ts`; franja de la gema
   bajo la cabecera de las pestañas, `components/gem-stripe.tsx`).
   Pestañas Colección, Mazos, Buscar, Jugar (`(tabs)/games.tsx`: contador —o seguir la partida
-  abierta, `lib/life-store.ts`—, registrar partida, mis grupos y últimas partidas) y Más; los
-  avisos en la campana de la cabecera (`components/bell.tsx`, con los sin leer) y en Más. Ficha
+  abierta, `lib/life-store.ts`—, registrar partida, mis grupos y últimas partidas) y Escanear
+  (abre `/scan` a pantalla completa; `(tabs)/scanner.tsx` no pinta nada); en la cabecera, la
+  campana de avisos (`components/bell.tsx`, con los sin leer) y un botón redondo con la inicial
+  de la cuenta (`components/account-button.tsx`) que abre el menú de la cuenta (`app/menu.tsx`). Ficha
   de carta con añadir copias (edición, foil, idioma, estado), mazo (lista, me falta, cambios,
   datos) y todo lo demás **en pantallas nativas, sin WebView** (contador de vidas con registrar
   partida, grupos e invitaciones, partidas, intercambios con calculadora y propuestas, préstamos,
@@ -658,7 +660,7 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   - **Escáner de cartas** (app 1.2.0, `mobile/src/app/scan.tsx`; Colección › + › Escanear):
     Vision Camera 5 + OCR de ML Kit en el móvil (`react-native-vision-camera-ocr-plus`, fotogramas
     1080p RGB, zona de la carta; Android ≥ 8.0 con `expo-build-properties`, permiso CAMERA, sin
-    micrófono). Poca luz: `enableLowLightBoost` si el móvil lo admite, linterna y aviso si no se
+    micrófono). Poca luz: linterna (sin `enableLowLightBoost`: CameraX lanza excepción en los móviles que no lo admiten) y aviso si no se
     lee nada en 2,5 s; tocar enfoca, pellizcar hace zoom. El worklet manda a JS el texto solo
     cuando cambia o cada 300 ms (`createSynchronizable`). `orderLines` (de arriba abajo) →
     `POST /api/scan/identify` (`{lines}`; una petición a la vez, caché en el móvil) →
