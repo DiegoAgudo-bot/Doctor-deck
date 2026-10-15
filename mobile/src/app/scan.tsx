@@ -360,12 +360,16 @@ function Scanner() {
           isActive={focused && appActive}
           outputs={[frameOutput]}
           torchMode={torch && device.hasTorch ? "on" : "off"}
-          // Exposiciones más largas cuando hay poca luz (en los móviles que lo permiten).
-          enableLowLightBoost={device.supportsLowLightBoost}
+          // Sin `enableLowLightBoost`: CameraX lanza una excepción al tocarlo (también al pasar
+          // `false`) en los móviles que no lo admiten. Con poca luz, la linterna.
           enableNativeTapToFocusGesture
           enableNativeZoomGesture
           resizeMode="cover"
-          onError={(e) => toast(`Cámara: ${e.message}`)}
+          onError={(e) => {
+            // Sin el texto de la excepción de Java: no le dice nada a quien escanea.
+            console.warn("Cámara", e);
+            toast("La cámara ha fallado. Ciérrala y vuelve a abrirla.");
+          }}
         />
       ) : (
         <Empty icon="camera-outline" title="No se encuentra la cámara trasera" />

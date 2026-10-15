@@ -42,8 +42,11 @@ const SECTIONS: {
   },
 ];
 
-/** Todo lo demás (como el menú "Más" de ManaBox): perfil, avisos, intercambios, comunidad y ajustes. */
-export default function More() {
+/**
+ * Menú de la cuenta (se abre con el botón redondo de la inicial, junto a la campana): perfil,
+ * avisos, intercambios, comunidad y ajustes.
+ */
+export default function AccountMenu() {
   const { data: session } = useSession();
   const unread = useUnread();
   const profile = useQuery({
