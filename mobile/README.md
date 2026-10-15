@@ -2,8 +2,9 @@
 
 App nativa (Expo + React Native, `expo-router`) que usa la misma API JSON que la web
 (`https://doctordeck.app/api/*`), con los mismos colores (tema «Pentacromo»: base neutra y la franja de la gema bajo la cabecera). Barra inferior con lo
-que más se usa: **Colección**, **Mazos**, **Buscar**, **Jugar** y **Más**; los avisos van en la
-campana de la cabecera (con los sin leer).
+que más se usa: **Colección**, **Mazos**, **Buscar**, **Jugar** y **Escanear**; en la cabecera,
+la campana de avisos (con los sin leer) y el botón redondo con tu inicial, que abre el menú de la
+cuenta (perfil, intercambios, préstamos, comunidad, ajustes…).
 
 ## Qué hace
 
@@ -28,9 +29,9 @@ campana de la cabecera (con los sin leer).
   Colección › + › Importar fichero.
 - **Jugar**: empezar (o seguir) una partida en el contador de vidas, registrar una partida jugada,
   mis grupos y las últimas partidas.
-- **Avisos** (campana de la cabecera y «Más») y **notificaciones push** (si el servidor tiene `FCM_SERVICE_ACCOUNT` y la build lleva
+- **Avisos** (campana de la cabecera y menú de la cuenta) y **notificaciones push** (si el servidor tiene `FCM_SERVICE_ACCOUNT` y la build lleva
   `google-services.json`). Tocar una abre su pantalla.
-- **Más** y lo que se abre desde **Jugar** (todo en pantallas nativas, sin WebView):
+- **Menú de la cuenta** y lo que se abre desde **Jugar** (todo en pantallas nativas, sin WebView):
   - **Contador de vidas** a pantalla completa (2–6 jugadores, daño de comandante, veneno, turnos,
     revancha; no deja que se apague la pantalla) y **registrar la partida**.
   - **Grupos**: crear, entrar con el enlace de invitación (también abre la app desde
@@ -46,12 +47,12 @@ campana de la cabecera (con los sin leer).
   - Lo que no tiene pantalla (privacidad, aviso legal) se abre en el navegador del sistema.
 - Si la versión es menor que `MOBILE_MIN_VERSION` del servidor (`GET /api/app`), pide actualizar.
 
-- **Escáner de cartas** (Colección › + › Escanear cartas): la cámara lee el texto de la carta en
+- **Escáner de cartas** (pestaña Escanear, o Colección › + › Escanear cartas): la cámara lee el texto de la carta en
   el móvil (ML Kit; la imagen no sale del teléfono) y la reconoce por **edición + número de
   coleccionista** (impresión exacta, también cartas en español u otros idiomas) o, en cartas
   antiguas, por el **nombre**. Se pasan cartas una tras otra: cada una vibra y entra en la lista
   (con precio); se marca foil antes de escanear o en cada fila, y «Añadir N a la colección» las
-  guarda todas. Con poca luz: modo nocturno de la cámara si el móvil lo tiene, linterna y aviso.
+  guarda todas. Con poca luz: linterna y aviso.
   Necesita Android 8.0 o más.
 
 ## Desarrollo

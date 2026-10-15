@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { Tabs } from "expo-router/js-tabs";
 import type { ColorValue } from "react-native";
 import { View } from "react-native";
+import { AccountButton } from "~/components/account-button";
 import { Bell } from "~/components/bell";
 import { GemHeaderBackground } from "~/components/gem-stripe";
 import type { IconName } from "~/components/ui";
@@ -14,8 +16,9 @@ const icon =
   );
 
 /**
- * Barra inferior con lo que más se usa: Colección, Mazos, Buscar, Jugar y Más. Los avisos van en
- * la campana de la cabecera (como en la web).
+ * Barra inferior con lo que más se usa: Colección, Mazos, Buscar, Jugar y Escanear (abre la cámara
+ * a pantalla completa). En la cabecera, la campana de avisos y el botón de la cuenta (la inicial),
+ * que abre el menú con todo lo demás.
  */
 export default function TabsLayout() {
   return (
@@ -26,8 +29,9 @@ export default function TabsLayout() {
         headerTintColor: colors.text,
         headerShadowVisible: false,
         headerRight: () => (
-          <View style={{ marginRight: 10 }}>
+          <View style={{ marginRight: 12, flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Bell />
+            <AccountButton />
           </View>
         ),
         tabBarStyle: { backgroundColor: colors.panel, borderTopColor: colors.line },
@@ -53,8 +57,14 @@ export default function TabsLayout() {
         options={{ title: "Jugar", tabBarIcon: icon("dice-outline", "dice") }}
       />
       <Tabs.Screen
-        name="more"
-        options={{ title: "Más", tabBarIcon: icon("menu-outline", "menu") }}
+        name="scanner"
+        options={{ title: "Escanear", tabBarIcon: icon("scan-outline", "scan") }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.push("/scan");
+          },
+        }}
       />
     </Tabs>
   );
