@@ -8,6 +8,7 @@ import type { CardDetailDTO } from "@/server/card-dto";
 import type { CollectionLineDTO, PrintingDTO } from "@/server/dto";
 import { AddToDeckSheet } from "~/components/add-to-deck";
 import { CardThumb, FoilMark, ManaCost } from "~/components/card-bits";
+import { CommanderStaples } from "~/components/commander-staples";
 import { LendSheet } from "~/components/lend";
 import { Sheet } from "~/components/sheet";
 import { Stepper } from "~/components/stepper";
@@ -229,6 +230,8 @@ export default function CardScreen() {
             </View>
           </View>
         )}
+
+        {d.commander && <CommanderStaples oracleId={oracleId} name={d.card.name} />}
 
         {d.commanderDecks.length > 0 && (
           <View style={{ gap: 8 }}>

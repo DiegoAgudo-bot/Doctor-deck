@@ -62,6 +62,8 @@ const OCR_OPTIONS: TextRecognitionOptions = {
 const RESEND_MS = 300;
 
 /** Sin leer nada durante este tiempo → sugerir la linterna. */
+/** Tras un error de la cámara, cuánto se espera a ver si siguen llegando fotogramas. */
+const CAMERA_STALL_MS = 2500;
 const DARK_HINT_MS = 2500;
 
 type Status =
@@ -109,6 +111,8 @@ function Scanner() {
   const { width, height } = useWindowDimensions();
   const focused = useIsFocused();
   const [appActive, setAppActive] = useState(AppState.currentState === "active");
+  const live = useRef(false);
+  live.current = focused && appActive;
   useEffect(() => {
     const sub = AppState.addEventListener("change", (s) => setAppActive(s === "active"));
     return () => sub.remove();
@@ -273,6 +277,9 @@ function Scanner() {
   // cambia (la carta está quieta), cada 300 ms, para que dos lecturas seguidas puedan coincidir.
   const lastText = useMemo(() => createSynchronizable(""), []);
   const lastSent = useMemo(() => createSynchronizable(0), []);
+  // Cuándo llegó el último fotograma (como mucho se apunta una vez por segundo): si la cámara
+  // avisa de un error pero siguen llegando, era pasajero y no hace falta decir nada.
+  const lastFrameAt = useMemo(() => createSynchronizable(0), []);
   const frameOutput = useFrameOutput({
     // ML Kit en Android necesita RGB; 1080p da para leer el número de coleccionista (letra muy
     // pequeña) sin que el reconocimiento se vuelva lento.
@@ -284,6 +291,7 @@ function Scanner() {
       frame.dispose();
       const text = result.resultText;
       const now = Date.now();
+      if (now - lastFrameAt.getDirty() >= 1000) lastFrameAt.setBlocking(now);
       const changed = text !== lastText.getDirty();
       if (changed || (text.length > 0 && now - lastSent.getDirty() >= RESEND_MS)) {
         lastText.setBlocking(text);
@@ -368,7 +376,14 @@ function Scanner() {
           onError={(e) => {
             // Sin el texto de la excepción de Java: no le dice nada a quien escanea.
             console.warn("Cámara", e);
-            toast("La cámara ha fallado. Ciérrala y vuelve a abrirla.");
+            // Muchos errores son pasajeros (un enfoque cancelado, un fotograma perdido) y la
+            // cámara sigue: solo se avisa si deja de llegar imagen.
+            const at = Date.now();
+            setTimeout(() => {
+              if (live.current && lastFrameAt.getDirty() < at) {
+                toast("La cámara ha fallado. Ciérrala y vuelve a abrirla.");
+              }
+            }, CAMERA_STALL_MS);
           }}
         />
       ) : (

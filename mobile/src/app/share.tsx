@@ -92,7 +92,11 @@ export default function ShareScreen() {
   }, [source, hasShareIntent, shareIntent, resetShareIntent]);
 
   useEffect(() => {
-    if (intentError && !source) setStage({ step: "error", message: intentError });
+    if (intentError && !source)
+      setStage({
+        step: "error",
+        message: `No se ha podido recibir lo compartido (${intentError}).`,
+      });
   }, [intentError, source]);
 
   // 2. Reconocer las cartas por tandas.
