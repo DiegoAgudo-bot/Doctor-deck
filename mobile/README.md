@@ -1,8 +1,9 @@
 # Doctor Deck · app Android
 
 App nativa (Expo + React Native, `expo-router`) que usa la misma API JSON que la web
-(`https://doctordeck.app/api/*`). La estructura copia la de ManaBox: barra inferior con
-**Colección**, **Mazos**, **Buscar**, **Avisos** y **Más**.
+(`https://doctordeck.app/api/*`), con los mismos colores (tema «Pentacromo»: base neutra y la franja de la gema bajo la cabecera). Barra inferior con lo
+que más se usa: **Colección**, **Mazos**, **Buscar**, **Jugar** y **Más**; los avisos van en la
+campana de la cabecera (con los sin leer).
 
 ## Qué hace
 
@@ -25,9 +26,11 @@ App nativa (Expo + React Native, `expo-router`) que usa la misma API JSON que la
   (`1 Carta (SET) 123 *F*`) y con ficheros CSV/TXT. Enseña qué cartas son y deja añadirlas a la
   colección, crear un mazo o (con el CSV entero) reemplazar la colección. También desde
   Colección › + › Importar fichero.
-- **Avisos** y **notificaciones push** (si el servidor tiene `FCM_SERVICE_ACCOUNT` y la build lleva
+- **Jugar**: empezar (o seguir) una partida en el contador de vidas, registrar una partida jugada,
+  mis grupos y las últimas partidas.
+- **Avisos** (campana de la cabecera y «Más») y **notificaciones push** (si el servidor tiene `FCM_SERVICE_ACCOUNT` y la build lleva
   `google-services.json`). Tocar una abre su pantalla.
-- **Más** (todo en pantallas nativas, sin WebView):
+- **Más** y lo que se abre desde **Jugar** (todo en pantallas nativas, sin WebView):
   - **Contador de vidas** a pantalla completa (2–6 jugadores, daño de comandante, veneno, turnos,
     revancha; no deja que se apague la pantalla) y **registrar la partida**.
   - **Grupos**: crear, entrar con el enlace de invitación (también abre la app desde

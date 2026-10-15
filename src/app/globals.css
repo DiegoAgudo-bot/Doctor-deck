@@ -19,15 +19,15 @@
   --radius-lg: 8px;
   --radius-mtg: 4.75% / 3.4%;
 
-  --color-bg: #0e131b;
-  --color-panel: #131a24;
-  --color-raised: #1a2230;
-  --color-hover: #212b3b;
-  --color-line: #232d3c;
-  --color-line-strong: #2f3b4e;
-  --color-text: #e6e9ee;
-  --color-text-2: #a3acba;
-  --color-text-3: #7f8a9b;
+  --color-bg: #111214;
+  --color-panel: #17181b;
+  --color-raised: #1e2024;
+  --color-hover: #26282d;
+  --color-line: #2a2c31;
+  --color-line-strong: #383b41;
+  --color-text: #e8e6e3;
+  --color-text-2: #aba7a1;
+  --color-text-3: #8a8680;
   --color-link: #6cb0ff;
   --color-accent: #6cb0ff;
   --color-on-accent: #06182e;
@@ -52,6 +52,25 @@
   --sidebar-w: 232px;
   --shadow-pop: 0 18px 40px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.06);
 
+  /* La gema del logo (verde, blanco, azul, negro, rojo): franja bajo la barra superior, pestaña y
+     fila activas. */
+  --gem: linear-gradient(
+    90deg,
+    #4fc16a 0 20%,
+    #f3e6c2 20% 40%,
+    #6cb0ff 40% 60%,
+    #8a7f9a 60% 80%,
+    #f06a5f 80%
+  );
+  --gem-v: linear-gradient(
+    180deg,
+    #4fc16a 0 20%,
+    #f3e6c2 20% 40%,
+    #6cb0ff 40% 60%,
+    #8a7f9a 60% 80%,
+    #f06a5f 80%
+  );
+
   /* Maná y marcos por color (curva, leyendas, huecos sin imagen) */
   --mana-w: #f8f6d8;
   --mana-u: #c1d7e9;
@@ -65,15 +84,15 @@
 }
 
 :root[data-theme="light"] {
-  --color-bg: #f2f5f9;
+  --color-bg: #f4f4f5;
   --color-panel: #ffffff;
-  --color-raised: #f6f8fb;
-  --color-hover: #eaeff5;
-  --color-line: #dde3eb;
-  --color-line-strong: #c9d2de;
-  --color-text: #141a22;
-  --color-text-2: #4b5563;
-  --color-text-3: #6b7482;
+  --color-raised: #f8f8f9;
+  --color-hover: #eeeef0;
+  --color-line: #e1e1e4;
+  --color-line-strong: #cdcdd2;
+  --color-text: #1c1b19;
+  --color-text-2: #55524d;
+  --color-text-3: #6f6b65;
   --color-link: #0b63c9;
   --color-accent: #0b63c9;
   --color-on-accent: #ffffff;
@@ -203,7 +222,7 @@
     right: 10px;
     bottom: -1px;
     height: 2px;
-    background: var(--color-accent);
+    background: var(--gem);
     transform: scaleX(0);
     transition: transform var(--motion-200) var(--ease-out);
   }
@@ -241,9 +260,10 @@
     color: var(--color-text) !important;
   }
   .deckrow.is-active {
-    background: color-mix(in oklab, var(--color-accent) 12%, var(--color-panel));
+    background:
+      var(--gem-v) left / 3px 100% no-repeat,
+      var(--color-hover);
     color: var(--color-text) !important;
-    box-shadow: inset 2px 0 0 var(--color-accent);
   }
   .deckrow .nm {
     display: block;
@@ -305,9 +325,10 @@
   }
   .side .nav.is-active,
   .morenav .nav.is-active {
-    background: color-mix(in oklab, var(--color-accent) 12%, var(--color-panel));
+    background:
+      var(--gem-v) left / 3px 100% no-repeat,
+      var(--color-hover);
     color: var(--color-text) !important;
-    box-shadow: inset 2px 0 0 var(--color-accent);
   }
   .side .nav .count {
     margin-left: auto;
@@ -346,6 +367,17 @@
     padding: env(safe-area-inset-top, 0px) 16px 0 18px;
     background: var(--color-panel);
     border-bottom: 1px solid var(--color-line);
+  }
+  /* La franja de la gema bajo la barra superior. */
+  .topbar::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: var(--gem);
+    pointer-events: none;
   }
   /* Buscador de la cabecera. */
   .gsearch {
@@ -718,9 +750,9 @@
     border-radius: 0 var(--radius-md) var(--radius-md) 0;
   }
   .btn-group .btn.is-on {
-    background: color-mix(in oklab, var(--color-accent) 12%, transparent);
-    color: var(--color-accent) !important;
-    border-color: var(--color-accent);
+    background: var(--color-hover);
+    color: var(--color-text) !important;
+    border-color: var(--color-line-strong);
   }
   .btn[disabled],
   .btn[aria-disabled="true"] {
@@ -892,9 +924,9 @@
     color: var(--color-text-3);
   }
   .chipbtn.is-on {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-    background: color-mix(in oklab, var(--color-accent) 12%, transparent);
+    border-color: var(--color-text-2);
+    color: var(--color-text);
+    background: var(--color-hover);
   }
   .chipbtn[disabled] {
     opacity: 0.5;
@@ -944,7 +976,7 @@
     right: 8px;
     bottom: -1px;
     height: 2px;
-    background: var(--color-accent);
+    background: var(--gem);
     transform: scaleX(0);
     transition: transform var(--motion-200) var(--ease-out);
   }

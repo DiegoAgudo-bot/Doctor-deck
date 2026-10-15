@@ -26,7 +26,7 @@ const ICONS: Partial<Record<NotificationDTO["type"], keyof typeof Ionicons.glyph
   loan_new: "hand-left-outline",
 };
 
-/** Mis avisos (los mismos que llegan como notificación). Al abrir la pestaña se marcan leídos. */
+/** Mis avisos (los mismos que llegan como notificación), desde la campana. Al abrirlos se marcan leídos. */
 export default function Notifications() {
   const qc = useQueryClient();
   const list = useQuery({

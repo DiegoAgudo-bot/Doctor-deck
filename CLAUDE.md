@@ -157,6 +157,9 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   `/u/[username]`: imagen 1200×630 con el arte del comandante (`art_crop` de la caché de imágenes),
   fuente Instrument Sans (`assets/fonts`, OFL). `metadataBase` = `BETTER_AUTH_URL`. `robots.ts` y
   `sitemap.ts` (mazos públicos y perfiles) se generan al pedirlos.
+- **Tema** «Pentacromo» (`globals.css`): base neutra, acento azul y la gema del logo (`--gem`,
+  `--gem-v`) en la franja bajo la barra superior, el subrayado de pestañas y la fila activa del
+  lateral. Propuestas descartadas y capturas en `branding/themes/`.
 - **PWA** (Fase 20): `app/manifest.ts`, iconos en `public/icons/` y `mobile/assets/` (logo: gema de cinco colores, `LOGO_FACETS` en `components/icons.tsx`; `npx tsx scripts/make-icons.tsx`
   los regenera), `themeColor` y márgenes `safe-area` en las barras.
   Sin conexión: `public/sw.js` (lo registra `ServiceWorker` en el layout, solo en producción)
@@ -612,7 +615,11 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   primera vez (tope `IMAGE_CACHE_MAX_MB`; lleno, se sirven sin guardar). Solo acepta rutas con la
   forma de las de Scryfall.
 - **App móvil** (Fase 22, `mobile/`, ver `mobile/README.md`): Expo + React Native con
-  `expo-router`, solo Android. Pestañas como ManaBox (Colección, Mazos, Buscar, Avisos, Más), ficha
+  `expo-router`, solo Android, con los colores de la web (tema «Pentacromo», `mobile/src/lib/theme.ts`; franja de la gema
+  bajo la cabecera de las pestañas, `components/gem-stripe.tsx`).
+  Pestañas Colección, Mazos, Buscar, Jugar (`(tabs)/games.tsx`: contador —o seguir la partida
+  abierta, `lib/life-store.ts`—, registrar partida, mis grupos y últimas partidas) y Más; los
+  avisos en la campana de la cabecera (`components/bell.tsx`, con los sin leer) y en Más. Ficha
   de carta con añadir copias (edición, foil, idioma, estado), mazo (lista, me falta, cambios,
   datos) y todo lo demás **en pantallas nativas, sin WebView** (contador de vidas con registrar
   partida, grupos e invitaciones, partidas, intercambios con calculadora y propuestas, préstamos,
