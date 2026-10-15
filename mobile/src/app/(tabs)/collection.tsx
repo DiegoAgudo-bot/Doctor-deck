@@ -367,6 +367,14 @@ export default function Collection() {
 
       <Sheet open={sheet === "add"} onClose={() => setSheet(null)} title="Añadir cartas">
         <OptionRow
+          label="Escanear cartas"
+          detail="Con la cámara, una tras otra (también en otros idiomas)"
+          onPress={() => {
+            setSheet(null);
+            router.push("/scan");
+          }}
+        />
+        <OptionRow
           label="Buscar una carta"
           detail="Elige edición, foil, idioma y estado"
           onPress={() => {

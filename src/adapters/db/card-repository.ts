@@ -233,6 +233,19 @@ export class PrismaCardRepository implements CardRepository, CardCatalogWriter, 
     return out;
   }
 
+  async nameEntries() {
+    const rows = await this.db.oracleCard.findMany({
+      where: { layout: { notIn: NOT_PLAYABLE } },
+      select: { oracleId: true, name: true, edhrecRank: true },
+    });
+    // Cada cara por separado: en la carta solo se lee la que está boca arriba.
+    return rows.flatMap((r) =>
+      r.name
+        .split(" // ")
+        .map((face) => ({ oracleId: r.oracleId, name: face.trim(), rank: r.edhrecRank })),
+    );
+  }
+
   async findPrintingsBySetNumbers(pairs: readonly { setCode: string; collectorNumber: string }[]) {
     const out: Printing[] = [];
     for (const ps of chunks(pairs, 200)) {

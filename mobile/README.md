@@ -43,8 +43,13 @@ App nativa (Expo + React Native, `expo-router`) que usa la misma API JSON que la
   - Lo que no tiene pantalla (privacidad, aviso legal) se abre en el navegador del sistema.
 - Si la versión es menor que `MOBILE_MIN_VERSION` del servidor (`GET /api/app`), pide actualizar.
 
-Pendiente (v2): escáner de cartas con la cámara (el endpoint `POST /api/collection/cards` con
-`scryfallId` ya existe).
+- **Escáner de cartas** (Colección › + › Escanear cartas): la cámara lee el texto de la carta en
+  el móvil (ML Kit; la imagen no sale del teléfono) y la reconoce por **edición + número de
+  coleccionista** (impresión exacta, también cartas en español u otros idiomas) o, en cartas
+  antiguas, por el **nombre**. Se pasan cartas una tras otra: cada una vibra y entra en la lista
+  (con precio); se marca foil antes de escanear o en cada fila, y «Añadir N a la colección» las
+  guarda todas. Con poca luz: modo nocturno de la cámara si el móvil lo tiene, linterna y aviso.
+  Necesita Android 8.0 o más.
 
 ## Desarrollo
 
