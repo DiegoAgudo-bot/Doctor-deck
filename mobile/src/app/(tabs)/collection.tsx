@@ -263,11 +263,7 @@ export default function Collection() {
             />
           }
           renderItem={({ item }) =>
-            grid ? (
-              <GridTile item={item} width={tile} />
-            ) : (
-              <Row item={item} />
-            )
+            grid ? <GridTile item={item} width={tile} /> : <Row item={item} />
           }
           ListFooterComponent={list.isFetchingNextPage ? <Loading /> : null}
         />
@@ -473,13 +469,7 @@ function Row({ item }: { item: CollectionCardDTO }) {
   );
 }
 
-function GridTile({
-  item,
-  width,
-}: {
-  item: CollectionCardDTO;
-  width: number;
-}) {
+function GridTile({ item, width }: { item: CollectionCardDTO; width: number }) {
   return (
     <Pressable onPress={() => open(item)} style={{ width, gap: 4 }}>
       <View>
