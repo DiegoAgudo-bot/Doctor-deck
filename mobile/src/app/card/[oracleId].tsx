@@ -8,7 +8,6 @@ import type { CardDetailDTO } from "@/server/card-dto";
 import type { CollectionLineDTO, PrintingDTO } from "@/server/dto";
 import { AddToDeckSheet } from "~/components/add-to-deck";
 import { CardThumb, FoilMark, ManaCost } from "~/components/card-bits";
-import { CommanderStaples } from "~/components/commander-staples";
 import { LendSheet } from "~/components/lend";
 import { Sheet } from "~/components/sheet";
 import { CommanderStaples } from "~/components/staples";
