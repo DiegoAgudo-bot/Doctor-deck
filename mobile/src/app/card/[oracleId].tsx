@@ -11,6 +11,7 @@ import { CardThumb, FoilMark, ManaCost } from "~/components/card-bits";
 import { CommanderStaples } from "~/components/commander-staples";
 import { LendSheet } from "~/components/lend";
 import { Sheet } from "~/components/sheet";
+import { CommanderStaples } from "~/components/staples";
 import { Stepper } from "~/components/stepper";
 import { toast } from "~/components/toast";
 import { Banner, Button, Chip, ErrorView, Loading, T } from "~/components/ui";
@@ -23,7 +24,8 @@ import { colors, radius } from "~/lib/theme";
 
 /**
  * Ficha de una carta, como en ManaBox: imagen, precio, mis copias con «Añadir 1» (con la edición,
- * idioma y estado de la última vez) y luego añadir a un mazo, lista de deseos y el texto.
+ * idioma y estado de la última vez) y luego añadir a un mazo, lista de deseos y el texto; si
+ * puede ser comandante, lo que juega la comunidad con ella.
  */
 export default function CardScreen() {
   const { oracleId } = useLocalSearchParams<{ oracleId: string }>();
