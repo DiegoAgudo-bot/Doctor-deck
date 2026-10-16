@@ -60,7 +60,7 @@ export default function Search() {
     <View style={{ flex: 1 }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 10, gap: 10 }}>
         <SearchField
-          placeholder="Nombre, tipo o texto"
+          placeholder="Nombre, tipo o texto, en cualquier idioma"
           value={q}
           onChangeText={setQ}
           onClear={() => setQ("")}

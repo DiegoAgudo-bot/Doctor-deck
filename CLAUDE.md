@@ -111,6 +111,18 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   Datos que usan: `OracleCard.colors/power/toughness/loyalty` (+ `powerValue`/`toughnessValue`
   para filtrar en SQL, `statValue`: «*» = 0) y `Printing.rarity/artist`, que rellena
   `scryfall:sync` (hasta la primera sincronización tras desplegar, esos filtros no encuentran nada).
+  **En cualquier idioma** (`domain/cards/localized.ts`): nombre, tipo, texto de reglas, subtipo y
+  habilidad se buscan también en lo impreso en otros idiomas (`CardLocalization`: una fila por
+  carta e idioma, nombre tal cual y tipo/texto ya con `searchKey`, sin recordatorio; sin clave
+  ajena, como `CardOtag`). Las habilidades se traducen con `KeywordAlias` («Vuela», «Fliegend»,
+  «飛行» → Flying), que `deriveKeywordAliases` aprende de las cartas cuya primera línea son solo
+  habilidades, más `KEYWORD_SYNONYMS` (infinitivos: «volar», «arrollar»…); `keywordsFor` resuelve
+  lo escrito y `withKeywordMatches` lo pasa al filtro de la colección (`keywordMatches`). En SQL,
+  `localizedIds` (como mucho 5000 cartas por búsqueda); `searchByName` (buscador global, añadir
+  cartas) también. Lo rellena `syncLocalizations` en `scryfall:sync` una vez por semana (o si
+  cambia el fichero): lee `all_cards` (~400 MB con gzip) de la red en streaming, sin guardarlo
+  (`streamJsonLinesGz`, sin el tope de 20 s), y lo reemplaza en una transacción; si falla, avisa
+  y se quedan los de antes. `--skip-localized` / `--force-localized`.
   `summary.totalCards` = copias identificadas (sin las filas sin emparejar). Cada copia guarda su
   idioma (`CollectionEntry.language`, código de Scryfall: `en`, `es`, `ja`…; `normalizeLanguage` en
   `domain/cards/languages.ts` acepta también "Japanese"…): sale del `Language` del CSV o del campo

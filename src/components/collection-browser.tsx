@@ -238,7 +238,7 @@ export function CollectionBrowser({
           <input
             className="input"
             style={{ flex: "1 1 240px", maxWidth: 360 }}
-            placeholder="Buscar por nombre o tipo…"
+            placeholder="Nombre o tipo, en cualquier idioma…"
             aria-label="Buscar en la colección"
             value={f.q}
             onChange={(e) => set({ q: e.target.value })}

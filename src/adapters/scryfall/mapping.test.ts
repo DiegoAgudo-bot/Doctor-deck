@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { fixtureCards, fixturePrintings } from "../../../tests/helpers/scryfall-fixtures";
 import { printingPrice } from "@/domain/cards/types";
-import { scryfallCardSchema, toCard, toPrinting } from "./mapping";
+import { scryfallCardSchema, toCard, toLocalizedRecord, toPrinting } from "./mapping";
 
 const byName = (name: string) => {
   const c = fixtureCards().find((x) => x.name === name);
@@ -130,5 +130,54 @@ describe("colores, fuerza, rareza y artista", () => {
     const card = scryfallCardSchema.parse(raw);
     expect(toCard(card)).toMatchObject({ colors: ["R", "G"], power: "2", toughness: "3" });
     expect(toPrinting(card)).toMatchObject({ rarity: "mythic", artist: "Someone" });
+  });
+});
+
+describe("toLocalizedRecord (all_cards)", () => {
+  it("en otro idioma: lo impreso, sin recordatorio; de dos caras, las dos", () => {
+    expect(
+      toLocalizedRecord({
+        oracle_id: "o1",
+        lang: "es",
+        released_at: "2020-01-01",
+        printed_name: "Ángel de Serra",
+        printed_type_line: "Criatura — Ángel",
+        printed_text: "Vuela. (Esta criatura no puede ser bloqueada.)",
+      }),
+    ).toEqual({
+      kind: "localized",
+      localization: {
+        oracleId: "o1",
+        lang: "es",
+        name: "Ángel de Serra",
+        typeLine: "Criatura — Ángel",
+        text: "Vuela.",
+        releasedAt: "2020-01-01",
+      },
+    });
+    const dfc = toLocalizedRecord({
+      oracle_id: "o2",
+      lang: "de",
+      card_faces: [
+        { printed_name: "Vorne", printed_type_line: "Kreatur — Mensch", printed_text: "A" },
+        { printed_name: "Hinten", printed_type_line: "Kreatur — Werwolf", printed_text: "B" },
+      ],
+    });
+    expect(dfc).toMatchObject({
+      localization: { name: "Vorne // Hinten", typeLine: "Kreatur — Mensch // Kreatur — Werwolf" },
+    });
+  });
+
+  it("en inglés: sus habilidades; sin nombre impreso u oracle_id, nada", () => {
+    expect(
+      toLocalizedRecord({
+        oracle_id: "o1",
+        lang: "en",
+        keywords: ["Flying"],
+        oracle_text: "Flying",
+      }),
+    ).toEqual({ kind: "english", oracleId: "o1", keywords: ["Flying"], text: "Flying" });
+    expect(toLocalizedRecord({ oracle_id: "o1", lang: "fr" })).toBeNull();
+    expect(toLocalizedRecord({ lang: "fr", printed_name: "X" })).toBeNull();
   });
 });

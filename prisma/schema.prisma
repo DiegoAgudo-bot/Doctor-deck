@@ -676,3 +676,39 @@ model DeckVersion {
 
   @@index([deckId, createdAt])
 }
+
+/// Nombre, tipo y texto impresos de una carta en otro idioma (Scryfall `all_cards`, `printed_*`),
+/// para buscar en cualquier idioma. Sin clave ajena: sobrevive a vaciar el catálogo en cada sync.
+model CardLocalization {
+  oracleId String
+  /// Código de Scryfall: es, fr, de, it, pt, ja, ko, ru, zhs, zht…
+  lang     String
+  name     String
+  /// searchKey(name): sin tildes ni mayúsculas.
+  nameKey  String
+  typeLine String?
+  /// Sin el texto recordatorio.
+  text     String?
+
+  @@id([oracleId, lang])
+  @@index([nameKey])
+}
+
+/// Cómo se dice cada habilidad clave en cada idioma ("Flying" → "Vuela"), aprendido de las cartas.
+model KeywordAlias {
+  keyword  String
+  lang     String
+  alias    String
+  aliasKey String
+  votes    Int
+
+  @@id([keyword, lang, aliasKey])
+}
+
+/// Última descarga de los textos en otros idiomas (una fila).
+model LocalizationSync {
+  id            Int      @id @default(1)
+  syncedAt      DateTime
+  bulkUpdatedAt String
+  rows          Int
+}

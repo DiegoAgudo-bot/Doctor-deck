@@ -128,7 +128,7 @@ export default function Collection() {
     <View style={{ flex: 1 }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 10, gap: 10 }}>
         <SearchField
-          placeholder="Buscar en tu colección"
+          placeholder="Buscar en tu colección (cualquier idioma)"
           value={q}
           onChangeText={setQ}
           onClear={() => setQ("")}

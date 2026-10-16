@@ -313,7 +313,7 @@ export function CollectionMoreFilters({
       <FilterGroup label="Texto de reglas">
         <TextFilter
           label="Texto de reglas"
-          placeholder="draw a card, treasure…"
+          placeholder="roba una carta, draw a card…"
           value={f.text}
           onChange={(text) => set({ text })}
         />
@@ -332,13 +332,13 @@ export function CollectionMoreFilters({
         <span className="flex gap-2">
           <TextFilter
             label="Subtipo"
-            placeholder="Elf, Equipment…"
+            placeholder="Elfo, Elf, Equipo…"
             value={f.subtype}
             onChange={(subtype) => set({ subtype })}
           />
           <TextFilter
             label="Habilidad clave"
-            placeholder="Flying, Ward…"
+            placeholder="Vuela, Flying, Arrolla…"
             value={f.keyword}
             onChange={(keyword) => set({ keyword })}
           />

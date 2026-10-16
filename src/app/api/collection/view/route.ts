@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { BrowserCollectionRepository, noSavedDecks } from "@/adapters/memory/anonymous";
-import { browseCollectionView, collectionView } from "@/application/collection-cards";
+import {
+  browseCollectionView,
+  collectionView,
+  withKeywordMatches,
+} from "@/application/collection-cards";
 import { RARITIES, SUPERTYPES } from "@/domain/cards/attributes";
 import { CARD_TYPES, COLLECTION_SORTS, COLOR_FILTERS } from "@/domain/collection/browse";
 import { ROLES } from "@/domain/roles/types";
@@ -130,7 +134,7 @@ export async function POST(request: Request) {
       timing.add(r.hit ? "cache-hit" : "cache-miss", 0);
       return r.value;
     });
-    const result = browseCollectionView(view, query);
+    const result = browseCollectionView(view, await withKeywordMatches(query, c.cards));
     const body: CollectionViewResponse = {
       // En la colección de otro no salen los nombres de sus mazos (pueden ser privados) ni a
       // quién presta: solo cuántas copias tiene ocupadas.

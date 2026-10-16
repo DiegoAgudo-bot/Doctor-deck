@@ -11,6 +11,7 @@ import {
   type SortDir,
 } from "@/domain/collection/browse";
 import type { Card } from "@/domain/cards/types";
+import { keywordsFor, type LocalizedText } from "@/domain/cards/localized";
 import type { CardRepository } from "@/domain/ports/card-repository";
 import type {
   CollectionEntryRow,
@@ -148,6 +149,8 @@ export interface CollectionCard {
   rarities: string[];
   conditions: string[];
   artists: string[];
+  /** Lo impreso en otros idiomas (para buscar en cualquier idioma). */
+  localized: LocalizedText[];
   /** Copias por idioma (código de Scryfall), de las que se sabe; las de más copias primero. */
   languages: { language: string; quantity: number }[];
   /** Copias que vinieron del CSV y las añadidas sueltas (con su id para poder quitarlas). */
@@ -187,11 +190,12 @@ export async function collectionView(
   const entries = await deps.collection.entries();
   const ids = [...new Set(entries.map((e) => e.oracleId))];
   const printingIds = [...new Set(entries.flatMap((e) => (e.scryfallId ? [e.scryfallId] : [])))];
-  const [cards, prices, usage, printings] = await Promise.all([
+  const [cards, prices, usage, printings, localized] = await Promise.all([
     deps.cards.findCardsByOracleIds(ids),
     deps.cards.findMinPrices(ids),
     deps.decks.usage(),
     printingIds.length > 0 ? deps.cards.findPrintingsByIds(printingIds) : Promise.resolve([]),
+    deps.cards.findLocalizations(ids),
   ]);
   const byId = new Map(cards.map((c) => [c.oracleId, c]));
   const byPrinting = new Map(printings.map((p) => [p.scryfallId.toLowerCase(), p]));
@@ -247,6 +251,7 @@ export async function collectionView(
         rarities: [],
         conditions: [],
         artists: [],
+        localized: localized.get(e.oracleId) ?? [],
         languages: [],
         fromCsv: 0,
         manual: [],
@@ -357,7 +362,19 @@ export async function browseMyCollection(
   query: CollectionQuery,
   deps: Parameters<typeof collectionView>[0],
 ): Promise<CollectionBrowseResult> {
-  return browseCollectionView(await collectionView(deps), query);
+  const view = await collectionView(deps);
+  return browseCollectionView(view, await withKeywordMatches(query, deps.cards));
+}
+
+/** Si se filtra por habilidad, a qué habilidades (en inglés) se refiere en otros idiomas. */
+export async function withKeywordMatches(
+  query: CollectionQuery,
+  cards: Pick<CardRepository, "keywordAliases">,
+): Promise<CollectionQuery> {
+  const keyword = query.filters.keyword?.trim();
+  if (!keyword) return query;
+  const keywordMatches = keywordsFor(keyword, await cards.keywordAliases());
+  return { ...query, filters: { ...query.filters, keywordMatches } };
 }
 
 /** Lo mismo sobre una vista ya calculada (p. ej. guardada en caché). */
