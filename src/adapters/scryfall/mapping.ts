@@ -9,6 +9,10 @@ const face = z.object({
   mana_cost: z.string().optional(),
   type_line: z.string().optional(),
   oracle_text: z.string().optional(),
+  colors: z.array(z.string()).optional(),
+  power: z.string().optional(),
+  toughness: z.string().optional(),
+  loyalty: z.string().optional(),
   image_uris: imageUris,
 });
 
@@ -29,6 +33,12 @@ export const scryfallCardSchema = z.object({
   oracle_text: z.string().optional(),
   keywords: z.array(z.string()).default([]),
   color_identity: z.array(z.string()).default([]),
+  colors: z.array(z.string()).optional(),
+  power: z.string().optional(),
+  toughness: z.string().optional(),
+  loyalty: z.string().optional(),
+  rarity: z.string().optional(),
+  artist: z.string().optional(),
   legalities: z.record(z.string(), z.string()).default({}),
   edhrec_rank: z.number().optional(),
   game_changer: z.boolean().default(false),
@@ -79,6 +89,13 @@ export function toCard(c: ScryfallCard): Card | null {
     edhrecRank: c.edhrec_rank ?? null,
     imageUrl: imageOf(c),
     gameChanger: c.game_changer,
+    // Las de dos caras traen colores, fuerza… en cada cara: los de la primera (y los colores, de todas).
+    colors: COLORS.filter((col): col is Color =>
+      (c.colors ?? (c.card_faces ?? []).flatMap((f) => f.colors ?? [])).includes(col),
+    ),
+    power: c.power ?? c.card_faces?.[0]?.power ?? null,
+    toughness: c.toughness ?? c.card_faces?.[0]?.toughness ?? null,
+    loyalty: c.loyalty ?? c.card_faces?.[0]?.loyalty ?? null,
   };
 }
 
@@ -102,6 +119,8 @@ export function toPrinting(c: ScryfallCard): Printing | null {
     priceEurFoil: parsePrice(c.prices?.eur_foil),
     setName: c.set_name ?? null,
     releasedAt: c.released_at ?? null,
+    rarity: c.rarity ?? null,
+    artist: c.artist ?? null,
   };
 }
 

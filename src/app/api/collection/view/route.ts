@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { BrowserCollectionRepository, noSavedDecks } from "@/adapters/memory/anonymous";
 import { browseCollectionView, collectionView } from "@/application/collection-cards";
+import { RARITIES, SUPERTYPES } from "@/domain/cards/attributes";
 import { CARD_TYPES, COLLECTION_SORTS, COLOR_FILTERS } from "@/domain/collection/browse";
 import { ROLES } from "@/domain/roles/types";
 import { withOverrides } from "@/domain/roles/overrides";
@@ -11,6 +12,9 @@ import { browserRoleEditsSchema, loadRoleEdits, overridesOf } from "@/server/rol
 import { currentUser } from "@/server/session";
 import { Timing } from "@/server/timing";
 import { BODY_LIMIT, readJson } from "@/server/body";
+
+const text = z.string().max(100).optional();
+const num = (min: number, max: number) => z.number().min(min).max(max).optional();
 
 const schema = z.object({
   /** La colección de otro usuario (si la tiene pública). */
@@ -36,6 +40,33 @@ const schema = z.object({
         .string()
         .regex(/^[a-z]{2,3}$/)
         .optional(),
+      text,
+      colorBy: z.enum(["identity", "color"]).optional(),
+      types: z.array(z.enum(CARD_TYPES)).max(8).optional(),
+      supertypes: z.array(z.enum(SUPERTYPES)).max(3).optional(),
+      subtype: text,
+      keyword: text,
+      cmcMin: num(0, 20),
+      cmcMax: num(0, 20),
+      powerMin: num(-5, 99),
+      powerMax: num(-5, 99),
+      toughnessMin: num(-5, 99),
+      toughnessMax: num(-5, 99),
+      loyaltyMin: num(0, 99),
+      loyaltyMax: num(0, 99),
+      rarities: z.array(z.enum(RARITIES)).max(6).optional(),
+      sets: z
+        .array(z.string().regex(/^[a-z0-9]{2,6}$/i))
+        .max(50)
+        .optional(),
+      conditions: z.array(z.string().max(20)).max(8).optional(),
+      artist: text,
+      finish: z.enum(["foil", "nonfoil"]).optional(),
+      priceMin: num(0, 100_000),
+      priceMax: num(0, 100_000),
+      quantityMin: z.number().int().min(1).max(1000).optional(),
+      addedSince: z.iso.datetime().optional(),
+      gameChanger: z.boolean().optional(),
     })
     .default({}),
   /** Una fila por carta o, como ManaBox, por variante (edición, foil, idioma y estado). */
@@ -108,6 +139,7 @@ export async function POST(request: Request) {
         .map((i) => (ownerId && ownerId !== user?.id ? { ...i, usedIn: [] } : i)),
       total: result.total,
       overall: result.overall,
+      facets: result.facets,
     };
     return Response.json(body, { headers: timing.header() });
   } catch (err) {

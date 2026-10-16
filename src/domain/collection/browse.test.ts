@@ -160,3 +160,100 @@ describe("dirección del orden", () => {
     ).toEqual(["D", "C", "B", "A"]);
   });
 });
+
+describe("filtros como los de ManaBox", () => {
+  const more: BrowsableCard[] = [
+    {
+      ...card("Old Gnawbone", {
+        typeLine: "Legendary Creature — Dragon",
+        cmc: 7,
+        price: 12,
+        quantity: 2,
+        foilQuantity: 2,
+        lastAdded: "2026-10-10T00:00:00.000Z",
+      }),
+      card: {
+        name: "Old Gnawbone",
+        typeLine: "Legendary Creature — Dragon",
+        cmc: 7,
+        colorIdentity: ["G"],
+        colors: ["G"],
+        power: "7",
+        toughness: "7",
+        keywords: ["Flying"],
+        oracleText:
+          "Flying. Whenever a creature you control deals combat damage, create a Treasure.",
+        gameChanger: false,
+      },
+      sets: ["CMM"],
+      rarities: ["mythic"],
+      conditions: ["near_mint"],
+      artists: ["Filip Burburan"],
+    },
+    {
+      ...card("Elvish Archdruid", { cmc: 3, price: 1, quantity: 1 }),
+      card: {
+        name: "Elvish Archdruid",
+        typeLine: "Creature — Elf Druid",
+        cmc: 3,
+        colorIdentity: ["G"],
+        colors: ["G"],
+        power: "2",
+        toughness: "2",
+        keywords: [],
+        oracleText: "Other Elf creatures you control get +1/+1.",
+      },
+      sets: ["LRW"],
+      rarities: ["rare"],
+      conditions: ["lightly_played"],
+      artists: ["Karl Kopinski"],
+    },
+    {
+      ...card("Arcane Signet", { typeLine: "Artifact", cmc: 2, colors: [], price: 0.5 }),
+      card: {
+        name: "Arcane Signet",
+        typeLine: "Artifact",
+        cmc: 2,
+        colorIdentity: [],
+        colors: [],
+        gameChanger: false,
+      },
+      sets: ["CMM"],
+      rarities: ["common"],
+    },
+  ];
+  const run = (f: Parameters<typeof browseCollection>[1]) =>
+    names(browseCollection(more, f, "nombre", 0, 50));
+
+  it("texto de reglas, tipos (alguno), supertipo, subtipo y habilidad", () => {
+    expect(run({ text: "treasure" })).toEqual(["Old Gnawbone"]);
+    expect(run({ types: ["Artifact", "Creature"] })).toHaveLength(3);
+    expect(run({ supertypes: ["Legendary"] })).toEqual(["Old Gnawbone"]);
+    expect(run({ subtype: "druid" })).toEqual(["Elvish Archdruid"]);
+    expect(run({ keyword: "fly" })).toEqual(["Old Gnawbone"]);
+  });
+
+  it("rangos de coste, fuerza, resistencia y precio por copia", () => {
+    expect(run({ cmcMin: 2, cmcMax: 3 })).toEqual(["Arcane Signet", "Elvish Archdruid"]);
+    expect(run({ powerMin: 3 })).toEqual(["Old Gnawbone"]);
+    // Sin fuerza (un artefacto) no pasa si se pide un rango.
+    expect(run({ toughnessMax: 5 })).toEqual(["Elvish Archdruid"]);
+    expect(run({ priceMin: 1, priceMax: 20 })).toEqual(["Elvish Archdruid", "Old Gnawbone"]);
+  });
+
+  it("rareza, edición, estado y artista de mis copias", () => {
+    expect(run({ rarities: ["mythic", "rare"] })).toEqual(["Elvish Archdruid", "Old Gnawbone"]);
+    expect(run({ sets: ["cmm"] })).toEqual(["Arcane Signet", "Old Gnawbone"]);
+    expect(run({ conditions: ["lightly_played"] })).toEqual(["Elvish Archdruid"]);
+    expect(run({ artist: "kopinski" })).toEqual(["Elvish Archdruid"]);
+  });
+
+  it("acabado, copias, fecha, game changers y colores de la carta", () => {
+    expect(run({ finish: "foil" })).toEqual(["Old Gnawbone"]);
+    expect(run({ finish: "nonfoil" })).toEqual(["Arcane Signet", "Elvish Archdruid"]);
+    expect(run({ quantityMin: 2 })).toEqual(["Old Gnawbone"]);
+    expect(run({ addedSince: "2026-10-05T00:00:00.000Z" })).toEqual(["Old Gnawbone"]);
+    expect(run({ gameChanger: true })).toEqual([]);
+    expect(run({ colors: ["C"], colorBy: "color" })).toEqual(["Arcane Signet"]);
+  });
+});

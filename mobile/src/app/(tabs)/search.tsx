@@ -1,58 +1,56 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
 import { FlatList, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
 import type { CatalogPageDTO } from "@/server/card-dto";
 import { CardThumb } from "~/components/card-bits";
-import { Chip, Empty, ErrorView, Loading, SearchField, T } from "~/components/ui";
+import { FilterSheetBody } from "~/components/filters";
+import { Sheet } from "~/components/sheet";
+import { Button, Chip, Empty, ErrorView, Loading, SearchField, T } from "~/components/ui";
 import { useAddCopies, useCopyDefaults } from "~/lib/add-copies";
 import { api } from "~/lib/api";
+import {
+  activeFilters,
+  catalogParams,
+  EMPTY_FILTERS,
+  TYPE_OPTIONS,
+  type Filters,
+} from "~/lib/collection-filters";
 import { euros, thousands } from "~/lib/format";
 import { useDebounced } from "~/lib/hooks";
 import { colors, manaColors } from "~/lib/theme";
 
 const PAGE = 45;
-const TYPES = [
-  ["creature", "Criatura"],
-  ["instant", "Instantáneo"],
-  ["sorcery", "Conjuro"],
-  ["artifact", "Artefacto"],
-  ["enchantment", "Encantamiento"],
-  ["planeswalker", "Planeswalker"],
-  ["land", "Tierra"],
-] as const;
 const COLORS = ["W", "U", "B", "R", "G", "C"] as const;
 
-/** Buscador de todas las cartas (catálogo de Scryfall): nombre, tipo o texto, colores y tipo. */
+/**
+ * Buscador de todas las cartas: nombre, tipo o texto, y en la hoja «Filtros» lo mismo que
+ * ManaBox (colores, tipo, supertipo, texto de reglas, coste, fuerza, rareza, edición…).
+ */
 export default function Search() {
   const { width } = useWindowDimensions();
   const [q, setQ] = useState("");
-  const [type, setType] = useState<string | null>(null);
-  const [colorsOn, setColorsOn] = useState<string[]>([]);
-  const [commander, setCommander] = useState(false);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [sheet, setSheet] = useState(false);
   const query = useDebounced(q.trim());
+  const applied = useDebounced(filters, 400);
+  const chips = activeFilters(filters).filter((c) => c.key !== "colors");
+  const setF = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
   const [defaults] = useCopyDefaults();
   const addCopies = useAddCopies();
 
-  const params = new URLSearchParams();
-  if (query) params.set("q", query);
-  if (type) params.set("type", type);
-  if (colorsOn.length > 0) {
-    params.set("colors", colorsOn.join(""));
-    params.set("mode", colorsOn.includes("C") ? "exact" : "includes");
-  }
-  if (commander) params.set("commander", "1");
-  const key = params.toString();
+  const key = catalogParams(applied, query).toString();
 
   const list = useInfiniteQuery({
     queryKey: ["catalog", key],
     queryFn: ({ pageParam }) =>
-      api<CatalogPageDTO>(`/api/cards?${key}&offset=${pageParam}&limit=${PAGE}`),
+      api<CatalogPageDTO>(`/api/cards?${key}${key ? "&" : ""}offset=${pageParam}&limit=${PAGE}`),
     initialPageParam: 0,
     getNextPageParam: (last, pages) => {
       const loaded = pages.reduce((s, p) => s + p.items.length, 0);
       return loaded < last.total ? loaded : undefined;
     },
+    placeholderData: keepPreviousData,
   });
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   const total = list.data?.pages[0]?.total;
@@ -71,36 +69,52 @@ export default function Search() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 6 }}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ gap: 6, alignItems: "center" }}
         >
+          <Chip
+            label={chips.length > 0 ? `Filtros · ${chips.length}` : "Filtros"}
+            icon="options-outline"
+            active={chips.length > 0}
+            onPress={() => setSheet(true)}
+          />
           {COLORS.map((c) => {
-            const on = colorsOn.includes(c);
+            const on = filters.colors.includes(c);
             return (
               <Pressable
                 key={c}
                 accessibilityLabel={`Color ${c}`}
-                onPress={() => setColorsOn(on ? colorsOn.filter((x) => x !== c) : [...colorsOn, c])}
+                accessibilityState={{ selected: on }}
+                onPress={() =>
+                  setF({
+                    colors: on ? filters.colors.filter((x) => x !== c) : [...filters.colors, c],
+                  })
+                }
                 style={{
                   width: 32,
                   height: 32,
                   borderRadius: 16,
                   backgroundColor: manaColors[c],
-                  opacity: on || colorsOn.length === 0 ? 1 : 0.35,
+                  opacity: on || filters.colors.length === 0 ? 1 : 0.35,
                   borderWidth: on ? 2 : 0,
                   borderColor: colors.text,
                 }}
               />
             );
           })}
-          <Chip label="Comandante" active={commander} onPress={() => setCommander(!commander)} />
-          {TYPES.map(([k, label]) => (
+          {chips.map((c) => (
             <Chip
-              key={k}
-              label={label}
-              active={type === k}
-              onPress={() => setType(type === k ? null : k)}
+              key={c.key}
+              label={c.label}
+              trailingIcon="close"
+              accessibilityLabel={`Quitar el filtro ${c.label}`}
+              onPress={() => setF(c.clear)}
             />
           ))}
+          {filters.types.length === 0 &&
+            TYPE_OPTIONS.slice(0, 7).map((t) => (
+              <Chip key={t.key} label={t.label} onPress={() => setF({ types: [t.key] })} />
+            ))}
         </ScrollView>
         {total !== undefined && (
           <T variant="small">{thousands(total)} cartas · mantén pulsada una para añadir 1 copia</T>
@@ -111,7 +125,20 @@ export default function Search() {
       ) : list.isError && items.length === 0 ? (
         <ErrorView error={list.error} onRetry={() => list.refetch()} />
       ) : items.length === 0 ? (
-        <Empty icon="search" title="Ninguna carta" text="Prueba con otro nombre o quita filtros." />
+        <Empty
+          icon="search"
+          title="Ninguna carta"
+          text="Prueba con otro nombre (en inglés) o quita filtros."
+          action={
+            chips.length > 0 || filters.colors.length > 0 ? (
+              <Button
+                label="Quitar filtros"
+                kind="secondary"
+                onPress={() => setFilters(EMPTY_FILTERS)}
+              />
+            ) : undefined
+          }
+        />
       ) : (
         <FlatList
           data={items}
@@ -148,6 +175,30 @@ export default function Search() {
           ListFooterComponent={list.isFetchingNextPage ? <Loading /> : null}
         />
       )}
+
+      <Sheet
+        open={sheet}
+        onClose={() => setSheet(false)}
+        title="Filtrar cartas"
+        footer={
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <Button
+              label="Quitar filtros"
+              kind="secondary"
+              disabled={chips.length === 0 && filters.colors.length === 0}
+              onPress={() => setFilters(EMPTY_FILTERS)}
+              style={{ flex: 1 }}
+            />
+            <Button
+              label={total !== undefined ? `Ver ${thousands(total)}` : "Ver"}
+              onPress={() => setSheet(false)}
+              style={{ flex: 1 }}
+            />
+          </View>
+        }
+      >
+        <FilterSheetBody f={filters} set={setF} mode="catalog" />
+      </Sheet>
     </View>
   );
 }

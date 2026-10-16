@@ -1,3 +1,4 @@
+import { statValue } from "@/domain/cards/attributes";
 import { NON_GAME_LAYOUTS } from "@/domain/cards/card-index";
 import { nameKey } from "@/domain/cards/names";
 import { COLORS, type Card, type Color, type Printing } from "@/domain/cards/types";
@@ -34,7 +35,15 @@ const toRow = (c: Card) => ({
   edhrecRank: c.edhrecRank,
   imageUrl: c.imageUrl,
   gameChanger: c.gameChanger,
+  colors: c.colors ? c.colors.join("") : null,
+  power: c.power ?? null,
+  toughness: c.toughness ?? null,
+  loyalty: c.loyalty ?? null,
+  powerValue: statValue(c.power),
+  toughnessValue: statValue(c.toughness),
 });
+
+const letters = (s: string) => COLORS.filter((c): c is Color => s.includes(c));
 
 const fromRow = (r: OracleCard): Card => ({
   oracleId: r.oracleId,
@@ -46,12 +55,16 @@ const fromRow = (r: OracleCard): Card => ({
   typeLine: r.typeLine,
   oracleText: r.oracleText,
   keywords: JSON.parse(r.keywords) as string[],
-  colorIdentity: COLORS.filter((c): c is Color => r.colorIdentity.includes(c)),
+  colorIdentity: letters(r.colorIdentity),
   legalCommander: r.legalCommander,
   isBasicLand: r.isBasicLand,
   edhrecRank: r.edhrecRank,
   imageUrl: r.imageUrl,
   gameChanger: r.gameChanger,
+  ...(r.colors !== null ? { colors: letters(r.colors) } : {}),
+  power: r.power,
+  toughness: r.toughness,
+  loyalty: r.loyalty,
 });
 
 const printingFromRow = (r: PrintingRow): Printing => ({
@@ -65,6 +78,8 @@ const printingFromRow = (r: PrintingRow): Printing => ({
   priceEurFoil: r.priceEurFoil,
   setName: r.setName,
   releasedAt: r.releasedAt,
+  rarity: r.rarity,
+  artist: r.artist,
 });
 
 /** No salen en el buscador: lo que no es carta de juego (tokens, emblemas, caras sueltas…). */
@@ -168,17 +183,21 @@ export class PrismaCardRepository implements CardRepository, CardCatalogWriter, 
         ],
       });
     }
+    // Por identidad o por los colores de la carta (`colors`, null en datos de antes: no pasan).
+    const field = q.colorBy === "color" ? "colors" : "colorIdentity";
+    const col = (v: Prisma.StringFilter | string): Prisma.OracleCardWhereInput =>
+      field === "colors" ? { colors: v } : { colorIdentity: v };
     if (q.colorless) {
-      and.push({ colorIdentity: "" });
+      and.push(col(""));
     } else if (q.colors.length) {
       const picked = new Set(q.colors);
       if (q.colorMode === "exact") {
-        and.push({ colorIdentity: COLORS.filter((c) => picked.has(c)).join("") });
+        and.push(col(COLORS.filter((c) => picked.has(c)).join("")));
       } else if (q.colorMode === "includes") {
-        for (const c of picked) and.push({ colorIdentity: { contains: c } });
+        for (const c of picked) and.push(col({ contains: c }));
       } else {
-        for (const c of COLORS)
-          if (!picked.has(c)) and.push({ NOT: { colorIdentity: { contains: c } } });
+        if (field === "colors") and.push({ colors: { not: null } });
+        for (const c of COLORS) if (!picked.has(c)) and.push({ NOT: col({ contains: c }) });
       }
     }
     if (q.type) and.push({ typeLine: { contains: q.type } });
@@ -203,6 +222,33 @@ export class PrismaCardRepository implements CardRepository, CardCatalogWriter, 
     if (q.cmc !== null) and.push({ cmc: q.cmc >= 7 ? { gte: 7 } : q.cmc });
     if (q.minPrice !== null) and.push({ minPriceEur: { gte: q.minPrice } });
     if (q.maxPrice !== null) and.push({ minPriceEur: { lte: q.maxPrice } });
+    if (q.oracle) and.push({ oracleText: { contains: q.oracle } });
+    // Los subtipos van tras la raya: "— Elf" o "Elf" más adelante ("— Elf Druid").
+    if (q.subtype) and.push({ typeLine: { contains: "—" } }, { typeLine: { contains: q.subtype } });
+    if (q.keyword) and.push({ keywords: { contains: `"${q.keyword.replace(/"/g, "")}` } });
+    for (const t of q.supertypes) and.push({ typeLine: { contains: t } });
+    const range = (min: number | null, max: number | null) => ({
+      ...(min !== null ? { gte: min } : {}),
+      ...(max !== null ? { lte: max } : {}),
+    });
+    if (q.cmcMin !== null || q.cmcMax !== null) and.push({ cmc: range(q.cmcMin, q.cmcMax) });
+    if (q.powerMin !== null || q.powerMax !== null) {
+      and.push({ powerValue: range(q.powerMin, q.powerMax) });
+    }
+    if (q.toughnessMin !== null || q.toughnessMax !== null) {
+      and.push({ toughnessValue: range(q.toughnessMin, q.toughnessMax) });
+    }
+    if (q.rarities.length || q.set || q.artist) {
+      and.push({
+        printings: {
+          some: {
+            ...(q.rarities.length ? { rarity: { in: q.rarities } } : {}),
+            ...(q.set ? { setCode: q.set } : {}),
+            ...(q.artist ? { artist: { contains: q.artist } } : {}),
+          },
+        },
+      });
+    }
     const where: Prisma.OracleCardWhereInput = { AND: and };
     const dir = catalogSortDir(q);
     // "Más jugadas" de más a menos = rango de EDHREC ascendente; las que no tienen, siempre al final.

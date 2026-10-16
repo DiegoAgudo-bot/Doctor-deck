@@ -537,6 +537,9 @@ export interface CollectionCardDTO {
   quantity: number;
   foilQuantity: number;
   sets: string[];
+  /** Rarezas y estados de las copias (de los que se saben). */
+  rarities: string[];
+  conditions: string[];
   /** Copias por idioma (código de Scryfall), de las que se sabe. */
   languages: { language: string; quantity: number }[];
   fromCsv: number;
@@ -582,6 +585,8 @@ export interface CollectionViewResponse {
   items: CollectionCardDTO[];
   total: CollectionTotals;
   overall: CollectionTotals;
+  /** Para los filtros: las ediciones de toda la colección (con nombre y copias). */
+  facets?: { sets: { code: string; name: string | null; copies: number }[] };
 }
 
 export interface CollectionTotals {
@@ -868,6 +873,8 @@ export const collectionCardDTO = (c: CollectionCard): CollectionCardDTO => ({
   quantity: c.quantity,
   foilQuantity: c.foilQuantity,
   sets: c.sets,
+  rarities: c.rarities,
+  conditions: c.conditions,
   languages: c.languages,
   fromCsv: c.fromCsv,
   manual: c.manual.map((m) => ({ ...m, addedAt: m.addedAt.toISOString() })),

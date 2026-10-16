@@ -5,11 +5,14 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { RARITIES, RARITY_LABELS, SUPERTYPE_LABELS, SUPERTYPES } from "@/domain/cards/attributes";
 import {
+  activeExtraFilters,
   CARD_TYPES,
   CATALOG_SORT_DEFAULT_DIR,
   catalogQueryParams,
   catalogSortDir,
+  EMPTY_CATALOG_QUERY,
   isEmptyQuery,
   parseCatalogQuery,
   type CardType,
@@ -32,6 +35,116 @@ import { formatChange, PriceChart } from "./price-chart";
 import { restorePref, savePref } from "./prefs";
 import { Banner, CardGridSkeleton, EmptyState, fmt, Loading, SortDirButton } from "./ui";
 import { AddToDeck } from "./add-to-deck";
+import { ChipSet, FilterGroup, RangeFields, TextFilter } from "./filter-fields";
+
+const RARITY_OPTIONS = RARITIES.map((r) => [r, RARITY_LABELS[r]] as const);
+const SUPERTYPE_OPTIONS = SUPERTYPES.map((t) => [t, SUPERTYPE_LABELS[t]] as const);
+
+/** Filtros avanzados del buscador (como los de ManaBox), plegados detrás de «Más filtros». */
+function CatalogMoreFilters({
+  q,
+  set,
+}: {
+  q: CatalogQuery;
+  set: (patch: Partial<CatalogQuery>) => void;
+}) {
+  return (
+    <div className="filtergrid">
+      <FilterGroup label="Texto de reglas">
+        <TextFilter
+          label="Texto de reglas"
+          placeholder="draw a card, treasure…"
+          value={q.oracle}
+          onChange={(oracle) => set({ oracle })}
+        />
+      </FilterGroup>
+      <FilterGroup label="Subtipo y habilidad">
+        <span className="flex gap-2">
+          <TextFilter
+            label="Subtipo"
+            placeholder="Elf, Equipment…"
+            value={q.subtype}
+            onChange={(subtype) => set({ subtype })}
+          />
+          <TextFilter
+            label="Habilidad clave"
+            placeholder="Flying, Ward…"
+            value={q.keyword}
+            onChange={(keyword) => set({ keyword })}
+          />
+        </span>
+      </FilterGroup>
+      <FilterGroup label="Supertipo">
+        <ChipSet
+          options={SUPERTYPE_OPTIONS}
+          value={q.supertypes}
+          onChange={(supertypes) => set({ supertypes })}
+        />
+      </FilterGroup>
+      <FilterGroup label="Colores">
+        <select
+          className="select"
+          aria-label="Qué colores mirar"
+          value={q.colorBy}
+          onChange={(e) => set({ colorBy: e.target.value as CatalogQuery["colorBy"] })}
+        >
+          <option value="identity">Identidad de color (lo que admite un mazo)</option>
+          <option value="color">Color de la carta</option>
+        </select>
+      </FilterGroup>
+      <FilterGroup label="Valor de maná">
+        <RangeFields
+          label="Valor de maná"
+          min={q.cmcMin}
+          max={q.cmcMax}
+          onChange={(cmcMin, cmcMax) => set({ cmcMin, cmcMax, cmc: null })}
+        />
+      </FilterGroup>
+      <FilterGroup label="Fuerza">
+        <RangeFields
+          label="Fuerza"
+          min={q.powerMin}
+          max={q.powerMax}
+          onChange={(powerMin, powerMax) => set({ powerMin, powerMax })}
+        />
+      </FilterGroup>
+      <FilterGroup label="Resistencia">
+        <RangeFields
+          label="Resistencia"
+          min={q.toughnessMin}
+          max={q.toughnessMax}
+          onChange={(toughnessMin, toughnessMax) => set({ toughnessMin, toughnessMax })}
+        />
+      </FilterGroup>
+      <FilterGroup label="Rareza (de alguna edición)">
+        <ChipSet
+          options={RARITY_OPTIONS}
+          value={q.rarities}
+          onChange={(rarities) => set({ rarities })}
+        />
+      </FilterGroup>
+      <FilterGroup label="Edición y artista">
+        <span className="flex gap-2">
+          <TextFilter
+            label="Código de edición"
+            placeholder="Código: MH3, CMM…"
+            value={q.set?.toUpperCase() ?? ""}
+            onChange={(v) => {
+              const code = v.trim().toLowerCase();
+              set({ set: /^[a-z0-9]{2,6}$/.test(code) ? code : null });
+            }}
+          />
+          <TextFilter
+            label="Artista"
+            placeholder="Artista"
+            value={q.artist}
+            onChange={(artist) => set({ artist: artist.trim() })}
+          />
+        </span>
+      </FilterGroup>
+    </div>
+  );
+}
 
 const COLOR_LABEL = { W: "Blanco", U: "Azul", B: "Negro", R: "Rojo", G: "Verde" } as const;
 const PAGE = 36;
@@ -176,6 +289,8 @@ export function CardsSearchPage() {
   const setMaxPrice = useCallback((v: number | null) => set({ maxPrice: v }), []);
 
   const colorOn = (c: (typeof COLORS)[number]) => q.colors.includes(c);
+  const extra = activeExtraFilters(q);
+  const [moreOpen, setMoreOpen] = useState(extra > 0);
   return (
     <main className="page">
       <div className="flex flex-col gap-1">
@@ -308,7 +423,28 @@ export function CardsSearchPage() {
             />
             Game changers
           </label>
+          <button
+            type="button"
+            className={`btn ${moreOpen ? "is-on" : ""}`}
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen((o) => !o)}
+          >
+            {extra > 0 ? `Más filtros · ${extra}` : "Más filtros"}
+          </button>
+          {!isEmptyQuery(q) && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setText("");
+                setQ({ ...EMPTY_CATALOG_QUERY, sort: q.sort, dir: q.dir });
+              }}
+            >
+              Quitar filtros
+            </button>
+          )}
         </div>
+        {moreOpen && <CatalogMoreFilters q={q} set={set} />}
       </section>
 
       {error && <Banner tone="out">{error}</Banner>}

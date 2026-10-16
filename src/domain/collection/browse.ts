@@ -1,3 +1,4 @@
+import { statValue, subtypesOf, type Rarity, type Supertype } from "../cards/attributes";
 import { canBeCommander } from "../cards/commander";
 import type { Card } from "../cards/types";
 import type { Role } from "../roles/types";
@@ -5,7 +6,19 @@ import type { Role } from "../roles/types";
 /** Lo mínimo de una carta de la colección para filtrarla y ordenarla. */
 export interface BrowsableCard {
   card: Pick<Card, "name" | "typeLine" | "cmc" | "colorIdentity"> &
-    Partial<Pick<Card, "oracleText" | "legalCommander">>;
+    Partial<
+      Pick<
+        Card,
+        | "oracleText"
+        | "legalCommander"
+        | "keywords"
+        | "gameChanger"
+        | "colors"
+        | "power"
+        | "toughness"
+        | "loyalty"
+      >
+    >;
   roles: readonly Role[];
   quantity: number;
   foilQuantity: number;
@@ -20,6 +33,11 @@ export interface BrowsableCard {
   value: number | null;
   /** ISO 8601 (se compara como texto). */
   lastAdded: string;
+  /** Ediciones (códigos), rarezas, estados y artistas de mis copias, de las que se saben. */
+  sets?: readonly string[] | undefined;
+  rarities?: readonly string[] | undefined;
+  conditions?: readonly string[] | undefined;
+  artists?: readonly string[] | undefined;
 }
 
 export const COLOR_FILTERS = ["W", "U", "B", "R", "G", "C"] as const;
@@ -63,6 +81,45 @@ export interface CollectionFilters {
   language?: string | undefined;
   /** Solo las que pueden ser comandante (para empezar un mazo con lo que tengo). */
   commander?: boolean | undefined;
+
+  // Como los de ManaBox:
+  /** Texto de reglas (sin tildes ni mayúsculas). */
+  text?: string | undefined;
+  /** Los colores comparan la identidad (por defecto) o los colores de la carta. */
+  colorBy?: "identity" | "color" | undefined;
+  /** Con alguno de estos tipos (además de `type`). */
+  types?: readonly CardType[] | undefined;
+  /** Con todos estos supertipos (legendaria, básica, nevada). */
+  supertypes?: readonly Supertype[] | undefined;
+  /** Texto en los subtipos ("elf", "equipment"). */
+  subtype?: string | undefined;
+  /** Con esta habilidad clave ("flying"). */
+  keyword?: string | undefined;
+  /** Valor de maná entre estos (incluidos). */
+  cmcMin?: number | undefined;
+  cmcMax?: number | undefined;
+  powerMin?: number | undefined;
+  powerMax?: number | undefined;
+  toughnessMin?: number | undefined;
+  toughnessMax?: number | undefined;
+  loyaltyMin?: number | undefined;
+  loyaltyMax?: number | undefined;
+  /** Alguna copia de estas rarezas, ediciones (códigos) o estados. */
+  rarities?: readonly Rarity[] | undefined;
+  sets?: readonly string[] | undefined;
+  conditions?: readonly string[] | undefined;
+  /** Texto en el artista de alguna copia. */
+  artist?: string | undefined;
+  /** "foil" = alguna copia foil; "nonfoil" = alguna normal. */
+  finish?: "foil" | "nonfoil" | undefined;
+  /** Precio por copia (`unitPrice`) entre estos, en EUR. */
+  priceMin?: number | undefined;
+  priceMax?: number | undefined;
+  /** Al menos estas copias (2 = repetidas). */
+  quantityMin?: number | undefined;
+  /** Añadidas desde esta fecha (ISO 8601). */
+  addedSince?: string | undefined;
+  gameChanger?: boolean | undefined;
 }
 
 const norm = (s: string) => s.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
@@ -83,11 +140,54 @@ export function colorMatch(
   return identity.length === want.length && want.every((c) => identity.includes(c));
 }
 
+/** ¿Está `v` entre `min` y `max` (los que haya)? Sin valor no pasa si se pide algún límite. */
+function inRange(v: number | null, min: number | undefined, max: number | undefined): boolean {
+  if (min === undefined && max === undefined) return true;
+  if (v === null) return false;
+  return (min === undefined || v >= min) && (max === undefined || v <= max);
+}
+
+const hasType = (typeLine: string, type: string) =>
+  new RegExp(`\\b${type}\\b`).test(frontType(typeLine));
+
+/** ¿Alguno de `have` está en `want`? (sin mayúsculas). */
+const anyOf = (have: readonly string[] | undefined, want: readonly string[]) => {
+  const w = new Set(want.map((x) => x.toLowerCase()));
+  return (have ?? []).some((h) => w.has(h.toLowerCase()));
+};
+
 export function matchesFilters(c: BrowsableCard, f: CollectionFilters): boolean {
   const q = norm(f.q?.trim() ?? "");
   if (q && !norm(c.card.name).includes(q) && !norm(c.card.typeLine).includes(q)) return false;
-  if (!colorMatch(c.card.colorIdentity, f.colors ?? [], f.colorMode ?? "alguno")) return false;
-  if (f.type && !new RegExp(`\\b${f.type}\\b`).test(frontType(c.card.typeLine))) return false;
+  const text = norm(f.text?.trim() ?? "");
+  if (text && !norm(c.card.oracleText ?? "").includes(text)) return false;
+  const colorsOf =
+    f.colorBy === "color" ? (c.card.colors ?? c.card.colorIdentity) : c.card.colorIdentity;
+  if (!colorMatch(colorsOf, f.colors ?? [], f.colorMode ?? "alguno")) return false;
+  if (f.type && !hasType(c.card.typeLine, f.type)) return false;
+  if (f.types?.length && !f.types.some((t) => hasType(c.card.typeLine, t))) return false;
+  if (f.supertypes?.length && !f.supertypes.every((t) => hasType(c.card.typeLine, t))) {
+    return false;
+  }
+  const subtype = norm(f.subtype?.trim() ?? "");
+  if (subtype && !norm(subtypesOf(c.card.typeLine)).includes(subtype)) return false;
+  const keyword = norm(f.keyword?.trim() ?? "");
+  if (keyword && !(c.card.keywords ?? []).some((k) => norm(k).includes(keyword))) return false;
+  if (!inRange(c.card.cmc, f.cmcMin, f.cmcMax)) return false;
+  if (!inRange(statValue(c.card.power), f.powerMin, f.powerMax)) return false;
+  if (!inRange(statValue(c.card.toughness), f.toughnessMin, f.toughnessMax)) return false;
+  if (!inRange(statValue(c.card.loyalty), f.loyaltyMin, f.loyaltyMax)) return false;
+  if (f.rarities?.length && !anyOf(c.rarities, f.rarities)) return false;
+  if (f.sets?.length && !anyOf(c.sets, f.sets)) return false;
+  if (f.conditions?.length && !anyOf(c.conditions, f.conditions)) return false;
+  const artist = norm(f.artist?.trim() ?? "");
+  if (artist && !(c.artists ?? []).some((a) => norm(a).includes(artist))) return false;
+  if (f.finish === "foil" && c.foilQuantity === 0) return false;
+  if (f.finish === "nonfoil" && c.foilQuantity >= c.quantity) return false;
+  if (!inRange(unitPrice(c), f.priceMin, f.priceMax)) return false;
+  if (f.quantityMin !== undefined && c.quantity < f.quantityMin) return false;
+  if (f.addedSince && c.lastAdded < f.addedSince) return false;
+  if (f.gameChanger && !c.card.gameChanger) return false;
   if (f.role && !c.roles.includes(f.role)) return false;
   if (f.cmc !== undefined) {
     const v = Math.floor(c.card.cmc);

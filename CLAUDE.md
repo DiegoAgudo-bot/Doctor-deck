@@ -100,8 +100,17 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   `by: "copy"` en `/api/collection/view` (la app lo usa por defecto, como ManaBox), por variante
   (edición, foil, idioma y estado; `CollectionCard.key`/`variant`) con catálogo, precio, roles, idiomas y mazos que la usan; `browseMyCollection` filtra,
   ordena y pagina en el servidor (`domain/collection/browse.ts`; la web pide 48 por página).
-  En la web, los filtros secundarios (tipo, rol, coste, origen, uso, idioma, foil, comandante)
-  van plegados detrás de «Más filtros · N» (`.filters-more`).
+  Filtros como los de ManaBox (`CollectionFilters`): nombre/tipo, texto de reglas, colores por
+  identidad o color de la carta (`colorBy`), tipos (alguno de), supertipos, subtipo, habilidad
+  clave, rol, rangos de valor de maná, fuerza, resistencia y precio por copia, rareza, edición,
+  estado, artista, acabado (`finish`), idioma, copias mínimas, añadidas desde (`addedSince`),
+  origen, uso, comandante y game changers. La respuesta trae `facets.sets` (mis ediciones con
+  nombre y copias) para elegirlas. En la web van plegados detrás de «Más filtros · N»
+  (`.filters-more`, `components/collection-filters.tsx` + `filter-fields.tsx`); en la app, en la
+  hoja «Filtrar» (`components/filters.tsx`, `lib/collection-filters.ts`), compartida con Buscar.
+  Datos que usan: `OracleCard.colors/power/toughness/loyalty` (+ `powerValue`/`toughnessValue`
+  para filtrar en SQL, `statValue`: «*» = 0) y `Printing.rarity/artist`, que rellena
+  `scryfall:sync` (hasta la primera sincronización tras desplegar, esos filtros no encuentran nada).
   `summary.totalCards` = copias identificadas (sin las filas sin emparejar). Cada copia guarda su
   idioma (`CollectionEntry.language`, código de Scryfall: `en`, `es`, `ja`…; `normalizeLanguage` en
   `domain/cards/languages.ts` acepta también "Japanese"…): sale del `Language` del CSV o del campo
@@ -333,7 +342,10 @@ newInvite?}`), `DELETE /api/groups/{id}/members/{username}`, `GET /api/groups/{i
 - **Buscador de cartas y ficha** (`/cards`, `/cards/{oracleId}`; `application/card-catalog.ts`):
   `CatalogQuery` (`domain/cards/catalog-search.ts`, se lee y escribe en la URL: `q` en nombre, tipo
   o texto, `colors` + `mode` within|exact|includes o `C` incoloras, `type`, `commander=1`, `gc=1`,
-  `cmc` 0–7, `sort` popular|name|cmc) → `CardRepository.searchCatalog` (SQL sobre `OracleCard`, sin
+  `cmc` 0–7, `sort` popular|name|cmc; «Más filtros»: `o` texto de reglas, `sub` subtipo, `kw`
+  habilidad, `super=legendary,snow`, `by=color`, `cmin`/`cmax`, `powmin`/`powmax`,
+  `toumin`/`toumax`, `rarity=rare,mythic`, `set`, `artist`; rareza, edición y artista de alguna
+  impresión) → `CardRepository.searchCatalog` (SQL sobre `OracleCard`, sin
   tokens; "puede ser comandante" aproximado en SQL: legendaria criatura/background o "can be your
   commander") con el precio más barato de cada una. API pública `GET /api/cards` y `GET
 /api/cards/{oracleId}` (`cardDetail`: texto, roles, impresiones con precio normal/foil, mínimos,

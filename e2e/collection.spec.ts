@@ -45,3 +45,21 @@ test("filtra las que pueden ser comandante y desde una se crea un mazo", async (
   await commander.uncheck();
   await expect.poll(async () => (await names(page)).length).toBeGreaterThan(2);
 });
+
+test("filtros como los de ManaBox: tipos, valor de maná y texto de reglas", async ({ page }) => {
+  await page.goto("/collection");
+  await expect(page.locator("figure").first()).toBeVisible();
+  await page.getByRole("button", { name: /^Más filtros/ }).click();
+  const artifact = page.getByRole("button", { name: "Artefacto", exact: true });
+  await artifact.click();
+  await expect(page.getByRole("button", { name: "Más filtros · 1" })).toBeVisible();
+  await expect.poll(async () => (await names(page)).sort()).toContain("Sol Ring");
+  await page.getByLabel("Valor de maná: desde").fill("2");
+  await expect.poll(async () => names(page)).not.toContain("Sol Ring");
+  await page.getByLabel("Valor de maná: desde").fill("");
+  await page.getByRole("textbox", { name: "Texto de reglas" }).fill("flip a coin");
+  await expect.poll(async () => names(page)).toEqual(["Mana Crypt"]);
+  // Que no se quede recordado para el resto de pruebas.
+  await page.getByRole("button", { name: "Quitar filtros" }).first().click();
+  await expect.poll(async () => (await names(page)).length).toBeGreaterThan(2);
+});

@@ -142,6 +142,12 @@ export interface CollectionCard {
   foilQuantity: number;
   /** Ediciones (códigos de set) de las copias, si se conocen. */
   sets: string[];
+  /** Nombre de cada edición de `sets` (de las que se sabe la impresión). */
+  setNames: Record<string, string>;
+  /** Rarezas, estados y artistas de las copias, de los que se saben. */
+  rarities: string[];
+  conditions: string[];
+  artists: string[];
   /** Copias por idioma (código de Scryfall), de las que se sabe; las de más copias primero. */
   languages: { language: string; quantity: number }[];
   /** Copias que vinieron del CSV y las añadidas sueltas (con su id para poder quitarlas). */
@@ -237,6 +243,10 @@ export async function collectionView(
         quantity: 0,
         foilQuantity: 0,
         sets: [],
+        setNames: {},
+        rarities: [],
+        conditions: [],
+        artists: [],
         languages: [],
         fromCsv: 0,
         manual: [],
@@ -259,9 +269,16 @@ export async function collectionView(
       copies.set(sid, (copies.get(sid) ?? 0) + e.quantity);
       printingCopies.set(key, copies);
     }
-    if (e.setCode && !item.sets.includes(e.setCode.toUpperCase())) {
-      item.sets.push(e.setCode.toUpperCase());
-    }
+    const printing = sid ? byPrinting.get(sid) : undefined;
+    const setCode = (e.setCode ?? printing?.setCode)?.toUpperCase();
+    if (setCode && !item.sets.includes(setCode)) item.sets.push(setCode);
+    if (setCode && printing?.setName) item.setNames[setCode] = printing.setName;
+    const add = (list: string[], v: string | null | undefined) => {
+      if (v && !list.includes(v)) list.push(v);
+    };
+    add(item.rarities, printing?.rarity);
+    add(item.artists, printing?.artist);
+    add(item.conditions, e.condition);
     const language = normalizeLanguage(e.language) ?? e.language;
     if (language) {
       const l = item.languages.find((x) => x.language === language);
@@ -301,12 +318,35 @@ export interface CollectionQuery {
   limit: number;
 }
 
+/** Lo que hay en toda la colección para elegir en los filtros (ediciones, artistas…). */
+export interface CollectionFacets {
+  /** Ediciones de mis copias con su nombre y cuántas copias; las de más copias primero. */
+  sets: { code: string; name: string | null; copies: number }[];
+}
+
 export interface CollectionBrowseResult {
   items: CollectionCard[];
   /** Lo que cumple los filtros. */
   total: ReturnType<typeof totals>;
   /** Toda la colección, sin filtros. */
   overall: ReturnType<typeof totals>;
+  facets: CollectionFacets;
+}
+
+/** Las ediciones de toda la colección (una carta en varias cuenta en todas, con todas sus copias). */
+export function collectionFacets(view: readonly CollectionCard[]): CollectionFacets {
+  const sets = new Map<string, { code: string; name: string | null; copies: number }>();
+  for (const c of view) {
+    for (const code of c.sets) {
+      const s = sets.get(code) ?? { code, name: null, copies: 0 };
+      s.copies += c.quantity;
+      s.name ??= c.setNames[code] ?? null;
+      sets.set(code, s);
+    }
+  }
+  return {
+    sets: [...sets.values()].sort((a, b) => b.copies - a.copies || a.code.localeCompare(b.code)),
+  };
 }
 
 /**
@@ -331,6 +371,8 @@ export function browseCollectionView(
     manualCount: c.manual.length,
     languages: c.languages.map((l) => l.language),
     lastAdded: c.lastAdded.toISOString(),
+    // Por variante, solo el estado de esa variante (el resto de datos ya son de esa copia).
+    conditions: c.variant ? (c.variant.condition ? [c.variant.condition] : []) : c.conditions,
     source: c,
   }));
   const page = browseCollection(
@@ -345,6 +387,7 @@ export function browseCollectionView(
     items: page.items.map((i) => i.source),
     total: page.total,
     overall: totals(all),
+    facets: collectionFacets(view),
   };
 }
 
