@@ -53,7 +53,7 @@ function CatalogMoreFilters({
       <FilterGroup label="Texto de reglas">
         <TextFilter
           label="Texto de reglas"
-          placeholder="draw a card, treasure…"
+          placeholder="roba una carta, draw a card…"
           value={q.oracle}
           onChange={(oracle) => set({ oracle })}
         />
@@ -62,13 +62,13 @@ function CatalogMoreFilters({
         <span className="flex gap-2">
           <TextFilter
             label="Subtipo"
-            placeholder="Elf, Equipment…"
+            placeholder="Elfo, Elf, Equipo…"
             value={q.subtype}
             onChange={(subtype) => set({ subtype })}
           />
           <TextFilter
             label="Habilidad clave"
-            placeholder="Flying, Ward…"
+            placeholder="Vuela, Flying, Arrolla…"
             value={q.keyword}
             onChange={(keyword) => set({ keyword })}
           />
@@ -297,8 +297,8 @@ export function CardsSearchPage() {
         <span className="eyebrow">Catálogo</span>
         <h1 className="h1">Buscar cartas</h1>
         <p className="muted text-[13px]">
-          Busca por nombre, tipo o texto. Pulsa una carta para ver su precio, sus ediciones, cuántas
-          tienes y, si puede ser comandante, crear un mazo con ella.
+          Busca por nombre, tipo o texto, en cualquier idioma. Pulsa una carta para ver su precio,
+          sus ediciones, cuántas tienes y, si puede ser comandante, crear un mazo con ella.
         </p>
       </div>
 
@@ -306,7 +306,7 @@ export function CardsSearchPage() {
         <input
           className="input input-lg"
           type="search"
-          placeholder="Sol Ring, dragón, «draw a card»…"
+          placeholder="Sol Ring, Ángel de Serra, «roba una carta»…"
           aria-label="Buscar cartas"
           value={text}
           autoFocus

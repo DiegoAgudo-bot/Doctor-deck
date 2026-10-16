@@ -1,5 +1,6 @@
 import { statValue, subtypesOf, type Rarity, type Supertype } from "../cards/attributes";
 import { canBeCommander } from "../cards/commander";
+import { localizedMatch, type LocalizedText } from "../cards/localized";
 import type { Card } from "../cards/types";
 import type { Role } from "../roles/types";
 
@@ -38,6 +39,8 @@ export interface BrowsableCard {
   rarities?: readonly string[] | undefined;
   conditions?: readonly string[] | undefined;
   artists?: readonly string[] | undefined;
+  /** Lo impreso en otros idiomas (para buscar escribiendo en cualquier idioma). */
+  localized?: readonly LocalizedText[] | undefined;
 }
 
 export const COLOR_FILTERS = ["W", "U", "B", "R", "G", "C"] as const;
@@ -93,8 +96,13 @@ export interface CollectionFilters {
   supertypes?: readonly Supertype[] | undefined;
   /** Texto en los subtipos ("elf", "equipment"). */
   subtype?: string | undefined;
-  /** Con esta habilidad clave ("flying"). */
+  /** Con esta habilidad clave ("flying", o en otro idioma: "vuela"). */
   keyword?: string | undefined;
+  /**
+   * Las habilidades (en inglés) a las que se refiere `keyword` en otros idiomas (`keywordsFor`).
+   * No viene de la API: la rellena el caso de uso.
+   */
+  keywordMatches?: readonly string[] | undefined;
   /** Valor de maná entre estos (incluidos). */
   cmcMin?: number | undefined;
   cmcMax?: number | undefined;
@@ -157,10 +165,25 @@ const anyOf = (have: readonly string[] | undefined, want: readonly string[]) => 
 };
 
 export function matchesFilters(c: BrowsableCard, f: CollectionFilters): boolean {
+  // Lo escrito vale en cualquier idioma: también se mira lo impreso en otros idiomas.
   const q = norm(f.q?.trim() ?? "");
-  if (q && !norm(c.card.name).includes(q) && !norm(c.card.typeLine).includes(q)) return false;
+  if (
+    q &&
+    !norm(c.card.name).includes(q) &&
+    !norm(c.card.typeLine).includes(q) &&
+    !localizedMatch(c.localized, q, (l) => l.name) &&
+    !localizedMatch(c.localized, q, (l) => l.typeLine)
+  ) {
+    return false;
+  }
   const text = norm(f.text?.trim() ?? "");
-  if (text && !norm(c.card.oracleText ?? "").includes(text)) return false;
+  if (
+    text &&
+    !norm(c.card.oracleText ?? "").includes(text) &&
+    !localizedMatch(c.localized, text, (l) => l.text)
+  ) {
+    return false;
+  }
   const colorsOf =
     f.colorBy === "color" ? (c.card.colors ?? c.card.colorIdentity) : c.card.colorIdentity;
   if (!colorMatch(colorsOf, f.colors ?? [], f.colorMode ?? "alguno")) return false;
@@ -170,9 +193,22 @@ export function matchesFilters(c: BrowsableCard, f: CollectionFilters): boolean 
     return false;
   }
   const subtype = norm(f.subtype?.trim() ?? "");
-  if (subtype && !norm(subtypesOf(c.card.typeLine)).includes(subtype)) return false;
+  if (
+    subtype &&
+    !norm(subtypesOf(c.card.typeLine)).includes(subtype) &&
+    !localizedMatch(c.localized, subtype, (l) => (l.typeLine ? subtypesOf(l.typeLine) : null))
+  ) {
+    return false;
+  }
   const keyword = norm(f.keyword?.trim() ?? "");
-  if (keyword && !(c.card.keywords ?? []).some((k) => norm(k).includes(keyword))) return false;
+  if (
+    keyword &&
+    !(c.card.keywords ?? []).some(
+      (k) => norm(k).includes(keyword) || (f.keywordMatches ?? []).includes(k),
+    )
+  ) {
+    return false;
+  }
   if (!inRange(c.card.cmc, f.cmcMin, f.cmcMax)) return false;
   if (!inRange(statValue(c.card.power), f.powerMin, f.powerMax)) return false;
   if (!inRange(statValue(c.card.toughness), f.toughnessMin, f.toughnessMax)) return false;

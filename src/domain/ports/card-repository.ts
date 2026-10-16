@@ -1,4 +1,5 @@
 import type { CatalogQuery } from "../cards/catalog-search";
+import type { CardLocalization, KeywordAlias, LocalizedText } from "../cards/localized";
 import type { NameEntry } from "../cards/name-match";
 import type { Card, Printing } from "../cards/types";
 
@@ -31,6 +32,25 @@ export interface CardRepository {
   counts(): Promise<{ cards: number; printings: number }>;
   /** El nombre de cada cara de cada carta jugable, para reconocerlas con la cámara. */
   nameEntries(): Promise<NameEntry[]>;
+  /**
+   * Lo impreso de estas cartas en otros idiomas (nombre tal cual; tipo y texto ya pasados por
+   * `searchKey`), para buscar en cualquier idioma. Las que no tienen, no salen.
+   */
+  findLocalizations(oracleIds: readonly string[]): Promise<Map<string, LocalizedText[]>>;
+  /** Cómo se dice cada habilidad clave en otros idiomas. */
+  keywordAliases(): Promise<KeywordAlias[]>;
+}
+
+/** Escritura de los textos en otros idiomas (sync semanal). */
+export interface LocalizationWriter {
+  /** Reemplaza todos los textos en otros idiomas y los alias de habilidades. */
+  replaceLocalizations(
+    rows: readonly CardLocalization[],
+    aliases: readonly KeywordAlias[],
+    sync: { syncedAt: Date; bulkUpdatedAt: string },
+  ): Promise<void>;
+  /** La última descarga (null si nunca). */
+  localizationSync(): Promise<{ syncedAt: Date; bulkUpdatedAt: string; rows: number } | null>;
 }
 
 /** Escritura del catálogo, usada solo por la sincronización con Scryfall. */

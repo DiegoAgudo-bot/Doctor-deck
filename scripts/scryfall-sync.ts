@@ -1,10 +1,20 @@
 /**
  * Descarga (si hay versión nueva) los bulk data de Scryfall y los vuelca a SQLite.
- * Uso: npm run scryfall:sync [-- --force] [-- --skip-download]
+ * Uso: npm run scryfall:sync [-- --force] [-- --skip-download] [-- --skip-localized]
+ *
+ * Una vez por semana, además, los nombres y textos en otros idiomas (`all_cards`, ~400 MB que se
+ * leen de la red sin guardarlos); `--force-localized` los descarga aunque no toque.
  */
 import "dotenv/config";
-import { ensureBulkFile, readBulkFile } from "@/adapters/scryfall/bulk";
-import { safeMappers } from "@/adapters/scryfall/mapping";
+import {
+  bulkEntry,
+  ensureBulkFile,
+  readBulkFile,
+  streamJsonLinesGz,
+} from "@/adapters/scryfall/bulk";
+import { safeMappers, toLocalizedRecord } from "@/adapters/scryfall/mapping";
+import { syncLocalizations } from "@/application/sync-localizations";
+import { HttpClient } from "@/adapters/http/http-client";
 import { refreshDeckFacts } from "@/application/community";
 import { notifyPriceDrops, recordPriceSnapshot } from "@/application/prices";
 import { notifyTradeMatches } from "@/application/trades";
@@ -63,6 +73,43 @@ async function main() {
       `${tags.filter((t) => t.status === "fresh").length} al día, ` +
       `${tags.filter((t) => t.status === "failed").length} con error.`,
   );
+  // Nombres y textos en otros idiomas (buscar en cualquier idioma): si falla, se avisa y se
+  // siguen usando los de antes.
+  if (!process.argv.includes("--skip-localized")) {
+    // La descarga es larga: sin el tope de 20 s por petición del cliente normal.
+    const bulkHttp = new HttpClient({
+      userAgent: c.env.HTTP_USER_AGENT,
+      minIntervalMs: c.env.SCRYFALL_MIN_INTERVAL_MS,
+      timeoutMs: 60 * 60_000,
+    });
+    try {
+      const loc = await syncLocalizations(
+        {
+          updatedAt: async () => (await bulkEntry(c.scryfallHttp, "all_cards")).updatedAt,
+          read: async function* () {
+            const { url } = await bulkEntry(c.scryfallHttp, "all_cards");
+            for await (const raw of streamJsonLinesGz(bulkHttp, url)) {
+              yield toLocalizedRecord(raw);
+            }
+          },
+        },
+        c.cards,
+        {
+          force: process.argv.includes("--force-localized"),
+          onProgress: (msg) => process.stdout.write(`\r  Otros idiomas: ${msg}      `),
+        },
+      );
+      console.log(
+        loc.status === "fresh"
+          ? `Otros idiomas: al día (${loc.rows} textos).`
+          : `\nOtros idiomas: ${loc.rows} textos y ${loc.aliases} nombres de habilidades.`,
+      );
+    } catch (err) {
+      console.warn(
+        `Otros idiomas: no se pudieron actualizar (${err instanceof Error ? err.message : String(err)}).`,
+      );
+    }
+  }
   const snapshot = await recordPriceSnapshot({ prices: c.prices });
   console.log(
     `Precios del ${snapshot.date}: ${snapshot.cards} cartas de colecciones y mazos, ${snapshot.printings} impresiones de colecciones.`,

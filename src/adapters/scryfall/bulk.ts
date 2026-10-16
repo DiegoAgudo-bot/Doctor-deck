@@ -11,7 +11,7 @@ import { z } from "zod";
 import type { HttpClient } from "../http/http-client";
 
 export const SCRYFALL_BULK_INDEX = "https://api.scryfall.com/bulk-data";
-export type BulkType = "oracle_cards" | "default_cards";
+export type BulkType = "oracle_cards" | "default_cards" | "all_cards";
 
 // Scryfall sirve ahora los bulk como JSON Lines comprimido (`jsonl_download_uri`, .jsonl.gz); se
 // mantiene `download_uri` (array JSON) por si vuelve o para índices antiguos.
@@ -72,6 +72,37 @@ export async function ensureBulkFile(
   await rename(tmp, file);
   await writeFile(metaFile, JSON.stringify({ updatedAt: entry.updated_at }));
   return { type, path: file, updatedAt: entry.updated_at, downloaded: true };
+}
+
+/** Dónde está la versión actual de un bulk y de cuándo es (sin descargarlo). */
+export async function bulkEntry(
+  http: HttpClient,
+  type: BulkType,
+): Promise<{ url: string; updatedAt: string; jsonl: boolean }> {
+  const index = bulkIndexSchema.parse(await http.getJson(SCRYFALL_BULK_INDEX));
+  const entry = index.data.find((d) => d.type === type);
+  if (!entry) throw new Error(`Scryfall no ofrece el bulk "${type}"`);
+  return {
+    url: entry.jsonl_download_uri ?? entry.download_uri ?? "",
+    updatedAt: entry.updated_at,
+    jsonl: entry.jsonl_download_uri !== undefined,
+  };
+}
+
+/**
+ * Recorre un bulk JSON Lines con gzip directamente de la red, objeto a objeto, sin guardarlo en
+ * disco (el de todos los idiomas pesa ~400 MB comprimido y solo se usa una vez por semana).
+ */
+export async function* streamJsonLinesGz(http: HttpClient, url: string): AsyncGenerator<unknown> {
+  const res = await http.get(url);
+  if (!res.body) throw new Error(`Respuesta vacía al descargar ${url}`);
+  const lines = createInterface({
+    input: Readable.fromWeb(res.body as WebReadableStream<Uint8Array>).pipe(createGunzip()),
+    crlfDelay: Infinity,
+  });
+  for await (const line of lines) {
+    if (line.trim()) yield JSON.parse(line);
+  }
 }
 
 async function readMeta(metaFile: string): Promise<{ updatedAt: string } | null> {

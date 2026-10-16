@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { stripReminder, type CardLocalization } from "@/domain/cards/localized";
 import { COLORS, type Card, type Color, type Printing } from "@/domain/cards/types";
 
 const imageUris = z.object({ normal: z.string().optional() }).partial().optional();
@@ -135,3 +136,81 @@ export const safeMappers = {
     return r.success ? toPrinting(r.data) : null;
   },
 };
+
+const localizedFace = z.object({
+  printed_name: z.string().optional(),
+  printed_type_line: z.string().optional(),
+  printed_text: z.string().optional(),
+  oracle_id: z.string().optional(),
+});
+
+/** Lo que se lee de `all_cards` para buscar en otros idiomas. */
+const localizedSchema = z.object({
+  oracle_id: z.string().optional(),
+  lang: z.string(),
+  released_at: z.string().optional(),
+  printed_name: z.string().optional(),
+  printed_type_line: z.string().optional(),
+  printed_text: z.string().optional(),
+  oracle_text: z.string().optional(),
+  keywords: z.array(z.string()).default([]),
+  card_faces: z.array(localizedFace.extend({ oracle_text: z.string().optional() })).optional(),
+});
+
+/** Una impresión de `all_cards`: en otro idioma, lo impreso; en inglés, sus habilidades. */
+export type LocalizedRecord =
+  | { kind: "localized"; localization: CardLocalization }
+  | { kind: "english"; oracleId: string; keywords: string[]; text: string | null };
+
+const joined = (parts: (string | undefined)[], sep: string) => {
+  const ok = parts.filter((p): p is string => Boolean(p));
+  return ok.length ? ok.join(sep) : null;
+};
+
+/** De `all_cards`: null si no sirve (sin oracle_id o, en otro idioma, sin nombre impreso). */
+export function toLocalizedRecord(raw: unknown): LocalizedRecord | null {
+  const r = localizedSchema.safeParse(raw);
+  if (!r.success) return null;
+  const c = r.data;
+  const faces = c.card_faces ?? [];
+  const oracleId = c.oracle_id ?? faces[0]?.oracle_id;
+  if (!oracleId) return null;
+  if (c.lang === "en") {
+    return {
+      kind: "english",
+      oracleId,
+      keywords: c.keywords,
+      text: c.oracle_text ?? faces[0]?.oracle_text ?? null,
+    };
+  }
+  const name =
+    c.printed_name ??
+    joined(
+      faces.map((f) => f.printed_name),
+      " // ",
+    );
+  if (!name) return null;
+  const typeLine =
+    c.printed_type_line ??
+    joined(
+      faces.map((f) => f.printed_type_line),
+      " // ",
+    );
+  const text =
+    c.printed_text ??
+    joined(
+      faces.map((f) => f.printed_text),
+      "\n//\n",
+    );
+  return {
+    kind: "localized",
+    localization: {
+      oracleId,
+      lang: c.lang,
+      name,
+      typeLine,
+      text: text === null ? null : stripReminder(text) || null,
+      releasedAt: c.released_at ?? null,
+    },
+  };
+}

@@ -34,10 +34,10 @@ export function statValue(v: string | null | undefined): number | null {
   return /^[*Xx?∞]/.test(v.trim()) ? 0 : null;
 }
 
-/** Subtipos de una línea de tipo (lo que va tras «—», de todas las caras). */
+/** Subtipos de una línea de tipo (lo que va tras «—», o «～» en chino, de todas las caras). */
 export const subtypesOf = (typeLine: string): string =>
   typeLine
     .split("//")
-    .map((face) => face.split("—")[1]?.trim() ?? "")
+    .map((face) => face.split(/[—～]/)[1]?.trim() ?? "")
     .filter(Boolean)
     .join(" ");

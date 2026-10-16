@@ -200,7 +200,7 @@ export function FilterSheetBody({
       <Section label="Texto de reglas">
         <TextBox
           label="Texto de reglas"
-          placeholder="draw a card, treasure…"
+          placeholder="roba una carta, draw a card…"
           value={f.text}
           onChange={(text) => set({ text })}
         />
@@ -209,13 +209,13 @@ export function FilterSheetBody({
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TextBox
             label="Subtipo"
-            placeholder="Elf, Equipment…"
+            placeholder="Elfo, Elf, Equipo…"
             value={f.subtype}
             onChange={(subtype) => set({ subtype })}
           />
           <TextBox
             label="Habilidad clave"
-            placeholder="Flying, Ward…"
+            placeholder="Vuela, Flying, Arrolla…"
             value={f.keyword}
             onChange={(keyword) => set({ keyword })}
           />
