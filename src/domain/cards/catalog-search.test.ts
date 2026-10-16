@@ -14,6 +14,7 @@ describe("consulta del buscador de cartas", () => {
       ),
     );
     expect(q).toEqual({
+      ...EMPTY_CATALOG_QUERY,
       text: "dragon",
       colors: ["R", "G"],
       colorMode: "exact",
@@ -54,5 +55,34 @@ describe("precio y dirección en la URL", () => {
       maxPrice: null,
     });
     expect(parseCatalogQuery(new URLSearchParams("sort=nope")).sort).toBe("popular");
+  });
+});
+
+describe("filtros avanzados en la URL", () => {
+  it("texto de reglas, subtipo, habilidad, supertipos, rangos, rareza, edición y artista", () => {
+    const url =
+      "colors=G&by=color&o=draw&sub=elf&kw=flying&super=legendary,snow,nope&cmin=2&cmax=4" +
+      "&powmin=3&toumax=5&rarity=rare,mythic,foo&set=MH3&artist=Rebecca";
+    const q = parseCatalogQuery(new URLSearchParams(url));
+    expect(q).toMatchObject({
+      colors: ["G"],
+      colorBy: "color",
+      oracle: "draw",
+      subtype: "elf",
+      keyword: "flying",
+      supertypes: ["Legendary", "Snow"],
+      cmcMin: 2,
+      cmcMax: 4,
+      powerMin: 3,
+      powerMax: null,
+      toughnessMax: 5,
+      rarities: ["rare", "mythic"],
+      set: "mh3",
+      artist: "Rebecca",
+    });
+    expect(isEmptyQuery(q)).toBe(false);
+    expect(parseCatalogQuery(catalogQueryParams(q))).toEqual(q);
+    expect(isEmptyQuery(parseCatalogQuery(new URLSearchParams("rarity=mythic")))).toBe(false);
+    expect(parseCatalogQuery(new URLSearchParams("cmin=x&set=!!"))).toEqual(EMPTY_CATALOG_QUERY);
   });
 });

@@ -1683,6 +1683,21 @@
   .filters:not(.is-open) .filters-more {
     display: none !important;
   }
+  /* Filtros avanzados (como los de ManaBox): grupos con título en rejilla. */
+  .filtergrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+    gap: 14px 18px;
+  }
+  .filtergroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .filtergroup .input {
+    min-width: 0;
+  }
   @media (max-width: 640px) {
     /* !important: las utilidades de Tailwind (flex) van en una capa posterior. */
     .filters:not(.is-open) .filters-extra {

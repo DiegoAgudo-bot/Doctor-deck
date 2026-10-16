@@ -8,7 +8,8 @@ import { errorResponse } from "@/server/http";
 /**
  * Buscador de cartas (público): `?q=` (nombre, tipo o texto), `colors=WU` (o `C`), `mode=within|
  * exact|includes`, `type=creature…`, `commander=1`, `gc=1`, `cmc=0..7`, `sort=popular|name|cmc`,
- * `offset`, `limit` (máx. 60).
+ * filtros avanzados (`o`, `sub`, `kw`, `super`, `by`, `cmin`/`cmax`, `powmin`/`powmax`,
+ * `toumin`/`toumax`, `rarity`, `set`, `artist`; ver `parseCatalogQuery`), `offset`, `limit` (máx. 60).
  */
 export async function GET(req: NextRequest) {
   await connection();

@@ -25,6 +25,12 @@ export interface Card {
    * (`npm run otags:sync`). Ausente si no se han cargado.
    */
   otags?: readonly string[];
+  /** Colores de la carta (no la identidad: sin los símbolos del texto). Ausente en datos viejos. */
+  colors?: Color[];
+  /** Fuerza, resistencia y lealtad tal cual ("3", "*", "1+*"); de la primera cara si hay dos. */
+  power?: string | null;
+  toughness?: string | null;
+  loyalty?: string | null;
 }
 
 /** Impresión concreta de una carta. */
@@ -42,6 +48,9 @@ export interface Printing {
   /** Nombre de la edición ("Commander 2021") y fecha de salida ("2021-04-23"). */
   setName?: string | null;
   releasedAt?: string | null;
+  /** "common" | "uncommon" | "rare" | "mythic" | "special" | "bonus". */
+  rarity?: string | null;
+  artist?: string | null;
 }
 
 /** Precio de una copia de esa impresión: foil o normal (si falta uno, el otro). */

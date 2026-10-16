@@ -1,16 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LANGUAGES, languageBadge, languageLabel } from "@/domain/cards/languages";
+import { languageBadge, languageLabel } from "@/domain/cards/languages";
 import {
   COLLECTION_SORT_DEFAULT_DIR,
-  COLLECTION_SORTS,
-  type CollectionFilters,
   type CollectionSort,
-  type SortDir,
   unitPrice,
 } from "@/domain/collection/browse";
-import { ROLES, type Role } from "@/domain/roles/types";
 import { formatEuros } from "@/domain/suggestions/format";
 import type {
   CardDTO,
@@ -18,6 +14,8 @@ import type {
   CollectionTotals,
   CollectionViewResponse,
 } from "@/server/dto";
+
+type Facets = NonNullable<CollectionViewResponse["facets"]>;
 import { readCached, writeCached } from "./swr-cache";
 import { api, ApiError } from "./api-client";
 import { CardHover, CardImage } from "./card-image";
@@ -29,11 +27,23 @@ import { roleLabel } from "./deck-views";
 import { ManaCost, SYMBOL_URL } from "./mana";
 import { restorePref, savePref } from "./prefs";
 import { Banner, CardGridSkeleton, fmt, SortDirButton } from "./ui";
+import {
+  anyActive,
+  COLORS,
+  CollectionMoreFilters,
+  EMPTY,
+  type ColorKey,
+  type ColorMode,
+  type Filters,
+  moreActiveCount,
+  parseCollectionPref,
+  prefOf,
+  toQuery,
+  type View,
+} from "./collection-filters";
 
 /* eslint-disable @next/next/no-img-element -- símbolos de maná de Scryfall en los filtros */
 
-const COLORS = ["W", "U", "B", "R", "G", "C"] as const;
-type ColorKey = (typeof COLORS)[number];
 const COLOR_LABEL: Record<ColorKey, string> = {
   W: "Blanco",
   U: "Azul",
@@ -43,113 +53,11 @@ const COLOR_LABEL: Record<ColorKey, string> = {
   C: "Incoloro",
 };
 
-const TYPES = [
-  ["Creature", "Criatura"],
-  ["Instant", "Instantáneo"],
-  ["Sorcery", "Conjuro"],
-  ["Artifact", "Artefacto"],
-  ["Enchantment", "Encantamiento"],
-  ["Planeswalker", "Planeswalker"],
-  ["Land", "Tierra"],
-  ["Battle", "Batalla"],
-] as const;
-
-type ColorMode = "alguno" | "dentro" | "exacto";
 type Sort = CollectionSort;
-
-interface Filters {
-  q: string;
-  colors: ColorKey[];
-  colorMode: ColorMode;
-  type: string;
-  role: Role | "";
-  cmc: number | null;
-  origin: "" | "csv" | "manual";
-  use: "" | "libres" | "en-mazos";
-  foil: boolean;
-  /** Solo las que pueden ser comandante. */
-  commander: boolean;
-  language: string;
-  sort: Sort;
-  /** null = la natural del orden. */
-  dir: SortDir | null;
-}
-
-const EMPTY: Filters = {
-  q: "",
-  colors: [],
-  colorMode: "alguno",
-  type: "",
-  role: "",
-  cmc: null,
-  origin: "",
-  use: "",
-  foil: false,
-  commander: false,
-  language: "",
-  sort: "nombre",
-  dir: null,
-};
-
-type View = "cuadricula" | "tabla";
-
-/**
- * Lo que se recuerda de la colección (con la cuenta): filtros, orden y vista; no el texto buscado.
- * Al leerlo se valida campo a campo (lo que no se entiende, se ignora).
- */
-function parseCollectionPref(raw: unknown): { filters: Partial<Filters>; view: View } | null {
-  if (typeof raw !== "object" || raw === null) return null;
-  const r = raw as Record<string, unknown>;
-  const str = (k: string) => (typeof r[k] === "string" ? (r[k] as string) : undefined);
-  const f: Partial<Filters> = {};
-  const sort = str("sort");
-  if (sort && (COLLECTION_SORTS as readonly string[]).includes(sort)) f.sort = sort as Sort;
-  const dir = str("dir");
-  if (dir === "asc" || dir === "desc") f.dir = dir;
-  if (Array.isArray(r.colors)) {
-    f.colors = COLORS.filter((c) => (r.colors as unknown[]).includes(c));
-  }
-  const mode = str("colorMode");
-  if (mode === "alguno" || mode === "dentro" || mode === "exacto") f.colorMode = mode;
-  const type = str("type");
-  if (type !== undefined && (type === "" || TYPES.some(([en]) => en === type))) f.type = type;
-  const role = str("role");
-  if (role !== undefined && (role === "" || (ROLES as readonly string[]).includes(role))) {
-    f.role = role as Role | "";
-  }
-  if (r.cmc === null || (typeof r.cmc === "number" && r.cmc >= 0 && r.cmc <= 7)) {
-    f.cmc = r.cmc as number | null;
-  }
-  const origin = str("origin");
-  if (origin === "" || origin === "csv" || origin === "manual") f.origin = origin;
-  const use = str("use");
-  if (use === "" || use === "libres" || use === "en-mazos") f.use = use;
-  if (typeof r.foil === "boolean") f.foil = r.foil;
-  if (typeof r.commander === "boolean") f.commander = r.commander;
-  const language = str("language");
-  if (language !== undefined && (language === "" || language in LANGUAGES)) f.language = language;
-  return { filters: f, view: r.view === "tabla" ? "tabla" : "cuadricula" };
-}
 
 /** Cartas por página: la colección se pide al servidor por trozos ("Ver más"). */
 const PAGE = 48;
 const front = (typeLine: string) => typeLine.split("//")[0] ?? typeLine;
-
-/** Los filtros de la interfaz, en el formato de la API (sin los vacíos). */
-function toQuery(f: Filters): CollectionFilters {
-  return {
-    ...(f.q.trim() ? { q: f.q.trim() } : {}),
-    ...(f.colors.length > 0 ? { colors: f.colors, colorMode: f.colorMode } : {}),
-    ...(f.type ? { type: f.type as CollectionFilters["type"] } : {}),
-    ...(f.role ? { role: f.role } : {}),
-    ...(f.cmc !== null ? { cmc: f.cmc } : {}),
-    ...(f.origin ? { origin: f.origin } : {}),
-    ...(f.use ? { use: f.use } : {}),
-    ...(f.foil ? { foil: true } : {}),
-    ...(f.commander ? { commander: true } : {}),
-    ...(f.language ? { language: f.language } : {}),
-  };
-}
 
 /**
  * Pestaña "Mis cartas": la colección agrupada por carta, con filtros, orden y dos vistas. El
@@ -211,6 +119,7 @@ export function CollectionBrowser({
   const editable = loggedIn && !username;
   const [items, setItems] = useState<CollectionCardDTO[] | null>(null);
   const [total, setTotal] = useState<CollectionTotals | null>(null);
+  const [facets, setFacets] = useState<Facets>({ sets: [] });
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -251,25 +160,7 @@ export function CollectionBrowser({
 
   useEffect(() => {
     if (!ready || !remember) return;
-    savePref(
-      "collection",
-      {
-        colors: f.colors,
-        colorMode: f.colorMode,
-        type: f.type,
-        role: f.role,
-        cmc: f.cmc,
-        origin: f.origin,
-        use: f.use,
-        foil: f.foil,
-        commander: f.commander,
-        language: f.language,
-        sort: f.sort,
-        dir: f.dir,
-        view,
-      },
-      loggedIn,
-    );
+    savePref("collection", prefOf(f, view), loggedIn);
   }, [f, view, ready, remember, loggedIn]);
 
   // Primera página al cambiar filtros u orden (con un respiro mientras se escribe en el buscador).
@@ -299,6 +190,7 @@ export function CollectionBrowser({
             if (id !== request.current) return;
             setItems(r.items);
             setTotal(r.total);
+            if (r.facets) setFacets(r.facets);
             if (cacheable) {
               writeCached("collection-first", { sig: signature, items: r.items, total: r.total });
             }
@@ -335,28 +227,9 @@ export function CollectionBrowser({
   const copies = total?.copies ?? 0;
   const value = total?.value ?? 0;
   const remaining = total ? total.cards - shown.length : 0;
-  const active =
-    f.q !== "" ||
-    f.colors.length > 0 ||
-    f.type !== "" ||
-    f.role !== "" ||
-    f.cmc !== null ||
-    f.origin !== "" ||
-    f.use !== "" ||
-    f.foil ||
-    f.commander ||
-    f.language !== "";
-  /** Filtros de la segunda fila activos (van plegados detrás de «Más filtros»). */
-  const moreActive = [
-    f.type !== "",
-    f.role !== "",
-    f.cmc !== null,
-    f.origin !== "",
-    f.use !== "",
-    f.foil,
-    f.commander,
-    f.language !== "",
-  ].filter(Boolean).length;
+  const active = anyActive(f);
+  /** Filtros plegados activos (van detrás de «Más filtros»). */
+  const moreActive = moreActiveCount(f);
 
   return (
     <div className="flex flex-col gap-3">
@@ -422,115 +295,24 @@ export function CollectionBrowser({
             </select>
           </div>
         </div>
-        <div className="filters-extra filters-more flex flex-wrap items-center gap-2">
-          <select
-            className="select"
-            style={{ width: "auto" }}
-            aria-label="Tipo"
-            value={f.type}
-            onChange={(e) => set({ type: e.target.value })}
-          >
-            <option value="">Todos los tipos</option>
-            {TYPES.map(([en, es]) => (
-              <option key={en} value={en}>
-                {es}
-              </option>
-            ))}
-          </select>
-          <select
-            className="select"
-            style={{ width: "auto" }}
-            aria-label="Rol"
-            value={f.role}
-            onChange={(e) => set({ role: e.target.value as Role | "" })}
-          >
-            <option value="">Todos los roles</option>
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {roleLabel(r)}
-              </option>
-            ))}
-          </select>
-          <select
-            className="select"
-            style={{ width: "auto" }}
-            aria-label="Coste de maná"
-            value={f.cmc ?? ""}
-            onChange={(e) => set({ cmc: e.target.value === "" ? null : Number(e.target.value) })}
-          >
-            <option value="">Cualquier coste</option>
-            {[0, 1, 2, 3, 4, 5, 6, 7].map((n) => (
-              <option key={n} value={n}>
-                Coste {n === 7 ? "7+" : n}
-              </option>
-            ))}
-          </select>
-          {loggedIn && (
-            <>
-              <select
-                className="select"
-                style={{ width: "auto" }}
-                aria-label="Origen"
-                value={f.origin}
-                onChange={(e) => set({ origin: e.target.value as Filters["origin"] })}
-              >
-                <option value="">CSV y a mano</option>
-                <option value="csv">Del CSV</option>
-                <option value="manual">Añadidas a mano</option>
-              </select>
-              <select
-                className="select"
-                style={{ width: "auto" }}
-                aria-label="Uso en mazos"
-                value={f.use}
-                onChange={(e) => set({ use: e.target.value as Filters["use"] })}
-              >
-                <option value="">Usadas o no</option>
-                <option value="libres">Con copias libres</option>
-                <option value="en-mazos">En algún mazo</option>
-              </select>
-              <select
-                className="select"
-                style={{ width: "auto" }}
-                aria-label="Idioma"
-                value={f.language}
-                onChange={(e) => set({ language: e.target.value })}
-              >
-                <option value="">Cualquier idioma</option>
-                {Object.entries(LANGUAGES).map(([code, label]) => (
-                  <option key={code} value={code}>
-                    En {label}
-                  </option>
-                ))}
-              </select>
-              <label className="check" style={{ alignItems: "center" }}>
-                <input
-                  type="checkbox"
-                  checked={f.foil}
-                  onChange={(e) => set({ foil: e.target.checked })}
-                  style={{ marginTop: 0 }}
-                />
-                Solo foil
-              </label>
-              <label className="check" style={{ alignItems: "center" }}>
-                <input
-                  type="checkbox"
-                  checked={f.commander}
-                  onChange={(e) => set({ commander: e.target.checked })}
-                  style={{ marginTop: 0 }}
-                />
-                Pueden ser comandante
-              </label>
-            </>
-          )}
+        <div className="filters-extra filters-more flex flex-col gap-3">
+          <CollectionMoreFilters
+            f={f}
+            set={set}
+            sets={facets.sets}
+            copyFilters={loggedIn || Boolean(username)}
+            mine={loggedIn && !username}
+          />
           {active && (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => set({ ...EMPTY, sort: f.sort, dir: f.dir })}
-            >
-              Quitar filtros
-            </button>
+            <div>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => set({ ...EMPTY, sort: f.sort, dir: f.dir })}
+              >
+                Quitar filtros
+              </button>
+            </div>
           )}
         </div>
       </div>

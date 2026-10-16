@@ -104,3 +104,31 @@ describe("printingPrice", () => {
     expect(printingPrice(p, true)).toBeNull();
   });
 });
+
+describe("colores, fuerza, rareza y artista", () => {
+  it("de la carta o, si tiene dos caras, de la primera (colores de todas)", () => {
+    const raw = {
+      id: "x1",
+      oracle_id: "o1",
+      name: "Front // Back",
+      layout: "transform",
+      set: "isd",
+      collector_number: "51",
+      rarity: "mythic",
+      artist: "Someone",
+      card_faces: [
+        { name: "Front", type_line: "Creature — Human", power: "2", toughness: "3", colors: ["G"] },
+        {
+          name: "Back",
+          type_line: "Creature — Werewolf",
+          power: "4",
+          toughness: "4",
+          colors: ["R"],
+        },
+      ],
+    };
+    const card = scryfallCardSchema.parse(raw);
+    expect(toCard(card)).toMatchObject({ colors: ["R", "G"], power: "2", toughness: "3" });
+    expect(toPrinting(card)).toMatchObject({ rarity: "mythic", artist: "Someone" });
+  });
+});

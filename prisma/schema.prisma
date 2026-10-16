@@ -36,6 +36,14 @@ model OracleCard {
   gameChanger    Boolean    @default(false)
   /// Precio (EUR) de la impresión más barata; lo mantiene `insertPrintings`. Para ordenar por precio.
   minPriceEur    Float?
+  /// Colores de la carta (WUBRG concatenadas); null = datos de antes de guardarlos.
+  colors         String?
+  /// Fuerza, resistencia y lealtad tal cual ("*", "1+*"); y su valor numérico para filtrar.
+  power          String?
+  toughness      String?
+  loyalty        String?
+  powerValue     Float?
+  toughnessValue Float?
   printings      Printing[]
 
   @@index([nameKey])
@@ -58,6 +66,9 @@ model Printing {
   /// Nombre de la edición y fecha de salida ("YYYY-MM-DD").
   setName         String?
   releasedAt      String?
+  /// "common" | "uncommon" | "rare" | "mythic" | "special" | "bonus".
+  rarity          String?
+  artist          String?
 
   @@index([oracleId])
   @@index([setCode, collectorNumber])

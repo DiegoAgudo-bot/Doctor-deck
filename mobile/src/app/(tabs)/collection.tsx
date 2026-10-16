@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { router, useNavigation } from "expo-router";
 import { useLayoutEffect, useMemo, useState } from "react";
 import {
@@ -13,6 +13,7 @@ import {
 import type { CollectionCardDTO, CollectionViewResponse } from "@/server/dto";
 import { Bell } from "~/components/bell";
 import { CardThumb, FoilMark } from "~/components/card-bits";
+import { FilterSheetBody } from "~/components/filters";
 import { OptionRow, Sheet } from "~/components/sheet";
 import {
   Button,
@@ -31,7 +32,13 @@ import { euros, thousands } from "~/lib/format";
 import { conditionShort } from "~/lib/copies";
 import { useDebounced, useStoredState } from "~/lib/hooks";
 import { pickImportFile } from "~/lib/import-file";
-import { colors, manaColors } from "~/lib/theme";
+import {
+  activeFilters,
+  collectionQuery,
+  EMPTY_FILTERS,
+  type Filters,
+} from "~/lib/collection-filters";
+import { colors } from "~/lib/theme";
 
 const PAGE = 60;
 const SORTS = [
@@ -43,15 +50,6 @@ const SORTS = [
   { key: "coste", label: "Coste" },
 ] as const;
 type Sort = (typeof SORTS)[number]["key"];
-const COLORS = ["W", "U", "B", "R", "G", "C"] as const;
-const COLOR_NAMES: Record<string, string> = {
-  W: "Blanco",
-  U: "Azul",
-  B: "Negro",
-  R: "Rojo",
-  G: "Verde",
-  C: "Incoloro",
-};
 
 /** Mi colección agrupada por carta, como la de ManaBox: buscar, ordenar, filtrar, lista o rejilla. */
 export default function Collection() {
@@ -63,26 +61,22 @@ export default function Collection() {
   // Como ManaBox: una fila por variante (edición, foil, idioma, estado); o todas juntas por carta.
   const [by, setBy] = useStoredState<"copy" | "card">("collection.by", "copy");
   const [q, setQ] = useState("");
-  const [colorsOn, setColorsOn] = useState<string[]>([]);
-  const [foil, setFoil] = useState(false);
-  const [free, setFree] = useState(false);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [sheet, setSheet] = useState<"sort" | "filters" | "add" | null>(null);
   const query = useDebounced(q.trim());
-  const activeFilters = colorsOn.length + Number(foil) + Number(free);
+  // Lo que se escribe en la hoja (texto, rangos) se aplica al dejar de escribir.
+  const applied = useDebounced(filters, 400);
+  const chips = activeFilters(filters);
+  const setF = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
 
   const body = useMemo(
     () => ({
-      filters: {
-        ...(query ? { q: query } : {}),
-        ...(colorsOn.length > 0 ? { colors: colorsOn, colorMode: "alguno" } : {}),
-        ...(foil ? { foil: true } : {}),
-        ...(free ? { use: "libres" } : {}),
-      },
+      filters: { ...(query ? { q: query } : {}), ...collectionQuery(applied) },
       by,
       sort,
       dir: desc ? "desc" : "asc",
     }),
-    [query, colorsOn, foil, free, sort, desc, by],
+    [query, applied, sort, desc, by],
   );
 
   const list = useInfiniteQuery({
@@ -96,6 +90,8 @@ export default function Collection() {
       const loaded = pages.reduce((s, p) => s + p.items.length, 0);
       return loaded < last.total.cards ? loaded : undefined;
     },
+    // Al cambiar un filtro se sigue viendo lo de antes hasta que llega lo nuevo.
+    placeholderData: keepPreviousData,
   });
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   const first = list.data?.pages[0];
@@ -122,13 +118,7 @@ export default function Collection() {
       setDesc(key !== "nombre" && key !== "coste");
     }
   };
-  const toggleColor = (c: string) =>
-    setColorsOn(colorsOn.includes(c) ? colorsOn.filter((x) => x !== c) : [...colorsOn, c]);
-  const clearFilters = () => {
-    setColorsOn([]);
-    setFoil(false);
-    setFree(false);
-  };
+  const clearFilters = () => setFilters(EMPTY_FILTERS);
   const sortLabel = SORTS.find((s) => s.key === sort)?.label ?? "Orden";
 
   const columns = grid ? 3 : 1;
@@ -158,35 +148,20 @@ export default function Collection() {
             onPress={() => setSheet("sort")}
           />
           <Chip
-            label={activeFilters > 0 ? `Filtros · ${activeFilters}` : "Filtros"}
+            label={chips.length > 0 ? `Filtros · ${chips.length}` : "Filtros"}
             icon="options-outline"
-            active={activeFilters > 0}
+            active={chips.length > 0}
             onPress={() => setSheet("filters")}
           />
-          {colorsOn.length > 0 && (
+          {chips.map((c) => (
             <Chip
-              label={colorsOn.join("")}
+              key={c.key}
+              label={c.label}
               trailingIcon="close"
-              accessibilityLabel="Quitar el filtro de colores"
-              onPress={() => setColorsOn([])}
+              accessibilityLabel={`Quitar el filtro ${c.label}`}
+              onPress={() => setF(c.clear)}
             />
-          )}
-          {foil && (
-            <Chip
-              label="★ Foil"
-              trailingIcon="close"
-              accessibilityLabel="Quitar el filtro foil"
-              onPress={() => setFoil(false)}
-            />
-          )}
-          {free && (
-            <Chip
-              label="Libres"
-              trailingIcon="close"
-              accessibilityLabel="Quitar el filtro libres"
-              onPress={() => setFree(false)}
-            />
-          )}
+          ))}
         </ScrollView>
         {first && (
           <T variant="small">
@@ -230,7 +205,7 @@ export default function Collection() {
             icon="search"
             title="Nada con esos filtros"
             action={
-              activeFilters > 0 || q ? (
+              chips.length > 0 || q ? (
                 <Button
                   label="Quitar filtros"
                   kind="secondary"
@@ -316,7 +291,7 @@ export default function Collection() {
             <Button
               label="Quitar filtros"
               kind="secondary"
-              disabled={activeFilters === 0}
+              disabled={chips.length === 0}
               onPress={clearFilters}
               style={{ flex: 1 }}
             />
@@ -328,39 +303,12 @@ export default function Collection() {
           </View>
         }
       >
-        <T variant="label">Colores (alguno de)</T>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-          {COLORS.map((c) => {
-            const on = colorsOn.includes(c);
-            return (
-              <Pressable
-                key={c}
-                accessibilityRole="button"
-                accessibilityLabel={COLOR_NAMES[c]}
-                accessibilityState={{ selected: on }}
-                onPress={() => toggleColor(c)}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: manaColors[c],
-                  opacity: on || colorsOn.length === 0 ? 1 : 0.35,
-                  borderWidth: on ? 3 : 0,
-                  borderColor: colors.text,
-                }}
-              />
-            );
-          })}
-        </View>
-        <T variant="label">Copias</T>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          <Chip label="★ Solo foil" active={foil} onPress={() => setFoil(!foil)} />
-          <Chip
-            label="Solo libres (no están en mazos)"
-            active={free}
-            onPress={() => setFree(!free)}
-          />
-        </View>
+        <FilterSheetBody
+          f={filters}
+          set={setF}
+          mode="collection"
+          sets={first?.facets?.sets ?? []}
+        />
       </Sheet>
 
       <Sheet open={sheet === "add"} onClose={() => setSheet(null)} title="Añadir cartas">
