@@ -10,14 +10,23 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     rules: {
       userAgent: "*",
       allow: "/",
+      // Lo personal (exige cuenta) no se rastrea; además lleva `noindex`. `$`: solo la lista de
+      // mis mazos, no los mazos públicos (/decks/{id}).
       disallow: [
         "/api/",
         "/img/",
+        "/admin/",
         "/settings",
         "/notifications",
         "/trades",
-        "/collection",
-        "/decks/new",
+        "/feed",
+        "/groups",
+        "/games/",
+        "/loans",
+        "/decks$",
+        "/login",
+        "/forgot-password",
+        "/reset-password",
       ],
     },
     sitemap: new URL("/sitemap.xml", base).toString(),

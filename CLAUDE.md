@@ -177,7 +177,17 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   `opengraph-image` en `/decks/[id]` (solo públicos u ocultos; los ocultos con `noindex`) y
   `/u/[username]`: imagen 1200×630 con el arte del comandante (`art_crop` de la caché de imágenes),
   fuente Instrument Sans (`assets/fonts`, OFL). `metadataBase` = `BETTER_AUTH_URL`. `robots.ts` y
-  `sitemap.ts` (mazos públicos y perfiles) se generan al pedirlos.
+  `sitemap.ts` (páginas públicas, mazos públicos, perfiles y cartas) se generan al pedirlos.
+  **SEO**: el layout raíz pone `metadataBase` con `publicSiteUrl()` (`config/site.ts`: lee
+  `BETTER_AUTH_URL` sin `loadEnv`, porque también corre en el build; el `Dockerfile` la recibe como
+  `ARG` desde `docker-compose.yml`), título/descripción con palabras clave y la imagen por defecto
+  (`app/opengraph-image.tsx`). Cada página pública pone su `alternates.canonical` (nunca en el
+  layout: todas apuntarían a la portada); las personales llevan `robots: { index: false }` y
+  `robots.ts` no las deja rastrear. Datos estructurados con `JsonLd` (`components/json-ld.tsx`):
+  portada (WebSite con buscador, Organization, WebApplication, FAQPage), cartas y mazos
+  (BreadcrumbList; mazo, CreativeWork) y perfiles (ProfilePage). La ficha de carta se pinta en el
+  servidor (`publicCardDetail` en `server/card-page.ts`, con `cache`; el cliente la vuelve a pedir
+  solo con sesión), con descripción (`cardDescription`, `server/seo.ts`) e imagen con su arte.
 - **Tema** «Pentacromo» (`globals.css`): base neutra, acento azul y la gema del logo (`--gem`,
   `--gem-v`) en la franja bajo la barra superior, el subrayado de pestañas y la fila activa del
   lateral. Propuestas descartadas y capturas en `branding/themes/`.

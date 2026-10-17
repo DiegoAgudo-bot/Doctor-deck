@@ -70,7 +70,7 @@ test.describe("portada", () => {
 
   test("sin cuenta, la portada viene en el HTML del servidor", async ({ request }) => {
     const html = await (await request.get("/")).text();
-    expect(html).toContain("Mejora tus mazos con las cartas");
+    expect(html).toContain("Mejora tus mazos de Commander con las cartas");
     expect(html).toContain("Preguntas frecuentes");
     expect(html).toContain("Lo último de la comunidad");
   });

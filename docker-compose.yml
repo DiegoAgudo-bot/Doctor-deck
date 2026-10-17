@@ -6,7 +6,10 @@
 #   BETTER_AUTH_SECRET   secreto de las sesiones de usuario (scripts/deploy.sh lo genera si falta)
 services:
   deck-doctor:
-    build: .
+    build:
+      context: .
+      args:
+        BETTER_AUTH_URL: https://${DECK_DOCTOR_HOST:?DECK_DOCTOR_HOST must be set}
     container_name: deck_doctor
     restart: unless-stopped
     env_file: .env

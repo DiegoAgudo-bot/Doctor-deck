@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { SettingsPage } from "@/components/settings-page";
 import { getContainer } from "@/server/container";
 
-export const metadata: Metadata = { title: "Ajustes · Doctor Deck" };
+export const metadata: Metadata = { title: "Ajustes · Doctor Deck", robots: { index: false } };
 
 /** Qué se puede vincular o verificar depende de la configuración en tiempo de ejecución. */
 async function Settings() {

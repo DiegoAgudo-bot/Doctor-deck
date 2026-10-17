@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { getContainer } from "@/server/container";
 import { siteUrl } from "@/server/share";
 
-/** Portada, comunidad, mazos públicos, perfiles con mazos públicos y fichas de cartas. */
+/** Páginas públicas, mazos públicos, perfiles con mazos públicos y fichas de cartas. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   await connection();
   const base = siteUrl();
@@ -22,6 +22,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     { url: url("/"), changeFrequency: "weekly", priority: 1 },
     { url: url("/community"), changeFrequency: "daily", priority: 0.8 },
+    { url: url("/analyze"), changeFrequency: "monthly", priority: 0.8 },
+    { url: url("/cards"), changeFrequency: "daily", priority: 0.8 },
+    { url: url("/decks/new"), changeFrequency: "monthly", priority: 0.7 },
+    { url: url("/collection"), changeFrequency: "monthly", priority: 0.7 },
+    { url: url("/play"), changeFrequency: "monthly", priority: 0.6 },
+    { url: url("/signup"), changeFrequency: "yearly", priority: 0.3 },
+    { url: url("/privacy"), changeFrequency: "yearly", priority: 0.1 },
+    { url: url("/legal"), changeFrequency: "yearly", priority: 0.1 },
     ...decks.map((d) => ({
       url: url(`/decks/${d.id}`),
       lastModified: d.updatedAt,

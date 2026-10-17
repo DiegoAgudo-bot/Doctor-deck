@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { scryfallImagePath } from "@/domain/cards/images";
 import { COLORS, type Color } from "@/domain/cards/types";
 import { loadEnv } from "@/config/env";
@@ -20,12 +21,13 @@ export interface DeckShare {
 }
 
 /** De la imagen normal de Scryfall, la del arte recortado (misma carta, otra carpeta). */
-const artCrop = (imageUrl: string | null) => {
+export const artCrop = (imageUrl: string | null) => {
   const path = imageUrl ? scryfallImagePath(imageUrl) : null;
   return path ? path.replace(/^[a-z_]+\//, "art_crop/").replace(/\.png$/, ".jpg") : null;
 };
 
-export async function deckShare(id: string): Promise<DeckShare | null> {
+/** `cache`: los metadatos, la imagen y la página lo piden en la misma petición. */
+export const deckShare = cache(async (id: string): Promise<DeckShare | null> => {
   const c = getContainer();
   const found = await c.publicDecks.find(id, null);
   if (!found) return null;
@@ -46,7 +48,7 @@ export async function deckShare(id: string): Promise<DeckShare | null> {
     unlisted: deck.visibility === "unlisted",
     artPath: artCrop(commanders[0]?.imageUrl ?? null),
   };
-}
+});
 
 /** Lo que se enseña al compartir un perfil. */
 export interface ProfileShare {
@@ -58,7 +60,7 @@ export interface ProfileShare {
   artPath: string | null;
 }
 
-export async function profileShare(username: string): Promise<ProfileShare | null> {
+export const profileShare = cache(async (username: string): Promise<ProfileShare | null> => {
   const c = getContainer();
   const profile = await c.social.byUsername(username.toLowerCase());
   if (!profile?.username) return null;
@@ -72,7 +74,7 @@ export async function profileShare(username: string): Promise<ProfileShare | nul
     commanders: [...new Set(decks.flatMap((d) => d.commanderNames))].slice(0, 3),
     artPath: artCrop(commander?.imageUrl ?? null),
   };
-}
+});
 
 /** La imagen (de la caché de disco o de Scryfall) como data URI, o null si no se puede. */
 export async function imageDataUri(path: string | null): Promise<string | null> {

@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Home } from "@/components/home";
 import { Landing } from "@/components/landing";
 import { Banner, Loading } from "@/components/ui";
 import { hasSession, landingDecks } from "@/server/landing";
+import { siteUrl } from "@/server/share";
+
+// Título y descripción, los del layout raíz.
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 /**
  * Portada. Sin sesión, la landing se pinta en el servidor (está en el HTML desde el principio:
@@ -32,7 +37,7 @@ async function HomeOrLanding({ searchParams }: Pick<PageProps<"/">, "searchParam
       {params.account === "deleted" && (
         <Banner tone="info">Tu cuenta y todos tus datos se han borrado.</Banner>
       )}
-      <Landing decks={decks} />
+      <Landing decks={decks} siteUrl={siteUrl()} />
     </main>
   );
 }

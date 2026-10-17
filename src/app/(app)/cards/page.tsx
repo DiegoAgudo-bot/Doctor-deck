@@ -3,8 +3,10 @@ import { Suspense } from "react";
 import { CardsSearchPage } from "@/components/cards-pages";
 
 export const metadata: Metadata = {
-  title: "Buscar cartas · Doctor Deck",
-  description: "Busca cualquier carta de Magic: precio, ediciones y mazos de Commander.",
+  title: "Buscador de cartas de Magic · Doctor Deck",
+  description:
+    "Busca cualquier carta de Magic: The Gathering por nombre, texto, tipo, colores o coste: precio, ediciones, comandantes y mazos de Commander.",
+  alternates: { canonical: "/cards" },
 };
 
 export default function Page() {

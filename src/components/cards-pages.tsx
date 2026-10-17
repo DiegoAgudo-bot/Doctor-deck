@@ -492,11 +492,12 @@ const PERIODS: [number, string][] = [
 ];
 
 /** /cards/{oracleId}: ficha de una carta. */
-export function CardDetailPage() {
+/** `initial`: la ficha sin sesión, pintada en el servidor (con sesión se vuelve a pedir). */
+export function CardDetailPage({ initial }: { initial?: CardDetailDTO }) {
   const { id } = useParams<{ id: string }>();
   const { data: session } = authClient.useSession();
   const loggedIn = Boolean(session);
-  const [d, setD] = useState<CardDetailDTO | null>(null);
+  const [d, setD] = useState<CardDetailDTO | null>(initial ?? null);
   const [error, setError] = useState<string | null>(null);
   const [shown, setShown] = useState<string | null>(null);
   const [days, setDays] = useState(90);
@@ -512,8 +513,10 @@ export function CardDetailPage() {
       );
   }, [id]);
   useEffect(() => {
+    // Sin sesión, la del servidor ya es la buena.
+    if (initial && !session) return;
     load();
-  }, [load, session]);
+  }, [load, session, initial]);
   useEffect(() => {
     api<CardPricesDTO>(`/api/cards/${encodeURIComponent(id)}/prices?days=${days}`, undefined, {
       silent: true,
