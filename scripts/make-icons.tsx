@@ -1,5 +1,7 @@
 /**
  * Genera los iconos (favicon, PWA, iOS y app Android) a partir del logo (`LOGO_FACETS`).
+ * Sin fondo (transparentes), salvo los que la plataforma rellena: el "maskable" de la PWA y el de
+ * iOS (que pinta de negro lo transparente).
  * Uso: npx tsx scripts/make-icons.tsx (solo hace falta si cambia el logo; los ficheros se suben al repo).
  */
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -18,8 +20,11 @@ function gem(size: number) {
   );
 }
 
-/** El logo sobre fondo oscuro. `pad` = margen (los "maskable" y el adaptativo de Android necesitan más). */
-function icon(size: number, pad: number, rounded: boolean) {
+/**
+ * El logo, sin fondo o (`solid`) sobre fondo oscuro. `pad` = margen (los "maskable" y el adaptativo
+ * de Android necesitan más).
+ */
+function icon(size: number, pad: number, solid = false) {
   return new ImageResponse(
     <div
       style={{
@@ -28,8 +33,7 @@ function icon(size: number, pad: number, rounded: boolean) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: rounded ? size * 0.22 : 0,
-        background: BG,
+        ...(solid ? { background: BG } : {}),
       }}
     >
       {gem(size * (1 - pad * 2))}
@@ -38,28 +42,58 @@ function icon(size: number, pad: number, rounded: boolean) {
   );
 }
 
-/** Favicon en SVG: la gema sobre un cuadrado redondeado oscuro (se ve igual con tema claro u oscuro). */
+/** Favicon en SVG: solo la gema, sin fondo. */
 function faviconSvg() {
   const paths = LOGO_FACETS.map(([d, fill]) => `<path d="${d}" fill="${fill}"/>`).join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><radialGradient id="bg" cx="30%" cy="18%" r="85%"><stop offset="0" stop-color="#23344d"/><stop offset=".72" stop-color="#131313"/></radialGradient></defs><rect width="64" height="64" rx="14" fill="url(#bg)"/><g transform="translate(4.5 4.5) scale(2.29)">${paths}</g></svg>\n`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">${paths}</svg>\n`;
+}
+
+/** `favicon.ico` con PNG dentro (formato ICO admitido desde Windows Vista y por todos los navegadores). */
+function ico(pngs: [size: number, png: Buffer][]) {
+  const header = Buffer.alloc(6 + 16 * pngs.length);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(pngs.length, 4);
+  let offset = header.length;
+  pngs.forEach(([size, png], i) => {
+    const at = 6 + 16 * i;
+    header.writeUInt8(size >= 256 ? 0 : size, at);
+    header.writeUInt8(size >= 256 ? 0 : size, at + 1);
+    header.writeUInt16LE(1, at + 4);
+    header.writeUInt16LE(32, at + 6);
+    header.writeUInt32LE(png.length, at + 8);
+    header.writeUInt32LE(offset, at + 12);
+    offset += png.length;
+  });
+  return Buffer.concat([header, ...pngs.map(([, png]) => png)]);
+}
+
+async function png(res: ImageResponse) {
+  return Buffer.from(await res.arrayBuffer());
 }
 
 async function main() {
   mkdirSync("public/icons", { recursive: true });
   writeFileSync("public/icons/favicon.svg", faviconSvg());
   console.log("public/icons/favicon.svg");
+  const sizes = [16, 32, 48];
+  writeFileSync(
+    "src/app/favicon.ico",
+    ico(await Promise.all(sizes.map(async (s) => [s, await png(icon(s, 0))] as [number, Buffer]))),
+  );
+  console.log("src/app/favicon.ico");
   const out: [string, ImageResponse][] = [
-    ["public/icons/icon-192.png", icon(192, 0.12, true)],
-    ["public/icons/icon-512.png", icon(512, 0.12, true)],
+    ["public/icons/icon-192.png", icon(192, 0.06)],
+    ["public/icons/icon-512.png", icon(512, 0.06)],
     // Android recorta los "maskable" en círculo o squircle: logo dentro de la zona segura (80 %).
-    ["public/icons/maskable-512.png", icon(512, 0.24, false)],
-    ["public/icons/apple-touch-icon.png", icon(180, 0.14, false)],
-    // App móvil (Expo): icono normal y primer plano del adaptativo (zona segura = 66 % central).
-    ["mobile/assets/icon.png", icon(512, 0.14, true)],
-    ["mobile/assets/adaptive-icon.png", icon(512, 0.3, false)],
+    ["public/icons/maskable-512.png", icon(512, 0.24, true)],
+    ["public/icons/apple-touch-icon.png", icon(180, 0.14, true)],
+    // App móvil (Expo): icono normal y primer plano del adaptativo (zona segura = 66 % central;
+    // el fondo lo pone `adaptiveIcon.backgroundColor`).
+    ["mobile/assets/icon.png", icon(512, 0.06)],
+    ["mobile/assets/adaptive-icon.png", icon(512, 0.3)],
   ];
   for (const [name, res] of out) {
-    writeFileSync(name, Buffer.from(await res.arrayBuffer()));
+    writeFileSync(name, await png(res));
     console.log(name);
   }
 }
