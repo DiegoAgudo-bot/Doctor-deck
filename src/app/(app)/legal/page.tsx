@@ -8,6 +8,7 @@ import { loadEnv } from "@/config/env";
 export const metadata: Metadata = {
   title: "Aviso legal · Doctor Deck",
   description: "Titular, condiciones de uso y propiedad intelectual de Doctor Deck.",
+  alternates: { canonical: "/legal" },
 };
 
 async function OwnerData() {

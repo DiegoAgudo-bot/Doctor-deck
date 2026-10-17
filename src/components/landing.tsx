@@ -3,7 +3,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { IconArrowRight, IconCollection, IconDecks, IconSwap, IconUsers } from "./icons";
+import { SITE_NAME } from "@/config/site";
 import type { LandingDeck } from "@/server/landing";
+import { JsonLd } from "./json-ld";
 import { ColorPips, SYMBOL_URL } from "./mana";
 
 /** Una carta dibujada con CSS (sin imágenes externas): marco del color, coste, arte y texto. */
@@ -68,38 +70,92 @@ function Feature({
 }
 
 /** Preguntas de quien llega por primera vez (respuestas cortas, antes de pedir la cuenta). */
-const FAQ: [string, ReactNode][] = [
-  ["¿Es gratis?", "Sí, gratis y sin anuncios."],
-  [
-    "¿Necesito cuenta?",
-    "No para analizar un mazo: tu colección se queda en este navegador. Con una cuenta guardas tus mazos y tienes la colección en cualquier dispositivo.",
-  ],
-  [
-    "¿Cómo traigo mi colección?",
-    "Sube el CSV que exporta tu app de colección o añade las cartas a mano, con edición, foil, idioma y estado.",
-  ],
-  [
-    "¿De dónde salen las recomendaciones?",
-    "De lo que juega la comunidad con tu comandante en miles de mazos. Los precios son los de referencia del mercado europeo.",
-  ],
-  [
-    "¿Qué hacéis con mis datos?",
-    <>
-      Solo los usamos para que la app funcione. Puedes descargarlos o borrar tu cuenta desde Ajustes
-      cuando quieras. Más en la <Link href="/privacy">política de privacidad</Link>.
-    </>,
-  ],
+const FAQ: { q: string; a: string; more?: ReactNode }[] = [
+  { q: "¿Es gratis?", a: "Sí, gratis y sin anuncios." },
+  {
+    q: "¿Necesito cuenta?",
+    a: "No para analizar un mazo: tu colección se queda en este navegador. Con una cuenta guardas tus mazos y tienes la colección en cualquier dispositivo.",
+  },
+  {
+    q: "¿Cómo traigo mi colección?",
+    a: "Sube el CSV que exporta tu app de colección o añade las cartas a mano, con edición, foil, idioma y estado.",
+  },
+  {
+    q: "¿De dónde salen las recomendaciones?",
+    a: "De lo que juega la comunidad con tu comandante en miles de mazos. Los precios son los de referencia del mercado europeo.",
+  },
+  {
+    q: "¿Qué hacéis con mis datos?",
+    a: "Solo los usamos para que la app funcione. Puedes descargarlos o borrar tu cuenta desde Ajustes cuando quieras.",
+    more: (
+      <>
+        {" "}
+        Más en la <Link href="/privacy">política de privacidad</Link>.
+      </>
+    ),
+  },
 ];
 
-/** Portada para quien llega sin cuenta: qué hace Doctor Deck, enseñado más que contado. */
-export function Landing({ decks = [] }: { decks?: LandingDeck[] }) {
+/** Datos estructurados de la portada: la web (con su buscador), la app y las preguntas. */
+function landingJsonLd(base: URL) {
+  const url = base.toString();
+  return [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: SITE_NAME,
+      url,
+      inLanguage: "es",
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${new URL("/cards", base).toString()}?q={search_term_string}`,
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: SITE_NAME,
+      url,
+      logo: new URL("/icons/icon-512.png", base).toString(),
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      name: SITE_NAME,
+      url,
+      applicationCategory: "GameApplication",
+      operatingSystem: "Web, Android",
+      inLanguage: "es",
+      description:
+        "Mejora tus mazos de Commander de Magic: The Gathering con las cartas de tu colección: cambios 1×1, precios, combos e intercambios.",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: FAQ.map(({ q, a }) => ({
+        "@type": "Question",
+        name: q,
+        acceptedAnswer: { "@type": "Answer", text: a },
+      })),
+    },
+  ];
+}
+
+/**
+ * Portada para quien llega sin cuenta: qué hace Doctor Deck, enseñado más que contado. Con
+ * `siteUrl` (desde el servidor) lleva también los datos estructurados.
+ */
+export function Landing({ decks = [], siteUrl }: { decks?: LandingDeck[]; siteUrl?: URL }) {
   return (
     <div className="landing">
+      {siteUrl && <JsonLd data={landingJsonLd(siteUrl)} />}
       <section className="hero">
         <div className="hero-copy">
-          <span className="eyebrow">Para jugadores de Commander</span>
+          <span className="eyebrow">Para jugadores de Magic: The Gathering</span>
           <h1>
-            Mejora tus mazos con las cartas <em>que ya tienes</em>
+            Mejora tus mazos de Commander con las cartas <em>que ya tienes</em>
           </h1>
           <p>
             Doctor Deck cruza tus mazos con tu colección y con lo que juega la comunidad: te dice
@@ -242,10 +298,13 @@ export function Landing({ decks = [] }: { decks?: LandingDeck[] }) {
         <h2 id="faq-title" className="h2" style={{ fontSize: 20 }}>
           Preguntas frecuentes
         </h2>
-        {FAQ.map(([q, a]) => (
+        {FAQ.map(({ q, a, more }) => (
           <details key={q}>
             <summary>{q}</summary>
-            <p className="muted">{a}</p>
+            <p className="muted">
+              {a}
+              {more}
+            </p>
           </details>
         ))}
       </section>

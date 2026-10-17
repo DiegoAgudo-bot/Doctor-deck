@@ -8,6 +8,7 @@ import { loadEnv } from "@/config/env";
 export const metadata: Metadata = {
   title: "Privacidad · Doctor Deck",
   description: "Qué datos guarda Doctor Deck, para qué, cuánto tiempo y cómo borrarlos.",
+  alternates: { canonical: "/privacy" },
 };
 
 /** Titular y contacto: se leen al servir la página (vienen del .env del servidor). */

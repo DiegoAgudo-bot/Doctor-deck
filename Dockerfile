@@ -12,6 +12,9 @@ COPY prisma ./prisma
 RUN npm ci
 
 COPY . .
+# URL pública para los metadatos de las páginas que se generan en el build (canónicas, vistas
+# previas). docker-compose.yml la pasa desde DECK_DOCTOR_HOST; sin ella, https://doctordeck.app.
+ARG BETTER_AUTH_URL
 RUN npm run build
 
 ENV NODE_ENV=production \

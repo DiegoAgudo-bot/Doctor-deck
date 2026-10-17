@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { LoginForm } from "@/components/auth-forms";
 import { getContainer } from "@/server/container";
 
-export const metadata: Metadata = { title: "Entrar · Doctor Deck" };
+export const metadata: Metadata = { title: "Entrar · Doctor Deck", robots: { index: false } };
 
 /** Los métodos de login disponibles dependen de la configuración en tiempo de ejecución. */
 async function Login() {

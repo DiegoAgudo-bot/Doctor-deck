@@ -3,6 +3,7 @@ import { IBM_Plex_Mono, IBM_Plex_Sans, Spectral } from "next/font/google";
 import Script from "next/script";
 import { ErrorReporter } from "@/components/error-reporter";
 import { ServiceWorker } from "@/components/service-worker";
+import { publicSiteUrl, SITE_NAME } from "@/config/site";
 import "./globals.css";
 
 const plexSans = IBM_Plex_Sans({
@@ -22,11 +23,34 @@ const spectral = Spectral({
   variable: "--font-spectral",
 });
 
+const DESCRIPTION =
+  "Mejora tus mazos de Commander (Magic: The Gathering) con las cartas que ya tienes: cambios 1×1 con lo que juega la comunidad, tu colección, combos, precios e intercambios.";
+
+// Las páginas que no dicen otra cosa heredan esto. La canónica no va aquí: cada página pública
+// pone la suya (si estuviera aquí, todas apuntarían a la portada).
 export const metadata: Metadata = {
-  title: "Doctor Deck",
-  description:
-    "Mejora tus mazos de Commander con las cartas que ya tienes: cambios 1×1 con lo que juega la comunidad, tu colección, combos e intercambios con otros jugadores.",
-  applicationName: "Doctor Deck",
+  metadataBase: publicSiteUrl(),
+  title: `${SITE_NAME}: mejora tus mazos de Commander con tu colección`,
+  description: DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: [
+    "Commander",
+    "EDH",
+    "Magic: The Gathering",
+    "mazos de Commander",
+    "colección de Magic",
+    "precios de cartas",
+    "intercambio de cartas",
+  ],
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "es_ES",
+    title: SITE_NAME,
+    description: DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image" },
+  formatDetection: { telephone: false, email: false, address: false },
   icons: {
     icon: [
       { url: "/icons/favicon.svg", type: "image/svg+xml" },
@@ -34,7 +58,7 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
-  appleWebApp: { capable: true, title: "Doctor Deck", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: SITE_NAME, statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
