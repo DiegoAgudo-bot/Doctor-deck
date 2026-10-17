@@ -77,9 +77,7 @@ const CAMERA_STALL_MS = 2500;
 const DARK_HINT_MS = 2500;
 
 type Status =
-  | { kind: "idle" }
-  | { kind: "reading"; detail: string | null }
-  | { kind: "found"; name: string };
+  { kind: "idle" } | { kind: "reading"; detail: string | null } | { kind: "found"; name: string };
 
 /**
  * Escáner de cartas: la cámara lee el texto de la carta en el móvil (ML Kit), el servidor la
