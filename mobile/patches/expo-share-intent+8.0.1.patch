@@ -1,14 +1,18 @@
 diff --git a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
-index ff5b100..0b2d360 100644
+index ff5b100..c859c1b 100644
 --- a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
 +++ b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
-@@ -44,15 +44,30 @@ class ExpoShareIntentModule : Module() {
+@@ -44,15 +44,36 @@ class ExpoShareIntentModule : Module() {
      companion object {
          private var instance: ExpoShareIntentModule? = null
  
 +        // Doctor Deck: una excepción aquí (sin módulo o al convertir el evento) tiraba el motor de
 +        // React Native entero y la app se quedaba en negro hasta forzar su cierre. Nunca lanzan.
          private fun notifyShareIntent(value: Any) {
++            // Doctor Deck: también se guarda, por si el evento no llega a JS (la app lo pide con
++            // takeShareIntent al arrancar y al volver a primer plano).
++            ExpoShareIntentSingleton.lastValue = value
++            ExpoShareIntentSingleton.lastError = null
              notifyState("pending")
 -            instance!!.sendEvent("onChange", mapOf("value" to value))
 +            try {
@@ -28,6 +32,8 @@ index ff5b100..0b2d360 100644
          }
          private fun notifyError(message: String) {
 -            instance!!.sendEvent("onError", mapOf("value" to message))
++            Log.w("ExpoShareIntent", message)
++            ExpoShareIntentSingleton.lastError = message
 +            try {
 +                instance?.sendEvent("onError", mapOf("value" to message))
 +            } catch (e: Exception) {
@@ -36,7 +42,7 @@ index ff5b100..0b2d360 100644
          }
  
          @SuppressLint("Range")
-@@ -66,13 +81,23 @@ class ExpoShareIntentModule : Module() {
+@@ -66,13 +87,23 @@ class ExpoShareIntentModule : Module() {
                      "filePath" to instance?.getAbsolutePath(uri),
                  )
              }
@@ -66,7 +72,7 @@ index ff5b100..0b2d360 100644
  
              var mediaWidth: String? = null;
              var mediaHeight: String? = null;
-@@ -122,7 +147,12 @@ class ExpoShareIntentModule : Module() {
+@@ -122,7 +153,12 @@ class ExpoShareIntentModule : Module() {
                  return
              }
              if (intent.type == null) return
@@ -80,7 +86,7 @@ index ff5b100..0b2d360 100644
                  // text / urls
                  if (intent.action == Intent.ACTION_SEND) {
                      notifyShareIntent(mapOf(
-@@ -142,7 +172,7 @@ class ExpoShareIntentModule : Module() {
+@@ -142,7 +178,7 @@ class ExpoShareIntentModule : Module() {
                  if (intent.action == Intent.ACTION_SEND) {
                      val uri = intent.parcelable<Uri>(Intent.EXTRA_STREAM);
                      if (uri != null) {
@@ -89,7 +95,11 @@ index ff5b100..0b2d360 100644
                      } else {
                          notifyError("empty uri for file sharing: " + intent.action)
                      }
-@@ -183,7 +213,11 @@ class ExpoShareIntentModule : Module() {
+@@ -180,16 +216,46 @@ class ExpoShareIntentModule : Module() {
+         Events("onChange", "onStateChange", "onError")
+ 
+         AsyncFunction("getShareIntent") { _: String ->
++            instance = this@ExpoShareIntentModule
              // get the Intent from onCreate activity (app not running in background)
              ExpoShareIntentSingleton.isPending = false
              if (ExpoShareIntentSingleton.intent?.type != null) {
@@ -102,11 +112,43 @@ index ff5b100..0b2d360 100644
                  ExpoShareIntentSingleton.intent = null
              }
          }
-@@ -197,7 +231,11 @@ class ExpoShareIntentModule : Module() {
+ 
+         Function("clearShareIntent") { _: String ->
+             ExpoShareIntentSingleton.intent = null
++            ExpoShareIntentSingleton.lastValue = null
++            ExpoShareIntentSingleton.lastError = null
++        }
++
++        // Doctor Deck: lo último compartido (o el error al leerlo) sin depender del evento, y lo
++        // borra. Si aún no se ha leído el intent con el que se abrió la app, lo lee ahora.
++        AsyncFunction("takeShareIntent") { ->
++            instance = this@ExpoShareIntentModule
++            val pending = ExpoShareIntentSingleton.intent
++            if (pending?.type != null) {
++                ExpoShareIntentSingleton.intent = null
++                ExpoShareIntentSingleton.isPending = false
++                try {
++                    handleShareIntent(pending)
++                } catch (e: Throwable) {
++                    notifyError("Cannot read shared content: ${e.message}")
++                }
++            }
++            val result = mapOf(
++                "value" to ExpoShareIntentSingleton.lastValue,
++                "error" to ExpoShareIntentSingleton.lastError,
++            )
++            ExpoShareIntentSingleton.lastValue = null
++            ExpoShareIntentSingleton.lastError = null
++            result
+         }
+ 
+         Function("hasShareIntent") { _: String ->
+@@ -197,7 +263,12 @@ class ExpoShareIntentModule : Module() {
          }
  
          OnNewIntent {
 -            handleShareIntent(it)
++            instance = this@ExpoShareIntentModule
 +            try {
 +                handleShareIntent(it)
 +            } catch (e: Throwable) {
@@ -115,7 +157,7 @@ index ff5b100..0b2d360 100644
          }
  
          OnCreate {
-@@ -205,7 +243,8 @@ class ExpoShareIntentModule : Module() {
+@@ -205,7 +276,8 @@ class ExpoShareIntentModule : Module() {
          }
  
          OnDestroy {
@@ -125,3 +167,16 @@ index ff5b100..0b2d360 100644
          }
      }
  
+diff --git a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentSingleton.kt b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentSingleton.kt
+index 7f93abe..588c97d 100644
+--- a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentSingleton.kt
++++ b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentSingleton.kt
+@@ -12,4 +12,7 @@ object ExpoShareIntentSingleton : SingletonModule {
+   // members to store the initial launch intent
+   var intent: Intent? = null
+   var isPending: Boolean = false
++  // Doctor Deck: lo último que se mandó a JS (o el error), hasta que la app lo recoge.
++  var lastValue: Any? = null
++  var lastError: String? = null
+ }
+\ No newline at end of file
