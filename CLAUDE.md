@@ -685,8 +685,11 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     (`(SET) número` → impresión con `findPrintingsBySetNumbers`), primero sin guardar (vista previa
     con `BrowserCollectionRepository`) y luego como cartas sueltas; `looksLikeDeck` si trae
     comandante o 60–101 cartas. Reemplazar con el CSV sigue siendo `POST /api/collection`.
-    En la app, lo compartido abre `/share` (al arrancar, `index.tsx` redirige allí; con la app
-    abierta, `useSharedContent` en `_layout.tsx`), que lee el fichero con la ruta codificada
+    En la app, lo compartido va a un buzón (`lib/share-inbox.ts`) por dos vías: el evento del
+    módulo y, por si se pierde, `takeShareIntent` (función nativa del parche, que guarda lo último
+    hasta que se recoge), que `useSharedContent` (`_layout.tsx`) pide al arrancar y al volver a
+    primer plano. Mientras haya algo sin recoger se abre `/share` (al arrancar, `index.tsx`
+    redirige allí), que lo recoge al leerlo (la misma entrega por la otra vía se ignora 15 s) y lee el fichero con la ruta codificada
     (`shareFileUri`: los nombres con espacios rompían la lectura; 20 s de tope), lo parte en tandas
     (`splitImportText`: el CSV repite la cabecera, como mucho 12) y enseña las cartas según se
     reconocen con una barra de progreso; añadirlas va también por tandas.

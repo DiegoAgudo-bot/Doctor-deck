@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import type { ExpoConfig } from "expo/config";
 
 /** Versión de la app: súbela en cada publicación (el servidor puede exigir una mínima). */
-const VERSION = "1.2.4";
+const VERSION = "1.2.5";
 /** Para Google Play: entero que sube con cada build que se sube a la tienda. */
 const VERSION_CODE = Number(process.env.ANDROID_VERSION_CODE ?? 1);
 
