@@ -1,6 +1,6 @@
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { useQuery } from "@tanstack/react-query";
-import { Stack, ThemeProvider, DarkTheme, router } from "expo-router";
+import { Stack, ThemeProvider, DarkTheme, router, type ErrorBoundaryProps } from "expo-router";
 import { ShareIntentProvider, useShareIntentContext } from "expo-share-intent";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
@@ -10,7 +10,7 @@ import { ToastHost } from "~/components/toast";
 import { Button, Empty, Loading } from "~/components/ui";
 import { api } from "~/lib/api";
 import { useSession } from "~/lib/auth";
-import { APP_VERSION } from "~/lib/config";
+import { API_URL, APP_VERSION } from "~/lib/config";
 import { isOlder } from "~/lib/format";
 import { openWebPath, registerForPush, useNotificationTaps } from "~/lib/push";
 import { persister, queryClient } from "~/lib/query";
@@ -42,6 +42,38 @@ export default function RootLayout() {
         </ThemeProvider>
       </PersistQueryClientProvider>
     </ShareIntentProvider>
+  );
+}
+
+/**
+ * Si algo falla al pintar, se enseña el error en vez de dejar la pantalla en negro (en Android, un
+ * error sin capturar tira el motor de la app hasta forzar su cierre) y se manda al registro.
+ */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  const sent = useRef(false);
+  useEffect(() => {
+    if (sent.current) return;
+    sent.current = true;
+    fetch(`${API_URL}/api/errors`, {
+      method: "POST",
+      credentials: "omit",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        message: `[app ${APP_VERSION}] ${error.message || String(error)}`,
+        stack: error.stack ?? null,
+        path: "app",
+      }),
+    }).catch(() => {});
+  }, [error]);
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <Empty
+        icon="warning-outline"
+        title="Algo ha fallado"
+        text={error.message || "Error inesperado."}
+        action={<Button label="Reintentar" icon="refresh" onPress={() => void retry()} />}
+      />
+    </View>
   );
 }
 

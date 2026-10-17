@@ -682,7 +682,10 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     reconocen con una barra de progreso; añadirlas va también por tandas.
     `expo-share-intent` va parcheado (`mobile/patches/`, `patch-package` en `postinstall`): un
     fichero compartido como `text/plain` sin texto se trata como fichero, sin `!!` al leer su
-    nombre y tipo, y cualquier excepción llega a JS como `error` (`/share` la enseña).
+    nombre y tipo, y cualquier excepción llega a JS como `error` (`/share` la enseña); avisar a
+    JS nunca lanza (una excepción ahí tira el motor de React Native: pantalla en negro hasta
+    forzar el cierre). Si algo falla al pintar, el `ErrorBoundary` de `_layout.tsx` lo enseña con
+    «Reintentar» y lo manda a `POST /api/errors` (se ve en `/admin/errors`).
   - Push: `PushDevice` (token de FCM, `POST|DELETE /api/me/devices`); `PrismaSocialRepository`
     llama a `afterCreate` con cada aviso guardado y el container lo manda con `pushNotifications`
     (`application/push.ts`) por `FcmSender` (`adapters/push/fcm.ts`, FCM HTTP v1 con la cuenta de
