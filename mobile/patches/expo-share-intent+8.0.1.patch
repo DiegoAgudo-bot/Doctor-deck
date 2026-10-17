@@ -1,8 +1,42 @@
 diff --git a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
-index ff5b100..c73630b 100644
+index ff5b100..0b2d360 100644
 --- a/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
 +++ b/node_modules/expo-share-intent/android/src/main/java/expo/modules/shareintent/ExpoShareIntentModule.kt
-@@ -66,13 +66,23 @@ class ExpoShareIntentModule : Module() {
+@@ -44,15 +44,30 @@ class ExpoShareIntentModule : Module() {
+     companion object {
+         private var instance: ExpoShareIntentModule? = null
+ 
++        // Doctor Deck: una excepción aquí (sin módulo o al convertir el evento) tiraba el motor de
++        // React Native entero y la app se quedaba en negro hasta forzar su cierre. Nunca lanzan.
+         private fun notifyShareIntent(value: Any) {
+             notifyState("pending")
+-            instance!!.sendEvent("onChange", mapOf("value" to value))
++            try {
++                instance?.sendEvent("onChange", mapOf("value" to value))
++            } catch (e: Exception) {
++                Log.e("ExpoShareIntent", "onChange", e)
++                notifyError("Cannot send shared content: ${e.message}")
++            }
+         }
+         private fun notifyState(state: String) {
+-            instance!!.sendEvent("onStateChange", mapOf("value" to state))
++            try {
++                instance?.sendEvent("onStateChange", mapOf("value" to state))
++            } catch (e: Exception) {
++                Log.e("ExpoShareIntent", "onStateChange", e)
++            }
+         }
+         private fun notifyError(message: String) {
+-            instance!!.sendEvent("onError", mapOf("value" to message))
++            try {
++                instance?.sendEvent("onError", mapOf("value" to message))
++            } catch (e: Exception) {
++                Log.e("ExpoShareIntent", "onError", e)
++            }
+         }
+ 
+         @SuppressLint("Range")
+@@ -66,13 +81,23 @@ class ExpoShareIntentModule : Module() {
                      "filePath" to instance?.getAbsolutePath(uri),
                  )
              }
@@ -32,7 +66,7 @@ index ff5b100..c73630b 100644
  
              var mediaWidth: String? = null;
              var mediaHeight: String? = null;
-@@ -122,7 +132,12 @@ class ExpoShareIntentModule : Module() {
+@@ -122,7 +147,12 @@ class ExpoShareIntentModule : Module() {
                  return
              }
              if (intent.type == null) return
@@ -46,29 +80,48 @@ index ff5b100..c73630b 100644
                  // text / urls
                  if (intent.action == Intent.ACTION_SEND) {
                      notifyShareIntent(mapOf(
-@@ -183,7 +198,11 @@ class ExpoShareIntentModule : Module() {
+@@ -142,7 +172,7 @@ class ExpoShareIntentModule : Module() {
+                 if (intent.action == Intent.ACTION_SEND) {
+                     val uri = intent.parcelable<Uri>(Intent.EXTRA_STREAM);
+                     if (uri != null) {
+-                        notifyShareIntent(mapOf( "files" to arrayOf(getFileInfo(uri), "type" to "file")))
++                        notifyShareIntent(mapOf( "files" to arrayOf(getFileInfo(uri)), "type" to "file"))
+                     } else {
+                         notifyError("empty uri for file sharing: " + intent.action)
+                     }
+@@ -183,7 +213,11 @@ class ExpoShareIntentModule : Module() {
              // get the Intent from onCreate activity (app not running in background)
              ExpoShareIntentSingleton.isPending = false
              if (ExpoShareIntentSingleton.intent?.type != null) {
 -                handleShareIntent(ExpoShareIntentSingleton.intent!!);
 +                try {
 +                    handleShareIntent(ExpoShareIntentSingleton.intent!!);
-+                } catch (e: Exception) {
++                } catch (e: Throwable) {
 +                    notifyError("Cannot read shared content: ${e.message}")
 +                }
                  ExpoShareIntentSingleton.intent = null
              }
          }
-@@ -197,7 +216,11 @@ class ExpoShareIntentModule : Module() {
+@@ -197,7 +231,11 @@ class ExpoShareIntentModule : Module() {
          }
  
          OnNewIntent {
 -            handleShareIntent(it)
 +            try {
 +                handleShareIntent(it)
-+            } catch (e: Exception) {
++            } catch (e: Throwable) {
 +                notifyError("Cannot read shared content: ${e.message}")
 +            }
          }
  
          OnCreate {
+@@ -205,7 +243,8 @@ class ExpoShareIntentModule : Module() {
+         }
+ 
+         OnDestroy {
+-            instance = null
++            // Al recrear el motor, el módulo nuevo puede llegar antes de que se destruya el viejo.
++            if (instance === this@ExpoShareIntentModule) instance = null
+         }
+     }
+ 
