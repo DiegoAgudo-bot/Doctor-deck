@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { router, Stack, useIsFocused } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AppState,
   FlatList,
@@ -17,16 +17,19 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Camera,
+  CommonResolutions,
   useCameraDevice,
   useCameraPermission,
   useFrameOutput,
+  type CameraDevice,
+  type Frame,
 } from "react-native-vision-camera";
 import {
   useTextRecognition,
   type BlockData,
   type TextRecognitionOptions,
 } from "react-native-vision-camera-ocr-plus";
-import { createSynchronizable, scheduleOnRN } from "react-native-worklets";
+import { createSynchronizable, scheduleOnRN, type Synchronizable } from "react-native-worklets";
 import type { AddCardsResponse, ScanIdentifyResponse } from "@/server/dto";
 import { CardThumb, FoilMark } from "~/components/card-bits";
 import { toast } from "~/components/toast";
@@ -58,16 +61,25 @@ const OCR_OPTIONS: TextRecognitionOptions = {
   scanRegion: { left: "6%", top: "10%", width: "88%", height: "74%" },
 };
 
+/**
+ * ML Kit en Android necesita RGB; 1080p da para leer el número de coleccionista (letra muy
+ * pequeña) sin que el reconocimiento se vuelva lento. Constante: Vision Camera crea una salida de
+ * fotogramas nueva (y reconfigura la cámara) cada vez que cambia este objeto.
+ */
+const FRAME_RESOLUTION = CommonResolutions.FHD_16_9;
+
 /** Con la carta quieta, cada cuánto se vuelve a mandar lo leído (otra lectura que confirme). */
 const RESEND_MS = 300;
 
-/** Sin leer nada durante este tiempo → sugerir la linterna. */
 /** Tras un error de la cámara, cuánto se espera a ver si siguen llegando fotogramas. */
 const CAMERA_STALL_MS = 2500;
+/** Sin leer nada durante este tiempo → sugerir la linterna. */
 const DARK_HINT_MS = 2500;
 
 type Status =
-  { kind: "idle" } | { kind: "reading"; detail: string | null } | { kind: "found"; name: string };
+  | { kind: "idle" }
+  | { kind: "reading"; detail: string | null }
+  | { kind: "found"; name: string };
 
 /**
  * Escáner de cartas: la cámara lee el texto de la carta en el móvil (ML Kit), el servidor la
@@ -122,7 +134,11 @@ function Scanner() {
   const [torch, setTorch] = useState(false);
   const [foil, setFoil] = useState(false);
   const [defaults] = useCopyDefaults();
-  const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [status, setStatusState] = useState<Status>({ kind: "idle" });
+  // Llega una lectura cada ~300 ms: si dice lo mismo no se vuelve a pintar la pantalla.
+  const setStatus = useCallback((next: Status) => {
+    setStatusState((prev) => (sameStatus(prev, next) ? prev : next));
+  }, []);
   const [dark, setDark] = useState(false);
 
   // La lista de lo escaneado se guarda en el móvil: no se pierde al salir de la pantalla.
@@ -208,7 +224,7 @@ function Scanner() {
         );
       }
     },
-    [tracker, setList],
+    [tracker, setList, setStatus],
   );
 
   /** Pide al servidor qué carta es (una petición a la vez; si llegan más, solo la última). */
@@ -241,7 +257,7 @@ function Scanner() {
         if (next) void identify(next);
       }
     },
-    [handleResult],
+    [handleResult, setStatus],
   );
 
   /** Lo que lee el OCR (en el hilo de JS). */
@@ -258,7 +274,7 @@ function Scanner() {
       setDark(false);
       void identify(lines);
     },
-    [tracker, identify],
+    [tracker, identify, setStatus],
   );
   const onTextRef = useRef(onText);
   onTextRef.current = onText;
@@ -272,34 +288,24 @@ function Scanner() {
     return () => clearInterval(t);
   }, []);
 
-  const { scanText } = useTextRecognition(OCR_OPTIONS);
-  // El último texto mandado a JS y cuándo: se cruza de hilo cuando cambia lo que se lee o, si no
-  // cambia (la carta está quieta), cada 300 ms, para que dos lecturas seguidas puedan coincidir.
-  const lastText = useMemo(() => createSynchronizable(""), []);
-  const lastSent = useMemo(() => createSynchronizable(0), []);
   // Cuándo llegó el último fotograma (como mucho se apunta una vez por segundo): si la cámara
   // avisa de un error pero siguen llegando, era pasajero y no hace falta decir nada.
   const lastFrameAt = useMemo(() => createSynchronizable(0), []);
-  const frameOutput = useFrameOutput({
-    // ML Kit en Android necesita RGB; 1080p da para leer el número de coleccionista (letra muy
-    // pequeña) sin que el reconocimiento se vuelva lento.
-    pixelFormat: "rgb",
-    targetResolution: { width: 1080, height: 1920 },
-    onFrame(frame) {
-      "worklet";
-      const result = scanText(frame);
-      frame.dispose();
-      const text = result.resultText;
-      const now = Date.now();
-      if (now - lastFrameAt.getDirty() >= 1000) lastFrameAt.setBlocking(now);
-      const changed = text !== lastText.getDirty();
-      if (changed || (text.length > 0 && now - lastSent.getDirty() >= RESEND_MS)) {
-        lastText.setBlocking(text);
-        lastSent.setBlocking(now);
-        scheduleOnRN(deliver, result.blocks);
-      }
+  const onCameraError = useCallback(
+    (e: Error) => {
+      // Sin el texto de la excepción de Java: no le dice nada a quien escanea.
+      console.warn("Cámara", e);
+      // Muchos errores son pasajeros (un enfoque cancelado, un fotograma perdido) y la
+      // cámara sigue: solo se avisa si deja de llegar imagen.
+      const at = Date.now();
+      setTimeout(() => {
+        if (live.current && lastFrameAt.getDirty() < at) {
+          toast("La cámara ha fallado. Ciérrala y vuelve a abrirla.");
+        }
+      }, CAMERA_STALL_MS);
     },
-  });
+    [lastFrameAt],
+  );
 
   const totals = scannedTotals(list);
   const qc = useQueryClient();
@@ -362,29 +368,13 @@ function Scanner() {
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style="light" />
       {device ? (
-        <Camera
-          style={StyleSheet.absoluteFill}
+        <ScanCamera
           device={device}
           isActive={focused && appActive}
-          outputs={[frameOutput]}
-          torchMode={torch && device.hasTorch ? "on" : "off"}
-          // Sin `enableLowLightBoost`: CameraX lanza una excepción al tocarlo (también al pasar
-          // `false`) en los móviles que no lo admiten. Con poca luz, la linterna.
-          enableNativeTapToFocusGesture
-          enableNativeZoomGesture
-          resizeMode="cover"
-          onError={(e) => {
-            // Sin el texto de la excepción de Java: no le dice nada a quien escanea.
-            console.warn("Cámara", e);
-            // Muchos errores son pasajeros (un enfoque cancelado, un fotograma perdido) y la
-            // cámara sigue: solo se avisa si deja de llegar imagen.
-            const at = Date.now();
-            setTimeout(() => {
-              if (live.current && lastFrameAt.getDirty() < at) {
-                toast("La cámara ha fallado. Ciérrala y vuelve a abrirla.");
-              }
-            }, CAMERA_STALL_MS);
-          }}
+          torch={torch && device.hasTorch}
+          onText={deliver}
+          onError={onCameraError}
+          lastFrameAt={lastFrameAt}
         />
       ) : (
         <Empty icon="camera-outline" title="No se encuentra la cámara trasera" />
@@ -513,6 +503,79 @@ function Scanner() {
     </View>
   );
 }
+
+function sameStatus(a: Status, b: Status): boolean {
+  if (a.kind !== b.kind) return false;
+  if (a.kind === "reading" && b.kind === "reading") return a.detail === b.detail;
+  if (a.kind === "found" && b.kind === "found") return a.name === b.name;
+  return true;
+}
+
+/**
+ * La cámara con el OCR, aparte y memorizada: la pantalla se vuelve a pintar con cada lectura y,
+ * si la cámara se pintara con ella, Vision Camera volvería a mandar la configuración (orientación,
+ * callback del fotograma, suscripciones) y la imagen se quedaría a tirones. Todas sus props son
+ * estables salvo `isActive` y `torch`.
+ */
+const ScanCamera = memo(function ScanCamera({
+  device,
+  isActive,
+  torch,
+  onText,
+  onError,
+  lastFrameAt,
+}: {
+  device: CameraDevice;
+  isActive: boolean;
+  torch: boolean;
+  onText: (blocks: BlockData[]) => void;
+  onError: (e: Error) => void;
+  lastFrameAt: Synchronizable<number>;
+}) {
+  const { scanText } = useTextRecognition(OCR_OPTIONS);
+  // El último texto mandado a JS y cuándo: se cruza de hilo cuando cambia lo que se lee o, si no
+  // cambia (la carta está quieta), cada 300 ms, para que dos lecturas seguidas puedan coincidir.
+  const lastText = useMemo(() => createSynchronizable(""), []);
+  const lastSent = useMemo(() => createSynchronizable(0), []);
+  const onFrame = useMemo(
+    () => (frame: Frame) => {
+      "worklet";
+      const result = scanText(frame);
+      frame.dispose();
+      const text = result.resultText;
+      const now = Date.now();
+      if (now - lastFrameAt.getDirty() >= 1000) lastFrameAt.setBlocking(now);
+      const changed = text !== lastText.getDirty();
+      if (changed || (text.length > 0 && now - lastSent.getDirty() >= RESEND_MS)) {
+        lastText.setBlocking(text);
+        lastSent.setBlocking(now);
+        scheduleOnRN(onText, result.blocks);
+      }
+    },
+    [scanText, lastFrameAt, lastText, lastSent, onText],
+  );
+  const frameOutput = useFrameOutput({
+    pixelFormat: "rgb",
+    targetResolution: FRAME_RESOLUTION,
+    onFrame,
+  });
+  const outputs = useMemo(() => [frameOutput], [frameOutput]);
+  return (
+    <Camera
+      style={StyleSheet.absoluteFill}
+      device={device}
+      isActive={isActive}
+      outputs={outputs}
+      torchMode={torch ? "on" : "off"}
+      // Sin `enableLowLightBoost`: CameraX lanza una excepción al tocarlo (también al pasar
+      // `false`) en los móviles que no lo admiten. Con poca luz, la linterna.
+      enableNativeTapToFocusGesture
+      enableNativeZoomGesture
+      resizeMode="cover"
+      onError={onError}
+    />
+  );
+});
 
 function ScannedRow({
   item,

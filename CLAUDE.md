@@ -109,7 +109,7 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   (`.filters-more`, `components/collection-filters.tsx` + `filter-fields.tsx`); en la app, en la
   hoja «Filtrar» (`components/filters.tsx`, `lib/collection-filters.ts`), compartida con Buscar.
   Datos que usan: `OracleCard.colors/power/toughness/loyalty` (+ `powerValue`/`toughnessValue`
-  para filtrar en SQL, `statValue`: «*» = 0) y `Printing.rarity/artist`, que rellena
+  para filtrar en SQL, `statValue`: «\*» = 0) y `Printing.rarity/artist`, que rellena
   `scryfall:sync` (hasta la primera sincronización tras desplegar, esos filtros no encuentran nada).
   **En cualquier idioma** (`domain/cards/localized.ts`): nombre, tipo, texto de reglas, subtipo y
   habilidad se buscan también en lo impreso en otros idiomas (`CardLocalization`: una fila por
@@ -695,7 +695,9 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     1080p RGB, zona de la carta; Android ≥ 8.0 con `expo-build-properties`, permiso CAMERA, sin
     micrófono). Poca luz: linterna (sin `enableLowLightBoost`: CameraX lanza excepción en los móviles que no lo admiten) y aviso si no se
     lee nada en 2,5 s; tocar enfoca, pellizcar hace zoom. El worklet manda a JS el texto solo
-    cuando cambia o cada 300 ms (`createSynchronizable`). `orderLines` (de arriba abajo) →
+    cuando cambia o cada 300 ms (`createSynchronizable`). La cámara va en `ScanCamera` (memorizado, props
+    estables y `targetResolution` constante): si se repinta con cada lectura, Vision Camera crea otra
+    salida de fotogramas y reconfigura la sesión, y la imagen va a tirones. `orderLines` (de arriba abajo) →
     `POST /api/scan/identify` (`{lines}`; una petición a la vez, caché en el móvil) →
     `identifyScan` (`application/scan.ts`): `readCardText` (`domain/cards/scan-text.ts`: número de
     coleccionista `123/280 R` o `R 0123` —no la fuerza/resistencia—, edición e idioma `MKM • ES`,
