@@ -32,6 +32,7 @@ const card = (
         ? over.price * (over.quantity ?? 1)
         : null,
   lastAdded: over.lastAdded ?? "2026-10-01T00:00:00.000Z",
+  localized: over.localized,
 });
 
 const CARDS = [
@@ -255,5 +256,28 @@ describe("filtros como los de ManaBox", () => {
     expect(run({ addedSince: "2026-10-05T00:00:00.000Z" })).toEqual(["Old Gnawbone"]);
     expect(run({ gameChanger: true })).toEqual([]);
     expect(run({ colors: ["C"], colorBy: "color" })).toEqual(["Arcane Signet"]);
+  });
+});
+
+describe("buscar por texto", () => {
+  const goblin = card("Goblin Guide", {
+    typeLine: "Creature — Goblin Scout",
+    localized: [{ name: "Guía trasgo", typeLine: "criatura — trasgo explorador", text: null }],
+  });
+  const run = (q: string) => names(browseCollection([goblin], { q }, "nombre", 0, 50));
+
+  it("busca en el nombre, el tipo y lo impreso en otros idiomas, también al repetir la búsqueda", () => {
+    for (let i = 0; i < 2; i++) {
+      expect(run("guide")).toEqual(["Goblin Guide"]);
+      expect(run("scout")).toEqual(["Goblin Guide"]);
+      expect(run("guia")).toEqual(["Goblin Guide"]);
+      expect(run("explorador")).toEqual(["Goblin Guide"]);
+      expect(run("elf")).toEqual([]);
+    }
+  });
+
+  it("no casa a caballo entre el nombre y el tipo ni entre dos traducciones", () => {
+    expect(run("guidecreature")).toEqual([]);
+    expect(run("trasgocriatura")).toEqual([]);
   });
 });

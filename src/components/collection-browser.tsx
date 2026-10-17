@@ -120,16 +120,18 @@ export function CollectionBrowser({
   const [items, setItems] = useState<CollectionCardDTO[] | null>(null);
   const [total, setTotal] = useState<CollectionTotals | null>(null);
   const [facets, setFacets] = useState<Facets>({ sets: [] });
-  const [loading, setLoading] = useState(false);
+  /** Con qué filtros (y `version`) son los resultados que se ven: si no son los de ahora, se está buscando. */
+  const [shownFor, setShownFor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const request = useRef(0);
   const set = (patch: Partial<Filters>) => setF((prev) => ({ ...prev, ...patch }));
 
   const fetchPage = useCallback(
-    (offset: number) =>
+    (offset: number, signal?: AbortSignal) =>
       api<CollectionViewResponse>("/api/collection/view", {
         method: "POST",
+        ...(signal ? { signal } : {}),
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...(username ? { username } : !loggedIn && localPairs ? { collection: localPairs } : {}),
@@ -178,16 +180,20 @@ export function CollectionBrowser({
     setTotal((x) => x ?? cached.total);
   }, [ready, cacheable, signature]);
 
+  const wanted = `${version}|${signature}`;
+  // Se está buscando desde la pulsación (no solo cuando sale la petición tras el respiro).
+  const loading = ready && shownFor !== wanted;
   useEffect(() => {
     if (!ready) return;
     const id = ++request.current;
+    // La búsqueda anterior ya no vale: se cancela para que no haga cola en el servidor.
+    const abort = new AbortController();
     const t = setTimeout(
       () => {
-        setLoading(true);
-        setError(null);
-        fetchPage(0)
+        fetchPage(0, abort.signal)
           .then((r) => {
             if (id !== request.current) return;
+            setError(null);
             setItems(r.items);
             setTotal(r.total);
             if (r.facets) setFacets(r.facets);
@@ -200,12 +206,15 @@ export function CollectionBrowser({
               setError(e instanceof ApiError ? e.message : "No se pudo cargar la colección");
             }
           })
-          .finally(() => id === request.current && setLoading(false));
+          .finally(() => id === request.current && setShownFor(wanted));
       },
       f.q ? 250 : 0,
     );
-    return () => clearTimeout(t);
-  }, [fetchPage, version, f.q, ready, cacheable, signature]);
+    return () => {
+      clearTimeout(t);
+      abort.abort();
+    };
+  }, [fetchPage, version, f.q, ready, cacheable, signature, wanted]);
 
   async function loadMore() {
     if (!items) return;
@@ -235,14 +244,16 @@ export function CollectionBrowser({
     <div className="flex flex-col gap-3">
       <div className={`panel filters flex flex-col gap-3 p-3 ${filtersOpen ? "is-open" : ""}`}>
         <div className="flex flex-wrap items-center gap-2">
-          <input
-            className="input"
-            style={{ flex: "1 1 240px", maxWidth: 360 }}
-            placeholder="Nombre o tipo, en cualquier idioma…"
-            aria-label="Buscar en la colección"
-            value={f.q}
-            onChange={(e) => set({ q: e.target.value })}
-          />
+          <div className="searchfield" style={{ flex: "1 1 240px", maxWidth: 360 }}>
+            <input
+              className="input"
+              placeholder="Nombre o tipo, en cualquier idioma…"
+              aria-label="Buscar en la colección"
+              value={f.q}
+              onChange={(e) => set({ q: e.target.value })}
+            />
+            {loading && <span className="inputspin" aria-hidden="true" />}
+          </div>
           <button
             type="button"
             className="btn filters-toggle"
@@ -324,6 +335,7 @@ export function CollectionBrowser({
           </b>{" "}
           {total?.cards === 1 ? "carta" : "cartas"} · {fmt(copies)} copias
           {value > 0 && <> · aprox. {formatEuros(value)}</>}
+          {loading && items !== null && <> · {f.q ? "Buscando…" : "Actualizando…"}</>}
         </span>
         <div className="flex flex-wrap items-center gap-2">
           <select
@@ -363,7 +375,7 @@ export function CollectionBrowser({
       </div>
 
       {loading && items !== null && (
-        <div className="progress" role="status" aria-label="Actualizando">
+        <div className="progress" role="status" aria-label={f.q ? "Buscando" : "Actualizando"}>
           <i />
         </div>
       )}
@@ -382,7 +394,8 @@ export function CollectionBrowser({
         </div>
       ) : view === "cuadricula" ? (
         <div
-          className="grid gap-x-3 gap-y-4"
+          className="results grid gap-x-3 gap-y-4"
+          aria-busy={loading}
           style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}
         >
           {shown.map((c) => (
@@ -434,7 +447,7 @@ export function CollectionBrowser({
           ))}
         </div>
       ) : (
-        <div className="panel overflow-x-auto">
+        <div className="results panel overflow-x-auto" aria-busy={loading}>
           <table className="table rtable">
             <thead>
               <tr>
