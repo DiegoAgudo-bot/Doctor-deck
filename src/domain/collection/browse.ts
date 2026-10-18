@@ -1,6 +1,6 @@
 import { statValue, subtypesOf, type Rarity, type Supertype } from "../cards/attributes";
 import { canBeCommander } from "../cards/commander";
-import { localizedMatch, type LocalizedText } from "../cards/localized";
+import type { LocalizedText } from "../cards/localized";
 import type { Card } from "../cards/types";
 import type { Role } from "../roles/types";
 
@@ -131,6 +131,44 @@ export interface CollectionFilters {
 }
 
 const norm = (s: string) => s.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
+
+/**
+ * Textos ya normalizados para buscar, calculados una vez por objeto: la vista de la colección se
+ * guarda en caché y se vuelve a filtrar en cada pulsación del buscador, y normalizar el nombre y el
+ * tipo de miles de cartas en varios idiomas cada vez se notaba (cientos de ms por búsqueda).
+ */
+const searchKeys = new WeakMap<object, Map<string, string>>();
+/** Separa los textos unidos para que lo buscado no case a caballo entre dos. */
+const SEP = "\u0000";
+function searchKeyOf(owner: object, field: string, build: () => string): string {
+  let keys = searchKeys.get(owner);
+  if (!keys) {
+    keys = new Map();
+    searchKeys.set(owner, keys);
+  }
+  let key = keys.get(field);
+  if (key === undefined) {
+    key = build();
+    keys.set(field, key);
+  }
+  return key;
+}
+
+/** ¿Está `q` (ya normalizado) en lo de la carta o en lo impreso en otros idiomas? */
+function textMatch(
+  c: BrowsableCard,
+  q: string,
+  field: string,
+  ofCard: (card: BrowsableCard["card"]) => string,
+  ofLocalized: (l: LocalizedText) => string | null,
+): boolean {
+  if (searchKeyOf(c.card, field, () => norm(ofCard(c.card))).includes(q)) return true;
+  const localized = c.localized;
+  if (!localized?.length) return false;
+  return searchKeyOf(localized, field, () =>
+    localized.map((l) => norm(ofLocalized(l) ?? "")).join(SEP),
+  ).includes(q);
+}
 const frontType = (typeLine: string) => typeLine.split("//")[0] ?? typeLine;
 
 /** ¿Pasa el filtro de color? Incolora = identidad vacía. */
@@ -164,23 +202,34 @@ const anyOf = (have: readonly string[] | undefined, want: readonly string[]) => 
   return (have ?? []).some((h) => w.has(h.toLowerCase()));
 };
 
+/** Lo escrito en un filtro de texto, listo para comparar (sin el separador interno). */
+const searchText = (s: string | undefined) => norm(s?.trim() ?? "").replaceAll(SEP, "");
+
 export function matchesFilters(c: BrowsableCard, f: CollectionFilters): boolean {
   // Lo escrito vale en cualquier idioma: también se mira lo impreso en otros idiomas.
-  const q = norm(f.q?.trim() ?? "");
+  const q = searchText(f.q);
   if (
     q &&
-    !norm(c.card.name).includes(q) &&
-    !norm(c.card.typeLine).includes(q) &&
-    !localizedMatch(c.localized, q, (l) => l.name) &&
-    !localizedMatch(c.localized, q, (l) => l.typeLine)
+    !textMatch(
+      c,
+      q,
+      "nameType",
+      (card) => card.name + SEP + card.typeLine,
+      (l) => l.name + SEP + (l.typeLine ?? ""),
+    )
   ) {
     return false;
   }
-  const text = norm(f.text?.trim() ?? "");
+  const text = searchText(f.text);
   if (
     text &&
-    !norm(c.card.oracleText ?? "").includes(text) &&
-    !localizedMatch(c.localized, text, (l) => l.text)
+    !textMatch(
+      c,
+      text,
+      "text",
+      (card) => card.oracleText ?? "",
+      (l) => l.text,
+    )
   ) {
     return false;
   }
@@ -192,11 +241,16 @@ export function matchesFilters(c: BrowsableCard, f: CollectionFilters): boolean 
   if (f.supertypes?.length && !f.supertypes.every((t) => hasType(c.card.typeLine, t))) {
     return false;
   }
-  const subtype = norm(f.subtype?.trim() ?? "");
+  const subtype = searchText(f.subtype);
   if (
     subtype &&
-    !norm(subtypesOf(c.card.typeLine)).includes(subtype) &&
-    !localizedMatch(c.localized, subtype, (l) => (l.typeLine ? subtypesOf(l.typeLine) : null))
+    !textMatch(
+      c,
+      subtype,
+      "subtype",
+      (card) => subtypesOf(card.typeLine),
+      (l) => (l.typeLine ? subtypesOf(l.typeLine) : null),
+    )
   ) {
     return false;
   }
@@ -239,7 +293,9 @@ export function matchesFilters(c: BrowsableCard, f: CollectionFilters): boolean 
   return true;
 }
 
-const byName = (a: BrowsableCard, b: BrowsableCard) => a.card.name.localeCompare(b.card.name);
+/** Igual que `localeCompare`, pero sin crear un comparador en cada llamada (se ordenan miles). */
+const collator = new Intl.Collator();
+const byName = (a: BrowsableCard, b: BrowsableCard) => collator.compare(a.card.name, b.card.name);
 
 /**
  * Lo que vale cada copia mía: según su edición y si es foil (`value` / copias). Si no se sabe, el

@@ -1887,6 +1887,11 @@
     background-position: -200% 0;
   }
 }
+@keyframes dd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 @keyframes dd-indet {
   from {
     transform: translateX(-100%);
@@ -3211,6 +3216,33 @@
   }
   .catalog[aria-busy="true"] {
     opacity: 0.6;
+  }
+  /* Resultados de la colección mientras llegan los de la búsqueda nueva. */
+  .results {
+    transition: opacity var(--motion-300) var(--ease-out);
+  }
+  .results[aria-busy="true"] {
+    opacity: 0.55;
+  }
+  /* Buscador con un indicador dentro mientras busca. */
+  .searchfield {
+    position: relative;
+  }
+  .searchfield .input {
+    width: 100%;
+    padding-right: 32px;
+  }
+  .inputspin {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    border: 2px solid var(--color-raised);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: dd-spin 0.7s linear infinite;
   }
   .catalogtile {
     display: flex;
