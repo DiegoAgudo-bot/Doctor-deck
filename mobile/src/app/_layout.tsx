@@ -1,10 +1,17 @@
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { useQuery } from "@tanstack/react-query";
-import { Stack, ThemeProvider, DarkTheme, router, type ErrorBoundaryProps } from "expo-router";
+import {
+  Stack,
+  ThemeProvider,
+  DarkTheme,
+  router,
+  usePathname,
+  type ErrorBoundaryProps,
+} from "expo-router";
 import { ShareIntentProvider, useShareIntentContext } from "expo-share-intent";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
-import { Linking, View } from "react-native";
+import { AppState, Linking, View } from "react-native";
 import type { AppInfoDTO } from "@/server/dto";
 import { ToastHost } from "~/components/toast";
 import { Button, Empty, Loading } from "~/components/ui";
@@ -14,6 +21,8 @@ import { API_URL, APP_VERSION } from "~/lib/config";
 import { isOlder } from "~/lib/format";
 import { openWebPath, registerForPush, useNotificationTaps } from "~/lib/push";
 import { persister, queryClient } from "~/lib/query";
+import { putShare } from "~/lib/share-inbox";
+import { itemFromIntent, pollNativeShare, useShareInbox } from "~/lib/share-intake";
 import { colors } from "~/lib/theme";
 
 const navTheme = {
@@ -165,20 +174,42 @@ function Root() {
 }
 
 /**
- * Al compartir algo con la app (texto o fichero CSV/TXT), se abre la pantalla de importar, que lo
- * lee y lo reconoce con su progreso. Si aún no hay sesión, espera a que se entre. Al arrancar la
- * app desde «Compartir» lo hace la portada (`index.tsx`); esto cubre la app ya abierta.
+ * Al compartir algo con la app (texto o fichero CSV/TXT), va al buzón (`share-inbox`) y se abre la
+ * pantalla de importar, que lo lee y lo reconoce con su progreso. Llega por el evento del módulo
+ * nativo y, por si ese evento se pierde, se le pregunta al arrancar y al volver a primer plano.
+ * Mientras haya algo en el buzón sin recoger, se vuelve a abrir la pantalla de importar. Si aún
+ * no hay sesión, espera a que se entre.
  */
 function useSharedContent(signedIn: boolean) {
   const { hasShareIntent, shareIntent, error } = useShareIntentContext();
-  const opened = useRef<unknown>(null);
+  const inbox = useShareInbox();
+  const pathname = usePathname();
+
   useEffect(() => {
     // Si no se ha podido recibir, también: la pantalla de importar enseña el error.
-    const key = hasShareIntent ? shareIntent : error;
-    if (!key || !signedIn || opened.current === key) return;
-    opened.current = key;
-    openShareScreen();
-  }, [hasShareIntent, signedIn, shareIntent, error]);
+    if (hasShareIntent) putShare(itemFromIntent(shareIntent));
+    else if (error) putShare({ kind: "error", message: error });
+  }, [hasShareIntent, shareIntent, error]);
+
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const check = () => {
+      for (const ms of [300, 1500, 4000])
+        timers.push(setTimeout(() => void pollNativeShare().catch(() => {}), ms));
+    };
+    check();
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") check();
+    });
+    return () => {
+      sub.remove();
+      timers.forEach(clearTimeout);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (inbox && signedIn && pathname !== "/share") openShareScreen();
+  }, [inbox, signedIn, pathname]);
 }
 
 /** La navegación puede no estar lista justo al arrancar: se reintenta unas cuantas veces. */

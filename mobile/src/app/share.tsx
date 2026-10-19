@@ -14,6 +14,8 @@ import { api } from "~/lib/api";
 import { thousands } from "~/lib/format";
 import { shareFileUri } from "~/lib/share-path";
 import { setPendingImport, splitImportText, takePendingImport } from "~/lib/shared";
+import { peekShare, takeShare } from "~/lib/share-inbox";
+import { useShareInbox } from "~/lib/share-intake";
 import { colors, radius } from "~/lib/theme";
 
 type Item = SharedImportResponse["added"][number];
@@ -52,30 +54,45 @@ const READ_TIMEOUT_MS = 20_000;
  */
 export default function ShareScreen() {
   const qc = useQueryClient();
-  const {
-    hasShareIntent,
-    shareIntent,
-    resetShareIntent,
-    error: intentError,
-  } = useShareIntentContext();
+  const { resetShareIntent } = useShareIntentContext();
+  const inbox = useShareInbox();
   const [source, setSource] = useState<Source | null>(() => {
     const p = takePendingImport();
     return p ? { text: p.text, name: p.source } : null;
   });
-  const [stage, setStage] = useState<Stage>(source ? { step: "reading" } : { step: "waiting" });
+  const [stage, setStage] = useState<Stage>(
+    source || peekShare() ? { step: "reading" } : { step: "waiting" },
+  );
   const [preview, setPreview] = useState<Preview | null>(null);
   const chunks = useRef<string[]>([]);
   const readFor = useRef<unknown>(null);
 
-  // 1. Leer lo compartido (texto o fichero).
+  // 1. Leer lo compartido (texto o fichero) que espera en el buzón.
   useEffect(() => {
-    if (source || !hasShareIntent || readFor.current === shareIntent) return;
-    readFor.current = shareIntent;
+    if (source || !inbox || readFor.current === inbox) return;
+    readFor.current = inbox;
+    const done = () => {
+      takeShare();
+      resetShareIntent();
+    };
+    if (inbox.kind === "error") {
+      done();
+      setStage({
+        step: "error",
+        message: `No se ha podido recibir lo compartido (${inbox.message}).`,
+      });
+      return;
+    }
     setStage({ step: "reading" });
-    const file = shareIntent.files?.[0];
-    (file ? readSharedFile(file.path) : Promise.resolve(shareIntent.text ?? ""))
+    const file = inbox.files?.[0];
+    if (file && !file.path) {
+      done();
+      setStage({ step: "error", message: "No llega la ruta del fichero compartido." });
+      return;
+    }
+    (file?.path ? readSharedFile(file.path) : Promise.resolve(inbox.text ?? ""))
       .then((text) => {
-        resetShareIntent();
+        done();
         if (!text.trim()) {
           setStage({ step: "error", message: "Lo compartido está vacío." });
           return;
@@ -83,21 +100,13 @@ export default function ShareScreen() {
         setSource({ text, name: file?.fileName ?? "Lista compartida" });
       })
       .catch((e: unknown) => {
-        resetShareIntent();
+        done();
         setStage({
           step: "error",
           message: `No se ha podido leer el fichero (${errorText(e)}). Prueba a guardarlo y elegirlo desde Colección › + › Importar.`,
         });
       });
-  }, [source, hasShareIntent, shareIntent, resetShareIntent]);
-
-  useEffect(() => {
-    if (intentError && !source)
-      setStage({
-        step: "error",
-        message: `No se ha podido recibir lo compartido (${intentError}).`,
-      });
-  }, [intentError, source]);
+  }, [source, inbox, resetShareIntent]);
 
   // 2. Reconocer las cartas por tandas.
   const check = useCallback(async (src: Source) => {
