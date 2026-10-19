@@ -41,12 +41,12 @@ import { colors } from "~/lib/theme";
 import { alert } from "~/components/dialog";
 
 const PAGE = 60;
+// Se ordena por lo que vale una copia (lo que se enseña), no por lo que valen todas juntas.
 const SORTS = [
-  { key: "valor", label: "Valor" },
+  { key: "precio", label: "Precio" },
   { key: "nombre", label: "Nombre" },
   { key: "recientes", label: "Recientes" },
   { key: "copias", label: "Copias" },
-  { key: "precio", label: "Precio" },
   { key: "coste", label: "Coste" },
 ] as const;
 type Sort = (typeof SORTS)[number]["key"];
@@ -56,7 +56,9 @@ export default function Collection() {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
   const [grid, setGrid] = useStoredState("collection.grid", false);
-  const [sort, setSort] = useStoredState<Sort>("collection.sort", "valor");
+  const [stored, setSort] = useStoredState<Sort | "valor">("collection.sort", "precio");
+  // Antes había «Valor» (el total de las copias); quien lo tenía guardado pasa a «Precio».
+  const sort: Sort = stored === "valor" ? "precio" : stored;
   const [desc, setDesc] = useStoredState("collection.desc", true);
   // Como ManaBox: una fila por variante (edición, foil, idioma, estado); o todas juntas por carta.
   const [by, setBy] = useStoredState<"copy" | "card">("collection.by", "copy");
