@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Alert, FlatList, KeyboardAvoidingView, TextInput, View } from "react-native";
+import { FlatList, KeyboardAvoidingView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { CommentDTO, DeckCommentsDTO } from "@/server/social-dto";
 import { Avatar, SwitchRow } from "~/components/social";
@@ -11,6 +11,7 @@ import { api } from "~/lib/api";
 import { tapFeedback } from "~/lib/feedback";
 import { ago } from "~/lib/format";
 import { colors } from "~/lib/theme";
+import { alert } from "~/components/dialog";
 
 const REASONS = [
   { reason: "spam", label: "Spam" },
@@ -72,23 +73,18 @@ export default function DeckComments() {
   const v = comments.data;
 
   const menu = (c: CommentDTO) =>
-    Alert.alert(
-      "Comentario",
-      undefined,
-      [
-        ...(c.canDelete
-          ? [{ text: "Borrar", style: "destructive" as const, onPress: () => remove.mutate(c) }]
-          : []),
-        ...(!c.mine
-          ? REASONS.map((r) => ({
-              text: `Denunciar: ${r.label}`,
-              onPress: () => report.mutate({ c, reason: r.reason }),
-            }))
-          : []),
-        { text: "Cancelar", style: "cancel" as const },
-      ],
-      { cancelable: true },
-    );
+    alert("Comentario", undefined, [
+      ...(c.canDelete
+        ? [{ text: "Borrar", style: "destructive" as const, onPress: () => remove.mutate(c) }]
+        : []),
+      ...(!c.mine
+        ? REASONS.map((r) => ({
+            text: `Denunciar: ${r.label}`,
+            onPress: () => report.mutate({ c, reason: r.reason }),
+          }))
+        : []),
+      { text: "Cancelar", style: "cancel" as const },
+    ]);
 
   return (
     <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }} keyboardVerticalOffset={90}>

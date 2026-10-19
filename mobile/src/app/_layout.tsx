@@ -13,6 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
 import { AppState, Linking, View } from "react-native";
 import type { AppInfoDTO } from "@/server/dto";
+import { DialogHost } from "~/components/dialog";
 import { ToastHost } from "~/components/toast";
 import { Button, Empty, Loading } from "~/components/ui";
 import { api } from "~/lib/api";
@@ -48,6 +49,7 @@ export default function RootLayout() {
           <StatusBar style="light" />
           <Root />
           <ToastHost />
+          <DialogHost />
         </ThemeProvider>
       </PersistQueryClientProvider>
     </ShareIntentProvider>

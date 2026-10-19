@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
+import { Pressable, ScrollView, useWindowDimensions, View } from "react-native";
 import type { CardDetailDTO } from "@/server/card-dto";
 import type { CollectionLineDTO, PrintingDTO } from "@/server/dto";
 import { AddToDeckSheet } from "~/components/add-to-deck";
@@ -20,6 +20,7 @@ import { tapFeedback } from "~/lib/feedback";
 import { CONDITION_OPTIONS, conditionShort, LANGUAGE_OPTIONS } from "~/lib/copies";
 import { euros } from "~/lib/format";
 import { colors, radius } from "~/lib/theme";
+import { alert } from "~/components/dialog";
 
 /**
  * Ficha de una carta, como en ManaBox: imagen, precio, mis copias con «Añadir 1» (con la edición,
@@ -297,7 +298,7 @@ function LineRow({ line, onChanged }: { line: CollectionLineDTO; onChanged: () =
   });
   const change = (q: number) => {
     if (q === 0) {
-      Alert.alert("¿Quitar estas copias?", "Se borran de tu colección.", [
+      alert("¿Quitar estas copias?", "Se borran de tu colección.", [
         { text: "Cancelar", style: "cancel" },
         { text: "Quitar", style: "destructive", onPress: () => edit.mutate(0) },
       ]);

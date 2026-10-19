@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import type { LoanDTO, LoansDTO } from "@/server/social-dto";
 import { CardThumb } from "~/components/card-bits";
 import { playedOn } from "~/components/games";
@@ -12,6 +12,7 @@ import { Button, Chip, ErrorView, Fab, Loading, T } from "~/components/ui";
 import { api } from "~/lib/api";
 import { tapFeedback } from "~/lib/feedback";
 import { colors, radius } from "~/lib/theme";
+import { alert } from "~/components/dialog";
 
 /** Lo que he prestado y lo que me han prestado (con los devueltos si se piden). */
 export default function Loans() {
@@ -96,7 +97,7 @@ export default function Loans() {
                   label="Borrar"
                   icon="trash-outline"
                   onPress={() =>
-                    Alert.alert("¿Borrar el préstamo?", "Para los apuntados por error.", [
+                    alert("¿Borrar el préstamo?", "Para los apuntados por error.", [
                       { text: "Cancelar", style: "cancel" },
                       { text: "Borrar", style: "destructive", onPress: () => remove.mutate(l) },
                     ])

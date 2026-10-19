@@ -4,7 +4,7 @@ import { readAsStringAsync } from "expo-file-system/legacy";
 import { router, Stack } from "expo-router";
 import { useShareIntentContext } from "expo-share-intent";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, FlatList, View } from "react-native";
+import { FlatList, View } from "react-native";
 import { looksLikeCollectionCsv } from "@/domain/collection/manabox";
 import type { CollectionImportResponse, SharedImportResponse } from "@/server/dto";
 import { CardThumb, FoilMark } from "~/components/card-bits";
@@ -17,6 +17,7 @@ import { setPendingImport, splitImportText, takePendingImport } from "~/lib/shar
 import { peekShare, takeShare } from "~/lib/share-inbox";
 import { useShareInbox } from "~/lib/share-intake";
 import { colors, radius } from "~/lib/theme";
+import { alert } from "~/components/dialog";
 
 type Item = SharedImportResponse["added"][number];
 
@@ -178,7 +179,7 @@ export default function ShareScreen() {
   }
 
   const confirmReplace = () =>
-    Alert.alert(
+    alert(
       "¿Reemplazar tu colección?",
       "Las cartas que vinieron de un CSV anterior se sustituyen por las de este. Las que añadiste a mano se quedan.",
       [
