@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, RefreshControl, ScrollView, Share, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, Share, View } from "react-native";
 import type { CardDTO, MyProfileDTO } from "@/server/dto";
 import type { GroupCardDTO, GroupDTO, GroupDeckDTO } from "@/server/social-dto";
 import { CardThumb } from "~/components/card-bits";
@@ -25,6 +25,7 @@ import {
 import { api } from "~/lib/api";
 import { API_URL } from "~/lib/config";
 import { colors, radius } from "~/lib/theme";
+import { alert } from "~/components/dialog";
 
 type Tab = "games" | "members" | "decks" | "cards";
 
@@ -60,7 +61,7 @@ export default function GroupScreen() {
   const invite = `${API_URL}/groups/join/${g.inviteCode}`;
 
   const removeMember = (username: string, isMe: boolean) =>
-    Alert.alert(
+    alert(
       isMe ? "¿Salir del grupo?" : `¿Quitar a @${username}?`,
       isMe ? "Para volver necesitarás otra vez el enlace de invitación." : "",
       [
@@ -80,7 +81,7 @@ export default function GroupScreen() {
       ],
     );
   const deleteGroup = () =>
-    Alert.alert(
+    alert(
       "¿Borrar el grupo?",
       `Se borran el grupo y sus ${g.stats.games} partidas. Los mazos y colecciones de cada uno no se tocan.`,
       [

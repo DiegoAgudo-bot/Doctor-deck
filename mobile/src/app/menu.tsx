@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { Alert, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import type { MyProfileDTO } from "@/server/dto";
 import { useUnread } from "~/components/bell";
 import { MenuRow, T, type IconName } from "~/components/ui";
@@ -11,6 +11,7 @@ import { API_URL, APP_VERSION } from "~/lib/config";
 import { unregisterPush } from "~/lib/push";
 import { clearCache } from "~/lib/query";
 import { colors } from "~/lib/theme";
+import { alert } from "~/components/dialog";
 
 const SECTIONS: {
   title: string;
@@ -55,7 +56,7 @@ export default function AccountMenu() {
   });
 
   const signOut = () =>
-    Alert.alert("¿Cerrar sesión?", "", [
+    alert("¿Cerrar sesión?", "", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Cerrar sesión",
