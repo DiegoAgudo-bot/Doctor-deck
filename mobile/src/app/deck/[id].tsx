@@ -3,7 +3,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, SectionList, Share, View } from "react-native";
+import { ActivityIndicator, Pressable, SectionList, Share, View } from "react-native";
 import type {
   AnalyzeResponse,
   CardDTO,
@@ -28,6 +28,7 @@ import { api, artUri } from "~/lib/api";
 import { tapFeedback } from "~/lib/feedback";
 import { euros } from "~/lib/format";
 import { colors, radius } from "~/lib/theme";
+import { alert } from "~/components/dialog";
 
 type Tab = "list" | "missing" | "changes" | "stats";
 type Analysis = Extract<AnalyzeResponse, { status: "ok" }>;
@@ -393,7 +394,7 @@ function DeckBody({
             icon="checkmark-done"
             disabled={waiting}
             onPress={() =>
-              Alert.alert(
+              alert(
                 `¿Aplicar los ${a.swaps.length} cambios?`,
                 "Se guardan en el mazo. Puedes deshacerlos editando la lista.",
                 [
@@ -520,7 +521,7 @@ function DeckBody({
           onLongPress={
             mine && tab === "list" && !a?.commanders.some((c) => c.oracleId === item.card.oracleId)
               ? () =>
-                  Alert.alert(`¿Quitar ${item.card.name}?`, "Se quita una copia del mazo.", [
+                  alert(`¿Quitar ${item.card.name}?`, "Se quita una copia del mazo.", [
                     { text: "Cancelar", style: "cancel" },
                     {
                       text: "Quitar",

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import type { TradeProposalDTO } from "@/server/dto";
 import { TradeEditor } from "~/components/trade-editor";
 import { STATUS_COLOR, STATUS_LABEL } from "~/components/trades";
@@ -11,6 +11,7 @@ import { api } from "~/lib/api";
 import { tapFeedback } from "~/lib/feedback";
 import { ago } from "~/lib/format";
 import { linesForApi, toLines, type TradeLine } from "~/lib/trade-lines";
+import { alert } from "~/components/dialog";
 
 type Action =
   | { action: "save" | "send" | "counter"; lines: ReturnType<typeof linesForApi> }
@@ -71,7 +72,7 @@ export default function Proposal() {
     p.status === "pending" ? (p.myTurn ? "Te toca responder" : `Le toca a @${partner}`) : null;
 
   const accept = () =>
-    Alert.alert(
+    alert(
       "¿Aceptar el intercambio?",
       `Las cartas que das saldrán de tu colección y las que recibes entrarán en ella (y al revés en la de @${partner}). No se puede deshacer.\n\nSi después vuelves a importar un CSV antiguo de tu colección, las cartas que has dado volverían a aparecer.`,
       [

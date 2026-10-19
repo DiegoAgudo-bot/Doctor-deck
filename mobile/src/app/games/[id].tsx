@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { Alert, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import type { GameDTO } from "@/server/social-dto";
 import { memberLabel, playedOn } from "~/components/games";
 import { Avatar, Card } from "~/components/social";
@@ -8,6 +8,7 @@ import { toast } from "~/components/toast";
 import { Button, ErrorView, Loading, T } from "~/components/ui";
 import { api } from "~/lib/api";
 import { colors } from "~/lib/theme";
+import { alert } from "~/components/dialog";
 
 /** Una partida: quién ganó, jugadores con sus mazos y notas. */
 export default function GameScreen() {
@@ -109,7 +110,7 @@ export default function GameScreen() {
             icon="trash-outline"
             busy={remove.isPending}
             onPress={() =>
-              Alert.alert("¿Borrar la partida?", "Deja de contar en la clasificación.", [
+              alert("¿Borrar la partida?", "Deja de contar en la clasificación.", [
                 { text: "Cancelar", style: "cancel" },
                 { text: "Borrar", style: "destructive", onPress: () => remove.mutate() },
               ])

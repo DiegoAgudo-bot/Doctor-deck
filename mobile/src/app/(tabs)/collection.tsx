@@ -2,7 +2,6 @@ import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { router, useNavigation } from "expo-router";
 import { useLayoutEffect, useMemo, useState } from "react";
 import {
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -39,6 +38,7 @@ import {
   type Filters,
 } from "~/lib/collection-filters";
 import { colors } from "~/lib/theme";
+import { alert } from "~/components/dialog";
 
 const PAGE = 60;
 // Se ordena por lo que vale una copia (lo que se enseña), no por lo que valen todas juntas.
@@ -349,7 +349,7 @@ export default function Collection() {
 
 const importFile = () =>
   pickImportFile().catch((e: unknown) =>
-    Alert.alert("No se ha podido leer el fichero", e instanceof Error ? e.message : String(e)),
+    alert("No se ha podido leer el fichero", e instanceof Error ? e.message : String(e)),
   );
 
 const open = (c: CollectionCardDTO) => router.push(`/card/${c.card.oracleId}`);

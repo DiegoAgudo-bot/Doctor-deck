@@ -663,7 +663,8 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   comunidad, actividad, perfiles, comentarios de mazos y ajustes con exportar datos y borrar la
   cuenta; `appRoute` en `mobile/src/lib/paths.ts` lleva cada ruta de la web a su pantalla y lo
   que no tiene —privacidad, legal— se abre en el navegador del sistema). Flujo como ManaBox (plan A1–A4): ordenar y filtrar la colección en hojas (`Sheet`), «+»
-  flotante (`Fab`) para añadir cartas y crear mazos, avisos cortos (`toast`) en vez de `Alert`;
+  flotante (`Fab`) para añadir cartas y crear mazos, avisos cortos (`toast`) y preguntas con el estilo de la app (`alert` de
+  `components/dialog.tsx`, mismo uso que `Alert.alert`, con `DialogHost` en el layout) en vez de `Alert`;
   en la ficha «Añadir 1» con la edición, idioma y estado de la última vez (`useCopyDefaults`) y
   «Añadir a un mazo»; en Buscar, mantener pulsada una carta añade 1 copia; en un mazo propio,
   aplicar / descartar cada cambio o todos, quitar cartas (mantener pulsada) y «En deseos»; en

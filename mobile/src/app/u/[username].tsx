@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState, type ReactElement } from "react";
-import { Alert, FlatList, Pressable, ScrollView, Share, View } from "react-native";
+import { FlatList, Pressable, ScrollView, Share, View } from "react-native";
 import type {
   CollectionViewResponse,
   CommunityResponse,
@@ -31,6 +31,7 @@ import { tapFeedback } from "~/lib/feedback";
 import { euros, thousands } from "~/lib/format";
 import { useDebounced } from "~/lib/hooks";
 import { colors } from "~/lib/theme";
+import { alert } from "~/components/dialog";
 
 /** Perfil público: seguir, bloquear, sus mazos (con cuánto tengo), su colección y el cruce. */
 export default function Profile() {
@@ -91,7 +92,7 @@ export default function Profile() {
   const canSeeCollection = p.collectionPublic || v.isMe;
 
   const confirmBlock = () =>
-    Alert.alert(
+    alert(
       `¿Bloquear a @${p.username}?`,
       "Dejaréis de seguiros, no podrá comentar tus mazos ni proponerte intercambios ni préstamos, y no verás sus comentarios ni su actividad. No se le avisa.",
       [
