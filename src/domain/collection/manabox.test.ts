@@ -28,6 +28,8 @@ describe("parseManaboxCsv con el export real", () => {
       quantity: 1,
       foil: false,
       language: "en",
+      addedOn: "2025-11-14",
+      purchaseEur: 2.84,
     });
   });
 
@@ -57,6 +59,19 @@ describe("parseManaboxCsv: casos límite", () => {
         `Sol Ring,C21,,263,normal,,1,,,,,,,,,,,`,
     );
     expect(rows.map((r) => r.language)).toEqual(["es", "ja", null]);
+  });
+
+  it("precio de compra solo en EUR (o sin moneda) y > 0; fecha de alta solo si es una fecha", () => {
+    const { rows } = parseManaboxCsv(
+      `${HEADER}\nA,,,,normal,,1,,,"1,5",,,,,,,EUR,2024-03-02 10:00\n` +
+        `B,,,,normal,,1,,,2,,,,,,,USD,ayer\nC,,,,normal,,1,,,0,,,,,,,,\nD,,,,normal,,1,,,3,,,,,,,,`,
+    );
+    expect(rows.map((r) => [r.purchaseEur, r.addedOn])).toEqual([
+      [1.5, "2024-03-02"],
+      [null, null],
+      [null, null],
+      [3, null],
+    ]);
   });
 
   it("devuelve errores por fila con su número de línea", () => {

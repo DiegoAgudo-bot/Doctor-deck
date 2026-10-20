@@ -92,6 +92,80 @@ function LanguagePills({ card }: { card: CollectionCardDTO }) {
     ));
 }
 
+/** La edición de la carta (la de la impresión que se enseña) y cuántas más hay. */
+function SetLine({ card }: { card: CollectionCardDTO }) {
+  const set = card.set;
+  if (!set) {
+    return <span className="ctile-set subtle">Edición desconocida</span>;
+  }
+  const more = card.sets.filter((code) => code !== set.code).length;
+  return (
+    <span
+      className="ctile-set"
+      title={
+        more > 0
+          ? `${set.name ?? set.code} y ${card.sets.length - 1} más: ${card.sets.join(", ")}`
+          : (set.name ?? set.code)
+      }
+    >
+      <span className="mono ctile-setcode">{set.code}</span>
+      {set.name && <span className="ctile-setname">{set.name}</span>}
+      {more > 0 && <span className="subtle">+{more}</span>}
+    </span>
+  );
+}
+
+const MONTHS = [
+  "ene",
+  "feb",
+  "mar",
+  "abr",
+  "may",
+  "jun",
+  "jul",
+  "ago",
+  "sept",
+  "oct",
+  "nov",
+  "dic",
+];
+/** "2025-11-14" → "14 nov 2025". */
+const dayLabel = (day: string) => {
+  const [y, m, d] = day.split("-");
+  return `${Number(d)} ${MONTHS[Number(m) - 1] ?? m} ${y}`;
+};
+
+/** Cuánto ha subido o bajado lo que valen mis copias desde que las añadí (▲ 12 % · desde nov. 25). */
+function SinceAdded({ card }: { card: CollectionCardDTO }) {
+  const s = card.sinceAdded;
+  if (!s || s.paid <= 0) {
+    return (
+      <span className="ctile-trend subtle" title="No se sabe cuánto valía cuando la añadiste">
+        Sin precio de entrada
+      </span>
+    );
+  }
+  const diff = Math.round((s.now - s.paid) * 100) / 100;
+  const pct = (diff / s.paid) * 100;
+  const flat = Math.abs(pct) < 0.5;
+  const tone = flat ? "flat" : diff > 0 ? "up" : "down";
+  const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
+  return (
+    <span
+      className={`ctile-trend is-${tone}`}
+      title={`Desde el ${dayLabel(s.since)}: valía ${formatEuros(s.paid)}, hoy ${formatEuros(s.now)} (${sign}${formatEuros(Math.abs(diff))})`}
+    >
+      <span aria-hidden="true">{flat ? "=" : diff > 0 ? "▲" : "▼"}</span>
+      <span className="ctile-pct">
+        {flat
+          ? "0\u00a0%"
+          : `${sign}${Math.abs(pct).toLocaleString("es", { maximumFractionDigits: Math.abs(pct) < 10 ? 1 : 0 })}\u00a0%`}
+      </span>
+      <span className="subtle">desde {dayLabel(s.since).replace(/^\d+ /, "")}</span>
+    </span>
+  );
+}
+
 export function CollectionBrowser({
   loggedIn,
   localPairs,
@@ -393,13 +467,9 @@ export function CollectionBrowser({
           </button>
         </div>
       ) : view === "cuadricula" ? (
-        <div
-          className="results grid gap-x-3 gap-y-4"
-          aria-busy={loading}
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}
-        >
+        <div className="results ctiles" aria-busy={loading}>
           {shown.map((c) => (
-            <figure key={c.card.oracleId} className="m-0 flex flex-col gap-1.5">
+            <figure key={c.key} className="ctile">
               <div className="relative">
                 {editable ? (
                   <button
@@ -413,35 +483,41 @@ export function CollectionBrowser({
                 ) : (
                   <CardImage card={c.card} sizes="(max-width: 760px) 30vw, 180px" />
                 )}
-                <span
-                  className="qtymark"
-                  style={{ top: "4%", right: -4 }}
-                  title={`${c.quantity} copias`}
-                >
+                <span className="qtymark" title={`${c.quantity} copias`}>
                   ×{c.quantity}
                 </span>
               </div>
-              <figcaption className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-                {c.foilQuantity > 0 && (
-                  <span className="pill pill-foil">foil {c.foilQuantity}</span>
-                )}
-                <LanguagePills card={c} />
-                {c.inUse > 0 && (
-                  <span className="pill" title={c.usedIn.join(", ")}>
-                    <span className="dot dot-inuse" />
-                    {c.inUse >= c.quantity ? "todas en mazos" : `${c.inUse} en mazos`}
-                  </span>
-                )}
-                {(c.value ?? c.price) !== null && (
-                  <button
-                    type="button"
-                    className="linkbtn mono subtle ml-auto"
-                    title={valueTitle(c)}
-                    onClick={() => setPriceCard(c.card)}
-                  >
-                    {priceLabel(c, f.sort)}
-                  </button>
-                )}
+              <figcaption className="ctile-body">
+                <SetLine card={c} />
+                <SinceAdded card={c} />
+                <div className="ctile-foot">
+                  <div className="ctile-pills">
+                    {c.foilQuantity > 0 && (
+                      <span className="pill pill-foil">foil {c.foilQuantity}</span>
+                    )}
+                    <LanguagePills card={c} />
+                    {c.inUse > 0 && (
+                      <span className="pill" title={c.usedIn.join(", ")}>
+                        <span className="dot dot-inuse" />
+                        {c.inUse >= c.quantity ? "todas en mazos" : `${c.inUse} en mazos`}
+                      </span>
+                    )}
+                  </div>
+                  {(c.value ?? c.price) !== null ? (
+                    <button
+                      type="button"
+                      className="linkbtn mono ctile-price"
+                      title={valueTitle(c)}
+                      onClick={() => setPriceCard(c.card)}
+                    >
+                      {priceLabel(c, f.sort)}
+                    </button>
+                  ) : (
+                    <span className="mono subtle ctile-price" title="Sin precio de referencia">
+                      —
+                    </span>
+                  )}
+                </div>
               </figcaption>
             </figure>
           ))}

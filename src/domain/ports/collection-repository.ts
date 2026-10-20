@@ -25,6 +25,8 @@ export interface ManualCard {
   /** Idioma de la copia (código de Scryfall), si se sabe. */
   language?: string | null | undefined;
   condition?: string | null | undefined;
+  /** Precio por copia (EUR) al añadirla, para ver después cuánto ha cambiado. */
+  purchaseEur?: number | null | undefined;
 }
 
 /** Lo que se puede cambiar de una línea de la colección. */
@@ -35,6 +37,8 @@ export interface CollectionLinePatch {
   condition?: string | null | undefined;
   /** Otra impresión de la misma carta (con su edición y número). */
   printing?: { scryfallId: string; setCode: string; collectorNumber: string } | undefined;
+  /** Precio por copia al añadirla (null = ya no se sabe: p. ej. ahora es otra impresión). */
+  purchaseEur?: number | null | undefined;
 }
 
 /** Una línea de la colección (del CSV o añadida suelta), ya emparejada con una carta. */
@@ -55,6 +59,10 @@ export interface CollectionEntryRow {
   condition: string | null;
   source: "csv" | "manual";
   addedAt: Date;
+  /** Día en que se añadió ("YYYY-MM-DD"): el del CSV o, si no lo trae, el de `addedAt`. */
+  addedOn: string;
+  /** Precio por copia (EUR) cuando se añadió; null si no se sabe. */
+  purchaseEur: number | null;
 }
 
 /**

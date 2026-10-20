@@ -537,6 +537,8 @@ export interface CollectionCardDTO {
   quantity: number;
   foilQuantity: number;
   sets: string[];
+  /** La edición que se enseña (la de la impresión de la que tengo más copias, o la primera). */
+  set: { code: string; name: string | null } | null;
   /** Rarezas y estados de las copias (de los que se saben). */
   rarities: string[];
   conditions: string[];
@@ -555,6 +557,11 @@ export interface CollectionCardDTO {
   price: number | null;
   /** Lo que valen mis copias (cada una según su edición y si es foil). */
   value: number | null;
+  /**
+   * Desde que se añadieron: lo que costaban y lo que valen hoy las copias de las que se sabe el
+   * precio de entonces, y el día de la más antigua ("YYYY-MM-DD"). null si no se sabe.
+   */
+  sinceAdded: { paid: number; now: number; since: string } | null;
   usedIn: string[];
   inUse: number;
 }
@@ -863,6 +870,12 @@ export const savedDeckDTO = (d: SavedDeck): SavedDeckDTO => ({
   updatedAt: d.updatedAt.toISOString(),
 });
 
+const shownSet = (c: CollectionCard): CollectionCardDTO["set"] => {
+  const code = c.printing?.setCode.toUpperCase() ?? c.sets[0];
+  if (!code) return null;
+  return { code, name: c.printing?.setName ?? c.setNames[code] ?? null };
+};
+
 export const collectionCardDTO = (c: CollectionCard): CollectionCardDTO => ({
   key: c.key,
   variant: c.variant,
@@ -873,6 +886,7 @@ export const collectionCardDTO = (c: CollectionCard): CollectionCardDTO => ({
   quantity: c.quantity,
   foilQuantity: c.foilQuantity,
   sets: c.sets,
+  set: shownSet(c),
   rarities: c.rarities,
   conditions: c.conditions,
   languages: c.languages,
@@ -881,6 +895,7 @@ export const collectionCardDTO = (c: CollectionCard): CollectionCardDTO => ({
   lastAdded: c.lastAdded.toISOString(),
   price: c.price,
   value: c.value,
+  sinceAdded: c.sinceAdded,
   usedIn: c.usedIn,
   inUse: c.inUse,
 });

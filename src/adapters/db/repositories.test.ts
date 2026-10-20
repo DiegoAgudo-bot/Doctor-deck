@@ -74,6 +74,8 @@ describe("PrismaCollectionRepository", () => {
       foil: false,
       language: "en" as const,
       condition: null,
+      addedOn: null,
+      purchaseEur: null,
       raw: { Name: name },
     });
     await repo.replaceCollection({

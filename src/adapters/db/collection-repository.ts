@@ -43,6 +43,8 @@ export class PrismaCollectionRepository implements CollectionRepository {
       foil: row.foil,
       language: row.language,
       condition: row.condition,
+      addedOn: row.addedOn,
+      purchaseEur: row.purchaseEur,
       line: row.line,
       raw: JSON.stringify(row.raw),
     }));
@@ -73,6 +75,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
         foil: c.foil,
         language: c.language ?? null,
         condition: c.condition ?? null,
+        purchaseEur: c.purchaseEur ?? null,
         status: "matched",
         matchMethod: MANUAL,
         line: 0,
@@ -98,6 +101,8 @@ export class PrismaCollectionRepository implements CollectionRepository {
         condition: true,
         matchMethod: true,
         importedAt: true,
+        addedOn: true,
+        purchaseEur: true,
       },
     });
     return rows.flatMap((r) =>
@@ -116,6 +121,8 @@ export class PrismaCollectionRepository implements CollectionRepository {
               condition: r.condition,
               source: r.matchMethod === MANUAL ? ("manual" as const) : ("csv" as const),
               addedAt: r.importedAt,
+              addedOn: r.addedOn ?? r.importedAt.toISOString().slice(0, 10),
+              purchaseEur: r.purchaseEur,
             },
           ]
         : [],
@@ -144,6 +151,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
               collectorNumber: patch.printing.collectorNumber,
             }
           : {}),
+        ...(patch.purchaseEur !== undefined ? { purchaseEur: patch.purchaseEur } : {}),
         // Editada aquí: ya no es "lo del CSV" y reimportar no la pisa.
         matchMethod: MANUAL,
       },
