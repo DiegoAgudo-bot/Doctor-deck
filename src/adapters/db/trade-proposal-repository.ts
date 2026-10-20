@@ -175,6 +175,8 @@ export class PrismaTradeProposalRepository implements TradeProposalRepository {
               foil: item.foil,
               language: item.language,
               condition,
+              // Lo que valía en el intercambio: desde ahí se ve cuánto cambia.
+              purchaseEur: item.unitPrice ?? null,
               status: "matched",
               matchMethod: MANUAL,
               line: 0,

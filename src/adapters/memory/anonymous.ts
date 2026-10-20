@@ -51,6 +51,8 @@ export class BrowserCollectionRepository implements CollectionRepository {
       condition: null,
       source: "csv",
       addedAt: at,
+      addedOn: "1970-01-01",
+      purchaseEur: null,
     }));
   }
 

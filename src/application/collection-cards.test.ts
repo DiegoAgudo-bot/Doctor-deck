@@ -26,7 +26,13 @@ const byName = (name: string) => {
   if (!c) throw new Error(name);
   return c;
 };
-const csvRow = (name: string, quantity: number, line: number, setCode: string | null = null) => ({
+const csvRow = (
+  name: string,
+  quantity: number,
+  line: number,
+  setCode: string | null = null,
+  bought: { addedOn: string; purchaseEur: number } | null = null,
+) => ({
   line,
   name,
   setCode,
@@ -36,6 +42,8 @@ const csvRow = (name: string, quantity: number, line: number, setCode: string | 
   foil: false,
   language: "en" as const,
   condition: null,
+  addedOn: bought?.addedOn ?? null,
+  purchaseEur: bought?.purchaseEur ?? null,
   raw: { Name: name },
 });
 
@@ -215,6 +223,45 @@ describe("collectionView", () => {
     expect(byCopy.reduce((n, v) => n + v.quantity, 0)).toBe(byCard[0]?.quantity);
     expect(new Set(byCopy.map((v) => v.key)).size).toBe(byCopy.length);
     expect(byCopy.every((v) => v.variant !== null)).toBe(true);
+  });
+
+  it("cuánto ha cambiado desde que se añadió: precio de compra del CSV y el de al añadirla", async () => {
+    await createTestUser(db, "u9");
+    const collection = new PrismaCollectionRepository(db, "u9");
+    const sol = byName("Sol Ring");
+    await collection.replaceCollection({
+      matched: [
+        {
+          row: csvRow("Sol Ring", 2, 2, "c21", { addedOn: "2025-11-14", purchaseEur: 0.5 }),
+          oracleId: sol.oracleId,
+          scryfallId: null,
+          method: "name",
+        },
+      ],
+      unmatched: [],
+    });
+    // Añadida a mano hoy: se guarda el precio de hoy (la más barata, 0,80 €).
+    await addToCollection([{ oracleId: sol.oracleId, quantity: 1 }], { cards, collection });
+    const deps = {
+      cards,
+      collection,
+      decks: new PrismaDeckRepository(db, "u9"),
+      classifier: new HeuristicRoleClassifier(),
+    };
+    const [solView] = await collectionView(deps);
+    expect(solView?.sinceAdded).toEqual({ paid: 1.8, now: 2.4, since: "2025-11-14" });
+    // Sin precio de entonces (el CSV no lo trae, o la copia ahora es foil), no se sabe.
+    await collection.replaceCollection({
+      matched: [
+        { row: csvRow("Sol Ring", 1, 2), oracleId: sol.oracleId, scryfallId: null, method: "name" },
+      ],
+      unmatched: [],
+    });
+    const lines = await collection.entries();
+    const manual = lines.find((e) => e.source === "manual");
+    expect(manual?.purchaseEur).toBe(0.8);
+    await editCollectionLine(manual?.id ?? "", { foil: true }, deps);
+    expect((await collectionView(deps))[0]?.sinceAdded).toBeNull();
   });
 
   it("sin cuenta usa la colección que manda el navegador", async () => {

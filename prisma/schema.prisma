@@ -109,6 +109,11 @@ model CollectionEntry {
   language        String?
   /// Estado de la copia ("near_mint", "lightly_played"… como ManaBox); null si no se sabe.
   condition       String?
+  /// Día en que se añadió ("YYYY-MM-DD", columna `Added` del CSV); null = el de `importedAt`.
+  addedOn         String?
+  /// Precio por copia (EUR) al añadirla: el `Purchase price` del CSV o el de referencia al añadirla
+  /// a mano. Sirve para ver cuánto ha cambiado desde entonces; null si no se sabe.
+  purchaseEur     Float?
   /// "matched" | "unmatched"
   status          String
   /// Cómo se emparejó: "scryfallId" | "setNumber" | "name"; null si no se emparejó.

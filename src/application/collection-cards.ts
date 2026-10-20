@@ -85,6 +85,7 @@ export async function addToCollection(
     named.find((c) => c.frontFaceName && nameKey(c.frontFaceName) === key);
 
   const result: AddCardsResult = { added: [], notFound: [] };
+  const printingById = new Map(printings.map((p) => [p.scryfallId.toLowerCase(), p]));
   for (const item of items) {
     const card = item.scryfallId
       ? byOracle.get(oracleOfPrinting.get(item.scryfallId.toLowerCase()) ?? "")
@@ -106,16 +107,26 @@ export async function addToCollection(
       condition: normalizeCondition(item.condition),
     });
   }
+  // El precio de hoy de cada copia, para ver luego cuánto ha cambiado desde que se añadió.
+  const minPrices =
+    result.added.length > 0
+      ? await deps.cards.findMinPrices([...new Set(result.added.map((a) => a.card.oracleId))])
+      : new Map<string, number>();
   await deps.collection.addCards(
-    result.added.map((a) => ({
-      oracleId: a.card.oracleId,
-      name: a.card.name,
-      quantity: a.quantity,
-      foil: a.foil,
-      scryfallId: a.scryfallId,
-      language: a.language,
-      condition: a.condition,
-    })),
+    result.added.map((a) => {
+      const p = a.scryfallId ? printingById.get(a.scryfallId) : undefined;
+      return {
+        oracleId: a.card.oracleId,
+        name: a.card.name,
+        quantity: a.quantity,
+        foil: a.foil,
+        scryfallId: a.scryfallId,
+        language: a.language,
+        condition: a.condition,
+        purchaseEur:
+          (p ? printingPrice(p, a.foil) : null) ?? minPrices.get(a.card.oracleId) ?? null,
+      };
+    }),
   );
   return result;
 }
@@ -172,6 +183,12 @@ export interface CollectionCard {
    * impresión o no tiene precio, al de referencia. null si no hay ningún precio.
    */
   value: number | null;
+  /**
+   * Cuánto ha cambiado desde que se añadió: lo que costaban (`paid`) y lo que valen hoy (`now`) las
+   * copias de las que se sabe el precio de entonces, y desde cuándo (la más antigua). null si de
+   * ninguna se sabe.
+   */
+  sinceAdded: { paid: number; now: number; since: string } | null;
   /** Mazos guardados que la usan y cuántas copias. */
   usedIn: string[];
   inUse: number;
@@ -259,6 +276,7 @@ export async function collectionView(
         printing: null,
         price: prices.get(e.oracleId) ?? null,
         value: null,
+        sinceAdded: null,
         usedIn: u?.decks ?? [],
         inUse: u?.quantity ?? 0,
       };
@@ -267,6 +285,13 @@ export async function collectionView(
     item.quantity += e.quantity;
     const unit = unitPrice(e);
     if (unit !== null) item.value = Math.round(((item.value ?? 0) + unit * e.quantity) * 100) / 100;
+    if (unit !== null && e.purchaseEur !== null) {
+      const s = item.sinceAdded ?? { paid: 0, now: 0, since: e.addedOn };
+      s.paid = Math.round((s.paid + e.purchaseEur * e.quantity) * 100) / 100;
+      s.now = Math.round((s.now + unit * e.quantity) * 100) / 100;
+      if (e.addedOn < s.since) s.since = e.addedOn;
+      item.sinceAdded = s;
+    }
     if (e.foil) item.foilQuantity += e.quantity;
     const sid = e.scryfallId?.toLowerCase();
     if (sid && byPrinting.has(sid)) {
@@ -504,6 +529,12 @@ export async function editCollectionLine(
     language: input.language === undefined ? undefined : normalizeLanguage(input.language),
     condition: input.condition === undefined ? undefined : normalizeCondition(input.condition),
     printing,
+    // Otra impresión o foil: el precio de cuando se añadió era el de otra copia.
+    purchaseEur:
+      (printing && printing.scryfallId !== line.scryfallId?.toLowerCase()) ||
+      (input.foil !== undefined && input.foil !== line.foil)
+        ? null
+        : undefined,
   });
 }
 

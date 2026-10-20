@@ -7,6 +7,7 @@ import {
   type CollectionSort,
   unitPrice,
 } from "@/domain/collection/browse";
+import { sinceAddedTrend } from "@/domain/collection/since-added";
 import { formatEuros } from "@/domain/suggestions/format";
 import type {
   CardDTO,
@@ -76,6 +77,14 @@ const priceLabel = (c: CollectionCardDTO, sort: Sort) =>
     ? `${formatEuros(unitPrice(c) ?? 0)} c/u`
     : formatEuros(c.value ?? c.price ?? 0);
 
+/** En la tarjeta: el precio de hoy de una copia (el de compra solo sirve para la variación). */
+const tileTitle = (c: CollectionCardDTO) =>
+  `Precio actual por copia (según su edición y si es foil).${
+    c.quantity > 1 && c.value !== null
+      ? ` Tus ${c.quantity} copias valen ${formatEuros(c.value)}.`
+      : ""
+  } Clic para ver el histórico de precio.`;
+
 /** Idiomas de las copias que no son en inglés ("ES ×2"); en inglés no se marca nada. */
 function LanguagePills({ card }: { card: CollectionCardDTO }) {
   return card.languages
@@ -90,6 +99,52 @@ function LanguagePills({ card }: { card: CollectionCardDTO }) {
         {card.quantity > 1 ? ` ×${l.quantity}` : ""}
       </span>
     ));
+}
+
+/** La edición de la carta (la de la impresión que se enseña) y cuántas más hay. */
+function SetLine({ card }: { card: CollectionCardDTO }) {
+  const set = card.set;
+  if (!set) {
+    return <span className="ctile-set subtle">Edición desconocida</span>;
+  }
+  const more = card.sets.filter((code) => code !== set.code).length;
+  return (
+    <span
+      className="ctile-set"
+      title={
+        more > 0
+          ? `${set.name ?? set.code} y ${card.sets.length - 1} más: ${card.sets.join(", ")}`
+          : (set.name ?? set.code)
+      }
+    >
+      <span className="mono ctile-setcode">{set.code}</span>
+      {set.name && <span className="ctile-setname">{set.name}</span>}
+      {more > 0 && <span className="subtle">+{more}</span>}
+    </span>
+  );
+}
+
+/** Cuánto ha subido o bajado lo que valen mis copias desde que las añadí (▲ 12 % · desde nov 2025). */
+function SinceAdded({ card }: { card: CollectionCardDTO }) {
+  const t = sinceAddedTrend(card.sinceAdded);
+  const s = card.sinceAdded;
+  if (!t || !s) {
+    return (
+      <span className="ctile-trend subtle" title="No se sabe cuánto valía cuando la añadiste">
+        Sin precio de entrada
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`ctile-trend is-${t.tone}`}
+      title={`Desde el ${t.day}: valía ${formatEuros(s.paid)}, hoy ${formatEuros(s.now)} (${t.diff > 0 ? "+" : t.diff < 0 ? "−" : ""}${formatEuros(Math.abs(t.diff))})`}
+    >
+      <span aria-hidden="true">{t.arrow}</span>
+      <span className="ctile-pct">{t.percent}</span>
+      <span className="subtle">desde {t.month}</span>
+    </span>
+  );
 }
 
 export function CollectionBrowser({
@@ -393,13 +448,9 @@ export function CollectionBrowser({
           </button>
         </div>
       ) : view === "cuadricula" ? (
-        <div
-          className="results grid gap-x-3 gap-y-4"
-          aria-busy={loading}
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}
-        >
+        <div className="results ctiles" aria-busy={loading}>
           {shown.map((c) => (
-            <figure key={c.card.oracleId} className="m-0 flex flex-col gap-1.5">
+            <figure key={c.key} className="ctile">
               <div className="relative">
                 {editable ? (
                   <button
@@ -413,35 +464,41 @@ export function CollectionBrowser({
                 ) : (
                   <CardImage card={c.card} sizes="(max-width: 760px) 30vw, 180px" />
                 )}
-                <span
-                  className="qtymark"
-                  style={{ top: "4%", right: -4 }}
-                  title={`${c.quantity} copias`}
-                >
+                <span className="qtymark" title={`${c.quantity} copias`}>
                   ×{c.quantity}
                 </span>
               </div>
-              <figcaption className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-                {c.foilQuantity > 0 && (
-                  <span className="pill pill-foil">foil {c.foilQuantity}</span>
-                )}
-                <LanguagePills card={c} />
-                {c.inUse > 0 && (
-                  <span className="pill" title={c.usedIn.join(", ")}>
-                    <span className="dot dot-inuse" />
-                    {c.inUse >= c.quantity ? "todas en mazos" : `${c.inUse} en mazos`}
-                  </span>
-                )}
-                {(c.value ?? c.price) !== null && (
-                  <button
-                    type="button"
-                    className="linkbtn mono subtle ml-auto"
-                    title={valueTitle(c)}
-                    onClick={() => setPriceCard(c.card)}
-                  >
-                    {priceLabel(c, f.sort)}
-                  </button>
-                )}
+              <figcaption className="ctile-body">
+                <SetLine card={c} />
+                <SinceAdded card={c} />
+                <div className="ctile-foot">
+                  <div className="ctile-pills">
+                    {c.foilQuantity > 0 && (
+                      <span className="pill pill-foil">foil {c.foilQuantity}</span>
+                    )}
+                    <LanguagePills card={c} />
+                    {c.inUse > 0 && (
+                      <span className="pill" title={c.usedIn.join(", ")}>
+                        <span className="dot dot-inuse" />
+                        {c.inUse >= c.quantity ? "todas en mazos" : `${c.inUse} en mazos`}
+                      </span>
+                    )}
+                  </div>
+                  {(c.value ?? c.price) !== null ? (
+                    <button
+                      type="button"
+                      className="linkbtn mono ctile-price"
+                      title={tileTitle(c)}
+                      onClick={() => setPriceCard(c.card)}
+                    >
+                      {formatEuros(unitPrice(c) ?? 0)}
+                    </button>
+                  ) : (
+                    <span className="mono subtle ctile-price" title="Sin precio de referencia">
+                      —
+                    </span>
+                  )}
+                </div>
               </figcaption>
             </figure>
           ))}

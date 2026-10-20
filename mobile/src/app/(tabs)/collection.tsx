@@ -6,9 +6,11 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   useWindowDimensions,
   View,
 } from "react-native";
+import { sinceAddedTrend } from "@/domain/collection/since-added";
 import type { CollectionCardDTO, CollectionViewResponse } from "@/server/dto";
 import { Bell } from "~/components/bell";
 import { CardThumb, FoilMark } from "~/components/card-bits";
@@ -37,7 +39,7 @@ import {
   EMPTY_FILTERS,
   type Filters,
 } from "~/lib/collection-filters";
-import { colors } from "~/lib/theme";
+import { colors, radius } from "~/lib/theme";
 import { alert } from "~/components/dialog";
 
 const PAGE = 60;
@@ -123,7 +125,7 @@ export default function Collection() {
   const clearFilters = () => setFilters(EMPTY_FILTERS);
   const sortLabel = SORTS.find((s) => s.key === sort)?.label ?? "Orden";
 
-  const columns = grid ? 3 : 1;
+  const columns = grid ? 2 : 1;
   const tile = (width - 16 * 2 - 8 * (columns - 1)) / columns;
 
   return (
@@ -405,6 +407,7 @@ function Row({ item }: { item: CollectionCardDTO }) {
         <T variant="small" numberOfLines={1}>
           {item.variant ? variantLine(item) : cardLine(item)}
         </T>
+        <SinceAddedLine item={item} />
         {item.inUse > 0 && (
           <T variant="small" style={{ color: colors.inuse }} numberOfLines={1}>
             {item.inUse} en mazos
@@ -419,34 +422,147 @@ function Row({ item }: { item: CollectionCardDTO }) {
   );
 }
 
-function GridTile({ item, width }: { item: CollectionCardDTO; width: number }) {
+/** La edición que se enseña: código y nombre (y cuántas más hay). */
+function SetLine({ item }: { item: CollectionCardDTO }) {
+  const set = item.set;
+  if (!set) {
+    return (
+      <T variant="small" style={tileStyles.muted} numberOfLines={1}>
+        Edición desconocida
+      </T>
+    );
+  }
+  const more = item.sets.filter((code) => code !== set.code).length;
   return (
-    <Pressable onPress={() => open(item)} style={{ width, gap: 4 }}>
+    <View style={tileStyles.setRow}>
+      <T variant="mono" style={tileStyles.setCode}>
+        {set.code}
+      </T>
+      {set.name && (
+        <T variant="small" style={tileStyles.setName} numberOfLines={1}>
+          {set.name}
+        </T>
+      )}
+      {more > 0 && (
+        <T variant="small" style={tileStyles.muted}>
+          +{more}
+        </T>
+      )}
+    </View>
+  );
+}
+
+const TONE = { up: colors.in, down: colors.out, flat: colors.text3 } as const;
+
+/** Cuánto ha cambiado lo que valen mis copias desde que las añadí: «▲ +12 % desde nov 2025». */
+function SinceAddedLine({ item }: { item: CollectionCardDTO }) {
+  const t = sinceAddedTrend(item.sinceAdded);
+  if (!t) {
+    return (
+      <T variant="small" style={tileStyles.muted} numberOfLines={1}>
+        Sin precio de entrada
+      </T>
+    );
+  }
+  return (
+    <T variant="small" numberOfLines={1} style={{ color: TONE[t.tone] }}>
+      {t.arrow}{" "}
+      <T variant="small" style={{ color: TONE[t.tone], fontWeight: "700" }}>
+        {t.percent}
+      </T>
+      <T variant="small" style={tileStyles.muted}>
+        {" "}
+        desde {t.month}
+      </T>
+    </T>
+  );
+}
+
+/** Como en la web: la carta en su tarjeta, con la edición, la variación y el precio de hoy. */
+function GridTile({ item, width }: { item: CollectionCardDTO; width: number }) {
+  const inner = width - TILE_PAD * 2 - 2;
+  return (
+    <Pressable
+      onPress={() => open(item)}
+      style={({ pressed }) => [
+        tileStyles.tile,
+        { width },
+        pressed && { backgroundColor: colors.raised, borderColor: colors.lineStrong },
+      ]}
+    >
       <View>
-        <CardThumb uri={item.card.imageUrl} width={width} name={item.card.name} />
-        <View
-          style={{
-            position: "absolute",
-            right: 4,
-            bottom: 4,
-            backgroundColor: "rgba(0,0,0,0.75)",
-            borderRadius: 8,
-            paddingHorizontal: 6,
-            paddingVertical: 1,
-            flexDirection: "row",
-            gap: 3,
-            alignItems: "center",
-          }}
-        >
-          {item.foilQuantity > 0 && <FoilMark size={10} />}
-          <T variant="small" style={{ color: "#fff", fontWeight: "700" }}>
+        <CardThumb uri={item.card.imageUrl} width={inner} name={item.card.name} />
+        <View style={tileStyles.qty}>
+          <T variant="small" style={{ color: colors.text, fontWeight: "700", fontSize: 11 }}>
             ×{item.quantity}
           </T>
         </View>
       </View>
-      <T variant="mono" style={{ textAlign: "center" }}>
-        {priceText(item)}
-      </T>
+      <View style={{ gap: 3 }}>
+        <SetLine item={item} />
+        <SinceAddedLine item={item} />
+        <View style={tileStyles.foot}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 }}>
+            {item.foilQuantity > 0 && <FoilMark size={10} />}
+            {item.inUse > 0 && (
+              <T variant="small" style={{ color: colors.inuse, fontSize: 11 }} numberOfLines={1}>
+                {item.inUse >= item.quantity ? "en mazos" : `${item.inUse} en mazos`}
+              </T>
+            )}
+          </View>
+          <T variant="mono" style={tileStyles.price}>
+            {priceText(item)}
+          </T>
+        </View>
+      </View>
     </Pressable>
   );
 }
+
+const TILE_PAD = 6;
+
+const tileStyles = StyleSheet.create({
+  tile: {
+    gap: 8,
+    padding: TILE_PAD,
+    paddingBottom: 8,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.panel,
+  },
+  qty: {
+    position: "absolute",
+    top: 6,
+    right: 4,
+    height: 20,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    justifyContent: "center",
+    backgroundColor: colors.raised,
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
+  },
+  setRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  setCode: {
+    fontSize: 10,
+    color: colors.text3,
+    paddingHorizontal: 4,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  setName: { flexShrink: 1, fontSize: 12 },
+  muted: { color: colors.text3, fontSize: 12 },
+  foot: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6,
+    marginTop: 3,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+  },
+  price: { color: colors.text, fontWeight: "700", fontSize: 14, marginLeft: "auto" },
+});

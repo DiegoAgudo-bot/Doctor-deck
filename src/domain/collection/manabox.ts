@@ -16,6 +16,10 @@ export interface CollectionRow {
   language: Language | null;
   /** Estado ("near_mint", "lightly_played"…); null si no viene o no se reconoce. */
   condition: Condition | null;
+  /** Día en que se añadió a la colección ("YYYY-MM-DD", columna `Added`); null si no viene. */
+  addedOn: string | null;
+  /** Precio de compra por copia en EUR (`Purchase price`); null si no viene, es 0 u otra moneda. */
+  purchaseEur: number | null;
   raw: Record<string, string>;
 }
 
@@ -47,6 +51,9 @@ const ALIASES = {
   foil: ["foil", "printing", "finish", "foiling"],
   language: ["language", "lang"],
   condition: ["condition"],
+  added: ["added", "date added", "added at", "added_at", "added date"],
+  purchasePrice: ["purchase price", "purchase_price", "price bought", "bought price"],
+  purchaseCurrency: ["purchase price currency", "purchase currency", "currency"],
 } as const;
 type Field = keyof typeof ALIASES;
 
@@ -63,6 +70,22 @@ const blankToNull = (v: string | undefined) => {
 const isFoil = (v: string) => {
   const t = v.trim().toLowerCase();
   return t !== "" && !["normal", "nonfoil", "non-foil", "false", "no", "0", "regular"].includes(t);
+};
+
+/** "2025-11-14T14:07:18.709Z" o "2025-11-14 10:00" → "2025-11-14"; otros formatos, null. */
+const dayOf = (v: string | undefined) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v?.trim() ?? "");
+  return m && !Number.isNaN(Date.parse(`${m[1]}-${m[2]}-${m[3]}`))
+    ? `${m[1]}-${m[2]}-${m[3]}`
+    : null;
+};
+
+/** "2.84" o "2,84" en EUR (o sin moneda) → 2.84; vacío, 0, inválido u otra moneda → null. */
+const eurOf = (price: string | undefined, currency: string | undefined) => {
+  const c = currency?.trim().toUpperCase() ?? "";
+  if (c !== "" && c !== "EUR" && c !== "€") return null;
+  const n = Number(price?.trim().replace(/\s*€$/, "").replace(",", ".") ?? "");
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
 };
 
 /** Para cada dato, la columna del CSV que lo trae (la primera que coincida). */
@@ -132,6 +155,8 @@ export function parseManaboxCsv(text: string): ParsedCollection {
       foil: isFoil(get(raw, "foil") ?? ""),
       language: normalizeLanguage(get(raw, "language")),
       condition: normalizeCondition(get(raw, "condition")),
+      addedOn: dayOf(get(raw, "added")),
+      purchaseEur: eurOf(get(raw, "purchasePrice"), get(raw, "purchaseCurrency")),
       raw,
     });
   });
