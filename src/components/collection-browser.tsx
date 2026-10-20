@@ -7,6 +7,7 @@ import {
   type CollectionSort,
   unitPrice,
 } from "@/domain/collection/browse";
+import { sinceAddedTrend } from "@/domain/collection/since-added";
 import { formatEuros } from "@/domain/suggestions/format";
 import type {
   CardDTO,
@@ -123,53 +124,25 @@ function SetLine({ card }: { card: CollectionCardDTO }) {
   );
 }
 
-const MONTHS = [
-  "ene",
-  "feb",
-  "mar",
-  "abr",
-  "may",
-  "jun",
-  "jul",
-  "ago",
-  "sept",
-  "oct",
-  "nov",
-  "dic",
-];
-/** "2025-11-14" → "14 nov 2025". */
-const dayLabel = (day: string) => {
-  const [y, m, d] = day.split("-");
-  return `${Number(d)} ${MONTHS[Number(m) - 1] ?? m} ${y}`;
-};
-
-/** Cuánto ha subido o bajado lo que valen mis copias desde que las añadí (▲ 12 % · desde nov. 25). */
+/** Cuánto ha subido o bajado lo que valen mis copias desde que las añadí (▲ 12 % · desde nov 2025). */
 function SinceAdded({ card }: { card: CollectionCardDTO }) {
+  const t = sinceAddedTrend(card.sinceAdded);
   const s = card.sinceAdded;
-  if (!s || s.paid <= 0) {
+  if (!t || !s) {
     return (
       <span className="ctile-trend subtle" title="No se sabe cuánto valía cuando la añadiste">
         Sin precio de entrada
       </span>
     );
   }
-  const diff = Math.round((s.now - s.paid) * 100) / 100;
-  const pct = (diff / s.paid) * 100;
-  const flat = Math.abs(pct) < 0.5;
-  const tone = flat ? "flat" : diff > 0 ? "up" : "down";
-  const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
   return (
     <span
-      className={`ctile-trend is-${tone}`}
-      title={`Desde el ${dayLabel(s.since)}: valía ${formatEuros(s.paid)}, hoy ${formatEuros(s.now)} (${sign}${formatEuros(Math.abs(diff))})`}
+      className={`ctile-trend is-${t.tone}`}
+      title={`Desde el ${t.day}: valía ${formatEuros(s.paid)}, hoy ${formatEuros(s.now)} (${t.diff > 0 ? "+" : t.diff < 0 ? "−" : ""}${formatEuros(Math.abs(t.diff))})`}
     >
-      <span aria-hidden="true">{flat ? "=" : diff > 0 ? "▲" : "▼"}</span>
-      <span className="ctile-pct">
-        {flat
-          ? "0\u00a0%"
-          : `${sign}${Math.abs(pct).toLocaleString("es", { maximumFractionDigits: Math.abs(pct) < 10 ? 1 : 0 })}\u00a0%`}
-      </span>
-      <span className="subtle">desde {dayLabel(s.since).replace(/^\d+ /, "")}</span>
+      <span aria-hidden="true">{t.arrow}</span>
+      <span className="ctile-pct">{t.percent}</span>
+      <span className="subtle">desde {t.month}</span>
     </span>
   );
 }

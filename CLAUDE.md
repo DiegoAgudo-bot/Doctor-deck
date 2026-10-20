@@ -103,7 +103,9 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   `importedAt`) y `purchaseEur` (`Purchase price` del CSV en EUR, el precio de referencia al
   añadirla a mano o el del intercambio; se borra al cambiarle la impresión o el foil) →
   `CollectionCard.sinceAdded` (`{paid, now, since}` de las copias con precio de entonces). En la
-  web, cada carta de la cuadrícula es una tarjeta (`.ctile`) con edición, variación y precio; `browseMyCollection` filtra,
+  web y en la app, cada carta de la cuadrícula es una tarjeta (`.ctile`; en la app `GridTile`, 2
+  por fila) con edición, variación (`sinceAddedTrend`, `domain/collection/since-added.ts`) y el
+  precio actual de una copia; `browseMyCollection` filtra,
   ordena y pagina en el servidor (`domain/collection/browse.ts`; la web pide 48 por página).
   Filtros como los de ManaBox (`CollectionFilters`): nombre/tipo, texto de reglas, colores por
   identidad o color de la carta (`colorBy`), tipos (alguno de), supertipos, subtipo, habilidad
