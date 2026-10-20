@@ -76,6 +76,14 @@ const priceLabel = (c: CollectionCardDTO, sort: Sort) =>
     ? `${formatEuros(unitPrice(c) ?? 0)} c/u`
     : formatEuros(c.value ?? c.price ?? 0);
 
+/** En la tarjeta: el precio de hoy de una copia (el de compra solo sirve para la variación). */
+const tileTitle = (c: CollectionCardDTO) =>
+  `Precio actual por copia (según su edición y si es foil).${
+    c.quantity > 1 && c.value !== null
+      ? ` Tus ${c.quantity} copias valen ${formatEuros(c.value)}.`
+      : ""
+  } Clic para ver el histórico de precio.`;
+
 /** Idiomas de las copias que no son en inglés ("ES ×2"); en inglés no se marca nada. */
 function LanguagePills({ card }: { card: CollectionCardDTO }) {
   return card.languages
@@ -507,10 +515,10 @@ export function CollectionBrowser({
                     <button
                       type="button"
                       className="linkbtn mono ctile-price"
-                      title={valueTitle(c)}
+                      title={tileTitle(c)}
                       onClick={() => setPriceCard(c.card)}
                     >
-                      {priceLabel(c, f.sort)}
+                      {formatEuros(unitPrice(c) ?? 0)}
                     </button>
                   ) : (
                     <span className="mono subtle ctile-price" title="Sin precio de referencia">
