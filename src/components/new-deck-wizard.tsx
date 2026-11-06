@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { COLORS } from "@/domain/cards/types";
 import { suggestedDeckName } from "@/domain/deck/naming";
@@ -22,6 +20,7 @@ import { IconX } from "./icons";
 import { localCollection, notifyDecksChanged, ownedPairs } from "./local-collection";
 import { ColorPips } from "./mana";
 import { Banner, Loading, fmt } from "./ui";
+import { Link, goTo, useRouter } from "@/components/i18n";
 
 type Mode = "average" | "owned" | "empty";
 /** De dónde sale el mazo: el comandante (mazo medio o vacío) o una lista/enlace que ya tengo. */
@@ -43,7 +42,7 @@ function openInAnalyzer(input: string, name: string, tab: string) {
     useOtherDecks: true,
     visibility: "public",
   });
-  window.location.assign(new URL(`/analyze?analyze=1&tab=${tab}`, window.location.origin));
+  goTo(`/analyze?analyze=1&tab=${tab}`);
 }
 
 const shortName = (name: string) => name.split(/,| \/\/ /)[0] ?? name;

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { formatEuros } from "@/domain/suggestions/format";
 import type {
@@ -17,6 +16,7 @@ import { CardSearch } from "./card-search";
 import { IconX } from "./icons";
 import { STATUS_LABEL } from "./trade-proposal-pages";
 import { Banner, EmptyState, Loading, ago, fmt } from "./ui";
+import { Link } from "@/components/i18n";
 
 type Tab = "matches" | "proposals" | "wanted" | "offered";
 const TABS: readonly Tab[] = ["matches", "proposals", "wanted", "offered"];

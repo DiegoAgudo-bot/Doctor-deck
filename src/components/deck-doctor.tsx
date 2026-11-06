@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   applySwaps,
@@ -59,6 +58,7 @@ import {
 import { ColorPips } from "./mana";
 import { SAMPLE_DECK } from "./sample-deck";
 import { Banner, Loading } from "./ui";
+import { Link, goTo } from "@/components/i18n";
 
 interface Saved {
   input: string;
@@ -556,7 +556,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       // Que no se reabra como «el último mazo» en /analyze.
       storage.remove(KEY);
       notifyDecksChanged();
-      window.location.assign(new URL("/decks", window.location.origin));
+      goTo("/decks");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo borrar el mazo");
       setBusy(null);

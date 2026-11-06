@@ -4,21 +4,21 @@ import type { ResolvedRecommendation } from "./types";
  * Las listas de la página de un comandante en EDHREC (su `tag`), en el orden en que se enseñan y
  * con su nombre en español. Las que no estén aquí salen al final con su nombre de la fuente.
  */
-export const EDHREC_SECTIONS: readonly { key: string; label: string }[] = [
-  { key: "highsynergycards", label: "Alta sinergia" },
-  { key: "topcards", label: "Las más jugadas" },
-  { key: "newcards", label: "Novedades" },
-  { key: "gamechangers", label: "Game changers" },
-  { key: "creatures", label: "Criaturas" },
-  { key: "instants", label: "Instantáneos" },
-  { key: "sorceries", label: "Conjuros" },
-  { key: "utilityartifacts", label: "Artefactos" },
-  { key: "manaartifacts", label: "Artefactos de maná" },
-  { key: "enchantments", label: "Encantamientos" },
-  { key: "planeswalkers", label: "Planeswalkers" },
-  { key: "battles", label: "Batallas" },
-  { key: "utilitylands", label: "Tierras útiles" },
-  { key: "lands", label: "Tierras" },
+export const EDHREC_SECTIONS: readonly { key: string; label: string; labelEn: string }[] = [
+  { key: "highsynergycards", label: "Alta sinergia", labelEn: "High synergy" },
+  { key: "topcards", label: "Las más jugadas", labelEn: "Top cards" },
+  { key: "newcards", label: "Novedades", labelEn: "New cards" },
+  { key: "gamechangers", label: "Game changers", labelEn: "Game changers" },
+  { key: "creatures", label: "Criaturas", labelEn: "Creatures" },
+  { key: "instants", label: "Instantáneos", labelEn: "Instants" },
+  { key: "sorceries", label: "Conjuros", labelEn: "Sorceries" },
+  { key: "utilityartifacts", label: "Artefactos", labelEn: "Artifacts" },
+  { key: "manaartifacts", label: "Artefactos de maná", labelEn: "Mana artifacts" },
+  { key: "enchantments", label: "Encantamientos", labelEn: "Enchantments" },
+  { key: "planeswalkers", label: "Planeswalkers", labelEn: "Planeswalkers" },
+  { key: "battles", label: "Batallas", labelEn: "Battles" },
+  { key: "utilitylands", label: "Tierras útiles", labelEn: "Utility lands" },
+  { key: "lands", label: "Tierras", labelEn: "Lands" },
 ];
 
 export interface RecommendationSection {
@@ -55,4 +55,10 @@ export function recommendationSections(
           a.card.name.localeCompare(b.card.name),
       ),
     }));
+}
+
+/** Nombre de una lista en el idioma pedido (las que no se conocen, con su clave). */
+export function sectionLabel(key: string, locale: "es" | "en"): string {
+  const s = EDHREC_SECTIONS.find((x) => x.key === key);
+  return s ? (locale === "en" ? s.labelEn : s.label) : key;
 }

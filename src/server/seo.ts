@@ -1,3 +1,4 @@
+import { pick, type Locale } from "@/domain/i18n/locale";
 import { formatEuros } from "@/domain/suggestions/format";
 import type { CardDetailDTO } from "./card-dto";
 
@@ -15,18 +16,20 @@ export function metaDescription(parts: (string | null | undefined)[], max = 160)
 }
 
 /** "Sol Ring (Artifact): texto de reglas… Precio desde 1,20 €, 80 ediciones." */
-export function cardDescription(d: CardDetailDTO): string {
+export function cardDescription(d: CardDetailDTO, locale: Locale = "es"): string {
+  const t = (es: string, en: string) => pick(locale, es, en);
+  const n = d.printings.length;
   const facts = [
-    d.minPrice !== null ? `precio desde ${formatEuros(d.minPrice)}` : null,
-    d.printings.length > 0
-      ? `${d.printings.length} ${d.printings.length === 1 ? "edición" : "ediciones"}`
+    d.minPrice !== null
+      ? `${t("precio desde", "price from")} ${formatEuros(d.minPrice, locale)}`
       : null,
+    n > 0 ? (n === 1 ? t("1 edición", "1 printing") : t(`${n} ediciones`, `${n} printings`)) : null,
   ].filter(Boolean);
   const tail =
     (facts.length > 0 ? `${facts.join(", ").replace(/^p/, "P")}. ` : "") +
     (d.commander
-      ? "Mazos de Commander con ella de comandante."
-      : "Roles e histórico de precios para Commander.");
+      ? t("Mazos de Commander con ella de comandante.", "Commander decks led by it.")
+      : t("Roles e histórico de precios para Commander.", "Commander roles and price history."));
   // El texto de reglas se recorta para que el precio y las ediciones quepan siempre.
   const head = metaDescription(
     [`${d.card.name} (${d.card.typeLine}):`, d.oracleText],

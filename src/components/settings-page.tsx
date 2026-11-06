@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChangePassword, OpenSessions } from "./account-security";
@@ -17,6 +16,7 @@ import { api, ApiError, storage } from "./api-client";
 import { authClient } from "./auth-client";
 import { IconLogout } from "./icons";
 import { Banner, Loading } from "./ui";
+import { Link, goTo } from "@/components/i18n";
 
 /**
  * Cuenta: email verificado o no (con reenvío del enlace) y cuentas vinculadas (Google). Vincular
@@ -400,7 +400,7 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
           await authClient.signOut();
           storage.remove("deck-doctor:mazo");
           clearCached();
-          window.location.assign(new URL("/", window.location.origin));
+          goTo("/");
         }}
       >
         <IconLogout size={14} />

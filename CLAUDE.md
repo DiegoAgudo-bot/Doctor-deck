@@ -199,6 +199,19 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   (BreadcrumbList; mazo, CreativeWork) y perfiles (ProfilePage). La ficha de carta se pinta en el
   servidor (`publicCardDetail` en `server/card-page.ts`, con `cache`; el cliente la vuelve a pedir
   solo con sesión), con descripción (`cardDescription`, `server/seo.ts`) e imagen con su arte.
+- **Idiomas** (`domain/i18n/locale.ts`, `components/i18n.tsx`, `server/i18n.ts`): español en la
+  raíz (`/cards`) e inglés con prefijo (`/en/cards`). Todas las páginas cuelgan de `app/[lang]`
+  (layout raíz con `generateStaticParams`); `proxy.ts` reescribe `/x` → `/es/x`, lleva `/es/x` a
+  `/x` (308), manda a `/en/…` a quien eligió inglés (cookie `dd-lang`, `LanguageSwitch` en el pie)
+  y a `/login` en su idioma las privadas. Textos junto al código en los dos idiomas: en cliente
+  `const t = useT(); t("Colección", "Collection")` (y `useFormat` para números, fechas y euros:
+  `es-ES` / `en-GB`); en servidor `paramLocale(params)` + `tFor(locale)`; metadatos con
+  `pageMetadata` / `localeAlternates` (canónica y hreflang). Enlaces con `Link`/`useRouter`/
+  `usePathname`/`goTo` de `components/i18n` (añaden o quitan el idioma), nunca los de Next.
+  Etiquetas del dominio en inglés en `domain/i18n/labels.ts`. Sitemap uno por idioma
+  (`/sitemap/es.xml`, `/sitemap/en.xml`, en `robots.txt`). **Pendiente** (fases I2–I4): el
+  analizador y los mazos, la colección, lo social, los textos que genera la API (motivos,
+  errores, avisos, emails) y la app móvil siguen solo en español.
 - **Tema** «Pentacromo» (`globals.css`): base neutra, acento azul y la gema del logo (`--gem`,
   `--gem-v`) en la franja bajo la barra superior, el subrayado de pestañas y la fila activa del
   lateral. Propuestas descartadas y capturas en `branding/themes/`.

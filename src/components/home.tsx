@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { SavedDeckSummaryDTO, StatusResponse, TradeProposalSummaryDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
@@ -18,6 +17,7 @@ import {
 } from "./local-collection";
 import { ColorPips } from "./mana";
 import { Banner, Loading, ago, fmt } from "./ui";
+import { Link, useLocale } from "@/components/i18n";
 
 const SOURCE: Record<string, string> = {
   text: "texto",
@@ -26,6 +26,7 @@ const SOURCE: Record<string, string> = {
 };
 
 export function Home() {
+  const locale = useLocale();
   const { data, isPending } = authClient.useSession();
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [decks, setDecks] = useState<SavedDeckSummaryDTO[] | null>(null);
@@ -77,7 +78,7 @@ export function Home() {
     // La portada sin sesión la pinta el servidor; esto solo pasa si la sesión caduca aquí.
     return (
       <main className="page">
-        <Landing />
+        <Landing locale={locale} />
       </main>
     );
   }

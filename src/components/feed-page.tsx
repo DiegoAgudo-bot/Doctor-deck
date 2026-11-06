@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { FeedDTO, FeedItemDTO } from "@/server/social-dto";
 import { api, ApiError } from "./api-client";
@@ -8,6 +7,7 @@ import { CardImage } from "./card-image";
 import { Avatar } from "./games-ui";
 import { IconDecks, IconHeart, IconSwap, IconUsers } from "./icons";
 import { ago, Banner, EmptyState, TilesSkeleton } from "./ui";
+import { Link } from "@/components/i18n";
 
 const FILTERS: [string, string][] = [
   ["", "Todo"],

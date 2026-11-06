@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { REPORT_REASONS, type ReportReason } from "@/domain/social/comments";
 import type { ReportedCommentDTO } from "@/server/social-dto";
 import { api, ApiError } from "./api-client";
 import { MemberLink } from "./games-ui";
 import { ago, Banner, EmptyState, Loading } from "./ui";
+import { Link } from "@/components/i18n";
 
 const json = (body: unknown) => ({
   headers: { "Content-Type": "application/json" },

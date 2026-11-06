@@ -97,7 +97,8 @@ para compartir. Falta decírselo a los buscadores:
 - [ ] **Google Search Console** (search.google.com/search-console): propiedad de tipo **Dominio**
       `doctordeck.app`, verificada con el registro **TXT** que te da Google en el DNS de tu
       registrador (cubre también `www.`).
-- [ ] Sitemaps › enviar `https://doctordeck.app/sitemap.xml`.
+- [ ] Sitemaps › enviar los dos, uno por idioma: `https://doctordeck.app/sitemap/es.xml` y
+      `https://doctordeck.app/sitemap/en.xml` (también están en `robots.txt`).
 - [ ] Inspección de URLs › pide la indexación de la portada, `/cards`, `/community` y un par de
       mazos públicos buenos.
 - [ ] **Bing Webmaster Tools** (bing.com/webmasters): «Importar desde Google Search Console». Bing

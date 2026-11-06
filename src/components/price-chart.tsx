@@ -2,14 +2,16 @@
 
 import { useId, useRef, useState } from "react";
 import type { PricePoint } from "@/domain/prices/history";
+import { intlLocale, type Locale } from "@/domain/i18n/locale";
 import { formatEuros } from "@/domain/suggestions/format";
+import { useLocale, useT } from "./i18n";
 
 const W = 600;
 const H = 180;
 const PAD = { top: 12, right: 12, bottom: 24, left: 56 };
 
-const shortDate = (iso: string) =>
-  new Date(`${iso}T00:00:00Z`).toLocaleDateString("es", {
+const dateIn = (locale: Locale) => (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString(intlLocale(locale), {
     day: "numeric",
     month: "short",
     timeZone: "UTC",
@@ -24,13 +26,20 @@ export function PriceChart({ points, label }: { points: readonly PricePoint[]; l
   const [active, setActive] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const titleId = useId();
+  const t = useT();
+  const locale = useLocale();
+  const shortDate = dateIn(locale);
+  const eur = (x: number) => formatEuros(x, locale);
 
   if (points.length < 2) {
     return (
       <p className="subtle text-[13px]">
         {points.length === 0
-          ? "Todavía no hay histórico de precios."
-          : `Solo hay precio de un día (${shortDate(points[0]!.date)}): ${formatEuros(points[0]!.eur)}. El histórico se va guardando cada noche.`}
+          ? t("Todavía no hay histórico de precios.", "No price history yet.")
+          : t(
+              `Solo hay precio de un día (${shortDate(points[0]!.date)}): ${eur(points[0]!.eur)}. El histórico se va guardando cada noche.`,
+              `Only one day of prices (${shortDate(points[0]!.date)}): ${eur(points[0]!.eur)}. History is recorded every night.`,
+            )}
       </p>
     );
   }
@@ -63,7 +72,7 @@ export function PriceChart({ points, label }: { points: readonly PricePoint[]; l
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline gap-2 text-[13px]">
         <b className="mono" style={{ fontSize: 15 }}>
-          {formatEuros(point.eur)}
+          {eur(point.eur)}
         </b>
         <span className="subtle">
           {label} · {shortDate(point.date)}
@@ -87,7 +96,10 @@ export function PriceChart({ points, label }: { points: readonly PricePoint[]; l
         }}
       >
         <title id={titleId}>
-          {`${label}: de ${formatEuros(points[0]!.eur)} el ${shortDate(points[0]!.date)} a ${formatEuros(points[last]!.eur)} el ${shortDate(points[last]!.date)}`}
+          {t(
+            `${label}: de ${eur(points[0]!.eur)} el ${shortDate(points[0]!.date)} a ${eur(points[last]!.eur)} el ${shortDate(points[last]!.date)}`,
+            `${label}: from ${eur(points[0]!.eur)} on ${shortDate(points[0]!.date)} to ${eur(points[last]!.eur)} on ${shortDate(points[last]!.date)}`,
+          )}
         </title>
         {ticks.map((t) => (
           <g key={t}>
@@ -107,7 +119,7 @@ export function PriceChart({ points, label }: { points: readonly PricePoint[]; l
               fontSize={11}
               fill="var(--color-text-3)"
             >
-              {formatEuros(t)}
+              {eur(t)}
             </text>
           </g>
         ))}
@@ -160,20 +172,20 @@ export function PriceChart({ points, label }: { points: readonly PricePoint[]; l
         />
       </svg>
       <details className="text-xs">
-        <summary className="subtle cursor-pointer">Ver los datos</summary>
+        <summary className="subtle cursor-pointer">{t("Ver los datos", "Show the data")}</summary>
         <div className="mt-1 overflow-auto" style={{ maxHeight: 180 }}>
           <table className="table">
             <thead>
               <tr>
-                <th>Día</th>
-                <th className="r">Precio</th>
+                <th>{t("Día", "Day")}</th>
+                <th className="r">{t("Precio", "Price")}</th>
               </tr>
             </thead>
             <tbody>
               {[...points].reverse().map((p) => (
                 <tr key={p.date}>
                   <td>{shortDate(p.date)}</td>
-                  <td className="r mono">{formatEuros(p.eur)}</td>
+                  <td className="r mono">{eur(p.eur)}</td>
                 </tr>
               ))}
             </tbody>
@@ -185,8 +197,9 @@ export function PriceChart({ points, label }: { points: readonly PricePoint[]; l
 }
 
 /** "+2,50 € (+25 %)" / "−1,00 € (−10 %)", con el signo tipográfico. */
-export function formatChange(delta: number, percent: number | null) {
+export function formatChange(delta: number, percent: number | null, locale: Locale = "es") {
   const sign = delta > 0 ? "+" : delta < 0 ? "−" : "";
-  const pct = percent === null ? "" : ` (${sign}${Math.abs(percent).toLocaleString("es")} %)`;
-  return `${sign}${formatEuros(Math.abs(delta))}${pct}`;
+  const n = Math.abs(percent ?? 0).toLocaleString(intlLocale(locale));
+  const pct = percent === null ? "" : locale === "en" ? ` (${sign}${n}%)` : ` (${sign}${n} %)`;
+  return `${sign}${formatEuros(Math.abs(delta), locale)}${pct}`;
 }

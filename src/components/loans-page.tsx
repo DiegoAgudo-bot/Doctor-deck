@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { CardDTO } from "@/server/dto";
 import type { LoanDTO, LoansDTO } from "@/server/social-dto";
@@ -11,6 +10,7 @@ import { memberLabel, MemberLink, playedOn } from "./games-ui";
 import { IconPlus, IconTrash } from "./icons";
 import { NOTIFICATIONS_EVENT } from "./local-collection";
 import { ago, Banner, Dialog, EmptyState, Loading } from "./ui";
+import { Link } from "@/components/i18n";
 
 const json = (body: unknown) => ({
   headers: { "Content-Type": "application/json" },

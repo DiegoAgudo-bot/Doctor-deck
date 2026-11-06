@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import type { GameDTO, MemberDTO, StandingDTO } from "@/server/social-dto";
 import { fmt } from "./ui";
+import { Link } from "@/components/i18n";
 
 /** Inicial en un círculo (no hay fotos de perfil). */
 export function Avatar({

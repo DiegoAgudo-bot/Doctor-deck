@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { intlLocale, type Locale } from "@/domain/i18n/locale";
+import { formatEuros } from "@/domain/suggestions/format";
+import { useLocale, useT } from "./i18n";
 import { IconError, IconInfo, IconWarn, IconCheck, IconX } from "./icons";
 
 type Tone = "info" | "warn" | "out" | "in";
@@ -138,13 +141,15 @@ export function SortDirButton({
   dir: "asc" | "desc";
   onChange: (dir: "asc" | "desc") => void;
 }) {
-  const label = dir === "desc" ? "De mayor a menor" : "De menor a mayor";
+  const t = useT();
+  const label =
+    dir === "desc" ? t("De mayor a menor", "High to low") : t("De menor a mayor", "Low to high");
   return (
     <button
       type="button"
       className="btn btn-icon"
-      title={`${label} (clic para invertir)`}
-      aria-label={`Orden: ${label.toLowerCase()}. Invertir`}
+      title={`${label} ${t("(clic para invertir)", "(click to reverse)")}`}
+      aria-label={`${t("Orden", "Order")}: ${label.toLowerCase()}. ${t("Invertir", "Reverse")}`}
       onClick={() => onChange(dir === "desc" ? "asc" : "desc")}
     >
       <span aria-hidden="true" className="mono" style={{ fontSize: 15 }}>
@@ -173,6 +178,7 @@ export function Dialog({
   width?: number;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const t = useT();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -201,7 +207,7 @@ export function Dialog({
                 type="button"
                 className="btn btn-ghost btn-icon"
                 style={{ width: 26, height: 26 }}
-                aria-label="Cerrar"
+                aria-label={t("Cerrar", "Close")}
                 onClick={onClose}
               >
                 <IconX size={13} />
@@ -220,14 +226,20 @@ export function Dialog({
   );
 }
 
-/** Formatea números al estilo español (4.812). */
-export const fmt = (n: number) => n.toLocaleString("es");
+/** Formatea números al estilo del idioma (4.812 / 4,812). */
+export const fmt = (n: number, locale: Locale = "es") => n.toLocaleString(intlLocale(locale));
 
-const rtf =
-  typeof Intl !== "undefined" ? new Intl.RelativeTimeFormat("es", { numeric: "auto" }) : null;
+const rtfs = new Map<Locale, Intl.RelativeTimeFormat>();
+const rtfFor = (locale: Locale) => {
+  if (typeof Intl === "undefined") return null;
+  let r = rtfs.get(locale);
+  if (!r) rtfs.set(locale, (r = new Intl.RelativeTimeFormat(locale, { numeric: "auto" })));
+  return r;
+};
 
-/** "hace 3 días", "ayer"… */
-export function ago(iso: string): string {
+/** "hace 3 días", "ayer"… ("3 days ago" en inglés). */
+export function ago(iso: string, locale: Locale = "es"): string {
+  const rtf = rtfFor(locale);
   const diff = (new Date(iso).getTime() - Date.now()) / 1000;
   const steps: [Intl.RelativeTimeFormatUnit, number][] = [
     ["second", 60],
@@ -240,9 +252,24 @@ export function ago(iso: string): string {
   let value = diff;
   for (const [unit, size] of steps) {
     if (Math.abs(value) < size || unit === "year") {
-      return rtf ? rtf.format(Math.round(value), unit) : new Date(iso).toLocaleDateString("es");
+      return rtf
+        ? rtf.format(Math.round(value), unit)
+        : new Date(iso).toLocaleDateString(intlLocale(locale));
     }
     value /= size;
   }
   return "";
+}
+
+/** `fmt`, `ago` y `eur` en el idioma de la página. */
+export function useFormat() {
+  const locale = useLocale();
+  return {
+    locale,
+    fmt: (n: number) => fmt(n, locale),
+    ago: (iso: string) => ago(iso, locale),
+    eur: (x: number) => formatEuros(x, locale),
+    date: (iso: string, opts?: Intl.DateTimeFormatOptions) =>
+      new Date(iso).toLocaleDateString(intlLocale(locale), opts),
+  };
 }

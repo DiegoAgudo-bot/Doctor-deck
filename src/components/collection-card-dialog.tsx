@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { CONDITIONS, conditionShort } from "@/domain/cards/conditions";
 import { LANGUAGES } from "@/domain/cards/languages";
@@ -12,6 +11,7 @@ import { IconMinus, IconPlus, IconTrash } from "./icons";
 import { LendDialog } from "./loans-page";
 import { Banner, Dialog, Loading } from "./ui";
 import { AddToDeck } from "./add-to-deck";
+import { Link } from "@/components/i18n";
 
 const json = (body: unknown) => ({
   headers: { "Content-Type": "application/json" },

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { formatEuros } from "@/domain/suggestions/format";
 import type { CardDTO, OwnershipDTO, OwnershipItemDTO } from "@/server/dto";
@@ -8,6 +7,7 @@ import { CardHover } from "./card-image";
 import { CardPriceDialog } from "./card-price-dialog";
 import { ManaCost } from "./mana";
 import { Banner, Dialog, fmt } from "./ui";
+import { Link } from "@/components/i18n";
 
 const cardmarketUrl = (name: string) =>
   `https://www.cardmarket.com/es/Magic/Products/Search?searchString=${encodeURIComponent(name.split(" // ")[0] ?? name)}`;

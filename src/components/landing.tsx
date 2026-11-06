@@ -1,12 +1,13 @@
 /* eslint-disable @next/next/no-img-element -- símbolos de maná e imágenes servidos desde nuestro servidor */
 
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { IconArrowRight, IconCollection, IconDecks, IconSwap, IconUsers } from "./icons";
 import { SITE_NAME } from "@/config/site";
+import { localePath, pick, type Locale } from "@/domain/i18n/locale";
 import type { LandingDeck } from "@/server/landing";
 import { JsonLd } from "./json-ld";
 import { ColorPips, SYMBOL_URL } from "./mana";
+import { Link } from "@/components/i18n";
 
 /** Una carta dibujada con CSS (sin imágenes externas): marco del color, coste, arte y texto. */
 function MockCard({
@@ -69,46 +70,64 @@ function Feature({
   );
 }
 
+type Tr = (es: string, en: string) => string;
+
 /** Preguntas de quien llega por primera vez (respuestas cortas, antes de pedir la cuenta). */
-const FAQ: { q: string; a: string; more?: ReactNode }[] = [
-  { q: "¿Es gratis?", a: "Sí, gratis y sin anuncios." },
+const faq = (t: Tr): { q: string; a: string; more?: ReactNode }[] => [
   {
-    q: "¿Necesito cuenta?",
-    a: "No para analizar un mazo: tu colección se queda en este navegador. Con una cuenta guardas tus mazos y tienes la colección en cualquier dispositivo.",
+    q: t("¿Es gratis?", "Is it free?"),
+    a: t("Sí, gratis y sin anuncios.", "Yes, free and ad-free."),
   },
   {
-    q: "¿Cómo traigo mi colección?",
-    a: "Sube el CSV que exporta tu app de colección o añade las cartas a mano, con edición, foil, idioma y estado.",
+    q: t("¿Necesito cuenta?", "Do I need an account?"),
+    a: t(
+      "No para analizar un mazo: tu colección se queda en este navegador. Con una cuenta guardas tus mazos y tienes la colección en cualquier dispositivo.",
+      "Not to analyze a deck: your collection stays in this browser. With an account you save your decks and have your collection on any device.",
+    ),
   },
   {
-    q: "¿De dónde salen las recomendaciones?",
-    a: "De lo que juega la comunidad con tu comandante en miles de mazos. Los precios son los de referencia del mercado europeo.",
+    q: t("¿Cómo traigo mi colección?", "How do I bring my collection?"),
+    a: t(
+      "Sube el CSV que exporta tu app de colección o añade las cartas a mano, con edición, foil, idioma y estado.",
+      "Upload the CSV your collection app exports or add cards by hand, with set, foil, language and condition.",
+    ),
   },
   {
-    q: "¿Qué hacéis con mis datos?",
-    a: "Solo los usamos para que la app funcione. Puedes descargarlos o borrar tu cuenta desde Ajustes cuando quieras.",
+    q: t("¿De dónde salen las recomendaciones?", "Where do the recommendations come from?"),
+    a: t(
+      "De lo que juega la comunidad con tu comandante en miles de mazos. Los precios son los de referencia del mercado europeo.",
+      "From what the community plays with your commander across thousands of decks. Prices are European market reference prices.",
+    ),
+  },
+  {
+    q: t("¿Qué hacéis con mis datos?", "What do you do with my data?"),
+    a: t(
+      "Solo los usamos para que la app funcione. Puedes descargarlos o borrar tu cuenta desde Ajustes cuando quieras.",
+      "We only use it to make the app work. You can download it or delete your account from Settings whenever you want.",
+    ),
     more: (
       <>
         {" "}
-        Más en la <Link href="/privacy">política de privacidad</Link>.
+        {t("Más en la", "More in the")}{" "}
+        <Link href="/privacy">{t("política de privacidad", "privacy policy")}</Link>.
       </>
     ),
   },
 ];
 
 /** Datos estructurados de la portada: la web (con su buscador), la app y las preguntas. */
-function landingJsonLd(base: URL) {
-  const url = base.toString();
+function landingJsonLd(base: URL, locale: Locale, t: Tr) {
+  const url = new URL(localePath(locale, "/"), base).toString();
   return [
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
       name: SITE_NAME,
       url,
-      inLanguage: "es",
+      inLanguage: locale,
       potentialAction: {
         "@type": "SearchAction",
-        target: `${new URL("/cards", base).toString()}?q={search_term_string}`,
+        target: `${new URL(localePath(locale, "/cards"), base).toString()}?q={search_term_string}`,
         "query-input": "required name=search_term_string",
       },
     },
@@ -116,7 +135,7 @@ function landingJsonLd(base: URL) {
       "@context": "https://schema.org",
       "@type": "Organization",
       name: SITE_NAME,
-      url,
+      url: base.toString(),
       logo: new URL("/icons/icon-512.png", base).toString(),
     },
     {
@@ -126,15 +145,17 @@ function landingJsonLd(base: URL) {
       url,
       applicationCategory: "GameApplication",
       operatingSystem: "Web, Android",
-      inLanguage: "es",
-      description:
+      inLanguage: locale,
+      description: t(
         "Mejora tus mazos de Commander de Magic: The Gathering con las cartas de tu colección: cambios 1×1, precios, combos e intercambios.",
+        "Upgrade your Magic: The Gathering Commander decks with the cards in your collection: 1-for-1 swaps, prices, combos and trades.",
+      ),
       offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
     },
     {
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      mainEntity: FAQ.map(({ q, a }) => ({
+      mainEntity: faq(t).map(({ q, a }) => ({
         "@type": "Question",
         name: q,
         acceptedAnswer: { "@type": "Answer", text: a },
@@ -147,43 +168,68 @@ function landingJsonLd(base: URL) {
  * Portada para quien llega sin cuenta: qué hace Doctor Deck, enseñado más que contado. Con
  * `siteUrl` (desde el servidor) lleva también los datos estructurados.
  */
-export function Landing({ decks = [], siteUrl }: { decks?: LandingDeck[]; siteUrl?: URL }) {
+export function Landing({
+  decks = [],
+  siteUrl,
+  locale = "es",
+}: {
+  decks?: LandingDeck[];
+  siteUrl?: URL;
+  locale?: Locale;
+}) {
+  const t: Tr = (es, en) => pick(locale, es, en);
+  const FAQ = faq(t);
   return (
     <div className="landing">
-      {siteUrl && <JsonLd data={landingJsonLd(siteUrl)} />}
+      {siteUrl && <JsonLd data={landingJsonLd(siteUrl, locale, t)} />}
       <section className="hero">
         <div className="hero-copy">
-          <span className="eyebrow">Para jugadores de Magic: The Gathering</span>
+          <span className="eyebrow">
+            {t("Para jugadores de Magic: The Gathering", "For Magic: The Gathering players")}
+          </span>
           <h1>
-            Mejora tus mazos de Commander con las cartas <em>que ya tienes</em>
+            {t(
+              "Mejora tus mazos de Commander con las cartas ",
+              "Upgrade your Commander decks with the cards ",
+            )}
+            <em>{t("que ya tienes", "you already own")}</em>
           </h1>
           <p>
-            Doctor Deck cruza tus mazos con tu colección y con lo que juega la comunidad: te dice
-            qué carta sacar y cuál meter, qué te falta y cuánto cuesta, y con quién de la comunidad
-            puedes cambiarla.
+            {t(
+              "Doctor Deck cruza tus mazos con tu colección y con lo que juega la comunidad: te dice qué carta sacar y cuál meter, qué te falta y cuánto cuesta, y con quién de la comunidad puedes cambiarla.",
+              "Doctor Deck matches your decks against your collection and what the community plays: it tells you which card to cut and which to add, what you're missing and what it costs, and who in the community you can trade with.",
+            )}
           </p>
           <div className="hero-cta">
             <Link className="btn btn-primary btn-lg" href="/analyze">
-              Analizar un mazo
+              {t("Analizar un mazo", "Analyze a deck")}
               <IconArrowRight size={15} />
             </Link>
             <Link className="btn btn-lg" href="/analyze?sample=1">
-              Ver un ejemplo
+              {t("Ver un ejemplo", "See an example")}
             </Link>
           </div>
           <span className="hero-trust">
-            <b>Gratis, sin anuncios y sin cuenta para probar.</b>
+            <b>
+              {t(
+                "Gratis, sin anuncios y sin cuenta para probar.",
+                "Free, no ads, and no account needed to try it.",
+              )}
+            </b>
           </span>
         </div>
 
-        <div className="hero-demo" aria-label="Ejemplo de cambio propuesto">
+        <div
+          className="hero-demo"
+          aria-label={t("Ejemplo de cambio propuesto", "Example of a suggested swap")}
+        >
           <div className="swap">
             <div className="swap-side">
-              <span className="swap-label swap-out">Sale</span>
+              <span className="swap-label swap-out">{t("Sale", "Out")}</span>
               <MockCard
                 name="Mind Stone"
                 cost={["2"]}
-                type="Artefacto"
+                type={t("Artefacto", "Artifact")}
                 color="c"
                 art="C"
                 className="tilt-left"
@@ -193,11 +239,11 @@ export function Landing({ decks = [], siteUrl }: { decks?: LandingDeck[]; siteUr
               <IconSwap size={22} />
             </span>
             <div className="swap-side">
-              <span className="swap-label swap-in">Entra</span>
+              <span className="swap-label swap-in">{t("Entra", "In")}</span>
               <MockCard
                 name="Arcane Signet"
                 cost={["2"]}
-                type="Artefacto"
+                type={t("Artefacto", "Artifact")}
                 color="g"
                 art="G"
                 className="tilt-right"
@@ -205,29 +251,54 @@ export function Landing({ decks = [], siteUrl }: { decks?: LandingDeck[]; siteUr
             </div>
           </div>
           <div className="swap-reason">
-            <span className="pill pill-in">La tienes libre</span>
-            <span>Mismo rol (ramp) · en el 89 % de los mazos de tu comandante</span>
-            <b className="mono">+4,2</b>
+            <span className="pill pill-in">{t("La tienes libre", "You own a spare copy")}</span>
+            <span>
+              {t(
+                "Mismo rol (ramp) · en el 89 % de los mazos de tu comandante",
+                "Same role (ramp) · in 89% of decks with your commander",
+              )}
+            </span>
+            <b className="mono">{t("+4,2", "+4.2")}</b>
           </div>
         </div>
       </section>
 
       <section className="features">
-        <Feature icon={<IconDecks size={20} />} title="Mazos mejores" accent="var(--color-accent)">
-          Cambios 1×1 explicados, roles y mínimos (tierras, ramp, robo…), bracket, combos y la
-          probabilidad de tu mano inicial.
+        <Feature
+          icon={<IconDecks size={20} />}
+          title={t("Mazos mejores", "Better decks")}
+          accent="var(--color-accent)"
+        >
+          {t(
+            "Cambios 1×1 explicados, roles y mínimos (tierras, ramp, robo…), bracket, combos y la probabilidad de tu mano inicial.",
+            "Explained 1-for-1 swaps, roles and minimums (lands, ramp, draw…), bracket, combos and your opening hand odds.",
+          )}
         </Feature>
-        <Feature icon={<IconCollection size={20} />} title="Tu colección" accent="#4fc16a">
-          Importa tu CSV o añade cartas a mano, con edición, foil, idioma y estado. Su valor real y
-          el histórico de precios.
+        <Feature
+          icon={<IconCollection size={20} />}
+          title={t("Tu colección", "Your collection")}
+          accent="#4fc16a"
+        >
+          {t(
+            "Importa tu CSV o añade cartas a mano, con edición, foil, idioma y estado. Su valor real y el histórico de precios.",
+            "Import your CSV or add cards by hand, with set, foil, language and condition. Its real value and price history.",
+          )}
         </Feature>
-        <Feature icon={<IconSwap size={20} />} title="Intercambios" accent="#e0ae3f">
-          Quién tiene lo que buscas y busca lo que te sobra. Propuestas cuadradas por valor y, al
-          aceptar, las cartas cambian de colección solas.
+        <Feature icon={<IconSwap size={20} />} title={t("Intercambios", "Trades")} accent="#e0ae3f">
+          {t(
+            "Quién tiene lo que buscas y busca lo que te sobra. Propuestas cuadradas por valor y, al aceptar, las cartas cambian de colección solas.",
+            "Who has what you want and wants what you have spare. Value-balanced offers and, once accepted, the cards move between collections on their own.",
+          )}
         </Feature>
-        <Feature icon={<IconUsers size={20} />} title="Comunidad" accent="#b78cf0">
-          Mazos públicos con el % que ya tienes y lo que te costaría el resto. Sigue a otros
-          jugadores y comparte tus listas.
+        <Feature
+          icon={<IconUsers size={20} />}
+          title={t("Comunidad", "Community")}
+          accent="#b78cf0"
+        >
+          {t(
+            "Mazos públicos con el % que ya tienes y lo que te costaría el resto. Sigue a otros jugadores y comparte tus listas.",
+            "Public decks showing the % you already own and what the rest would cost. Follow other players and share your lists.",
+          )}
         </Feature>
       </section>
 
@@ -235,10 +306,10 @@ export function Landing({ decks = [], siteUrl }: { decks?: LandingDeck[]; siteUr
         <section className="landing-decks" aria-labelledby="landing-decks-title">
           <div className="flex items-end justify-between gap-3">
             <h2 id="landing-decks-title" className="h2" style={{ fontSize: 20 }}>
-              Lo último de la comunidad
+              {t("Lo último de la comunidad", "Latest from the community")}
             </h2>
             <Link href="/community" style={{ fontSize: 13 }}>
-              Ver todos
+              {t("Ver todos", "See all")}
             </Link>
           </div>
           <div className="landing-decks-grid">
@@ -254,14 +325,25 @@ export function Landing({ decks = [], siteUrl }: { decks?: LandingDeck[]; siteUr
                   <span className="muted truncate text-[13px]">{d.commanders.join(" + ")}</span>
                   <span className="subtle flex items-center gap-2 text-xs">
                     <ColorPips colors={d.colors} />@{d.owner}
-                    {d.likes > 0 && <> · {d.likes === 1 ? "1 me gusta" : `${d.likes} me gusta`}</>}
+                    {d.likes > 0 && (
+                      <>
+                        {" "}
+                        ·{" "}
+                        {d.likes === 1
+                          ? t("1 me gusta", "1 like")
+                          : t(`${d.likes} me gusta`, `${d.likes} likes`)}
+                      </>
+                    )}
                   </span>
                 </span>
               </Link>
             ))}
           </div>
           <p className="muted text-[13px]">
-            Al abrir un mazo de otro jugador ves qué cartas ya tienes y cuánto te costaría el resto.
+            {t(
+              "Al abrir un mazo de otro jugador ves qué cartas ya tienes y cuánto te costaría el resto.",
+              "When you open another player's deck you see which cards you already own and what the rest would cost.",
+            )}
           </p>
         </section>
       ) : (
@@ -269,24 +351,33 @@ export function Landing({ decks = [], siteUrl }: { decks?: LandingDeck[]; siteUr
           {[
             [
               "1",
-              "Tu colección",
-              "Sube el CSV de tu colección o añade tus cartas. Sin cuenta, se queda en tu navegador.",
+              t("Tu colección", "Your collection"),
+              t(
+                "Sube el CSV de tu colección o añade tus cartas. Sin cuenta, se queda en tu navegador.",
+                "Upload your collection CSV or add your cards. Without an account, it stays in your browser.",
+              ),
             ],
             [
               "2",
-              "Tu mazo",
-              "Pega la lista o el enlace del mazo. Detecto el comandante y miro qué juega la comunidad con él.",
+              t("Tu mazo", "Your deck"),
+              t(
+                "Pega la lista o el enlace del mazo. Detecto el comandante y miro qué juega la comunidad con él.",
+                "Paste the list or the deck link. I detect the commander and check what the community plays with it.",
+              ),
             ],
             [
               "3",
-              "Los cambios",
-              "Acepta o descarta cada propuesta y exporta la lista mejorada a donde juegues.",
+              t("Los cambios", "The swaps"),
+              t(
+                "Acepta o descarta cada propuesta y exporta la lista mejorada a donde juegues.",
+                "Accept or dismiss each suggestion and export the improved list to wherever you play.",
+              ),
             ],
-          ].map(([n, t, d]) => (
+          ].map(([n, title, d]) => (
             <div key={n} className="step">
               <span className="step-n">{n}</span>
               <div>
-                <h3>{t}</h3>
+                <h3>{title}</h3>
                 <p>{d}</p>
               </div>
             </div>
@@ -296,7 +387,7 @@ export function Landing({ decks = [], siteUrl }: { decks?: LandingDeck[]; siteUr
 
       <section className="faq" aria-labelledby="faq-title">
         <h2 id="faq-title" className="h2" style={{ fontSize: 20 }}>
-          Preguntas frecuentes
+          {t("Preguntas frecuentes", "Frequently asked questions")}
         </h2>
         {FAQ.map(({ q, a, more }) => (
           <details key={q}>
@@ -311,18 +402,28 @@ export function Landing({ decks = [], siteUrl }: { decks?: LandingDeck[]; siteUr
 
       <section className="cta-band">
         <div>
-          <h2>Tu próximo mazo ya está en tu colección</h2>
-          <p>Gratis, sin anuncios. Tus datos son tuyos y te los llevas cuando quieras.</p>
+          <h2>
+            {t(
+              "Tu próximo mazo ya está en tu colección",
+              "Your next deck is already in your collection",
+            )}
+          </h2>
+          <p>
+            {t(
+              "Gratis, sin anuncios. Tus datos son tuyos y te los llevas cuando quieras.",
+              "Free, no ads. Your data is yours and you can take it with you whenever you want.",
+            )}
+          </p>
         </div>
         <div className="hero-cta">
           <Link className="btn btn-primary btn-lg" href="/analyze">
-            Analizar un mazo
+            {t("Analizar un mazo", "Analyze a deck")}
           </Link>
           <Link className="btn btn-lg" href="/signup">
-            Crear cuenta gratis
+            {t("Crear cuenta gratis", "Create a free account")}
           </Link>
           <Link className="btn btn-ghost btn-lg" href="/community">
-            Ver la comunidad
+            {t("Ver la comunidad", "Browse the community")}
           </Link>
         </div>
       </section>

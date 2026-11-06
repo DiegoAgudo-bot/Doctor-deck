@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { formatEuros } from "@/domain/suggestions/format";
+import { sectionLabel } from "@/domain/recommendations/sections";
 import type { CommanderStaplesDTO, StapleDTO } from "@/server/card-dto";
 import { api, ApiError } from "./api-client";
 import { CardImage } from "./card-image";
-import { Banner, fmt, Loading } from "./ui";
+import { Banner, Loading, useFormat } from "./ui";
+import { Link, useLocale, useT } from "@/components/i18n";
 
 type Show = "all" | "owned" | "missing";
 
@@ -15,6 +15,8 @@ const pct = (x: number | null) => (x === null ? null : Math.round(x * 100));
 function StapleTile({ s }: { s: StapleDTO }) {
   const inc = pct(s.inclusion);
   const syn = pct(s.synergy);
+  const t = useT();
+  const { eur } = useFormat();
   return (
     <Link href={`/cards/${s.card.oracleId}`} className="staple">
       <span className="cardbtn">
@@ -25,27 +27,33 @@ function StapleTile({ s }: { s: StapleDTO }) {
           className={`staple-own ${s.mine.free > 0 ? "free" : "busy"}`}
           title={
             s.mine.free > 0
-              ? `Tienes ${s.mine.owned} (${s.mine.free} libres)`
-              : `Tienes ${s.mine.owned}, todas en mazos o prestadas`
+              ? t(
+                  `Tienes ${s.mine.owned} (${s.mine.free} libres)`,
+                  `You own ${s.mine.owned} (${s.mine.free} free)`,
+                )
+              : t(
+                  `Tienes ${s.mine.owned}, todas en mazos o prestadas`,
+                  `You own ${s.mine.owned}, all in decks or lent out`,
+                )
           }
         >
-          {s.mine.free > 0 ? "La tienes" : "En tus mazos"}
+          {s.mine.free > 0 ? t("La tienes", "Owned") : t("En tus mazos", "In your decks")}
         </span>
       )}
       <span className="staple-name truncate">{s.card.name}</span>
       {inc !== null && (
         <span className="staple-bar" style={{ ["--w" as string]: `${inc}%` }}>
-          <span>{inc} % de mazos</span>
+          <span>{t(`${inc} % de mazos`, `${inc}% of decks`)}</span>
         </span>
       )}
       <span className="staple-meta">
         {syn !== null && (
           <span className={syn > 0 ? "text-in" : syn < 0 ? "text-out" : "subtle"}>
             {syn > 0 ? "+" : ""}
-            {syn} % sinergia
+            {t(`${syn} % sinergia`, `${syn}% synergy`)}
           </span>
         )}
-        <span className="mono subtle ml-auto">{s.price !== null ? formatEuros(s.price) : "—"}</span>
+        <span className="mono subtle ml-auto">{s.price !== null ? eur(s.price) : "—"}</span>
       </span>
     </Link>
   );
@@ -69,6 +77,9 @@ export function CommanderStaples({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [show, setShow] = useState<Show>("all");
+  const t = useT();
+  const locale = useLocale();
+  const { fmt } = useFormat();
 
   useEffect(() => {
     let cancelled = false;
@@ -89,13 +100,17 @@ export function CommanderStaples({
           setError(
             e instanceof ApiError
               ? e.message
-              : "No se pudo cargar lo que se juega con este comandante",
+              : t(
+                  "No se pudo cargar lo que se juega con este comandante",
+                  "Couldn't load what's played with this commander",
+                ),
           );
       })
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` no cambia en la página
   }, [oracleId, theme]);
 
   const sections = useMemo(
@@ -117,17 +132,22 @@ export function CommanderStaples({
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div className="flex flex-col gap-0.5">
           <h2 className="h2" style={{ fontSize: 18 }}>
-            Lo que se juega con {short}
+            {t("Lo que se juega con", "What's played with")} {short}
           </h2>
           <span className="subtle text-[13px]">
-            {data?.totalDecks ? `En ${fmt(data.totalDecks)} mazos de la comunidad. ` : ""}Pulsa una
-            carta para ver su ficha.
+            {data?.totalDecks
+              ? t(
+                  `En ${fmt(data.totalDecks)} mazos de la comunidad. `,
+                  `Across ${fmt(data.totalDecks)} community decks. `,
+                )
+              : ""}
+            {t("Pulsa una carta para ver su ficha.", "Tap a card to see its page.")}
           </span>
         </div>
       </div>
 
       {data && data.themes.length > 0 && (
-        <div className="chips" role="radiogroup" aria-label="Tema">
+        <div className="chips" role="radiogroup" aria-label={t("Tema", "Theme")}>
           <button
             type="button"
             role="radio"
@@ -137,17 +157,17 @@ export function CommanderStaples({
           >
             General
           </button>
-          {data.themes.slice(0, 10).map((t) => (
+          {data.themes.slice(0, 10).map((th) => (
             <button
-              key={t.slug}
+              key={th.slug}
               type="button"
               role="radio"
-              aria-checked={theme === t.slug}
-              className={`chipbtn ${theme === t.slug ? "is-on" : ""}`}
-              onClick={() => setTheme(t.slug)}
+              aria-checked={theme === th.slug}
+              className={`chipbtn ${theme === th.slug ? "is-on" : ""}`}
+              onClick={() => setTheme(th.slug)}
             >
-              {t.name}
-              {t.count !== null && <span className="n">{fmt(t.count)}</span>}
+              {th.name}
+              {th.count !== null && <span className="n">{fmt(th.count)}</span>}
             </button>
           ))}
         </div>
@@ -155,33 +175,40 @@ export function CommanderStaples({
 
       {error && <Banner tone="warn">{error}</Banner>}
       {data?.warning && <Banner tone="warn">{data.warning}</Banner>}
-      {loading && !data && !error && <Loading>Buscando lo que se juega…</Loading>}
+      {loading && !data && !error && (
+        <Loading>{t("Buscando lo que se juega…", "Looking up what's played…")}</Loading>
+      )}
 
       {data && (
         <>
-          <nav className="staplenav" aria-label="Listas">
+          <nav className="staplenav" aria-label={t("Listas", "Lists")}>
             {sections.map((s) => (
               <a key={s.key} href={`#staples-${s.key}`} className="chipbtn">
-                {s.label} <span className="n">{s.cards.length}</span>
+                {sectionLabel(s.key, locale)} <span className="n">{s.cards.length}</span>
               </a>
             ))}
             {loggedIn && (
               <select
                 className="select ml-auto"
                 style={{ width: "auto", height: 28 }}
-                aria-label="Qué cartas enseñar"
+                aria-label={t("Qué cartas enseñar", "Which cards to show")}
                 value={show}
                 onChange={(e) => setShow(e.target.value as Show)}
               >
-                <option value="all">Todas</option>
-                <option value="owned">Las que tengo</option>
-                <option value="missing">Las que me faltan</option>
+                <option value="all">{t("Todas", "All")}</option>
+                <option value="owned">{t("Las que tengo", "The ones I own")}</option>
+                <option value="missing">{t("Las que me faltan", "The ones I'm missing")}</option>
               </select>
             )}
           </nav>
           <div className="flex flex-col gap-5" style={{ opacity: loading ? 0.5 : 1 }}>
             {sections.length === 0 && (
-              <p className="muted text-[13px]">No hay cartas que enseñar con este filtro.</p>
+              <p className="muted text-[13px]">
+                {t(
+                  "No hay cartas que enseñar con este filtro.",
+                  "No cards to show with this filter.",
+                )}
+              </p>
             )}
             {sections.map((s) => (
               <div
@@ -191,7 +218,7 @@ export function CommanderStaples({
                 style={{ scrollMarginTop: 70 }}
               >
                 <h3 className="staplehead">
-                  {s.label} <span className="subtle">{s.cards.length}</span>
+                  {sectionLabel(s.key, locale)} <span className="subtle">{s.cards.length}</span>
                 </h3>
                 <div className="staples">
                   {s.cards.map((c) => (

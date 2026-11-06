@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { SavedDeckDTO, SavedDeckSummaryDTO } from "@/server/dto";
 import { swr } from "./swr-cache";
@@ -10,6 +9,7 @@ import { nextVisibility, setDeckVisibility } from "./deck-visibility";
 import { IconEye, IconPlus } from "./icons";
 import { DECKS_EVENT, notifyDecksChanged } from "./local-collection";
 import { Banner, Dialog, EmptyState, TilesSkeleton } from "./ui";
+import { Link } from "@/components/i18n";
 
 export function SavedDecks() {
   const [decks, setDecks] = useState<SavedDeckSummaryDTO[] | null>(null);

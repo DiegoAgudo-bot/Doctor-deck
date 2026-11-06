@@ -1,12 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CardDTO, SavedDeckSummaryDTO, UserSummaryDTO } from "@/server/dto";
 import { api } from "./api-client";
 import { CardImage } from "./card-image";
 import { IconDecks, IconSearch, IconUser, IconX } from "./icons";
 import { readCached } from "./swr-cache";
+import { useRouter, useT } from "@/components/i18n";
 
 interface Result {
   key: string;
@@ -25,6 +25,7 @@ function useResults(q: string, loggedIn: boolean): { results: Result[]; busy: bo
   const [users, setUsers] = useState<UserSummaryDTO[]>([]);
   const [decks, setDecks] = useState<SavedDeckSummaryDTO[]>([]);
   const [busy, setBusy] = useState(false);
+  const t = useT();
   const term = q.trim();
 
   useEffect(() => {
@@ -43,7 +44,7 @@ function useResults(q: string, loggedIn: boolean): { results: Result[]; busy: bo
     // Con menos de dos letras no se enseña nada (ver `results`).
     if (term.length < 2) return;
     let alive = true;
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       setBusy(true);
       const qs = encodeURIComponent(term);
       Promise.all([
@@ -61,7 +62,7 @@ function useResults(q: string, loggedIn: boolean): { results: Result[]; busy: bo
     }, 200);
     return () => {
       alive = false;
-      clearTimeout(t);
+      clearTimeout(timer);
     };
   }, [term]);
 
@@ -97,20 +98,20 @@ function useResults(q: string, loggedIn: boolean): { results: Result[]; busy: bo
       {
         key: "all",
         href: `/cards?q=${encodeURIComponent(term)}`,
-        label: `Buscar «${term}» en todas las cartas`,
+        label: t(`Buscar «${term}» en todas las cartas`, `Search “${term}” in all cards`),
         kind: "all" as const,
       },
     ];
-  }, [term, cards, decks, users]);
+  }, [term, cards, decks, users, t]);
 
   return { results, busy };
 }
 
-const SECTION: Record<Result["kind"], string> = {
-  card: "Cartas",
-  deck: "Mis mazos",
-  user: "Gente",
-  all: "",
+const SECTION: Record<Result["kind"], [string, string] | null> = {
+  card: ["Cartas", "Cards"],
+  deck: ["Mis mazos", "My decks"],
+  user: ["Gente", "People"],
+  all: null,
 };
 
 function ResultList({
@@ -124,12 +125,13 @@ function ResultList({
   onPick: (r: Result) => void;
   busy: boolean;
 }) {
+  const t = useT();
   return (
     <ul className="gsearch-list" role="listbox" aria-busy={busy}>
       {results.map((r, i) => (
         <li key={r.key} role="presentation">
           {(i === 0 || results[i - 1]?.kind !== r.kind) && SECTION[r.kind] && (
-            <span className="cap gsearch-section">{SECTION[r.kind]}</span>
+            <span className="cap gsearch-section">{t(...SECTION[r.kind]!)}</span>
           )}
           <button
             type="button"
@@ -175,13 +177,14 @@ export function GlobalSearch({ loggedIn }: { loggedIn: boolean }) {
   const input = useRef<HTMLInputElement>(null);
   const sheetRef = useRef<HTMLDialogElement>(null);
   const { results, busy } = useResults(q, loggedIn);
+  const t = useT();
 
   // "/" en cualquier sitio (fuera de un campo) enfoca el buscador.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement | null;
+      const el = e.target as HTMLElement | null;
       if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
       if (!input.current || input.current.offsetParent === null) return;
       e.preventDefault();
       input.current.focus();
@@ -231,8 +234,8 @@ export function GlobalSearch({ loggedIn }: { loggedIn: boolean }) {
       ref={autoFocus ? undefined : input}
       className="input gsearch-input"
       type="search"
-      placeholder="Buscar cartas, mazos o gente…"
-      aria-label="Buscar en Doctor Deck"
+      placeholder={t("Buscar cartas, mazos o gente…", "Search cards, decks or people…")}
+      aria-label={t("Buscar en Doctor Deck", "Search Doctor Deck")}
       autoComplete="off"
       autoFocus={autoFocus}
       value={q}
@@ -262,7 +265,7 @@ export function GlobalSearch({ loggedIn }: { loggedIn: boolean }) {
       <button
         type="button"
         className="btn btn-ghost btn-icon only-sm"
-        aria-label="Buscar"
+        aria-label={t("Buscar", "Search")}
         onClick={() => setSheet(true)}
       >
         <IconSearch />
@@ -270,7 +273,7 @@ export function GlobalSearch({ loggedIn }: { loggedIn: boolean }) {
       <dialog
         ref={sheetRef}
         className="dialog gsearch-sheet"
-        aria-label="Buscar"
+        aria-label={t("Buscar", "Search")}
         onClose={() => setSheet(false)}
       >
         {sheet && (
@@ -280,7 +283,7 @@ export function GlobalSearch({ loggedIn }: { loggedIn: boolean }) {
               <button
                 type="button"
                 className="btn btn-ghost btn-icon"
-                aria-label="Cerrar"
+                aria-label={t("Cerrar", "Close")}
                 onClick={() => setSheet(false)}
               >
                 <IconX size={14} />
@@ -290,8 +293,10 @@ export function GlobalSearch({ loggedIn }: { loggedIn: boolean }) {
               <ResultList results={results} active={active} onPick={pick} busy={busy} />
             ) : (
               <p className="subtle px-1 text-[13px]">
-                Escribe al menos dos letras: el nombre de una carta, de uno de tus mazos o de
-                alguien.
+                {t(
+                  "Escribe al menos dos letras: el nombre de una carta, de uno de tus mazos o de alguien.",
+                  "Type at least two letters: the name of a card, one of your decks or someone.",
+                )}
               </p>
             )}
           </div>

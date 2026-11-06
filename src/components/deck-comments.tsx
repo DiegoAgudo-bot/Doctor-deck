@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { COMMENT_MAX_LENGTH, REPORT_REASONS, type ReportReason } from "@/domain/social/comments";
 import type { CommentDTO, DeckCommentsDTO, GameStatsDTO } from "@/server/social-dto";
@@ -8,6 +7,7 @@ import { api, ApiError } from "./api-client";
 import { Avatar, GameCard, MemberLink } from "./games-ui";
 import { IconTrash } from "./icons";
 import { ago, Banner, Dialog } from "./ui";
+import { Link } from "@/components/i18n";
 
 const json = (body: unknown) => ({
   headers: { "Content-Type": "application/json" },

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { exportDeck, type ExportableDeck, type ExportFormat } from "@/domain/deck/export";
 import type { DeckVisibility } from "@/domain/deck/visibility";
@@ -8,6 +7,7 @@ import type { DeckVersionDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { VisibilityPicker } from "./deck-visibility";
 import { Banner, Dialog, Loading } from "./ui";
+import { Link } from "@/components/i18n";
 
 /** Tras crear la cuenta o entrar: de vuelta al mazo (sigue en el navegador) y a guardarlo. */
 const AFTER_ACCOUNT = encodeURIComponent("/analyze?analyze=1&save=1");

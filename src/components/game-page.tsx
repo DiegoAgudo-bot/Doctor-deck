@@ -1,13 +1,13 @@
 "use client";
 
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { GameDTO } from "@/server/social-dto";
 import { api, ApiError } from "./api-client";
 import { Avatar, memberLabel, MemberLink, playedOn } from "./games-ui";
 import { IconTrash } from "./icons";
 import { Banner, Loading } from "./ui";
+import { Link, useRouter } from "@/components/i18n";
 
 /** /games/{id}: una partida registrada. */
 export function GamePage() {
