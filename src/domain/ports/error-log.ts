@@ -9,8 +9,8 @@ export interface ErrorLogEntry extends ErrorReport {
 
 /** Registro de errores de la app (lo ven los administradores en /admin/errors). */
 export interface ErrorLog {
-  /** Suma uno a ese error (por su huella) o lo crea. */
-  record(report: ErrorReport, at?: Date): Promise<void>;
+  /** Suma uno a ese error (por su huella) o lo crea. true si es nuevo (no estaba en el registro). */
+  record(report: ErrorReport, at?: Date): Promise<boolean>;
   /** Los más recientes primero. */
   list(limit: number): Promise<ErrorLogEntry[]>;
   /** Borra uno (o todos, sin id). */

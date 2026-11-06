@@ -28,7 +28,9 @@ const config: ExpoConfig = {
     intentFilters: [
       {
         action: "VIEW",
-        autoVerify: false,
+        // Android lo comprueba con https://doctordeck.app/.well-known/assetlinks.json
+        // (ANDROID_CERT_SHA256 en el servidor); si no cuadra, el enlace pregunta con qué abrirlo.
+        autoVerify: true,
         data: [
           { scheme: "https", host: "doctordeck.app", pathPrefix: "/decks/" },
           { scheme: "https", host: "doctordeck.app", pathPrefix: "/cards/" },

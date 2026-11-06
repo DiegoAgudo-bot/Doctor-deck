@@ -81,9 +81,28 @@ Tareas diarias en el crontab de root (`scripts/deploy.sh` las añade solas si fa
 comprueba la copia (`integrity_check`), la comprime y la deja en `data/backups/` como
 `deck-doctor-AAAA-MM-DDTHHMM.db.gz`; guarda las últimas `BACKUP_KEEP` (14 por defecto).
 
-**Están en el mismo disco que la base de datos**: protegen de errores y borrados, no de perder
-el VPS. Para tenerlas fuera, copia `data/backups/` a otro sitio (p. ej. con `rclone` a un
-almacenamiento externo) en otra línea del cron.
+Esas están en el mismo disco que la base de datos: protegen de errores y borrados, no de perder
+el VPS. Por eso, si están estas variables, `db:backup` además **cifra** la copia (AES-256-GCM con
+`BACKUP_PASSPHRASE`) y la **sube a un almacenamiento compatible con S3** (Backblaze B2, Cloudflare
+R2…). Fuera se guardan 14 días: 14 nombres (`deck-doctor-d00` … `d13`) que se van pisando, sin
+borrar nada, que es lo que promete la política de privacidad.
+
+```bash
+BACKUP_S3_ENDPOINT="https://s3.eu-central-003.backblazeb2.com"   # el de tu bucket
+BACKUP_S3_REGION="eu-central-003"                                # en R2: auto
+BACKUP_S3_BUCKET="doctordeck-backups"
+BACKUP_S3_ACCESS_KEY_ID="…"        # clave de aplicación solo para ese bucket
+BACKUP_S3_SECRET_ACCESS_KEY="…"
+BACKUP_PASSPHRASE="…"              # larga, solo letras y números; guárdala también fuera del VPS
+```
+
+Se ponen como secretos del repositorio y el workflow **Configurar el VPS** las lleva al `.env` y
+hace una copia de prueba. Sin la contraseña las copias externas no se pueden abrir: guárdala en
+tu gestor de contraseñas.
+
+Restaurar una copia externa: descárgala del almacenamiento y descífrala
+(`BACKUP_PASSPHRASE="…" npm run db:decrypt -- deck-doctor-d03.db.gz.enc copia.db.gz`); después,
+igual que una local (abajo).
 
 Restaurar una copia:
 
@@ -98,6 +117,26 @@ docker compose start deck-doctor
 
 Los demás scripts CLI se ejecutan igual, p. ej.
 `docker compose exec deck-doctor npm run deck:suggest -- "https://…"`. Logs: `docker logs -f deck_doctor`.
+
+## Vigilancia
+
+- **¿Funciona la web?** (`.github/workflows/uptime.yml`): cada 15 minutos comprueba la portada y
+  que el catálogo está cargado. Si falla en tres intentos seguidos (minuto y medio) abre una issue «La web no responde»
+  (GitHub manda un email a quien vigila el repositorio: _Watch › All activity_ o, como mínimo,
+  _Issues_) y la cierra sola al volver. GitHub desactiva los workflows programados tras 60 días
+  sin actividad en el repositorio: si pasa, Actions › «¿Funciona la web?» › _Enable workflow_.
+- **Errores nuevos por email**: con correo configurado (`SMTP_URL`) y `ADMIN_EMAILS`, la primera
+  vez que aparece un error (en el servidor o en el navegador) se avisa por email a los
+  administradores (como mucho 5 por hora). Los repetidos solo suman en `/admin/errors`.
+
+## App Android: enlaces que abren la app
+
+`/.well-known/assetlinks.json` dice a Android que `app.doctordeck` abre los enlaces de la web sin
+preguntar. Necesita las huellas SHA-256 de Play Console › Integridad de la app › Firma de apps:
+
+```bash
+ANDROID_CERT_SHA256="AB:CD:…,12:34:…"   # firma de apps de Play y, si instalas el APK a mano, la de subida
+```
 
 ## Usuarios
 

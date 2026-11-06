@@ -3,7 +3,8 @@ name: Configurar el VPS
 # Manual (Actions › "Configurar el VPS" › Run workflow). Cambia variables del .env del VPS y
 # reinicia la app, por la misma conexión SSH que el despliegue. El dominio va como entrada (es
 # público); el resto sale de secretos del repositorio (ADMIN_EMAILS, LEGAL_OWNER, LEGAL_EMAIL,
-# GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SMTP_URL, MAIL_FROM, FCM_SERVICE_ACCOUNT_B64), que
+# GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SMTP_URL, MAIL_FROM, FCM_SERVICE_ACCOUNT_B64,
+# ANDROID_CERT_SHA256 y las de la copia externa BACKUP_S3_* y BACKUP_PASSPHRASE), que
 # GitHub oculta en los logs: el repositorio es público. Lo que no esté definido no se toca.
 on:
   workflow_dispatch:
@@ -37,13 +38,20 @@ jobs:
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
           # Clave de la cuenta de servicio de Firebase EN BASE64 (una línea, sin comillas).
           FCM_SERVICE_ACCOUNT: ${{ secrets.FCM_SERVICE_ACCOUNT_B64 }}
+          ANDROID_CERT_SHA256: ${{ secrets.ANDROID_CERT_SHA256 }}
+          BACKUP_S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+          BACKUP_S3_REGION: ${{ secrets.BACKUP_S3_REGION }}
+          BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          BACKUP_S3_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+          BACKUP_S3_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER || 'root' }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
           fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
-          envs: NEW_HOST,ADMIN_EMAILS,LEGAL_OWNER,LEGAL_EMAIL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,SMTP_URL,MAIL_FROM,FCM_SERVICE_ACCOUNT
+          envs: NEW_HOST,ADMIN_EMAILS,LEGAL_OWNER,LEGAL_EMAIL,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,SMTP_URL,MAIL_FROM,FCM_SERVICE_ACCOUNT,ANDROID_CERT_SHA256,BACKUP_S3_ENDPOINT,BACKUP_S3_REGION,BACKUP_S3_BUCKET,BACKUP_S3_ACCESS_KEY_ID,BACKUP_S3_SECRET_ACCESS_KEY,BACKUP_PASSPHRASE
           command_timeout: 10m
           script: |
             set -e
@@ -80,6 +88,13 @@ jobs:
             set_var SMTP_URL "$SMTP_URL"
             set_var MAIL_FROM "$MAIL_FROM"
             set_var FCM_SERVICE_ACCOUNT "$FCM_SERVICE_ACCOUNT"
+            set_var ANDROID_CERT_SHA256 "$ANDROID_CERT_SHA256"
+            set_var BACKUP_S3_ENDPOINT "$BACKUP_S3_ENDPOINT"
+            set_var BACKUP_S3_REGION "$BACKUP_S3_REGION"
+            set_var BACKUP_S3_BUCKET "$BACKUP_S3_BUCKET"
+            set_var BACKUP_S3_ACCESS_KEY_ID "$BACKUP_S3_ACCESS_KEY_ID"
+            set_var BACKUP_S3_SECRET_ACCESS_KEY "$BACKUP_S3_SECRET_ACCESS_KEY"
+            set_var BACKUP_PASSPHRASE "$BACKUP_PASSPHRASE"
             # Que el dominio de antes siga redirigiendo al nuevo.
             if [ -n "$NEW_HOST" ] && [ -n "$OLD_HOST" ] && [ "$NEW_HOST" != "$OLD_HOST" ]; then
               set_var DECK_DOCTOR_OLD_HOST "$OLD_HOST"
@@ -101,3 +116,8 @@ jobs:
               LOC=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 15 "https://$H/decks" || true)
               echo "https://$H/decks → $LOC"
             done
+            # Con copia externa configurada, probarla ya (no esperar a la noche para saber si va).
+            if grep -qE '^BACKUP_PASSPHRASE=.' .env; then
+              echo "Probando la copia de seguridad externa…"
+              docker compose exec -T deck-doctor npm run db:backup || echo "::error::La copia externa ha fallado: revisa las variables BACKUP_*."
+            fi

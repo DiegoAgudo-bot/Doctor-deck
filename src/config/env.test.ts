@@ -14,6 +14,16 @@ describe("loadEnv", () => {
     ).toThrow(/inválida/);
   });
 
+  it("huellas de la app Android: en mayúsculas y sin las mal escritas", () => {
+    const fp = Array.from({ length: 32 }, (_, i) => (i + 160).toString(16)).join(":");
+    const env = loadEnv({
+      DATABASE_URL: "f",
+      HTTP_USER_AGENT: "u",
+      ANDROID_CERT_SHA256: ` ${fp} , AB:CD `,
+    });
+    expect(env.ANDROID_CERT_SHA256).toEqual([fp.toUpperCase()]);
+  });
+
   it("exige un User-Agent", () => {
     expect(() => loadEnv({ DATABASE_URL: "f" })).toThrow();
   });

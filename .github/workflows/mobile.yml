@@ -9,6 +9,8 @@ name: App móvil
 # - ANDROID_KEYSTORE_B64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD: la
 #   clave de subida de Google Play. Sin ella se firma con la de depuración (sirve para instalar el
 #   APK a mano, no para subirlo a la tienda).
+# - PLAY_SERVICE_ACCOUNT_JSON: cuenta de servicio de Google Cloud con acceso a la app en Play
+#   Console; con ella el AAB de main se sube solo a la prueba interna (ver mobile/store/README.md).
 on:
   pull_request:
     paths:
@@ -128,3 +130,25 @@ jobs:
             mobile/android/app/build/outputs/apk/release/app-release.apk
             mobile/android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 30
+      # Subida a Google Play (prueba interna) si hay cuenta de servicio con acceso a la app. La
+      # primera versión hay que subirla a mano en Play Console; después ya va sola. Mientras la app
+      # no esté publicada, Play solo admite borradores (`PLAY_RELEASE_STATUS`, variable del repo).
+      - name: ¿Subir a Google Play?
+        id: play
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$PLAY_SERVICE_ACCOUNT_JSON" ] && [ -n "$ANDROID_KEYSTORE_B64" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            echo "upload=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "Sin PLAY_SERVICE_ACCOUNT_JSON (o sin clave de subida): el AAB queda solo como artefacto."
+          fi
+      - if: steps.play.outputs.upload == '1'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: app.doctordeck
+          releaseFiles: mobile/android/app/build/outputs/bundle/release/app-release.aab
+          track: ${{ vars.PLAY_TRACK || 'internal' }}
+          status: ${{ vars.PLAY_RELEASE_STATUS || 'draft' }}

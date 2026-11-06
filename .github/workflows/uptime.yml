@@ -1,0 +1,64 @@
+name: ¿Funciona la web?
+
+# Cada 15 minutos comprueba que https://doctordeck.app responde y tiene el catálogo cargado.
+# Si falla en tres intentos seguidos (minuto y medio) abre una issue «La web no responde» (GitHub avisa por email a quien
+# vigila el repositorio) y la cierra sola cuando vuelve. También a mano: Actions › Run workflow.
+# Ojo: GitHub desactiva los workflows programados tras 60 días sin actividad en el repositorio.
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Comprobar la web
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SITE: ${{ vars.SITE_URL || 'https://doctordeck.app' }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TITLE: "La web no responde"
+    steps:
+      - name: Comprobar (3 intentos)
+        id: probe
+        run: |
+          ok=0
+          for i in 1 2 3; do
+            home=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$SITE/" || true)
+            body=$(curl -s --max-time 20 "$SITE/api/status" || true)
+            cards=$(echo "$body" | jq -r '.catalog.cards // 0' 2>/dev/null || echo 0)
+            echo "Intento $i: portada $home, cartas en el catálogo: $cards"
+            if [ "$home" = "200" ] && [ "${cards:-0}" -gt 1000 ]; then ok=1; break; fi
+            sleep 45
+          done
+          echo "ok=$ok" >> "$GITHUB_OUTPUT"
+          echo "detail=portada $home · catálogo ${cards:-?} cartas · $(date -u '+%Y-%m-%d %H:%M UTC')" >> "$GITHUB_OUTPUT"
+
+      - name: Abrir o cerrar el aviso
+        env:
+          OK: ${{ steps.probe.outputs.ok }}
+          DETAIL: ${{ steps.probe.outputs.detail }}
+        run: |
+          open=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number // empty')
+          if [ "$OK" = "1" ]; then
+            if [ -n "$open" ]; then
+              gh issue comment "$open" --body "Vuelve a funcionar ($DETAIL)."
+              gh issue close "$open"
+            fi
+            exit 0
+          fi
+          if [ -z "$open" ]; then
+            gh issue create --title "$TITLE" --body "$SITE no responde bien: $DETAIL.
+
+          Mira los logs (Actions › «Logs del VPS») o entra al VPS: \`docker logs --tail 200 deck_doctor\`.
+          Esta issue se cierra sola cuando la web vuelva."
+          fi
+          exit 1
