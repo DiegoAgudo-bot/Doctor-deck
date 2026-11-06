@@ -11,7 +11,8 @@ permissions:
 jobs:
   checks:
     name: Typecheck, lint, tests, build y e2e
-    runs-on: ubuntu-latest
+    # Fijo: en ubuntu-latest (26.04) Playwright 1.56 no instala Chromium.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,7 +42,7 @@ jobs:
     needs: checks
     # Solo en push a main (no en PRs ni en otras ramas)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     concurrency:
       group: deploy-production
       cancel-in-progress: false
