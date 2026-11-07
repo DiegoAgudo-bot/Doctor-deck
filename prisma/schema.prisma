@@ -44,6 +44,11 @@ model OracleCard {
   loyalty        String?
   powerValue     Float?
   toughnessValue Float?
+  /// Para buscar en otros idiomas (de CardLocalization, ya con searchKey): " nombre nombre…",
+  /// tipos y textos separados por " | ". No se leen nunca (`omit` en createDb).
+  localNames     String     @default("")
+  localTypes     String     @default("")
+  localText      String     @default("")
   printings      Printing[]
 
   @@index([nameKey])

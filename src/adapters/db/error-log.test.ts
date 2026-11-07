@@ -13,8 +13,18 @@ afterAll(async () => cleanup());
 describe("PrismaErrorLog", () => {
   it("agrupa los repetidos, ordena por el último y se puede vaciar", async () => {
     const log = new PrismaErrorLog(db);
-    await log.record({ source: "client", message: "Falla 1", path: "/a" }, new Date("2026-10-01"));
-    await log.record({ source: "client", message: "Falla 2", path: "/a" }, new Date("2026-10-02"));
+    expect(
+      await log.record(
+        { source: "client", message: "Falla 1", path: "/a" },
+        new Date("2026-10-01"),
+      ),
+    ).toBe(true);
+    expect(
+      await log.record(
+        { source: "client", message: "Falla 2", path: "/a" },
+        new Date("2026-10-02"),
+      ),
+    ).toBe(false);
     await log.record({ source: "server", message: "Otra", path: "/api/x" }, new Date("2026-10-03"));
     const list = await log.list(10);
     expect(list.map((e) => [e.source, e.count, e.message])).toEqual([

@@ -41,8 +41,8 @@ export default function Page() {
       <p>
         Una herramienta gratuita para jugadores de Magic: The Gathering: propone mejoras para tus
         mazos de Commander con las cartas que ya tienes, lleva tu colección y te ayuda a
-        intercambiar cartas con otros jugadores. Los intercambios se acuerdan entre usuarios: Deck
-        Doctor no vende, no cobra ni envía nada y no responde de lo que acuerden las partes.
+        intercambiar cartas con otros jugadores. Los intercambios se acuerdan entre usuarios: Doctor
+        Deck no vende, no cobra ni envía nada y no responde de lo que acuerden las partes.
       </p>
 
       <h2>Uso</h2>

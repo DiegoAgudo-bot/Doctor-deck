@@ -28,6 +28,7 @@ import { HttpClient } from "@/adapters/http/http-client";
 import { FileImageCache } from "@/adapters/images/image-cache";
 import { ScryfallTagger } from "@/adapters/scryfall/tagger";
 import { createMailer } from "@/adapters/mail/mailer";
+import { withErrorAlerts } from "./error-alerts";
 import { PrismaPushDeviceRepository } from "@/adapters/db/push-device-repository";
 import { FcmSender, parseServiceAccount } from "@/adapters/push/fcm";
 import { pushNotifications } from "@/application/push";
@@ -100,7 +101,11 @@ export function createContainer() {
     /** Filtros, orden y vista de cada página (para que sigan en otro navegador o en la app). */
     prefsFor: (userId: string) => new PrismaPrefsRepository(db, userId),
     /** Errores del servidor y del navegador (/admin/errors). */
-    errorLog: new PrismaErrorLog(db),
+    errorLog: withErrorAlerts(new PrismaErrorLog(db), {
+      mailer,
+      admins: env.ADMIN_EMAILS,
+      siteUrl: env.BETTER_AUTH_URL,
+    }),
     /**
      * La colección calculada de cada usuario (cartas, precios, roles y uso en mazos): se rehace
      * solo si algo cambia (`dataEpoch`) o cada 10 minutos (precios de `scryfall:sync`).

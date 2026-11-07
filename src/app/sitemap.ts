@@ -30,6 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: url("/signup"), changeFrequency: "yearly", priority: 0.3 },
     { url: url("/privacy"), changeFrequency: "yearly", priority: 0.1 },
     { url: url("/legal"), changeFrequency: "yearly", priority: 0.1 },
+    { url: url("/delete-account"), changeFrequency: "yearly", priority: 0.1 },
     ...decks.map((d) => ({
       url: url(`/decks/${d.id}`),
       lastModified: d.updatedAt,

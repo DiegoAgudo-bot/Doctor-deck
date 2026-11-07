@@ -18,10 +18,11 @@ export class PrismaErrorLog implements ErrorLog {
       userAgent: r.userAgent ?? null,
       lastAt: at,
     };
-    await this.db.errorLog.upsert({
+    const row = await this.db.errorLog.upsert({
       where: { fingerprint },
       create: { fingerprint, source: r.source, firstAt: at, ...data },
       update: { ...data, count: { increment: 1 } },
+      select: { count: true },
     });
     const total = await this.db.errorLog.count();
     if (total > MAX_ROWS) {
@@ -32,6 +33,7 @@ export class PrismaErrorLog implements ErrorLog {
       });
       await this.db.errorLog.deleteMany({ where: { id: { in: old.map((o) => o.id) } } });
     }
+    return row.count === 1;
   }
 
   async list(limit: number): Promise<ErrorLogEntry[]> {

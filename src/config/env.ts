@@ -44,6 +44,22 @@ const envSchema = z.object({
     .regex(/^\d+\.\d+\.\d+$/)
     .default("1.0.0"),
 
+  /**
+   * Huellas SHA-256 de los certificados de la app Android (separadas por comas; Play Console ›
+   * Integridad de la app › Firma de apps). Sirven `/.well-known/assetlinks.json`. Las mal
+   * escritas se ignoran (una errata no debe tirar la web).
+   */
+  ANDROID_CERT_SHA256: z.preprocess(
+    (v) =>
+      typeof v === "string"
+        ? v
+            .split(",")
+            .map((f) => f.trim().toUpperCase())
+            .filter((f) => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(f))
+        : [],
+    z.array(z.string()),
+  ),
+
   // --- Páginas legales (/privacy, /legal) ---
   /** Titular de la web (nombre y, si aplica, NIF) y email de contacto para privacidad. */
   LEGAL_OWNER: optionalString,

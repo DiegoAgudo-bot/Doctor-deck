@@ -23,6 +23,7 @@ recomendaciones de EDHREC, priorizando cartas de la colección del usuario (expo
 | `npm run symbols:sync`                                                                            | Descarga los símbolos de maná de Scryfall a `public/symbols/`                  |
 | `npm run otags:sync [-- --force \| --tag ramp]`                                                   | Descarga las etiquetas `otag:` de Scryfall Tagger (roles)                      |
 | `npm run db:backup`                                                                               | Copia de seguridad de la SQLite en `data/backups/` (ver `DEPLOY.md`)           |
+| `npm run db:decrypt -- copia.enc salida.db.gz`                                                    | Descifra una copia externa (con `BACKUP_PASSPHRASE`)                           |
 | `npm run collection:import -- "export.csv" [--user email]`                                        | Importa un CSV de ManaBox (a la cuenta indicada) y muestra el resumen          |
 | `npm run users:claim -- --user email`                                                             | Pasa a esa cuenta la colección y los mazos de antes de haber usuarios          |
 | `npm run deck:check -- "lista.txt" \| "https://…"`                                                | Parsea y resuelve una lista de mazo contra el catálogo                         |
@@ -125,8 +126,11 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   «飛行» → Flying), que `deriveKeywordAliases` aprende de las cartas cuya primera línea son solo
   habilidades, más `KEYWORD_SYNONYMS` (infinitivos: «volar», «arrollar»…); `keywordsFor` resuelve
   lo escrito y `withKeywordMatches` lo pasa al filtro de la colección (`keywordMatches`). En SQL,
-  `localizedIds` (como mucho 5000 cartas por búsqueda); `searchByName` (buscador global, añadir
-  cartas) también. Lo rellena `syncLocalizations` en `scryfall:sync` una vez por semana (o si
+  columnas de la propia carta (`OracleCard.localNames`/`localTypes`/`localText`, de
+  CardLocalization, ya con `searchKey`; las rellenan `insertCards` y `replaceLocalizations` y
+  `createDb` las omite al leer): un `LIKE` sin listas de ids (con más de 999 pasaban el límite de
+  parámetros de SQLite y la búsqueda daba 500); `searchByName` (buscador global, añadir cartas)
+  también. Lo rellena `syncLocalizations` en `scryfall:sync` una vez por semana (o si
   cambia el fichero): lee `all_cards` (~400 MB con gzip) de la red en streaming, sin guardarlo
   (`streamJsonLinesGz`, sin el tope de 20 s), y lo reemplaza en una transacción; si falla, avisa
   y se quedan los de antes. `--skip-localized` / `--force-localized`.
@@ -205,6 +209,13 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   los símbolos de maná; no toca nada más. Se borra al entrar o salir (`clearCached`).
 - **Copias de seguridad** (Fase 20): `backupDatabase` (`adapters/db/backup.ts`, API `backup` de
   SQLite + `integrity_check` + gzip, rotación `BACKUP_KEEP`); cron diario que añade `deploy.sh`.
+  Con `BACKUP_S3_*` + `BACKUP_PASSPHRASE`, además la cifra (AES-256-GCM, `offsite-backup.ts`) y la
+  sube por S3 (firma V4 propia, sin SDK) a 14 nombres que se van pisando (`offsiteKey`).
+- **Lanzamiento** (`LAUNCH.md`: lo que le toca hacer al usuario): `/delete-account` (pública, la
+  pide Google Play), `/.well-known/assetlinks.json` (rewrite a `/api/app/assetlinks`, huellas en
+  `ANDROID_CERT_SHA256`; la app con `autoVerify`), ficha de Play en `mobile/store/`
+  (`scripts/make-store-graphics.tsx`), subida opcional a Play en `mobile.yml`
+  (`PLAY_SERVICE_ACCOUNT_JSON`) y `uptime.yml` (cada 15 min; abre/cierra una issue).
 - **Recomendaciones**: `EdhrecClient` (puerto `RecommendationSource`) → caché `ResponseCache`
   (`PrismaResponseCache`, tabla `HttpCache`) → `parseEdhrecPage` (zod, único sitio que conoce el
   JSON de EDHREC) → `CommanderRecommendations` (synergy e inclusión como fracciones 0..1, cartas
@@ -492,6 +503,8 @@ maxPrice?, budget?}}`, validado con zod), `GET|POST /api/decks`, `GET|DELETE /ap
     con `reportServerError`; los del navegador los manda `ErrorReporter` (en el layout raíz, y
     `(app)/error.tsx` al fallar una página) a `POST /api/errors` (público, `RateLimiter` 20/min por
     IP). Se agrupan por huella (sin números ni uuids) y se ven en `/admin/errors` (`ADMIN_EMAILS`).
+    La primera vez que sale una huella se avisa por email a `ADMIN_EMAILS` (`withErrorAlerts`,
+    `server/error-alerts.ts`; como mucho 5 por hora).
   - **Pruebas de navegador** (`e2e/`, `playwright.config.ts`): `scripts/e2e-db.ts` crea
     `data/e2e.db` con el catálogo de ejemplo y EDHREC de los fixtures (sin red), `global-setup`
     crea la cuenta `e2e@example.com` (administradora) con colección y dos mazos, y se prueban
@@ -736,6 +749,11 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     impresión exacta la corrige (`upgradeLatest`). La lista (`addScanned`: misma copia suma) se
     guarda en el móvil; «Añadir N a la colección» → `POST /api/collection/cards` (foil, idioma
     impreso o el de la última vez, estado). Límite `routeLimits.scan` 900/min.
+  - Rejillas (Buscar y Colección): `CardThumb` enseña el nombre al momento y la imagen encima en
+    cuanto llega (como ManaBox); tarjetas memorizadas, la página siguiente se pide con antelación
+    (`onEndReachedThreshold` 1,5) y las miniaturas de cada página se descargan al llegar
+    (`prefetchThumbs`). El JSON de la API va comprimido por Traefik (`deckdoctor-compress` en
+    `docker-compose.yml`): Next solo comprime las páginas.
   - CI: `.github/workflows/mobile.yml` (tipos, tests, bundle; en main compila APK y AAB con la
     clave de subida si está en los secretos).
 - **Mazo**: `DeckSource.load` → `parseDecklist` → `resolveDecklist` (agrupa por oracleId, detecta

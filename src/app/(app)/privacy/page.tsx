@@ -25,7 +25,7 @@ async function Owner({ field }: { field: "owner" | "email" }) {
 
 export default function Page() {
   return (
-    <LegalPage title="Política de privacidad" updated="12 de octubre de 2026">
+    <LegalPage title="Política de privacidad" updated="6 de noviembre de 2026">
       <h2>Quién es el responsable</h2>
       <p>
         <Suspense fallback="…">
@@ -50,13 +50,23 @@ export default function Page() {
           roles, a quién sigues y tus «me gusta».
         </li>
         <li>
+          <b>Lo social, si lo usas</b>: grupos de juego, partidas registradas, préstamos,
+          comentarios en mazos, denuncias y a quién bloqueas.
+        </li>
+        <li>
           <b>Técnicos</b>: la sesión (fecha, navegador y dirección IP) para mantenerte conectado y
-          proteger la cuenta.
+          proteger la cuenta, y los errores de la web o la app (mensaje, página y navegador, sin
+          datos de tu cuenta) para arreglarlos.
         </li>
         <li>
           <b>App móvil</b>: si activas las notificaciones, un identificador del móvil para mandarlas
           (con el sistema y la versión de la app). Se borra al cerrar sesión en la app o al
           desinstalarla. Lo que compartes con la app desde otras apps solo se usa para importarlo.
+        </li>
+        <li>
+          <b>Escáner de cartas</b>: la cámara solo se usa mientras escaneas. La imagen se lee en el
+          propio móvil y nunca sale de él; al servidor solo llega el texto leído (nombre, edición y
+          número de la carta) para reconocerla.
         </li>
       </ul>
       <p>Sin cuenta, tu colección y tu mazo se guardan solo en tu navegador, no en el servidor.</p>
@@ -83,7 +93,8 @@ export default function Page() {
       <ul>
         <li>Otros usuarios: solo lo que hagas público y tu nombre de usuario. El email, nunca.</li>
         <li>
-          Proveedores necesarios para que funcione: el alojamiento del servidor, el envío de emails
+          Proveedores necesarios para que funcione: el alojamiento del servidor (en la Unión
+          Europea), el almacenamiento de las copias de seguridad (cifradas), el envío de emails
           (para verificar el email y recuperar la contraseña), Google si entras con Google y
           Firebase Cloud Messaging (Google) para entregar las notificaciones de la app.
         </li>
@@ -96,7 +107,8 @@ export default function Page() {
       <h2>Cuánto tiempo</h2>
       <p>
         Mientras tengas la cuenta. Si la borras se elimina todo al momento; de las copias de
-        seguridad desaparece en un máximo de 14 días.
+        seguridad desaparece en un máximo de 14 días. Cómo hacerlo, en{" "}
+        <Link href="/delete-account">Borrar tu cuenta</Link>.
       </p>
 
       <h2>Cookies y almacenamiento</h2>

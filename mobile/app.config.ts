@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import type { ExpoConfig } from "expo/config";
 
 /** Versión de la app: súbela en cada publicación (el servidor puede exigir una mínima). */
-const VERSION = "1.2.6";
+const VERSION = "1.2.7";
 /** Para Google Play: entero que sube con cada build que se sube a la tienda. */
 const VERSION_CODE = Number(process.env.ANDROID_VERSION_CODE ?? 1);
 
@@ -28,7 +28,9 @@ const config: ExpoConfig = {
     intentFilters: [
       {
         action: "VIEW",
-        autoVerify: false,
+        // Android lo comprueba con https://doctordeck.app/.well-known/assetlinks.json
+        // (ANDROID_CERT_SHA256 en el servidor); si no cuadra, el enlace pregunta con qué abrirlo.
+        autoVerify: true,
         data: [
           { scheme: "https", host: "doctordeck.app", pathPrefix: "/decks/" },
           { scheme: "https", host: "doctordeck.app", pathPrefix: "/cards/" },

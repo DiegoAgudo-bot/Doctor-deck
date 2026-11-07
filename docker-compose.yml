@@ -28,6 +28,11 @@ services:
       # Gana siempre al de redirección (si el dominio antiguo y el público coinciden, no hay bucle).
       - "traefik.http.routers.deckdoctor.priority=100"
       - "traefik.http.routers.deckdoctor.service=deckdoctor"
+      # Comprime lo que Next no comprime (el JSON de la API, que usa la app: ~10 veces menos). Las
+      # imágenes ya van comprimidas; lo que ya trae Content-Encoding, Traefik no lo toca.
+      - "traefik.http.routers.deckdoctor.middlewares=deckdoctor-compress"
+      - "traefik.http.middlewares.deckdoctor-compress.compress=true"
+      - "traefik.http.middlewares.deckdoctor-compress.compress.excludedcontenttypes=image/jpeg,image/png,image/webp"
       - "traefik.http.services.deckdoctor.loadbalancer.server.port=3010"
       # www. y el dominio antiguo → el público, con la misma ruta (301): los enlaces ya compartidos
       # siguen funcionando.

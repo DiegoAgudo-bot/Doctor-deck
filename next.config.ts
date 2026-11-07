@@ -56,6 +56,10 @@ const nextConfig: NextConfig = {
       permanent: true,
     }));
   },
+  // Android App Links: los enlaces de doctordeck.app abren la app sin preguntar.
+  async rewrites() {
+    return [{ source: "/.well-known/assetlinks.json", destination: "/api/app/assetlinks" }];
+  },
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

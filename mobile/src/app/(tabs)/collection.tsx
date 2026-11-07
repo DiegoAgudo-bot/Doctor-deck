@@ -1,6 +1,6 @@
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { router, useNavigation } from "expo-router";
-import { useLayoutEffect, useMemo, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -13,7 +13,7 @@ import {
 import { sinceAddedTrend } from "@/domain/collection/since-added";
 import type { CollectionCardDTO, CollectionViewResponse } from "@/server/dto";
 import { Bell } from "~/components/bell";
-import { CardThumb, FoilMark } from "~/components/card-bits";
+import { CardThumb, FoilMark, prefetchThumbs } from "~/components/card-bits";
 import { FilterSheetBody } from "~/components/filters";
 import { OptionRow, Sheet } from "~/components/sheet";
 import {
@@ -99,6 +99,11 @@ export default function Collection() {
   });
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   const first = list.data?.pages[0];
+  // Las imágenes de cada página, en cuanto llega (no al bajar hasta ellas).
+  const lastPage = list.data?.pages.at(-1);
+  useEffect(() => {
+    if (lastPage) prefetchThumbs(lastPage.items.map((c) => c.card.imageUrl));
+  }, [lastPage]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -231,8 +236,13 @@ export default function Collection() {
           contentContainerStyle={{ padding: 16, paddingBottom: 96, gap: grid ? 8 : 0 }}
           keyboardDismissMode="on-drag"
           {...(grid ? { columnWrapperStyle: { gap: 8 } } : {})}
+          // La página siguiente se pide con antelación (más de una pantalla antes del final).
           onEndReached={() => list.hasNextPage && !list.isFetchingNextPage && list.fetchNextPage()}
-          onEndReachedThreshold={0.6}
+          onEndReachedThreshold={1.5}
+          initialNumToRender={12}
+          maxToRenderPerBatch={12}
+          windowSize={9}
+          removeClippedSubviews
           refreshControl={
             <RefreshControl
               refreshing={list.isRefetching}
@@ -382,7 +392,7 @@ function priceText(item: CollectionCardDTO) {
   return euros(item.value !== null ? item.value / item.quantity : item.price);
 }
 
-function Row({ item }: { item: CollectionCardDTO }) {
+const Row = memo(function Row({ item }: { item: CollectionCardDTO }) {
   return (
     <Pressable
       onPress={() => open(item)}
@@ -420,7 +430,7 @@ function Row({ item }: { item: CollectionCardDTO }) {
       </View>
     </Pressable>
   );
-}
+});
 
 /** La edición que se enseña: código y nombre (y cuántas más hay). */
 function SetLine({ item }: { item: CollectionCardDTO }) {
@@ -479,7 +489,13 @@ function SinceAddedLine({ item }: { item: CollectionCardDTO }) {
 }
 
 /** Como en la web: la carta en su tarjeta, con la edición, la variación y el precio de hoy. */
-function GridTile({ item, width }: { item: CollectionCardDTO; width: number }) {
+const GridTile = memo(function GridTile({
+  item,
+  width,
+}: {
+  item: CollectionCardDTO;
+  width: number;
+}) {
   const inner = width - TILE_PAD * 2 - 2;
   return (
     <Pressable
@@ -517,7 +533,7 @@ function GridTile({ item, width }: { item: CollectionCardDTO; width: number }) {
       </View>
     </Pressable>
   );
-}
+});
 
 const TILE_PAD = 6;
 

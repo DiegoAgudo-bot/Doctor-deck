@@ -52,8 +52,11 @@ export const routeLimits = {
   importShared: new RateLimiter(30, 60_000),
   /** El escáner manda varias lecturas por segundo mientras enfoca una carta. */
   scan: new RateLimiter(900, 60_000),
-  /** Imágenes que no tenemos y hay que pedir fuera (las guardadas no cuentan). */
-  imageFetch: new RateLimiter(300, 60_000),
+  /**
+   * Imágenes que no tenemos y hay que pedir fuera (las guardadas no cuentan). La app descarga por
+   * adelantado las de cada página del buscador: bajando rápido son cientos por minuto.
+   */
+  imageFetch: new RateLimiter(900, 60_000),
 };
 
 /** Lanza 429 si ese cliente ha pasado el límite. */
