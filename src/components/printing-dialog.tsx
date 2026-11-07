@@ -6,6 +6,7 @@ import type { CardDTO, PrintingDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { CardImage } from "./card-image";
 import { Dialog, Loading } from "./ui";
+import { useLocale, useT } from "./i18n";
 
 /**
  * Elegir la impresión de una carta del mazo: su imagen sale en el mazo y se escribe al exportar
@@ -23,6 +24,8 @@ export function PrintingDialog({
   /** null = sin impresión elegida (la de por defecto). */
   onPick: (printing: PrintingDTO | null) => void;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const [printings, setPrintings] = useState<PrintingDTO[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,11 +38,13 @@ export function PrintingDialog({
       .then((p) => !cancelled && setPrintings(p))
       .catch(
         (e: unknown) =>
-          !cancelled && setError(e instanceof ApiError ? e.message : "Error al cargar"),
+          !cancelled &&
+          setError(e instanceof ApiError ? e.message : t("Error al cargar", "Couldn't load")),
       );
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t solo cambia con el idioma (recarga)
   }, [card]);
 
   const current = card?.printing?.scryfallId ?? null;
@@ -47,7 +52,7 @@ export function PrintingDialog({
     <Dialog
       open={card !== null}
       onClose={onClose}
-      title={card ? `Edición de ${card.name}` : ""}
+      title={card ? t(`Edición de ${card.name}`, `${card.name} printing`) : ""}
       width={720}
       footer={
         current ? (
@@ -57,7 +62,7 @@ export function PrintingDialog({
             disabled={busy}
             onClick={() => onPick(null)}
           >
-            Quitar la edición elegida
+            {t("Quitar la edición elegida", "Clear the chosen printing")}
           </button>
         ) : undefined
       }
@@ -67,12 +72,16 @@ export function PrintingDialog({
           {error}
         </p>
       ) : !printings ? (
-        <Loading>Buscando ediciones…</Loading>
+        <Loading>{t("Buscando ediciones…", "Looking for printings…")}</Loading>
       ) : (
         <>
           <p className="subtle text-xs">
-            {printings.length} {printings.length === 1 ? "edición" : "ediciones"}, de la más nueva a
-            la más vieja. Precio de referencia, normal / foil.
+            {printings.length}{" "}
+            {printings.length === 1 ? t("edición", "printing") : t("ediciones", "printings")}
+            {t(
+              ", de la más nueva a la más vieja. Precio de referencia, normal / foil.",
+              ", newest to oldest. Reference price, normal / foil.",
+            )}
           </p>
           <div
             className="grid gap-3 overflow-y-auto"
@@ -104,8 +113,8 @@ export function PrintingDialog({
                   {p.lang !== "en" ? ` · ${p.lang}` : ""}
                 </span>
                 <span className="mono subtle text-[11px]">
-                  {p.priceEur !== null ? formatEuros(p.priceEur) : "—"}
-                  {p.priceEurFoil !== null && ` / ${formatEuros(p.priceEurFoil)}`}
+                  {p.priceEur !== null ? formatEuros(p.priceEur, locale) : "—"}
+                  {p.priceEurFoil !== null && ` / ${formatEuros(p.priceEurFoil, locale)}`}
                 </span>
               </button>
             ))}

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { TRADE_TEXT } from "@/domain/social/notification-text";
 import { formatEuros } from "@/domain/suggestions/format";
@@ -9,6 +8,7 @@ import { api, ApiError } from "./api-client";
 import { IconBell } from "./icons";
 import { notifyNotificationsChanged } from "./local-collection";
 import { Banner, EmptyState, Loading, ago } from "./ui";
+import { Link } from "@/components/i18n";
 
 /** /notifications: lo que han hecho las personas a las que sigues. Al abrirla, se marcan leídas. */
 export function NotificationsPage() {

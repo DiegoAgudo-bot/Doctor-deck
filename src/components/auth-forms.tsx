@@ -1,20 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { authClient, authErrorMessage, safeNext } from "./auth-client";
 import { clearCached } from "./swr-cache";
 import { Banner } from "./ui";
+import { Link, goTo, useLocale, useLocalePath, useT } from "@/components/i18n";
 
 /**
  * Navegación completa tras entrar: las rutas protegidas pueden estar precargadas (sin sesión) en la
  * caché del router, y así además se refresca todo lo que depende de la sesión.
  */
 /** Tras entrar: fuera lo guardado de otra cuenta y recarga completa. */
-function goTo(path: string) {
+function goAfterLogin(path: string) {
   clearCached();
-  window.location.assign(new URL(path, window.location.origin));
+  goTo(path);
 }
 
 function Field(props: {
@@ -28,6 +28,7 @@ function Field(props: {
 }) {
   // Las contraseñas se pueden ver (así no hace falta escribirlas dos veces).
   const [shown, setShown] = useState(false);
+  const t = useT();
   const password = props.type === "password";
   return (
     <label className="field">
@@ -51,7 +52,7 @@ function Field(props: {
             aria-pressed={shown}
             onClick={() => setShown((v) => !v)}
           >
-            {shown ? "Ocultar" : "Ver"}
+            {shown ? t("Ocultar", "Hide") : t("Ver", "Show")}
           </button>
         )}
       </span>
@@ -75,6 +76,8 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 
 function GoogleButton({ next }: { next: string }) {
   const [busy, setBusy] = useState(false);
+  const t = useT();
+  const lp = useLocalePath();
   return (
     <button
       type="button"
@@ -84,14 +87,14 @@ function GoogleButton({ next }: { next: string }) {
         // Si Google no puede entrar (p. ej. cuenta sin enlazar), de vuelta a /login con `?error=`.
         await authClient.signIn.social({
           provider: "google",
-          callbackURL: next,
-          errorCallbackURL: `/login?next=${encodeURIComponent(next)}`,
+          callbackURL: lp(next),
+          errorCallbackURL: lp(`/login?next=${encodeURIComponent(next)}`),
         });
       }}
       className="btn btn-lg w-full"
     >
       <GoogleLogo />
-      Continuar con Google
+      {t("Continuar con Google", "Continue with Google")}
     </button>
   );
 }
@@ -121,42 +124,59 @@ function GoogleLogo() {
 }
 
 function Divider() {
+  const t = useT();
   return (
     <div className="subtle flex items-center gap-3 text-xs">
-      <span className="h-px flex-1 bg-line" />o
+      <span className="h-px flex-1 bg-line" />
+      {t("o", "or")}
       <span className="h-px flex-1 bg-line" />
     </div>
   );
 }
 
 /** Lo que devuelve Better Auth en `?error=` al volver de Google. */
-const OAUTH_ERRORS: Record<string, string> = {
-  account_not_linked:
+const OAUTH_ERRORS: Record<string, [string, string]> = {
+  account_not_linked: [
     "Ya tienes una cuenta con el email de tu Google, creada con contraseña. Entra con tu email y contraseña y, en Ajustes, pulsa «Vincular Google»: a partir de ahí podrás entrar con los dos. Si no recuerdas la contraseña, recupérala abajo.",
-  email_does_not_match: "El email de Google no coincide con el de tu cuenta.",
-  account_already_linked_to_different_user:
+    "You already have an account with your Google email, created with a password. Sign in with your email and password and, in Settings, tap “Link Google”: from then on you can sign in with either. If you don't remember the password, reset it below.",
+  ],
+  email_does_not_match: [
+    "El email de Google no coincide con el de tu cuenta.",
+    "Your Google email doesn't match your account's.",
+  ],
+  account_already_linked_to_different_user: [
     "Esa cuenta de Google ya está vinculada a otro usuario.",
-  unable_to_link_account:
+    "That Google account is already linked to another user.",
+  ],
+  unable_to_link_account: [
     "No se ha podido vincular tu cuenta de Google. Entra con tu email y vincúlala desde Ajustes.",
-  access_denied: "Has cancelado el acceso con Google.",
+    "Couldn't link your Google account. Sign in with your email and link it from Settings.",
+  ],
+  access_denied: ["Has cancelado el acceso con Google.", "You cancelled the Google sign-in."],
 };
 
 export function LoginForm({ google, passwordReset }: { google: boolean; passwordReset: boolean }) {
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
   const oauthError = params.get("error");
+  const t = useT();
+  const locale = useLocale();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(
     oauthError
-      ? (OAUTH_ERRORS[oauthError.replace(/ /g, "_")] ??
-          "No se ha podido entrar con Google. Prueba otra vez o entra con tu email.")
+      ? t(
+          ...(OAUTH_ERRORS[oauthError.replace(/ /g, "_")] ?? [
+            "No se ha podido entrar con Google. Prueba otra vez o entra con tu email.",
+            "Couldn't sign in with Google. Try again or sign in with your email.",
+          ]),
+        )
       : null,
   );
   const [busy, setBusy] = useState(false);
 
   return (
-    <Card title="Entrar">
+    <Card title={t("Entrar", "Sign in")}>
       {google && (
         <>
           <GoogleButton next={next} />
@@ -171,13 +191,13 @@ export function LoginForm({ google, passwordReset }: { google: boolean; password
           setError(null);
           const { error } = await authClient.signIn.email({ email, password });
           setBusy(false);
-          if (error) return setError(authErrorMessage(error));
-          goTo(next);
+          if (error) return setError(authErrorMessage(error, locale));
+          goAfterLogin(next);
         }}
       >
         <Field label="Email" type="email" value={email} onChange={setEmail} autoComplete="email" />
         <Field
-          label="Contraseña"
+          label={t("Contraseña", "Password")}
           type="password"
           value={password}
           onChange={setPassword}
@@ -185,17 +205,19 @@ export function LoginForm({ google, passwordReset }: { google: boolean; password
         />
         {error && <Banner tone="out">{error}</Banner>}
         <button type="submit" disabled={busy} className="btn btn-primary btn-lg w-full">
-          {busy ? "Entrando…" : "Entrar"}
+          {busy ? t("Entrando…", "Signing in…") : t("Entrar", "Sign in")}
         </button>
       </form>
       <div className="flex flex-col gap-1 text-[13px]">
         <span>
-          ¿No tienes cuenta?{" "}
-          <Link href={`/signup?next=${encodeURIComponent(next)}`}>Regístrate</Link>
+          {t("¿No tienes cuenta?", "Don't have an account?")}{" "}
+          <Link href={`/signup?next=${encodeURIComponent(next)}`}>
+            {t("Regístrate", "Sign up")}
+          </Link>
         </span>
         {passwordReset && (
           <Link href="/forgot-password" className="subtle">
-            He olvidado la contraseña
+            {t("He olvidado la contraseña", "I forgot my password")}
           </Link>
         )}
       </div>
@@ -210,12 +232,16 @@ export function RegisterForm({ google }: { google: boolean }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const t = useT();
+  const locale = useLocale();
 
   return (
-    <Card title="Crear cuenta">
+    <Card title={t("Crear cuenta", "Create account")}>
       <p className="muted text-[13px]">
-        Tu colección y tus mazos quedan guardados en tu cuenta y puedes entrar desde cualquier
-        dispositivo.
+        {t(
+          "Tu colección y tus mazos quedan guardados en tu cuenta y puedes entrar desde cualquier dispositivo.",
+          "Your collection and decks are saved in your account and you can sign in from any device.",
+        )}
       </p>
       {google && (
         <>
@@ -233,13 +259,13 @@ export function RegisterForm({ google }: { google: boolean }) {
           const shownName = name.trim() || email.split("@")[0] || email;
           const { error } = await authClient.signUp.email({ name: shownName, email, password });
           setBusy(false);
-          if (error) return setError(authErrorMessage(error));
-          goTo(next);
+          if (error) return setError(authErrorMessage(error, locale));
+          goAfterLogin(next);
         }}
       >
         <Field label="Email" type="email" value={email} onChange={setEmail} autoComplete="email" />
         <Field
-          label="Contraseña (mínimo 8 caracteres)"
+          label={t("Contraseña (mínimo 8 caracteres)", "Password (at least 8 characters)")}
           type="password"
           value={password}
           onChange={setPassword}
@@ -247,7 +273,7 @@ export function RegisterForm({ google }: { google: boolean }) {
           minLength={8}
         />
         <Field
-          label="Nombre (opcional)"
+          label={t("Nombre (opcional)", "Name (optional)")}
           type="text"
           value={name}
           onChange={setName}
@@ -256,15 +282,17 @@ export function RegisterForm({ google }: { google: boolean }) {
         />
         {error && <Banner tone="out">{error}</Banner>}
         <button type="submit" disabled={busy} className="btn btn-primary btn-lg w-full">
-          {busy ? "Creando cuenta…" : "Crear cuenta"}
+          {busy ? t("Creando cuenta…", "Creating account…") : t("Crear cuenta", "Create account")}
         </button>
         <p className="subtle text-center text-xs">
-          Al crear la cuenta aceptas el <Link href="/legal">aviso legal</Link> y la{" "}
-          <Link href="/privacy">política de privacidad</Link>.
+          {t("Al crear la cuenta aceptas el", "By creating an account you accept the")}{" "}
+          <Link href="/legal">{t("aviso legal", "legal notice")}</Link> {t("y la", "and the")}{" "}
+          <Link href="/privacy">{t("política de privacidad", "privacy policy")}</Link>.
         </p>
       </form>
       <span className="text-[13px]">
-        ¿Ya tienes cuenta? <Link href={`/login?next=${encodeURIComponent(next)}`}>Entra</Link>
+        {t("¿Ya tienes cuenta?", "Already have an account?")}{" "}
+        <Link href={`/login?next=${encodeURIComponent(next)}`}>{t("Entra", "Sign in")}</Link>
       </span>
     </Card>
   );
@@ -275,12 +303,17 @@ export function ForgotPasswordForm() {
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useT();
+  const locale = useLocale();
+  const lp = useLocalePath();
   return (
-    <Card title="Recuperar contraseña">
+    <Card title={t("Recuperar contraseña", "Reset your password")}>
       {sent ? (
         <Banner tone="info">
-          Si existe una cuenta con ese email, te hemos enviado un enlace para elegir una contraseña
-          nueva. Caduca en 1 hora.
+          {t(
+            "Si existe una cuenta con ese email, te hemos enviado un enlace para elegir una contraseña nueva. Caduca en 1 hora.",
+            "If an account with that email exists, we've sent you a link to choose a new password. It expires in 1 hour.",
+          )}
         </Banner>
       ) : (
         <form
@@ -291,10 +324,10 @@ export function ForgotPasswordForm() {
             setError(null);
             const { error } = await authClient.requestPasswordReset({
               email,
-              redirectTo: "/reset-password",
+              redirectTo: lp("/reset-password"),
             });
             setBusy(false);
-            if (error) return setError(authErrorMessage(error));
+            if (error) return setError(authErrorMessage(error, locale));
             setSent(true);
           }}
         >
@@ -307,12 +340,12 @@ export function ForgotPasswordForm() {
           />
           {error && <Banner tone="out">{error}</Banner>}
           <button type="submit" disabled={busy} className="btn btn-primary btn-lg w-full">
-            {busy ? "Enviando…" : "Enviar enlace"}
+            {busy ? t("Enviando…", "Sending…") : t("Enviar enlace", "Send link")}
           </button>
         </form>
       )}
       <Link href="/login" className="text-[13px]">
-        Volver a entrar
+        {t("Volver a entrar", "Back to sign in")}
       </Link>
     </Card>
   );
@@ -324,32 +357,49 @@ export function ResetPasswordForm() {
   const [password, setPassword] = useState("");
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
+  const t = useT();
+  const locale = useLocale();
   const [error, setError] = useState<string | null>(
-    params.get("error") ? "El enlace no es válido o ha caducado. Pide otro." : null,
+    params.get("error")
+      ? t(
+          "El enlace no es válido o ha caducado. Pide otro.",
+          "The link isn't valid or has expired. Ask for another one.",
+        )
+      : null,
   );
 
   return (
-    <Card title="Nueva contraseña">
+    <Card title={t("Nueva contraseña", "New password")}>
       {done ? (
         <Banner tone="info">
-          Contraseña cambiada. <Link href="/login">Entra con la nueva</Link>.
+          {t("Contraseña cambiada.", "Password changed.")}{" "}
+          <Link href="/login">{t("Entra con la nueva", "Sign in with the new one")}</Link>.
         </Banner>
       ) : (
         <form
           className="flex flex-col gap-3"
           onSubmit={async (e) => {
             e.preventDefault();
-            if (!token) return setError("Falta el token: abre el enlace del email.");
+            if (!token)
+              return setError(
+                t(
+                  "Falta el token: abre el enlace del email.",
+                  "Missing token: open the link in the email.",
+                ),
+              );
             setBusy(true);
             setError(null);
             const { error } = await authClient.resetPassword({ newPassword: password, token });
             setBusy(false);
-            if (error) return setError(authErrorMessage(error));
+            if (error) return setError(authErrorMessage(error, locale));
             setDone(true);
           }}
         >
           <Field
-            label="Contraseña nueva (mínimo 8 caracteres)"
+            label={t(
+              "Contraseña nueva (mínimo 8 caracteres)",
+              "New password (at least 8 characters)",
+            )}
             type="password"
             value={password}
             onChange={setPassword}
@@ -358,7 +408,7 @@ export function ResetPasswordForm() {
           />
           {error && <Banner tone="out">{error}</Banner>}
           <button type="submit" disabled={busy || !token} className="btn btn-primary btn-lg w-full">
-            {busy ? "Guardando…" : "Guardar contraseña"}
+            {busy ? t("Guardando…", "Saving…") : t("Guardar contraseña", "Save password")}
           </button>
         </form>
       )}

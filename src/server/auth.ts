@@ -68,8 +68,9 @@ export function createAuth({ db, env, mailer }: { db: Db; env: Env; mailer: Mail
               sendInBackground(
                 {
                   to: user.email,
-                  subject: "Doctor Deck · Restablecer la contraseña",
-                  text: `Hola ${user.name},\n\nPara elegir una contraseña nueva abre este enlace (caduca en 1 hora):\n${url}\n\nSi no lo has pedido tú, ignora este mensaje.`,
+                  subject: "Doctor Deck · Restablecer la contraseña / Reset your password",
+                  // En los dos idiomas: aquí no se sabe en cuál estaba la persona.
+                  text: `Hola ${user.name},\n\nPara elegir una contraseña nueva abre este enlace (caduca en 1 hora):\n${url}\n\nSi no lo has pedido tú, ignora este mensaje.\n\n—\n\nHi ${user.name},\n\nTo choose a new password, open this link (it expires in 1 hour):\n${url}\n\nIf you didn't ask for it, ignore this message.`,
                 },
                 "/api/auth/request-password-reset",
               );
@@ -94,8 +95,8 @@ export function createAuth({ db, env, mailer }: { db: Db; env: Env; mailer: Mail
               sendInBackground(
                 {
                   to: user.email,
-                  subject: "Doctor Deck · Confirma tu email",
-                  text: `Hola ${user.name},\n\nConfirma que este email es tuyo abriendo este enlace:\n${url}\n\nSi no te has registrado en Doctor Deck, ignora este mensaje.`,
+                  subject: "Doctor Deck · Confirma tu email / Confirm your email",
+                  text: `Hola ${user.name},\n\nConfirma que este email es tuyo abriendo este enlace:\n${url}\n\nSi no te has registrado en Doctor Deck, ignora este mensaje.\n\n—\n\nHi ${user.name},\n\nConfirm this email is yours by opening this link:\n${url}\n\nIf you didn't sign up for Doctor Deck, ignore this message.`,
                 },
                 "/api/auth/send-verification-email",
               );

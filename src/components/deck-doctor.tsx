@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   applySwaps,
@@ -59,6 +58,7 @@ import {
 import { ColorPips } from "./mana";
 import { SAMPLE_DECK } from "./sample-deck";
 import { Banner, Loading } from "./ui";
+import { Link, goTo, useIntlLocale, useLocale, useLocalePath, useT } from "@/components/i18n";
 
 interface Saved {
   input: string;
@@ -77,7 +77,6 @@ interface Saved {
 }
 
 const KEY = "deck-doctor:mazo";
-const SOURCE_LABEL: Record<string, string> = { archidekt: "un enlace", moxfield: "un enlace" };
 const EMPTY: Saved = {
   input: "",
   theme: "",
@@ -106,6 +105,9 @@ const shortName = (name: string) => name.split(/,| \/\/ /)[0] ?? name;
 
 /** Con `deckId` abre ese mazo guardado (/decks/{uuid}); sin él, el analizador (/analyze). */
 export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
+  const t = useT();
+  const lp = useLocalePath();
+  const intl = useIntlLocale();
   const { data: session } = authClient.useSession();
   const loggedIn = Boolean(session);
   const [saved, setSaved] = useState<Saved>(EMPTY);
@@ -215,7 +217,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           void analyze(next, d.commanders).finally(() => setOpening(false));
         })
         .catch((e: unknown) => {
-          setError(e instanceof ApiError ? e.message : "No se pudo abrir el mazo");
+          setError(
+            e instanceof ApiError
+              ? e.message
+              : t("No se pudo abrir el mazo", "Couldn't open the deck"),
+          );
           setHydrated(true);
           setOpening(false);
         });
@@ -223,14 +229,14 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     }
     if (params.has("sample")) {
       // Desde la portada: el mazo de ejemplo, analizado al momento.
-      window.history.replaceState(null, "", "/analyze");
+      window.history.replaceState(null, "", lp("/analyze"));
       const sample = { ...EMPTY, input: SAMPLE_DECK };
       setSaved(sample);
       setTab(firstTab(loggedIn || localCollection.get() !== null));
       setOpening(true);
       void analyze(sample, []).finally(() => setOpening(false));
     } else if (params.has("new")) {
-      window.history.replaceState(null, "", "/analyze");
+      window.history.replaceState(null, "", lp("/analyze"));
       setSaved(EMPTY);
     } else {
       const stored = storage.get<Partial<Saved>>(KEY, {});
@@ -243,7 +249,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       setSaved(restored);
       setMode(isLink(restored.input) ? "enlace" : "texto");
       if (params.has("analyze") && restored.input.trim()) {
-        window.history.replaceState(null, "", "/analyze");
+        window.history.replaceState(null, "", lp("/analyze"));
         setOpening(true);
         void analyze(restored, [])
           .then(() => {
@@ -288,7 +294,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       notifyDecksChanged();
       return true;
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo guardar el mazo");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : t("No se pudo guardar el mazo", "Couldn't save the deck"),
+      );
       return false;
     }
   }
@@ -341,7 +351,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
         res.commanders.map((c) => c.oracleId),
       );
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo analizar el mazo");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : t("No se pudo analizar el mazo", "Couldn't analyze the deck"),
+      );
       return null;
     } finally {
       setBusy(null);
@@ -385,7 +399,10 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           !cancelled &&
           setCombos({
             data: null,
-            error: e instanceof ApiError ? e.message : "No se pudieron buscar los combos",
+            error:
+              e instanceof ApiError
+                ? e.message
+                : t("No se pudieron buscar los combos", "Couldn't look up combos"),
             loading: false,
           }),
       );
@@ -464,8 +481,10 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     if (savedIt) {
       setNotice(
         n > 0
-          ? `${n === 1 ? "Aplicado 1 cambio" : `Aplicados ${n} cambios`} y guardado.`
-          : "Guardado.",
+          ? n === 1
+            ? t("Aplicado 1 cambio y guardado.", "Applied 1 change and saved.")
+            : t(`Aplicados ${n} cambios y guardado.`, `Applied ${n} changes and saved.`)
+          : t("Guardado.", "Saved."),
       );
     }
   }
@@ -503,12 +522,16 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       });
       update({ deckId: res.id, name: res.name, input, visibility });
       setOwner(null);
-      window.history.replaceState(null, "", `/decks/${res.id}`);
-      setNotice(`Guardado como «${res.name}».`);
+      window.history.replaceState(null, "", lp(`/decks/${res.id}`));
+      setNotice(t(`Guardado como «${res.name}».`, `Saved as “${res.name}”.`));
       setDialog(null);
       notifyDecksChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo guardar el mazo");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : t("No se pudo guardar el mazo", "Couldn't save the deck"),
+      );
     } finally {
       setBusy(null);
     }
@@ -531,7 +554,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       update({ name });
       notifyDecksChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo cambiar el nombre");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : t("No se pudo cambiar el nombre", "Couldn't rename it"),
+      );
     } finally {
       setBusy(null);
     }
@@ -544,7 +571,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       update({ visibility });
       notifyDecksChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo cambiar la visibilidad");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : t("No se pudo cambiar la visibilidad", "Couldn't change who can see it"),
+      );
     }
   }
 
@@ -556,9 +587,13 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       // Que no se reabra como «el último mazo» en /analyze.
       storage.remove(KEY);
       notifyDecksChanged();
-      window.location.assign(new URL("/decks", window.location.origin));
+      goTo("/decks");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo borrar el mazo");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : t("No se pudo borrar el mazo", "Couldn't delete the deck"),
+      );
       setBusy(null);
     }
   }
@@ -574,7 +609,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       });
       setInWishlist(!inWishlist);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo cambiar la lista de deseos");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : t("No se pudo cambiar la lista de deseos", "Couldn't update the wishlist"),
+      );
     } finally {
       setBusy(null);
     }
@@ -591,7 +630,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       setLike({ ...like, liked: res.liked, count: res.likes });
     } catch (err) {
       setLike(like);
-      setError(err instanceof ApiError ? err.message : "No se pudo guardar el «me gusta»");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : t("No se pudo guardar el «me gusta»", "Couldn't save the like"),
+      );
     }
   }
 
@@ -606,7 +649,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
         body: JSON.stringify({ targetBracket }),
       });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo guardar el bracket objetivo");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : t("No se pudo guardar el bracket objetivo", "Couldn't save the target bracket"),
+      );
     }
   }
 
@@ -632,7 +679,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       }
       setEditingRoles(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudieron guardar los roles");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : t("No se pudieron guardar los roles", "Couldn't save the roles"),
+      );
       setBusy(null);
       return;
     }
@@ -655,8 +706,14 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     if (savedIt === null) return;
     setEditNotice(
       delta > 0
-        ? `Añadida: ${card.name}${savedIt ? " (guardado)" : ""}.`
-        : `Quitada una copia de ${card.name}${savedIt ? " (guardado)" : ""}.`,
+        ? t(
+            `Añadida: ${card.name}${savedIt ? " (guardado)" : ""}.`,
+            `Added: ${card.name}${savedIt ? " (saved)" : ""}.`,
+          )
+        : t(
+            `Quitada una copia de ${card.name}${savedIt ? " (guardado)" : ""}.`,
+            `Removed a copy of ${card.name}${savedIt ? " (saved)" : ""}.`,
+          ),
     );
   }
 
@@ -673,7 +730,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     );
     if (savedIt === null) return;
     setEditNotice(
-      `${card.name}: ${printing ? `${printing.setName ?? printing.setCode.toUpperCase()} #${printing.collectorNumber}` : "impresión por defecto"}${savedIt ? " (guardado)" : ""}.`,
+      `${card.name}: ${printing ? `${printing.setName ?? printing.setCode.toUpperCase()} #${printing.collectorNumber}` : t("impresión por defecto", "default printing")}${savedIt ? t(" (guardado)", " (saved)") : ""}.`,
     );
   }
 
@@ -713,7 +770,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       {opening && !ok && <OpeningDeck />}
       {showForm && (
         <EntryForm
-          title={ok ? "Cambiar la lista" : "Analizar mazo"}
+          title={ok ? t("Cambiar la lista", "Change the list") : t("Analizar mazo", "Analyze deck")}
           input={saved.input}
           onInput={(input) => update({ input })}
           mode={mode}
@@ -743,7 +800,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
           onCloseDeck={() => {
             setSaved({ ...EMPTY, input: saved.input });
             setResult(null);
-            window.history.replaceState(null, "", "/analyze");
+            window.history.replaceState(null, "", lp("/analyze"));
           }}
         />
       )}
@@ -766,7 +823,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
       {ok && (
         <>
           {analyzing && !showForm && (
-            <div className="progress" role="status" aria-label="Recalculando">
+            <div className="progress" role="status" aria-label={t("Recalculando", "Recalculating")}>
               <i />
             </div>
           )}
@@ -790,26 +847,26 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
 
           {(themes.length > 0 || saved.theme !== "") && (
             <div className="field">
-              <span className="label">Tema</span>
-              <div className="chips scroll-sm" role="radiogroup" aria-label="Tema">
+              <span className="label">{t("Tema", "Theme")}</span>
+              <div className="chips scroll-sm" role="radiogroup" aria-label={t("Tema", "Theme")}>
                 {[
-                  { slug: "", name: "General", count: ok.edhrec.totalDecks },
+                  { slug: "", name: t("General", "General"), count: ok.edhrec.totalDecks },
                   ...themeChips(themes, saved.theme),
-                ].map((t) => (
+                ].map((th) => (
                   <button
-                    key={t.slug || "general"}
+                    key={th.slug || "general"}
                     type="button"
                     role="radio"
-                    aria-checked={saved.theme === t.slug}
-                    className={`chipbtn ${saved.theme === t.slug ? "is-on" : ""}`}
+                    aria-checked={saved.theme === th.slug}
+                    className={`chipbtn ${saved.theme === th.slug ? "is-on" : ""}`}
                     disabled={busy !== null}
                     onClick={() =>
-                      saved.theme !== t.slug &&
-                      void analyze({ theme: t.slug }, chosen, buy, { persist: true })
+                      saved.theme !== th.slug &&
+                      void analyze({ theme: th.slug }, chosen, buy, { persist: true })
                     }
                   >
-                    {t.name}
-                    {t.count !== null && <span className="n">{compact(t.count)}</span>}
+                    {th.name}
+                    {th.count !== null && <span className="n">{compact(th.count, intl)}</span>}
                   </button>
                 ))}
               </div>
@@ -818,19 +875,19 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
 
           <Issues ok={ok} />
 
-          <nav className="tabs" aria-label="Secciones del mazo">
+          <nav className="tabs" aria-label={t("Secciones del mazo", "Deck sections")}>
             {(
               [
-                ["changes", "Cambios", pending],
-                ["missing", "Qué me falta", ok.ownership.totals.toBuy],
-                ["list", "Lista", ok.totalCards],
+                ["changes", t("Cambios", "Changes"), pending],
+                ["missing", t("Qué me falta", "What I'm missing"), ok.ownership.totals.toBuy],
+                ["list", t("Lista", "List"), ok.totalCards],
                 [
                   "combos",
                   "Combos",
                   combos.data && !combos.loading ? combos.data.included.length : null,
                 ],
-                ["stats", "Estadísticas", null],
-                ["buy", "Mejorar comprando", null],
+                ["stats", t("Estadísticas", "Stats"), null],
+                ["buy", t("Mejorar comprando", "Improve by buying"), null],
               ] as const
             ).map(([id, label, n]) => (
               <button
@@ -857,10 +914,10 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                     <div className="chips">
                       {(
                         [
-                          ["todos", "Todos", ok.swaps.length],
-                          ["pendientes", "Pendientes", pending],
-                          ["aceptados", "Aceptados", accepted.length],
-                          ["descartados", "Descartados", rejected.length],
+                          ["todos", t("Todos", "All"), ok.swaps.length],
+                          ["pendientes", t("Pendientes", "Pending"), pending],
+                          ["aceptados", t("Aceptados", "Accepted"), accepted.length],
+                          ["descartados", t("Descartados", "Dismissed"), rejected.length],
                         ] as const
                       ).map(([id, label, n]) => (
                         <button
@@ -887,7 +944,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                             })
                           }
                         >
-                          Aceptar todos
+                          {t("Aceptar todos", "Accept all")}
                         </button>
                       )}
                       <button
@@ -900,19 +957,23 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                         onClick={() => void applyAndRecalculate()}
                       >
                         {analyzing
-                          ? "Recalculando…"
+                          ? t("Recalculando…", "Recalculating…")
                           : accepted.length > 0
-                            ? `Aplicar ${accepted.length} y recalcular`
-                            : "Recalcular"}
+                            ? t(
+                                `Aplicar ${accepted.length} y recalcular`,
+                                `Apply ${accepted.length} and recalculate`,
+                              )
+                            : t("Recalcular", "Recalculate")}
                       </button>
                     </div>
                   </div>
                 )}
                 {ok.swaps.length > 0 && !analyzing && (
                   <p className="subtle text-[12.5px]">
-                    La cifra de cada cambio es la mejora estimada: cuánto más se juega con tu
-                    comandante la carta que entra que la que sale (sinergia e inclusión en la
-                    comunidad), con un extra si cubre el mismo rol o uno que te falta.
+                    {t(
+                      "La cifra de cada cambio es la mejora estimada: cuánto más se juega con tu comandante la carta que entra que la que sale (sinergia e inclusión en la comunidad), con un extra si cubre el mismo rol o uno que te falta.",
+                      "Each change's number is the estimated improvement: how much more the incoming card is played with your commander than the outgoing one (community synergy and inclusion), plus a bonus if it covers the same role or one you're short on.",
+                    )}
                   </p>
                 )}
                 {analyzing ? (
@@ -964,7 +1025,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             <section className="flex flex-col gap-3">
               <div className="stack-sm flex flex-wrap items-center justify-between gap-2.5">
                 <h2 className="h2" style={{ fontSize: 17 }}>
-                  Lista{" "}
+                  {t("Lista", "List")}{" "}
                   <span className="mono subtle" style={{ fontSize: 13, fontWeight: 400 }}>
                     {ok.totalCards}
                   </span>
@@ -976,10 +1037,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                       className="btn btn-ghost"
                       onClick={() => changeMarks({ locked: [], excluded: [] })}
                     >
-                      Olvidar candados y descartes ({saved.locked.length + saved.excluded.length})
+                      {t("Olvidar candados y descartes", "Forget locks and dismissals")} (
+                      {saved.locked.length + saved.excluded.length})
                     </button>
                   )}
-                  <div className="btn-group" role="group" aria-label="Ver como">
+                  <div className="btn-group" role="group" aria-label={t("Ver como", "View as")}>
                     {(["pilas", "lista", "texto"] as const).map((v) => (
                       <button
                         key={v}
@@ -988,7 +1050,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                         aria-pressed={view === v}
                         onClick={() => setView(v)}
                       >
-                        {v === "pilas" ? "Pilas" : v === "lista" ? "Lista" : "Texto"}
+                        {v === "pilas"
+                          ? t("Pilas", "Piles")
+                          : v === "lista"
+                            ? t("Lista", "List")
+                            : t("Texto", "Text")}
                       </button>
                     ))}
                   </div>
@@ -1001,13 +1067,17 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                     style={{ position: "static", width: 16, height: 16 }}
                     aria-hidden="true"
                   />
-                  Bloqueada: nunca se propone para salir.{" "}
+                  {t("Bloqueada: nunca se propone para salir.", "Locked: never suggested to cut.")}{" "}
                   {view === "pilas"
-                    ? "Haz clic en una carta para bloquearla."
-                    : "Usa el candado de cada fila."}
+                    ? t("Haz clic en una carta para bloquearla.", "Click a card to lock it.")
+                    : t("Usa el candado de cada fila.", "Use the lock on each row.")}
                   {dirty && (
                     <span className="pill pill-warn">
-                      · Pulsa Recalcular en Cambios para aplicarlo.
+                      ·{" "}
+                      {t(
+                        "Pulsa Recalcular en Cambios para aplicarlo.",
+                        "Press Recalculate in Changes to apply it.",
+                      )}
                     </span>
                   )}
                 </p>
@@ -1024,7 +1094,10 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
               )}
               {ok.cards.length === 0 ? (
                 <div className="panel muted p-4 text-[13px]">
-                  Solo está el comandante. Añade cartas con el buscador de arriba.
+                  {t(
+                    "Solo está el comandante. Añade cartas con el buscador de arriba.",
+                    "Only the commander so far. Add cards with the search above.",
+                  )}
                 </div>
               ) : (
                 <DeckList
@@ -1075,11 +1148,18 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
 
           {/* Móvil: el botón de aplicar queda arriba de la lista; con cambios aceptados, siempre a mano. */}
           {tab === "changes" && accepted.length > 0 && (
-            <div className="actionbar only-sm" role="region" aria-label="Cambios aceptados">
+            <div
+              className="actionbar only-sm"
+              role="region"
+              aria-label={t("Cambios aceptados", "Accepted changes")}
+            >
               <span className="text-[13px]">
                 {accepted.length === 1
-                  ? "1 cambio aceptado"
-                  : `${accepted.length} cambios aceptados`}
+                  ? t("1 cambio aceptado", "1 change accepted")
+                  : t(
+                      `${accepted.length} cambios aceptados`,
+                      `${accepted.length} changes accepted`,
+                    )}
               </span>
               <button
                 type="button"
@@ -1087,7 +1167,9 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                 disabled={busy !== null}
                 onClick={() => void applyAndRecalculate()}
               >
-                {analyzing ? "Recalculando…" : `Aplicar ${accepted.length}`}
+                {analyzing
+                  ? t("Recalculando…", "Recalculating…")
+                  : t(`Aplicar ${accepted.length}`, `Apply ${accepted.length}`)}
               </button>
             </div>
           )}
@@ -1191,8 +1273,8 @@ function themeChips(themes: ThemeLink[], current: string): ThemeLink[] {
   return [...top, known ?? { slug: current, name, count: null }];
 }
 
-const compact = (n: number) =>
-  n >= 1000 ? `${(n / 1000).toLocaleString("es", { maximumFractionDigits: 1 })}K` : String(n);
+const compact = (n: number, intl: string) =>
+  n >= 1000 ? `${(n / 1000).toLocaleString(intl, { maximumFractionDigits: 1 })}K` : String(n);
 
 function EntryForm({
   title,
@@ -1228,6 +1310,7 @@ function EntryForm({
   openDeck: string | null;
   onCloseDeck: () => void;
 }) {
+  const t = useT();
   return (
     <>
       <h1 className="h1">{title}</h1>
@@ -1236,14 +1319,16 @@ function EntryForm({
           tone="warn"
           action={
             <Link className="btn btn-sm" href="/collection">
-              Importar colección
+              {t("Importar colección", "Import collection")}
             </Link>
           }
         >
-          <b>Aún no tengo tu colección.</b>{" "}
+          <b>{t("Aún no tengo tu colección.", "I don't have your collection yet.")}</b>{" "}
           <span className="muted">
-            Puedo analizar el mazo y decirte qué le falta y qué comprar, pero para proponerte
-            cambios con tus cartas sube el CSV de tu colección.
+            {t(
+              "Puedo analizar el mazo y decirte qué le falta y qué comprar, pero para proponerte cambios con tus cartas sube el CSV de tu colección.",
+              "I can analyze the deck and tell you what it's missing and what to buy, but to suggest changes with your cards, upload your collection CSV.",
+            )}
           </span>
         </Banner>
       )}
@@ -1258,7 +1343,11 @@ function EntryForm({
             onSubmit();
           }}
         >
-          <nav className="tabs" style={{ padding: "0 6px" }} aria-label="Cómo darme el mazo">
+          <nav
+            className="tabs"
+            style={{ padding: "0 6px" }}
+            aria-label={t("Cómo darme el mazo", "How to give me the deck")}
+          >
             {(["texto", "enlace"] as const).map((m) => (
               <button
                 key={m}
@@ -1267,7 +1356,7 @@ function EntryForm({
                 aria-pressed={mode === m}
                 onClick={() => onMode(m)}
               >
-                {m === "texto" ? "Pegar lista" : "Enlace"}
+                {m === "texto" ? t("Pegar lista", "Paste list") : t("Enlace", "Link")}
               </button>
             ))}
           </nav>
@@ -1275,9 +1364,9 @@ function EntryForm({
             {mode === "texto" ? (
               <div className="field">
                 <label className="label" htmlFor="lista">
-                  Lista{" "}
+                  {t("Lista", "List")}{" "}
                   <span className="subtle" style={{ fontWeight: 400 }}>
-                    (una carta por línea)
+                    {t("(una carta por línea)", "(one card per line)")}
                   </span>
                 </label>
                 <textarea
@@ -1292,7 +1381,7 @@ function EntryForm({
             ) : (
               <div className="field">
                 <label className="label" htmlFor="url">
-                  Enlace del mazo
+                  {t("Enlace del mazo", "Deck link")}
                 </label>
                 <input
                   id="url"
@@ -1302,7 +1391,12 @@ function EntryForm({
                   placeholder="https://…/decks/…"
                   onChange={(e) => onInput(e.target.value)}
                 />
-                <span className="hint">Enlace de un mazo público o sin listar.</span>
+                <span className="hint">
+                  {t(
+                    "Enlace de un mazo público o sin listar.",
+                    "Link to a public or unlisted deck.",
+                  )}
+                </span>
               </div>
             )}
             {loggedIn && (
@@ -1313,8 +1407,13 @@ function EntryForm({
                   onChange={(e) => onUseOtherDecks(!e.target.checked)}
                 />
                 <span>
-                  No descontar cartas usadas en otros mazos{" "}
-                  <span className="subtle">— tratarlas como libres</span>
+                  {t(
+                    "No descontar cartas usadas en otros mazos",
+                    "Don't discount cards used in other decks",
+                  )}{" "}
+                  <span className="subtle">
+                    {t("— tratarlas como libres", "— treat them as free")}
+                  </span>
                 </span>
               </label>
             )}
@@ -1326,17 +1425,17 @@ function EntryForm({
                   disabled={analyzing}
                   onClick={onSample}
                 >
-                  Probar con un mazo de ejemplo
+                  {t("Probar con un mazo de ejemplo", "Try a sample deck")}
                 </button>
               )}
               {openDeck && (
                 <button type="button" className="btn btn-ghost mr-auto" onClick={onCloseDeck}>
-                  Cerrar «{openDeck}»
+                  {t(`Cerrar «${openDeck}»`, `Close “${openDeck}”`)}
                 </button>
               )}
               {onCancel && !analyzing && (
                 <button type="button" className="btn btn-lg" onClick={onCancel}>
-                  Cancelar
+                  {t("Cancelar", "Cancel")}
                 </button>
               )}
               <button
@@ -1344,16 +1443,22 @@ function EntryForm({
                 className="btn btn-primary btn-lg full-sm"
                 disabled={analyzing || !input.trim()}
               >
-                {analyzing ? "Analizando…" : "Analizar"}
+                {analyzing ? t("Analizando…", "Analyzing…") : t("Analizar", "Analyze")}
               </button>
             </div>
           </div>
           {analyzing && (
             <div className="border-t border-line px-3.5 py-3">
               <Loading>
-                Leyendo la lista y buscando recomendaciones…{" "}
+                {t(
+                  "Leyendo la lista y buscando recomendaciones…",
+                  "Reading the list and fetching recommendations…",
+                )}{" "}
                 <span className="subtle">
-                  Luego lo cruzo con tu colección. Suele tardar unos segundos.
+                  {t(
+                    "Luego lo cruzo con tu colección. Suele tardar unos segundos.",
+                    "Then I match it against your collection. It usually takes a few seconds.",
+                  )}
                 </span>
               </Loading>
             </div>
@@ -1361,22 +1466,28 @@ function EntryForm({
         </form>
         <aside className="panel">
           <div className="panel-h">
-            <span className="h2">Cómo funciona</span>
+            <span className="h2">{t("Cómo funciona", "How it works")}</span>
           </div>
           <div className="flex flex-col gap-2.5 p-3 text-[13px]">
             <p className="muted">
-              Detecto el comandante, miro lo que juega la comunidad con él y te propongo cambios
-              1×1: qué carta sacar y cuál meter.
+              {t(
+                "Detecto el comandante, miro lo que juega la comunidad con él y te propongo cambios 1×1: qué carta sacar y cuál meter.",
+                "I detect the commander, look at what the community plays with it and suggest 1-for-1 changes: which card to cut and which to add.",
+              )}
             </p>
             <p className="muted">
-              Formatos: <span className="mono">1 Sol Ring</span>,{" "}
-              <span className="mono">1x Sol Ring (C21) 263</span>, secciones{" "}
-              <span className="mono">Commander</span>/<span className="mono">Deck</span> o{" "}
-              <span className="mono">*CMDR*</span>, y enlaces de mazos públicos.
+              {t("Formatos:", "Formats:")} <span className="mono">1 Sol Ring</span>,{" "}
+              <span className="mono">1x Sol Ring (C21) 263</span>, {t("secciones", "sections")}{" "}
+              <span className="mono">Commander</span>/<span className="mono">Deck</span>{" "}
+              {t("o", "or")} <span className="mono">*CMDR*</span>,{" "}
+              {t("y enlaces de mazos públicos.", "and links to public decks.")}
             </p>
             <p className="muted">
-              ¿No tienes la lista a mano? <Link href="/decks/new">Créalo desde un comandante</Link>{" "}
-              con el mazo medio de la comunidad.
+              {t("¿No tienes la lista a mano?", "Don't have the list handy?")}{" "}
+              <Link href="/decks/new">
+                {t("Créalo desde un comandante", "Build it from a commander")}
+              </Link>{" "}
+              {t("con el mazo medio de la comunidad.", "with the community's average deck.")}
             </p>
           </div>
         </aside>
@@ -1398,20 +1509,28 @@ function CommanderPicker({
   onConfirm: () => void;
   busy: boolean;
 }) {
+  const t = useT();
   const names = candidates.filter((c) => chosen.includes(c.oracleId)).map((c) => shortName(c.name));
   return (
     <section className="panel fade">
       <div className="panel-h stack-sm py-2">
-        <span className="h2">Elige el comandante</span>
+        <span className="h2">{t("Elige el comandante", "Choose the commander")}</span>
         <span className="muted text-[13px]">
-          La lista no lo marca. Candidatas encontradas: {candidates.length}
+          {t(
+            "La lista no lo marca. Candidatas encontradas:",
+            "The list doesn't say. Candidates found:",
+          )}{" "}
+          {candidates.length}
         </span>
       </div>
       {candidates.length === 0 ? (
         <div className="p-4">
           <Banner tone="warn">
-            No hay ninguna carta que pueda ser comandante en la lista. Márcalo con una sección
-            «Commander» o con <span className="mono">*CMDR*</span>.
+            {t(
+              "No hay ninguna carta que pueda ser comandante en la lista. Márcalo con una sección «Commander» o con",
+              "There's no card in the list that can be a commander. Mark it with a “Commander” section or with",
+            )}{" "}
+            <span className="mono">*CMDR*</span>.
           </Banner>
         </div>
       ) : (
@@ -1419,7 +1538,7 @@ function CommanderPicker({
           <div
             className="flex flex-wrap gap-4 p-4"
             role="group"
-            aria-label="Candidatos a comandante"
+            aria-label={t("Candidatos a comandante", "Commander candidates")}
           >
             {candidates.map((c) => {
               const sel = chosen.includes(c.oracleId);
@@ -1465,7 +1584,10 @@ function CommanderPicker({
           </div>
           <div className="stack-sm flex items-center justify-between gap-3 px-4 pb-4">
             <span className="muted text-[13px]">
-              Puedes elegir dos si son pareja (Partner, Background…).
+              {t(
+                "Puedes elegir dos si son pareja (Partner, Background…).",
+                "You can pick two if they're a pair (Partner, Background…).",
+              )}
             </span>
             <button
               type="button"
@@ -1474,10 +1596,10 @@ function CommanderPicker({
               onClick={onConfirm}
             >
               {busy
-                ? "Analizando…"
+                ? t("Analizando…", "Analyzing…")
                 : names.length > 0
-                  ? `Analizar con ${names.join(" + ")}`
-                  : "Elige uno"}
+                  ? t(`Analizar con ${names.join(" + ")}`, `Analyze with ${names.join(" + ")}`)
+                  : t("Elige uno", "Pick one")}
             </button>
           </div>
         </>
@@ -1523,6 +1645,8 @@ function DeckHeader({
   canLike: boolean;
   onLike: () => void;
 }) {
+  const t = useT();
+  const intl = useIntlLocale();
   const identity = [...new Set(ok.commanders.flatMap((c) => c.colorIdentity))];
   const order = ["W", "U", "B", "R", "G"];
   const commander = ok.commanders[0];
@@ -1548,19 +1672,19 @@ function DeckHeader({
         <span className="cap">
           {owner ? (
             <>
-              Mazo de{" "}
+              {t("Mazo de", "Deck by")}{" "}
               {owner.username ? (
                 <Link href={`/u/${owner.username}`}>@{owner.username}</Link>
               ) : (
                 owner.name
               )}{" "}
-              · comparado con tu colección
+              · {t("comparado con tu colección", "compared with your collection")}
             </>
           ) : (
             <>
               Commander
               {ok.source !== "text"
-                ? ` · importado de ${SOURCE_LABEL[ok.source] ?? ok.source}`
+                ? t(" · importado de un enlace", " · imported from a link")
                 : ""}
             </>
           )}
@@ -1574,9 +1698,17 @@ function DeckHeader({
           <BracketPill bracket={bracket} target={target} onClick={onShowBracket} />
         </div>
         <p className="subtle text-[13px]">
-          {ok.totalCards} cartas · coste medio {averageCmc(ok.cards).toFixed(2).replace(".", ",")}
+          {ok.totalCards} {t("cartas", "cards")} · {t("coste medio", "avg. mana value")}{" "}
+          {averageCmc(ok.cards).toLocaleString(intl, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
           {ok.edhrec.totalDecks !== null && (
-            <> · {ok.edhrec.totalDecks.toLocaleString("es")} mazos analizados</>
+            <>
+              {" "}
+              · {ok.edhrec.totalDecks.toLocaleString(intl)}{" "}
+              {t("mazos analizados", "decks analyzed")}
+            </>
           )}
         </p>
         <OwnershipLine ownership={ok.ownership} onClick={onShowMissing} />
@@ -1586,26 +1718,26 @@ function DeckHeader({
           // Mío y guardado: se guarda solo; lo demás (duplicar, reemplazar, borrar…) en Ajustes.
           <>
             <button type="button" className="btn" onClick={onExport}>
-              Exportar
+              {t("Exportar", "Export")}
             </button>
             <button type="button" className="btn" onClick={onSettings}>
               <IconSettings size={15} />
-              Ajustes
+              {t("Ajustes", "Settings")}
             </button>
           </>
         ) : (
           <>
             <div className="btn-group">
               <button type="button" className="btn" onClick={onSave}>
-                {owner ? "Copiar a mis mazos" : "Guardar"}
+                {owner ? t("Copiar a mis mazos", "Copy to my decks") : t("Guardar", "Save")}
               </button>
               <button type="button" className="btn" onClick={onExport}>
-                Exportar
+                {t("Exportar", "Export")}
               </button>
             </div>
             {!owner && (
               <button type="button" className="btn btn-ghost" onClick={onEdit}>
-                Cambiar lista
+                {t("Cambiar lista", "Change list")}
               </button>
             )}
           </>
@@ -1616,8 +1748,8 @@ function DeckHeader({
               type="button"
               className="btn"
               aria-pressed={like.liked}
-              aria-label={like.liked ? "Quitar «me gusta»" : "Me gusta"}
-              title={like.liked ? "Quitar «me gusta»" : "Me gusta"}
+              aria-label={like.liked ? t("Quitar «me gusta»", "Unlike") : t("Me gusta", "Like")}
+              title={like.liked ? t("Quitar «me gusta»", "Unlike") : t("Me gusta", "Like")}
               onClick={onLike}
               style={like.liked ? { color: "var(--color-out)" } : undefined}
             >
@@ -1625,7 +1757,11 @@ function DeckHeader({
               {like.count}
             </button>
           ) : owner ? (
-            <Link className="btn" href="/login" title="Entra para darle «me gusta»">
+            <Link
+              className="btn"
+              href="/login"
+              title={t("Entra para darle «me gusta»", "Sign in to like it")}
+            >
               <IconHeart size={15} />
               {like.count}
             </Link>
@@ -1633,10 +1769,12 @@ function DeckHeader({
             // Mi mazo: solo el dato, no un botón.
             <span
               className="subtle flex items-center gap-1.5 self-center text-[13px]"
-              title="«Me gusta» de otros jugadores"
+              title={t("«Me gusta» de otros jugadores", "Likes from other players")}
             >
               <IconHeart size={14} />
-              {like.count === 1 ? "1 me gusta" : `${like.count} me gusta`}
+              {like.count === 1
+                ? t("1 me gusta", "1 like")
+                : t(`${like.count} me gusta`, `${like.count} likes`)}
             </span>
           ))}
       </div>
@@ -1666,18 +1804,19 @@ function DeckEditor({
   const identity = ["W", "U", "B", "R", "G"]
     .filter((c) => ok.commanders.some((k) => k.colorIdentity.includes(c as never)))
     .join("");
+  const t = useT();
   const suggestions = ok.addCandidates.slice(0, 12);
   return (
     <section className="panel">
       <div className="panel-h">
-        <span className="h2">Añadir cartas</span>
+        <span className="h2">{t("Añadir cartas", "Add cards")}</span>
         <button
           type="button"
           className="btn btn-ghost btn-sm"
           aria-expanded={open}
           onClick={onToggle}
         >
-          {open ? "Ocultar" : "Mostrar"}
+          {open ? t("Ocultar", "Hide") : t("Mostrar", "Show")}
         </button>
       </div>
       {open && (
@@ -1685,17 +1824,29 @@ function DeckEditor({
           <div style={{ maxWidth: 440 }}>
             <CardSearch
               id="deck-add"
-              label="Busca una carta (solo de los colores del comandante)"
+              label={t(
+                "Busca una carta (solo de los colores del comandante)",
+                "Search for a card (commander's colors only)",
+              )}
               filters={{ identity }}
               clearOnPick
               onPick={(card) => !busy && onAdd(card)}
             />
           </div>
           {notice && <span className="pill pill-in">{notice}</span>}
-          {busy && <span className="subtle text-xs">Actualizando el mazo…</span>}
+          {busy && (
+            <span className="subtle text-xs">
+              {t("Actualizando el mazo…", "Updating the deck…")}
+            </span>
+          )}
           {suggestions.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <span className="label">De tu colección, recomendadas para este comandante</span>
+              <span className="label">
+                {t(
+                  "De tu colección, recomendadas para este comandante",
+                  "From your collection, recommended for this commander",
+                )}
+              </span>
               <div className="chips">
                 {suggestions.map((s) => (
                   <CardHover key={s.card.oracleId} card={s.card}>
@@ -1704,7 +1855,7 @@ function DeckEditor({
                       className="chipbtn"
                       disabled={busy}
                       onClick={() => onAdd(s.card)}
-                      aria-label={`Añadir ${s.card.name}`}
+                      aria-label={t(`Añadir ${s.card.name}`, `Add ${s.card.name}`)}
                     >
                       + {s.card.name}
                       {s.inclusion !== null && (
@@ -1733,6 +1884,8 @@ function OwnershipLine({
   ownership: Ok["ownership"];
   onClick: () => void;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const { totals } = ownership;
   const [others, setOthers] = useState(false);
   const pct = totals.cards ? Math.round((totals.have / totals.cards) * 100) : 0;
@@ -1740,18 +1893,19 @@ function OwnershipLine({
     <div className="flex max-w-[420px] flex-col gap-1.5 rounded-md border border-line p-2">
       <span className="text-[13px]">
         <button type="button" onClick={onClick} className="linkbtn text-left no-underline">
-          Tienes <b className="mono">{totals.have}</b> de <b className="mono">{totals.cards}</b>
+          {t("Tienes", "You have")} <b className="mono">{totals.have}</b> {t("de", "of")}{" "}
+          <b className="mono">{totals.cards}</b>
           {totals.toBuy > 0 ? (
             <>
               {" "}
-              · te faltan{" "}
+              · {t("te faltan", "missing")}{" "}
               <b className="mono" style={{ color: "var(--color-out)" }}>
                 {totals.toBuy}
               </b>{" "}
-              <span className="muted">(≈ {formatEuros(totals.cost)})</span>
+              <span className="muted">(≈ {formatEuros(totals.cost, locale)})</span>
             </>
           ) : totals.fromOtherDecks === 0 ? (
-            <span className="pill pill-in"> · lo tienes todo</span>
+            <span className="pill pill-in"> · {t("lo tienes todo", "you have it all")}</span>
           ) : null}
         </button>
         {totals.fromOtherDecks > 0 && (
@@ -1763,7 +1917,7 @@ function OwnershipLine({
               style={{ color: "var(--color-inuse)" }}
               onClick={() => setOthers(true)}
             >
-              {totals.fromOtherDecks} en otros mazos
+              {totals.fromOtherDecks} {t("en otros mazos", "in other decks")}
             </button>
           </>
         )}
@@ -1778,6 +1932,7 @@ function OwnershipLine({
 
 /** Mientras se abre un mazo guardado: la forma de la cabecera y del diff, sin la lista. */
 function OpeningDeck() {
+  const t = useT();
   return (
     <div className="flex flex-col gap-5" aria-busy="true">
       <section className="flex items-start gap-5">
@@ -1790,8 +1945,16 @@ function OpeningDeck() {
         </div>
       </section>
       <Loading>
-        Abriendo el mazo y comparándolo con tu colección…{" "}
-        <span className="subtle">Busco las recomendaciones; suele tardar unos segundos.</span>
+        {t(
+          "Abriendo el mazo y comparándolo con tu colección…",
+          "Opening the deck and comparing it with your collection…",
+        )}{" "}
+        <span className="subtle">
+          {t(
+            "Busco las recomendaciones; suele tardar unos segundos.",
+            "Fetching the recommendations; it usually takes a few seconds.",
+          )}
+        </span>
       </Loading>
       <DiffSkeleton />
     </div>
@@ -1800,10 +1963,18 @@ function OpeningDeck() {
 
 /** Avisos del análisis, plegados en una línea. */
 function Issues({ ok }: { ok: Ok }) {
+  const t = useT();
   const items: string[] = [
     ...ok.issues.map((i) => i.message),
-    ...ok.unresolved.map((n) => `«${n}» no la encuentro en el catálogo.`),
-    ...ok.skipped.map((s) => `Línea ${s.line} ignorada: ${s.text.trim()} (${s.reason}).`),
+    ...ok.unresolved.map((n) =>
+      t(`«${n}» no la encuentro en el catálogo.`, `I can't find “${n}” in the catalog.`),
+    ),
+    ...ok.skipped.map((s) =>
+      t(
+        `Línea ${s.line} ignorada: ${s.text.trim()} (${s.reason}).`,
+        `Line ${s.line} skipped: ${s.text.trim()}.`,
+      ),
+    ),
     ...(ok.edhrec.warning ? [ok.edhrec.warning] : []),
   ];
   if (items.length === 0) return null;
@@ -1812,13 +1983,17 @@ function Issues({ ok }: { ok: Ok }) {
       <summary>
         <IconWarn size={15} style={{ color: "var(--color-warn)" }} />
         <span>
-          <b>{items.length === 1 ? "1 cosa que revisar" : `${items.length} cosas que revisar`}</b>{" "}
+          <b>
+            {items.length === 1
+              ? t("1 cosa que revisar", "1 thing to check")
+              : t(`${items.length} cosas que revisar`, `${items.length} things to check`)}
+          </b>{" "}
           <span className="muted">— {items[0]}</span>
         </span>
       </summary>
       <ul>
-        {items.map((t, i) => (
-          <li key={i}>{t}</li>
+        {items.map((item, i) => (
+          <li key={i}>{item}</li>
         ))}
       </ul>
     </details>
@@ -1826,17 +2001,24 @@ function Issues({ ok }: { ok: Ok }) {
 }
 
 function NoSwaps({ hasCollection }: { hasCollection: boolean }) {
+  const t = useT();
   return (
     <div className="panel flex flex-col items-center gap-2 px-5 py-8 text-center">
-      <span className="h2">No hay cambios que proponer</span>
+      <span className="h2">{t("No hay cambios que proponer", "No changes to suggest")}</span>
       <span className="muted max-w-[420px] text-[13px]">
         {hasCollection
-          ? "Ninguna carta de tu colección mejora el mazo con la configuración actual. Prueba otro tema o la pestaña «Mejorar comprando»."
-          : "Sin tu colección no sé qué cartas tienes. Impórtala, o mira la pestaña «Mejorar comprando»."}
+          ? t(
+              "Ninguna carta de tu colección mejora el mazo con la configuración actual. Prueba otro tema o la pestaña «Mejorar comprando».",
+              "No card in your collection improves the deck with the current settings. Try another theme or the “Improve by buying” tab.",
+            )
+          : t(
+              "Sin tu colección no sé qué cartas tienes. Impórtala, o mira la pestaña «Mejorar comprando».",
+              "Without your collection I don't know which cards you have. Import it, or check the “Improve by buying” tab.",
+            )}
       </span>
       {!hasCollection && (
         <Link className="btn btn-primary" href="/collection">
-          Importar colección
+          {t("Importar colección", "Import collection")}
         </Link>
       )}
     </div>
@@ -1854,10 +2036,11 @@ function InOtherDecks({
   busy: boolean;
   onToggle: (v: boolean) => void;
 }) {
+  const t = useT();
   return (
     <div className="panel">
       <div className="panel-h">
-        <span className="h2">En otros mazos</span>
+        <span className="h2">{t("En otros mazos", "In other decks")}</span>
         <span className="mono subtle text-xs">{ok.unavailableCandidates.length}</span>
       </div>
       <div className="px-3 pt-1.5 pb-2.5">
@@ -1877,7 +2060,7 @@ function InOtherDecks({
             disabled={busy}
             onChange={(e) => onToggle(!e.target.checked)}
           />
-          Proponerlas igualmente
+          {t("Proponerlas igualmente", "Suggest them anyway")}
         </label>
       </div>
     </div>

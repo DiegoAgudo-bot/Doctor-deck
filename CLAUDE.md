@@ -199,6 +199,27 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
   (BreadcrumbList; mazo, CreativeWork) y perfiles (ProfilePage). La ficha de carta se pinta en el
   servidor (`publicCardDetail` en `server/card-page.ts`, con `cache`; el cliente la vuelve a pedir
   solo con sesión), con descripción (`cardDescription`, `server/seo.ts`) e imagen con su arte.
+- **Idiomas** (`domain/i18n/locale.ts`, `components/i18n.tsx`, `server/i18n.ts`): español en la
+  raíz (`/cards`) e inglés con prefijo (`/en/cards`). Todas las páginas cuelgan de `app/[lang]`
+  (layout raíz con `generateStaticParams`); `proxy.ts` reescribe `/x` → `/es/x`, lleva `/es/x` a
+  `/x` (308), manda a `/en/…` a quien eligió inglés (cookie `dd-lang`, `LanguageSwitch` en el pie)
+  y a `/login` en su idioma las privadas. Textos junto al código en los dos idiomas: en cliente
+  `const t = useT(); t("Colección", "Collection")` (y `useFormat` para números, fechas y euros:
+  `es-ES` / `en-GB`); en servidor `paramLocale(params)` + `tFor(locale)`; metadatos con
+  `pageMetadata` / `localeAlternates` (canónica y hreflang). Enlaces con `Link`/`useRouter`/
+  `usePathname`/`goTo` de `components/i18n` (añaden o quitan el idioma), nunca los de Next.
+  Etiquetas del dominio en inglés en `domain/i18n/labels.ts`. Sitemap uno por idioma
+  (`/sitemap/es.xml`, `/sitemap/en.xml`, en `robots.txt`).
+  **La API en el idioma de la página** (fase I2): `api-client` manda `x-locale` y el servidor lo
+  lee con `requestLocale(request)` (`server/i18n.ts`; sin cabecera, `Accept-Language`, para la
+  app). Así salen en inglés los motivos de cada cambio (`swapReason(…, locale)`, `EngineInput.locale`),
+  los problemas del mazo (`issueMessage`), los roles, los motivos del bracket
+  (`estimateBracket(…, locale)`, `bracketName`), el nombre propuesto (`suggestedDeckName(…,
+locale)`) y los avisos de datos guardados (`localizeWarning`, `domain/i18n/warnings.ts`). Los
+  errores llevan `code` y el cliente enseña el inglés de `domain/i18n/errors.ts`
+  (`apiErrorMessage`; uno desconocido, genérico, nunca en español). Los correos de cuenta van en
+  los dos idiomas. **Pendiente** (fases I3–I4): colección, intercambios, grupos, préstamos,
+  ajustes, contador, avisos y la app móvil siguen solo en español.
 - **Tema** «Pentacromo» (`globals.css`): base neutra, acento azul y la gema del logo (`--gem`,
   `--gem-v`) en la franja bajo la barra superior, el subrayado de pestañas y la fila activa del
   lateral. Propuestas descartadas y capturas en `branding/themes/`.

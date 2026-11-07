@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import type {
   MyProfileDTO,
@@ -44,7 +42,8 @@ import {
 import { LegalFooter } from "./legal";
 import { LocalCollectionToAccount } from "./local-to-account";
 import { ColorPips } from "./mana";
-import { Dialog, fmt } from "./ui";
+import { Dialog, useFormat } from "./ui";
+import { goTo, LanguageSwitch, Link, type T, usePathname, useT } from "@/components/i18n";
 
 type SessionUser = { name: string; email: string; username?: string | null };
 const profileHref = (u: SessionUser) => (u.username ? `/u/${u.username}` : "/settings");
@@ -115,6 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 /** Páginas de cuenta (entrar, registro…): sin barras, centradas. */
 export function BareShell({ children }: { children: ReactNode }) {
+  const t = useT();
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-8">
       <div className="flex w-full max-w-[340px] flex-col gap-5">
@@ -124,9 +124,13 @@ export function BareShell({ children }: { children: ReactNode }) {
         </Link>
         {children}
         <p className="subtle fade text-center text-xs" style={{ ["--d" as string]: "160ms" }}>
-          Contenido no oficial bajo la Fan Content Policy de Wizards of the Coast.
+          {t(
+            "Contenido no oficial bajo la Fan Content Policy de Wizards of the Coast.",
+            "Unofficial Fan Content permitted under the Wizards of the Coast Fan Content Policy.",
+          )}
           <br />
-          <Link href="/privacy">Privacidad</Link> · <Link href="/legal">Aviso legal</Link>
+          <Link href="/privacy">{t("Privacidad", "Privacy")}</Link> ·{" "}
+          <Link href="/legal">{t("Aviso legal", "Legal notice")}</Link> · <LanguageSwitch />
         </p>
       </div>
     </div>
@@ -138,11 +142,12 @@ async function signOut() {
   // No dejar el mazo abierto ni lo cargado de la cuenta en un navegador compartido.
   storage.remove("deck-doctor:mazo");
   clearCached();
-  window.location.assign(new URL("/", window.location.origin));
+  goTo("/");
 }
 
 function ThemeToggle() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const t = useT();
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- el tema lo fija el script del <head>
     setTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
@@ -152,7 +157,11 @@ function ThemeToggle() {
     <button
       type="button"
       className="btn btn-ghost btn-icon"
-      aria-label={next === "light" ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+      aria-label={
+        next === "light"
+          ? t("Cambiar a tema claro", "Switch to light theme")
+          : t("Cambiar a tema oscuro", "Switch to dark theme")
+      }
       onClick={() => {
         document.documentElement.dataset.theme = next;
         storage.set("dd-theme", next);
@@ -179,11 +188,14 @@ function TopBar({
 }) {
   // "Inicio" ya es el logo. Con cuenta, los mazos (crear o importar está en «Nuevo mazo»); sin
   // ella, el analizador.
+  const t = useT();
   const nav = [
-    user ? { href: "/decks", label: "Mis mazos" } : { href: "/analyze", label: "Analizar mazo" },
-    { href: "/cards", label: "Cartas" },
-    { href: "/community", label: "Comunidad" },
-    { href: "/play", label: "Jugar" },
+    user
+      ? { href: "/decks", label: t("Mis mazos", "My decks") }
+      : { href: "/analyze", label: t("Analizar mazo", "Analyze a deck") },
+    { href: "/cards", label: t("Cartas", "Cards") },
+    { href: "/community", label: t("Comunidad", "Community") },
+    { href: "/play", label: t("Jugar", "Play") },
   ];
   return (
     <header className="topbar">
@@ -191,7 +203,7 @@ function TopBar({
         <Logo />
         <span className="hide-sm">Doctor Deck</span>
       </Link>
-      <nav className="topnav hide-sm" aria-label="Explorar">
+      <nav className="topnav hide-sm" aria-label={t("Explorar", "Explore")}>
         {nav.map((n) => (
           <Link key={n.href} href={n.href} className={pathname === n.href ? "is-active" : ""}>
             {n.label}
@@ -205,7 +217,11 @@ function TopBar({
           <Link
             href="/notifications"
             className="btn btn-ghost btn-icon relative"
-            aria-label={unread > 0 ? `Notificaciones (${unread} sin leer)` : "Notificaciones"}
+            aria-label={
+              unread > 0
+                ? t(`Notificaciones (${unread} sin leer)`, `Notifications (${unread} unread)`)
+                : t("Notificaciones", "Notifications")
+            }
           >
             <IconBell />
             {unread > 0 && (
@@ -234,14 +250,14 @@ function TopBar({
           <Link
             href={profileHref(user)}
             className="avatar"
-            aria-label={`Mi perfil (${user.name})`}
+            aria-label={`${t("Mi perfil", "My profile")} (${user.name})`}
             title={user.username ? `@${user.username}` : user.name}
           >
             {initial(user)}
           </Link>
         ) : (
           <Link href={`/login?next=${encodeURIComponent(pathname)}`} className="btn btn-ghost">
-            Entrar
+            {t("Entrar", "Sign in")}
           </Link>
         )}
       </div>
@@ -261,6 +277,8 @@ function Sidebar({
   const [decks, setDecks] = useState<SavedDeckSummaryDTO[] | null>(null);
   const [copies, setCopies] = useState<number | null>(null);
   const [filter, setFilter] = useState("");
+  const t = useT();
+  const { fmt } = useFormat();
 
   useEffect(() => {
     if (pending) return;
@@ -298,34 +316,34 @@ function Sidebar({
   );
 
   return (
-    <aside className="side" aria-label="Tu espacio">
+    <aside className="side" aria-label={t("Tu espacio", "Your space")}>
       {user && (
         <Link className={`nav ${pathname === "/decks" ? "is-active" : ""}`} href="/decks">
           <IconDecks />
-          Mis mazos
+          {t("Mis mazos", "My decks")}
           {decks && <span className="count">{decks.length}</span>}
         </Link>
       )}
       <Link className={`nav ${pathname === "/collection" ? "is-active" : ""}`} href="/collection">
         <IconCollection />
-        Mi colección
+        {t("Mi colección", "My collection")}
         {copies !== null && <span className="count">{fmt(copies)}</span>}
       </Link>
       {!user && !pending && (
         <Link className={`nav ${pathname === "/decks/new" ? "is-active" : ""}`} href="/decks/new">
           <IconPlus />
-          Nuevo mazo
+          {t("Nuevo mazo", "New deck")}
         </Link>
       )}
 
       {user ? (
         <>
           <div className="side-head" style={{ marginTop: 16 }}>
-            <span className="cap">Mazos</span>
+            <span className="cap">{t("Mazos", "Decks")}</span>
             <Link
               className="btn btn-ghost btn-icon"
               href="/decks/new"
-              aria-label="Nuevo mazo"
+              aria-label={t("Nuevo mazo", "New deck")}
               style={{ width: 26, height: 26 }}
             >
               <IconPlus size={14} />
@@ -334,16 +352,18 @@ function Sidebar({
           {decks && decks.length > 4 && (
             <input
               className="input"
-              placeholder="Filtrar mazos…"
-              aria-label="Filtrar mazos"
+              placeholder={t("Filtrar mazos…", "Filter decks…")}
+              aria-label={t("Filtrar mazos", "Filter decks")}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               style={{ height: 30, fontSize: 13 }}
             />
           )}
-          <nav className="decklist" aria-label="Mazos guardados">
+          <nav className="decklist" aria-label={t("Mazos guardados", "Saved decks")}>
             {decks?.length === 0 && (
-              <p className="subtle px-2 text-[12.5px]">Aún no has guardado ningún mazo.</p>
+              <p className="subtle px-2 text-[12.5px]">
+                {t("Aún no has guardado ningún mazo.", "You haven't saved any decks yet.")}
+              </p>
             )}
             {shown.map((d) => (
               <Link
@@ -362,30 +382,30 @@ function Sidebar({
           <div className="side-foot">
             <Link className={`nav ${pathname === "/feed" ? "is-active" : ""}`} href="/feed">
               <IconActivity />
-              Actividad
+              {t("Actividad", "Activity")}
             </Link>
             <Link
               className={`nav ${pathname.startsWith("/groups") ? "is-active" : ""}`}
               href="/groups"
             >
               <IconCrown />
-              Grupos y partidas
+              {t("Grupos y partidas", "Groups and games")}
             </Link>
             <Link className={`nav ${pathname === "/trades" ? "is-active" : ""}`} href="/trades">
               <IconSwap />
-              Intercambios
+              {t("Intercambios", "Trades")}
             </Link>
             <Link className={`nav ${pathname === "/loans" ? "is-active" : ""}`} href="/loans">
               <IconLoan />
-              Préstamos
+              {t("Préstamos", "Loans")}
             </Link>
             <Link className={`nav ${pathname === "/settings" ? "is-active" : ""}`} href="/settings">
               <IconSettings />
-              Ajustes
+              {t("Ajustes", "Settings")}
             </Link>
             <button type="button" className="nav" onClick={() => void signOut()}>
               <IconLogout />
-              Salir
+              {t("Salir", "Sign out")}
             </button>
           </div>
         </>
@@ -393,11 +413,13 @@ function Sidebar({
         !pending && (
           <div className="side-foot">
             <p className="subtle px-1 pb-2 text-[12.5px] leading-snug">
-              Sin cuenta puedes analizar mazos; tu colección se queda en este navegador. Crea una
-              cuenta para guardar mazos y llevar tu colección a cualquier dispositivo.
+              {t(
+                "Sin cuenta puedes analizar mazos; tu colección se queda en este navegador. Crea una cuenta para guardar mazos y llevar tu colección a cualquier dispositivo.",
+                "Without an account you can analyze decks; your collection stays in this browser. Create an account to save decks and take your collection to any device.",
+              )}
             </p>
             <Link href="/signup" className="btn">
-              Crear cuenta
+              {t("Crear cuenta", "Create account")}
             </Link>
           </div>
         )
@@ -407,64 +429,80 @@ function Sidebar({
 }
 
 /** Lo que no cabe en la barra inferior del móvil (con cuenta): en la hoja «Más». */
-const MORE_LINKS = [
-  { href: "/decks/new", label: "Nuevo mazo", icon: <IconPlus size={18} /> },
-  { href: "/cards", label: "Buscar cartas", icon: <IconCollection size={18} /> },
-  { href: "/community", label: "Comunidad", icon: <IconUsers size={18} /> },
-  { href: "/feed", label: "Actividad", icon: <IconActivity size={18} /> },
-  { href: "/groups", label: "Grupos y partidas", icon: <IconCrown size={18} /> },
-  { href: "/trades", label: "Intercambios", icon: <IconSwap size={18} /> },
-  { href: "/loans", label: "Préstamos", icon: <IconLoan size={18} /> },
-  { href: "/settings", label: "Ajustes", icon: <IconSettings size={18} /> },
+const moreLinks = (t: T) => [
+  { href: "/decks/new", label: t("Nuevo mazo", "New deck"), icon: <IconPlus size={18} /> },
+  { href: "/cards", label: t("Buscar cartas", "Search cards"), icon: <IconCollection size={18} /> },
+  { href: "/community", label: t("Comunidad", "Community"), icon: <IconUsers size={18} /> },
+  { href: "/feed", label: t("Actividad", "Activity"), icon: <IconActivity size={18} /> },
+  {
+    href: "/groups",
+    label: t("Grupos y partidas", "Groups and games"),
+    icon: <IconCrown size={18} />,
+  },
+  { href: "/trades", label: t("Intercambios", "Trades"), icon: <IconSwap size={18} /> },
+  { href: "/loans", label: t("Préstamos", "Loans"), icon: <IconLoan size={18} /> },
+  { href: "/settings", label: t("Ajustes", "Settings"), icon: <IconSettings size={18} /> },
 ];
 
 function BottomNav({ pathname, user }: { pathname: string; user: SessionUser | null }) {
   const [more, setMore] = useState(false);
+  const t = useT();
+  const MORE_LINKS = moreLinks(t);
   const items = user
     ? [
-        { href: "/", label: "Inicio", icon: <IconHome size={20} />, active: pathname === "/" },
+        {
+          href: "/",
+          label: t("Inicio", "Home"),
+          icon: <IconHome size={20} />,
+          active: pathname === "/",
+        },
         {
           href: "/decks",
-          label: "Mazos",
+          label: t("Mazos", "Decks"),
           icon: <IconDecks size={20} />,
           active: pathname.startsWith("/decks") || pathname === "/analyze",
         },
         {
           href: "/collection",
-          label: "Colección",
+          label: t("Colección", "Collection"),
           icon: <IconCollection size={20} />,
           active: pathname === "/collection",
         },
         {
           href: "/play",
-          label: "Jugar",
+          label: t("Jugar", "Play"),
           icon: <IconCrown size={20} />,
           active: pathname === "/play",
         },
       ]
     : [
-        { href: "/", label: "Inicio", icon: <IconHome size={20} />, active: pathname === "/" },
+        {
+          href: "/",
+          label: t("Inicio", "Home"),
+          icon: <IconHome size={20} />,
+          active: pathname === "/",
+        },
         {
           href: "/analyze",
-          label: "Analizar",
+          label: t("Analizar", "Analyze"),
           icon: <IconDecks size={20} />,
           active: pathname === "/analyze",
         },
         {
           href: "/collection",
-          label: "Colección",
+          label: t("Colección", "Collection"),
           icon: <IconCollection size={20} />,
           active: pathname === "/collection",
         },
         {
           href: "/play",
-          label: "Jugar",
+          label: t("Jugar", "Play"),
           icon: <IconCrown size={20} />,
           active: pathname === "/play",
         },
         {
           href: `/login?next=${encodeURIComponent(pathname)}`,
-          label: "Entrar",
+          label: t("Entrar", "Sign in"),
           icon: <IconLogin size={20} />,
           active: false,
         },
@@ -475,9 +513,9 @@ function BottomNav({ pathname, user }: { pathname: string; user: SessionUser | n
       MORE_LINKS.some((l) => l.href !== "/decks/new" && pathname.startsWith(l.href)));
   return (
     <>
-      <nav className="bottomnav" aria-label="Principal">
+      <nav className="bottomnav" aria-label={t("Principal", "Main")}>
         {items.map((i) => (
-          <Link key={i.label} href={i.href} className={i.active ? "is-active" : ""}>
+          <Link key={i.href} href={i.href} className={i.active ? "is-active" : ""}>
             {i.icon}
             {i.label}
           </Link>
@@ -490,17 +528,18 @@ function BottomNav({ pathname, user }: { pathname: string; user: SessionUser | n
             onClick={() => setMore(true)}
           >
             <IconMore size={20} />
-            Más
+            {t("Más", "More")}
           </button>
         )}
       </nav>
       {/* Fuera de la barra: si no, hereda los estilos de sus enlaces. */}
       {user && (
-        <Dialog open={more} onClose={() => setMore(false)} title="Más">
-          <nav className="morenav flex flex-col" aria-label="Más secciones">
+        <Dialog open={more} onClose={() => setMore(false)} title={t("Más", "More")}>
+          <nav className="morenav flex flex-col" aria-label={t("Más secciones", "More sections")}>
             <Link className="nav" href={profileHref(user)} onClick={() => setMore(false)}>
               <IconUser size={18} />
-              Mi perfil {user.username ? <span className="subtle">@{user.username}</span> : null}
+              {t("Mi perfil", "My profile")}{" "}
+              {user.username ? <span className="subtle">@{user.username}</span> : null}
             </Link>
             {MORE_LINKS.map((l) => (
               <Link
@@ -515,7 +554,7 @@ function BottomNav({ pathname, user }: { pathname: string; user: SessionUser | n
             ))}
             <button type="button" className="nav" onClick={() => void signOut()}>
               <IconLogout size={18} />
-              Salir
+              {t("Salir", "Sign out")}
             </button>
           </nav>
         </Dialog>

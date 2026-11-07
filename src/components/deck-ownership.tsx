@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { formatEuros } from "@/domain/suggestions/format";
 import type { CardDTO, OwnershipDTO, OwnershipItemDTO } from "@/server/dto";
@@ -8,9 +7,11 @@ import { CardHover } from "./card-image";
 import { CardPriceDialog } from "./card-price-dialog";
 import { ManaCost } from "./mana";
 import { Banner, Dialog, fmt } from "./ui";
+import { Link, useLocale, useT } from "@/components/i18n";
+import type { Locale } from "@/domain/i18n/locale";
 
-const cardmarketUrl = (name: string) =>
-  `https://www.cardmarket.com/es/Magic/Products/Search?searchString=${encodeURIComponent(name.split(" // ")[0] ?? name)}`;
+const cardmarketUrl = (name: string, locale: Locale) =>
+  `https://www.cardmarket.com/${locale}/Magic/Products/Search?searchString=${encodeURIComponent(name.split(" // ")[0] ?? name)}`;
 
 /** Lista de compra en el formato "1 Nombre" que admiten Cardmarket (Wants) y casi todas las webs. */
 export function shoppingList(items: readonly OwnershipItemDTO[]): string {
@@ -43,10 +44,11 @@ function Stat({
 }
 
 function CardName({ item }: { item: OwnershipItemDTO }) {
+  const t = useT();
   return (
     <CardHover card={item.card} className="inline-flex items-center gap-2">
       {item.card.name}
-      {item.isCommander && <span className="pill subtle">comandante</span>}
+      {item.isCommander && <span className="pill subtle">{t("comandante", "commander")}</span>}
       <ManaCost cost={item.card.manaCost} />
     </CardHover>
   );
@@ -79,11 +81,15 @@ export function OtherDecksDialog({
   items: readonly OwnershipItemDTO[];
   onClose: () => void;
 }) {
+  const t = useT();
   const elsewhere = items.filter((i) => i.fromOtherDecks > 0);
   return (
-    <Dialog open onClose={onClose} title="En otros mazos" width={560}>
+    <Dialog open onClose={onClose} title={t("En otros mazos", "In other decks")} width={560}>
       <p className="muted text-[13px]">
-        Las tienes, pero las estás usando en otros mazos: muévelas o compra otra copia.
+        {t(
+          "Las tienes, pero las estás usando en otros mazos: muévelas o compra otra copia.",
+          "You own them, but they're in other decks: move them or buy another copy.",
+        )}
       </p>
       <div className="flex flex-col">
         {elsewhere.map((i) => (
@@ -120,6 +126,9 @@ export function OwnershipPanel({
   /** En mis mazos guardados: si lo que falta entra en mi lista de deseos, y cambiarlo. */
   wishlist?: { on: boolean; busy: boolean; onToggle: () => void } | undefined;
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const eur = (x: number) => formatEuros(x, locale);
   const [copied, setCopied] = useState(false);
   const [priceCard, setPriceCard] = useState<CardDTO | null>(null);
   const { items, totals } = ownership;
@@ -145,7 +154,7 @@ export function OwnershipPanel({
     const url = URL.createObjectURL(new Blob([list], { type: "text/plain;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = "lista-de-compra.txt";
+    a.download = t("lista-de-compra.txt", "shopping-list.txt");
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -157,12 +166,17 @@ export function OwnershipPanel({
           tone="warn"
           action={
             <Link className="btn btn-sm" href="/collection">
-              Importar colección
+              {t("Importar colección", "Import collection")}
             </Link>
           }
         >
-          <b>No sé qué cartas tienes.</b>{" "}
-          <span className="muted">Importa tu colección para ver qué te falta de verdad.</span>
+          <b>{t("No sé qué cartas tienes.", "I don't know which cards you have.")}</b>{" "}
+          <span className="muted">
+            {t(
+              "Importa tu colección para ver qué te falta de verdad.",
+              "Import your collection to see what you're really missing.",
+            )}
+          </span>
         </Banner>
       )}
 
@@ -172,24 +186,31 @@ export function OwnershipPanel({
           style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
         >
           <Stat
-            label="Ya las tienes"
-            value={`${fmt(totals.have)} / ${fmt(totals.cards)}`}
-            meta={`${pct} % del mazo, sin contar básicas`}
+            label={t("Ya las tienes", "You already have")}
+            value={`${fmt(totals.have, locale)} / ${fmt(totals.cards, locale)}`}
+            meta={t(
+              `${pct} % del mazo, sin contar básicas`,
+              `${pct}% of the deck, not counting basics`,
+            )}
             tone="var(--color-in)"
           />
           <Stat
-            label="En otros de tus mazos"
-            value={fmt(totals.fromOtherDecks)}
-            meta={totals.fromOtherDecks ? "Las tienes, pero las estás usando" : "Ninguna ocupada"}
+            label={t("En otros de tus mazos", "In your other decks")}
+            value={fmt(totals.fromOtherDecks, locale)}
+            meta={
+              totals.fromOtherDecks
+                ? t("Las tienes, pero las estás usando", "You own them, but they're in use")
+                : t("Ninguna ocupada", "None in use")
+            }
             tone={totals.fromOtherDecks ? "var(--color-inuse)" : undefined}
           />
           <Stat
-            label="Te faltan"
-            value={fmt(totals.toBuy)}
+            label={t("Te faltan", "Missing")}
+            value={fmt(totals.toBuy, locale)}
             meta={
               totals.toBuy
-                ? `≈ ${formatEuros(totals.cost)}${unpriced ? ` (+${unpriced} sin precio)` : ""}`
-                : "¡Puedes montarlo ya!"
+                ? `≈ ${eur(totals.cost)}${unpriced ? t(` (+${unpriced} sin precio)`, ` (+${unpriced} unpriced)`) : ""}`
+                : t("¡Puedes montarlo ya!", "You can build it now!")
             }
             tone={totals.toBuy ? "var(--color-out)" : "var(--color-in)"}
           />
@@ -205,9 +226,9 @@ export function OwnershipPanel({
         <section className="panel">
           <div className="panel-h stack-sm py-2">
             <span className="h2">
-              Para comprar{" "}
+              {t("Para comprar", "To buy")}{" "}
               <span className="mono subtle" style={{ fontWeight: 400 }}>
-                {fmt(totals.toBuy)} · ≈ {formatEuros(totals.cost)}
+                {fmt(totals.toBuy, locale)} · ≈ {eur(totals.cost)}
               </span>
             </span>
             <div className="flex flex-wrap gap-2">
@@ -217,17 +238,24 @@ export function OwnershipPanel({
                   className={`btn ${wishlist.on ? "is-on" : ""}`}
                   aria-pressed={wishlist.on}
                   disabled={wishlist.busy}
-                  title="Lo que falta entra en tu lista de deseos y se cruza con otros jugadores"
+                  title={t(
+                    "Lo que falta entra en tu lista de deseos y se cruza con otros jugadores",
+                    "What's missing goes on your wishlist and is matched with other players",
+                  )}
                   onClick={wishlist.onToggle}
                 >
-                  {wishlist.on ? "En tu lista de deseos ✓" : "Añadir a mi lista de deseos"}
+                  {wishlist.on
+                    ? t("En tu lista de deseos ✓", "On your wishlist ✓")
+                    : t("Añadir a mi lista de deseos", "Add to my wishlist")}
                 </button>
               )}
               <button type="button" className="btn" onClick={download}>
-                Descargar .txt
+                {t("Descargar .txt", "Download .txt")}
               </button>
               <button type="button" className="btn btn-primary" onClick={() => void copy()}>
-                {copied ? "¡Copiada!" : "Copiar lista de compra"}
+                {copied
+                  ? t("¡Copiada!", "Copied!")
+                  : t("Copiar lista de compra", "Copy shopping list")}
               </button>
             </div>
           </div>
@@ -236,11 +264,11 @@ export function OwnershipPanel({
               <thead>
                 <tr>
                   <th className="r" style={{ width: 56 }}>
-                    Faltan
+                    {t("Faltan", "Need")}
                   </th>
-                  <th>Carta</th>
-                  <th className="r hide-sm">Tienes</th>
-                  <th className="r">Precio</th>
+                  <th>{t("Carta", "Card")}</th>
+                  <th className="r hide-sm">{t("Tienes", "Have")}</th>
+                  <th className="r">{t("Precio", "Price")}</th>
                   <th />
                 </tr>
               </thead>
@@ -257,10 +285,10 @@ export function OwnershipPanel({
                         <button
                           type="button"
                           className="linkbtn"
-                          title="Ver el histórico de precio"
+                          title={t("Ver el histórico de precio", "See the price history")}
                           onClick={() => setPriceCard(i.card)}
                         >
-                          {formatEuros(i.price * i.toBuy)}
+                          {eur(i.price * i.toBuy)}
                         </button>
                       ) : (
                         "—"
@@ -269,12 +297,12 @@ export function OwnershipPanel({
                     <td className="r">
                       <a
                         className="btn btn-ghost btn-sm"
-                        href={cardmarketUrl(i.card.name)}
+                        href={cardmarketUrl(i.card.name, locale)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        aria-label={`Comprar ${i.card.name}`}
+                        aria-label={t(`Comprar ${i.card.name}`, `Buy ${i.card.name}`)}
                       >
-                        Comprar ↗
+                        {t("Comprar ↗", "Buy ↗")}
                       </a>
                     </td>
                   </tr>
@@ -283,7 +311,10 @@ export function OwnershipPanel({
             </table>
           </div>
           <p className="subtle px-3 py-2 text-xs">
-            Precio de referencia del mercado europeo de la impresión más barata.
+            {t(
+              "Precio de referencia del mercado europeo de la impresión más barata.",
+              "European market reference price of the cheapest printing.",
+            )}
           </p>
         </section>
       )}
@@ -296,12 +327,14 @@ export function OwnershipPanel({
         <section className="panel">
           <div className="panel-h">
             <span className="h2">
-              Las tienes en otros mazos{" "}
+              {t("Las tienes en otros mazos", "In your other decks")}{" "}
               <span className="mono subtle" style={{ fontWeight: 400 }}>
-                {fmt(totals.fromOtherDecks)}
+                {fmt(totals.fromOtherDecks, locale)}
               </span>
             </span>
-            <span className="subtle text-xs">Muévelas o compra otra copia</span>
+            <span className="subtle text-xs">
+              {t("Muévelas o compra otra copia", "Move them or buy another copy")}
+            </span>
           </div>
           <div className="overflow-x-auto">
             <table className="table rtable">
@@ -330,8 +363,15 @@ export function OwnershipPanel({
           <summary>
             <span className="dot dot-owned" />
             <span>
-              <b>Ya las tienes libres</b>{" "}
-              <span className="muted">— {fmt(have.reduce((n, i) => n + i.needed, 0))} copias</span>
+              <b>{t("Ya las tienes libres", "Already free in your collection")}</b>{" "}
+              <span className="muted">
+                —{" "}
+                {fmt(
+                  have.reduce((n, i) => n + i.needed, 0),
+                  locale,
+                )}{" "}
+                {t("copias", "copies")}
+              </span>
             </span>
           </summary>
           <ul style={{ listStyle: "none", paddingLeft: 12 }}>
@@ -346,7 +386,10 @@ export function OwnershipPanel({
 
       {!loggedIn && (
         <p className="subtle text-xs">
-          Sin cuenta no se descuentan las cartas de otros mazos (no tienes mazos guardados).
+          {t(
+            "Sin cuenta no se descuentan las cartas de otros mazos (no tienes mazos guardados).",
+            "Without an account, cards in other decks aren't discounted (you have no saved decks).",
+          )}
         </p>
       )}
       <CardPriceDialog card={priceCard} onClose={() => setPriceCard(null)} />
@@ -362,11 +405,18 @@ function Alternatives({
   groups: OwnershipDTO["alternatives"];
   hasCollection: boolean;
 }) {
+  const t = useT();
+  const locale = useLocale();
   return (
     <section className="panel">
       <div className="panel-h">
-        <span className="h2">Alternativas más baratas</span>
-        <span className="subtle text-xs">Hacen el mismo papel y la comunidad las juega</span>
+        <span className="h2">{t("Alternativas más baratas", "Cheaper alternatives")}</span>
+        <span className="subtle text-xs">
+          {t(
+            "Hacen el mismo papel y la comunidad las juega",
+            "Same job, and the community plays them",
+          )}
+        </span>
       </div>
       <ul className="flex flex-col">
         {groups.map((g) => (
@@ -375,9 +425,9 @@ function Alternatives({
             className="flex flex-col gap-1.5 border-t border-line px-3.5 py-2.5 first:border-t-0"
           >
             <span className="flex flex-wrap items-baseline gap-x-2">
-              <span className="muted text-xs">En vez de</span>
+              <span className="muted text-xs">{t("En vez de", "Instead of")}</span>
               <CardHover card={g.card}>{g.card.name}</CardHover>
-              <span className="mono subtle text-xs">{formatEuros(g.price)}</span>
+              <span className="mono subtle text-xs">{formatEuros(g.price, locale)}</span>
             </span>
             <span className="flex flex-wrap gap-1.5">
               {g.alternatives.map((a) => (
@@ -390,10 +440,10 @@ function Alternatives({
                   <span className={`mono text-xs ${a.owned ? "" : "subtle"}`}>
                     {a.owned
                       ? hasCollection
-                        ? "la tienes"
-                        : "gratis"
+                        ? t("la tienes", "you have it")
+                        : t("gratis", "free")
                       : a.price !== null
-                        ? formatEuros(a.price)
+                        ? formatEuros(a.price, locale)
                         : "—"}
                   </span>
                 </CardHover>

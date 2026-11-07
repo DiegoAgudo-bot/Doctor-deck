@@ -39,6 +39,7 @@ import {
 } from "@/domain/suggestions/engine";
 import { loadDeck } from "./load-deck";
 import { loadRecommendations } from "./load-recommendations";
+import type { Locale } from "@/domain/i18n/locale";
 
 export interface AnalyzeDeckInput {
   /** Lista de mazo (o lo que acepte alguna DeckSource). */
@@ -62,6 +63,8 @@ export interface AnalyzeDeckInput {
   roleEdits?: ReadonlyMap<string, CardRoleEdit> | undefined;
   /** Las que el usuario ha corregido solo para este mazo (mandan sobre `roleEdits`). */
   deckRoleEdits?: ReadonlyMap<string, CardRoleEdit> | undefined;
+  /** Idioma de los textos que se generan (motivos de cada cambio). */
+  locale?: Locale | undefined;
 }
 
 export interface AnalyzeDeckDeps {
@@ -186,6 +189,7 @@ export async function analyzeDeck(
     classifier,
     config: deps.config,
     targetBracket: req.targetBracket,
+    locale: req.locale,
   };
   const suggestions = suggestSwaps(engineInput);
   const own = deckOwnership(deck.commanders, deck.cards, owned, usage);
@@ -242,6 +246,8 @@ export async function analyzeDeck(
         card,
         roles: classifier.classify(card).roles,
       })),
+      undefined,
+      req.locale,
     ),
     ownership: {
       ...own,

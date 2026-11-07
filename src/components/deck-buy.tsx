@@ -7,6 +7,8 @@ import { CardHover } from "./card-image";
 import { points, roleLabel } from "./deck-views";
 import { ManaCost } from "./mana";
 import { Loading } from "./ui";
+import { useIntlLocale, useLocale, useT } from "./i18n";
+import type { Locale } from "@/domain/i18n/locale";
 
 export interface BuyOptions {
   maxCards: number;
@@ -14,8 +16,8 @@ export interface BuyOptions {
   budget?: number;
 }
 
-const cardmarketUrl = (name: string) =>
-  `https://www.cardmarket.com/es/Magic/Products/Search?searchString=${encodeURIComponent(name.split(" // ")[0] ?? name)}`;
+const cardmarketUrl = (name: string, locale: Locale) =>
+  `https://www.cardmarket.com/${locale}/Magic/Products/Search?searchString=${encodeURIComponent(name.split(" // ")[0] ?? name)}`;
 
 const num = (v: string) => {
   const n = Number(v.replace(",", "."));
@@ -34,16 +36,25 @@ export function BuyPanel({
   onSearch: (opts: BuyOptions) => void;
   busy: boolean;
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const intl = useIntlLocale();
+  const eur = (x: number) => formatEuros(x, locale);
+  const dec = (x: number | undefined) =>
+    x === undefined ? undefined : locale === "en" ? String(x) : String(x).replace(".", ",");
   const [maxCards, setMaxCards] = useState(String(options?.maxCards ?? 5));
-  const [maxPrice, setMaxPrice] = useState(options?.maxPrice?.toString().replace(".", ",") ?? "2");
-  const [budget, setBudget] = useState(options?.budget?.toString().replace(".", ",") ?? "");
+  const [maxPrice, setMaxPrice] = useState(dec(options?.maxPrice) ?? "2");
+  const [budget, setBudget] = useState(dec(options?.budget) ?? "");
   const [off, setOff] = useState<ReadonlySet<string>>(new Set());
   const [copied, setCopied] = useState(false);
 
   const items = purchases?.items ?? [];
   const chosen = items.filter((p) => !off.has(p.id));
   const total = chosen.reduce((n, p) => n + (p.in.price ?? 0), 0);
-  const gain = points(chosen.reduce((n, p) => n + p.score, 0));
+  const gain = points(
+    chosen.reduce((n, p) => n + p.score, 0),
+    intl,
+  );
   const limit = options?.budget;
 
   async function copy() {
@@ -60,8 +71,10 @@ export function BuyPanel({
   return (
     <div className="flex flex-col gap-4">
       <p className="muted text-[13px]">
-        ¿Qué cartas que no tienes (o tienes ocupadas en otros mazos) mejorarían más el mazo? Precio
-        de referencia del mercado europeo (la impresión más barata).
+        {t(
+          "¿Qué cartas que no tienes (o tienes ocupadas en otros mazos) mejorarían más el mazo? Precio de referencia del mercado europeo (la impresión más barata).",
+          "Which cards you don't own (or have tied up in other decks) would improve the deck the most? European market reference price (cheapest printing).",
+        )}
       </p>
       <form
         className="panel grid-1-sm grid items-end gap-3 p-3"
@@ -80,7 +93,7 @@ export function BuyPanel({
       >
         <div className="field">
           <label className="label" htmlFor="buy-n">
-            Máx. cartas
+            {t("Máx. cartas", "Max. cards")}
           </label>
           <input
             id="buy-n"
@@ -92,7 +105,7 @@ export function BuyPanel({
         </div>
         <div className="field">
           <label className="label" htmlFor="buy-pm">
-            Máx. por carta (€)
+            {t("Máx. por carta (€)", "Max. per card (€)")}
           </label>
           <input
             id="buy-pm"
@@ -104,33 +117,40 @@ export function BuyPanel({
         </div>
         <div className="field">
           <label className="label" htmlFor="buy-pt">
-            Presupuesto total (€)
+            {t("Presupuesto total (€)", "Total budget (€)")}
           </label>
           <input
             id="buy-pt"
             className="input mono"
             inputMode="decimal"
-            placeholder="sin límite"
+            placeholder={t("sin límite", "no limit")}
             value={budget}
             onChange={(e) => setBudget(e.target.value)}
           />
         </div>
         <button type="submit" className="btn btn-primary" style={{ height: 34 }} disabled={busy}>
-          Buscar compras
+          {t("Buscar compras", "Find purchases")}
         </button>
       </form>
 
-      {busy && <Loading>Buscando las compras que más mejoran el mazo…</Loading>}
+      {busy && (
+        <Loading>
+          {t(
+            "Buscando las compras que más mejoran el mazo…",
+            "Looking for the purchases that improve the deck the most…",
+          )}
+        </Loading>
+      )}
 
       {purchases && !busy && (
         <section className="panel">
           <div className="panel-h stack-sm py-2">
             <span className="h2">
-              {chosen.length} cartas · <span className="mono">{formatEuros(total)}</span>
+              {chosen.length} {t("cartas", "cards")} · <span className="mono">{eur(total)}</span>
               {limit !== undefined && (
                 <span className="subtle" style={{ fontWeight: 400 }}>
                   {" "}
-                  de {formatEuros(limit)}
+                  {t("de", "of")} {eur(limit)}
                 </span>
               )}
             </span>
@@ -143,7 +163,9 @@ export function BuyPanel({
                   onClick={() => void copy()}
                   disabled={chosen.length === 0}
                 >
-                  {copied ? "¡Copiado!" : "Copiar lista de compra"}
+                  {copied
+                    ? t("¡Copiado!", "Copied!")
+                    : t("Copiar lista de compra", "Copy shopping list")}
                 </button>
               </div>
             )}
@@ -165,8 +187,10 @@ export function BuyPanel({
           )}
           {items.length === 0 ? (
             <p className="muted p-3 text-[13px]">
-              Ninguna compra mejora el mazo con esos límites ({purchases.candidateCount} cartas
-              cumplían el precio).
+              {t(
+                `Ninguna compra mejora el mazo con esos límites (${purchases.candidateCount} cartas cumplían el precio).`,
+                `No purchase improves the deck within those limits (${purchases.candidateCount} cards met the price).`,
+              )}
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -174,11 +198,11 @@ export function BuyPanel({
                 <thead>
                   <tr>
                     <th style={{ width: 36 }} />
-                    <th>Entra</th>
-                    <th className="hide-sm">Sale</th>
-                    <th className="hide-sm">Rol</th>
-                    <th className="r hide-sm">Mejora</th>
-                    <th className="r">Precio</th>
+                    <th>{t("Entra", "In")}</th>
+                    <th className="hide-sm">{t("Sale", "Out")}</th>
+                    <th className="hide-sm">{t("Rol", "Role")}</th>
+                    <th className="r hide-sm">{t("Mejora", "Gain")}</th>
+                    <th className="r">{t("Precio", "Price")}</th>
                     <th />
                   </tr>
                 </thead>
@@ -197,7 +221,7 @@ export function BuyPanel({
                           <input
                             type="checkbox"
                             checked={on}
-                            aria-label={`Incluir ${p.in.card.name}`}
+                            aria-label={t(`Incluir ${p.in.card.name}`, `Include ${p.in.card.name}`)}
                             style={{ accentColor: "var(--color-accent)", width: 15, height: 15 }}
                             onChange={() =>
                               setOff((prev) => {
@@ -230,21 +254,21 @@ export function BuyPanel({
                           </span>
                         </td>
                         <td className="hide-sm">
-                          <span className="pill">{roleLabel(p.in.primaryRole)}</span>
+                          <span className="pill">{roleLabel(p.in.primaryRole, locale)}</span>
                         </td>
-                        <td className="r mono hide-sm">+{points(p.score)}</td>
+                        <td className="r mono hide-sm">+{points(p.score, intl)}</td>
                         <td className="r mono rt-end">
-                          {p.in.price !== undefined ? formatEuros(p.in.price) : "—"}
+                          {p.in.price !== undefined ? eur(p.in.price) : "—"}
                         </td>
                         <td className="r">
                           <a
                             className="btn btn-ghost btn-sm"
-                            href={cardmarketUrl(p.in.card.name)}
+                            href={cardmarketUrl(p.in.card.name, locale)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            aria-label={`Comprar ${p.in.card.name}`}
+                            aria-label={t(`Comprar ${p.in.card.name}`, `Buy ${p.in.card.name}`)}
                           >
-                            Comprar ↗
+                            {t("Comprar ↗", "Buy ↗")}
                           </a>
                         </td>
                       </tr>

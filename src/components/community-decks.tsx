@@ -8,22 +8,23 @@ import { authClient } from "./auth-client";
 import { DeckTile } from "./deck-tile";
 import { localCollection, ownedPairs } from "./local-collection";
 import { ColorPips } from "./mana";
-import { Banner, EmptyState, fmt, TilesSkeleton } from "./ui";
+import { useT } from "./i18n";
+import { Banner, EmptyState, TilesSkeleton, useFormat } from "./ui";
 
 const PAGE = 24;
 const COLORS = ["W", "U", "B", "R", "G"] as const;
-const COLOR_NAME: Record<string, string> = {
-  W: "Blanco",
-  U: "Azul",
-  B: "Negro",
-  R: "Rojo",
-  G: "Verde",
-  C: "Incoloro",
+const COLOR_NAME: Record<string, [string, string]> = {
+  W: ["Blanco", "White"],
+  U: ["Azul", "Blue"],
+  B: ["Negro", "Black"],
+  R: ["Rojo", "Red"],
+  G: ["Verde", "Green"],
+  C: ["Incoloro", "Colorless"],
 };
-const SORTS: [CommunitySort, string][] = [
-  ["recent", "Recientes"],
-  ["owned", "Los que más tengo"],
-  ["likes", "Más gustados"],
+const SORTS: [CommunitySort, string, string][] = [
+  ["recent", "Recientes", "Newest"],
+  ["owned", "Los que más tengo", "Most owned"],
+  ["likes", "Más gustados", "Most liked"],
 ];
 
 /**
@@ -33,6 +34,8 @@ const SORTS: [CommunitySort, string][] = [
 export function CommunityDecks() {
   const { data: session } = authClient.useSession();
   const loggedIn = Boolean(session);
+  const t = useT();
+  const { fmt } = useFormat();
   const [q, setQ] = useState("");
   const [query, setQuery] = useState("");
   const [colors, setColors] = useState<string | null>(null);
@@ -56,8 +59,8 @@ export function CommunityDecks() {
 
   // El texto se busca con un pequeño respiro.
   useEffect(() => {
-    const t = setTimeout(() => setQuery(q.trim()), 250);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setQuery(q.trim()), 250);
+    return () => clearTimeout(timer);
   }, [q]);
 
   const body = (offset: number) => {
@@ -91,7 +94,8 @@ export function CommunityDecks() {
       })
       .catch(
         (e: unknown) =>
-          !cancelled && setError(e instanceof ApiError ? e.message : "Error al cargar"),
+          !cancelled &&
+          setError(e instanceof ApiError ? e.message : t("Error al cargar", "Couldn't load")),
       );
     return () => {
       cancelled = true;
@@ -111,7 +115,7 @@ export function CommunityDecks() {
       setItems([...items, ...r.items]);
       setTotal(r.total);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Error al cargar");
+      setError(e instanceof ApiError ? e.message : t("Error al cargar", "Couldn't load"));
     } finally {
       setLoadingMore(false);
     }
@@ -132,7 +136,7 @@ export function CommunityDecks() {
     <section className="flex flex-col gap-3">
       <div className="stack-sm flex items-end justify-between gap-3">
         <h2 className="h2" style={{ fontSize: 17 }}>
-          Mazos{" "}
+          {t("Mazos", "Decks")}{" "}
           {items !== null && (
             <span className="mono subtle" style={{ fontWeight: 400 }}>
               {fmt(total)}
@@ -140,15 +144,15 @@ export function CommunityDecks() {
           )}
         </h2>
         <label className="flex items-center gap-2 text-[13px]">
-          <span className="muted">Ordenar</span>
+          <span className="muted">{t("Ordenar", "Sort")}</span>
           <select
             className="select"
             value={sort}
             onChange={(e) => setSort(e.target.value as CommunitySort)}
           >
-            {SORTS.map(([v, label]) => (
+            {SORTS.map(([v, es, en]) => (
               <option key={v} value={v}>
-                {label}
+                {t(es, en)}
               </option>
             ))}
           </select>
@@ -159,13 +163,17 @@ export function CommunityDecks() {
         <input
           className="input"
           style={{ maxWidth: 360 }}
-          placeholder="Comandante o nombre del mazo…"
-          aria-label="Buscar mazos"
+          placeholder={t("Comandante o nombre del mazo…", "Commander or deck name…")}
+          aria-label={t("Buscar mazos", "Search decks")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="chips" role="group" aria-label="Colores (identidad exacta)">
+          <div
+            className="chips"
+            role="group"
+            aria-label={t("Colores (identidad exacta)", "Colors (exact identity)")}
+          >
             {[...COLORS, "C"].map((c) => {
               const on = c === "C" ? colors === "C" : (colors ?? "").includes(c) && colors !== "C";
               return (
@@ -175,8 +183,8 @@ export function CommunityDecks() {
                   aria-pressed={on}
                   className={`chipbtn ${on ? "is-on" : ""}`}
                   onClick={() => toggleColor(c)}
-                  aria-label={COLOR_NAME[c]}
-                  title={COLOR_NAME[c]}
+                  aria-label={t(...COLOR_NAME[c]!)}
+                  title={t(...COLOR_NAME[c]!)}
                 >
                   <ColorPips colors={[c]} />
                 </button>
@@ -193,7 +201,7 @@ export function CommunityDecks() {
                 className={`chipbtn ${bracket === b ? "is-on" : ""}`}
                 onClick={() => setBracket(b)}
               >
-                {b === null ? "Cualquier bracket" : `Bracket ${b}`}
+                {b === null ? t("Cualquier bracket", "Any bracket") : `Bracket ${b}`}
               </button>
             ))}
           </div>
@@ -204,27 +212,43 @@ export function CommunityDecks() {
                 checked={following}
                 onChange={(e) => setFollowing(e.target.checked)}
               />
-              Solo gente que sigo
+              {t("Solo gente que sigo", "Only people I follow")}
             </label>
           )}
         </div>
         <p className="subtle text-xs">
-          Los colores filtran por la identidad exacta del comandante. El porcentaje es lo que ya
-          tienes libre en tu colección{loggedIn ? " (sin contar lo que usan tus otros mazos)" : ""}.
+          {t(
+            "Los colores filtran por la identidad exacta del comandante. El porcentaje es lo que ya tienes libre en tu colección",
+            "Colors filter by the commander's exact identity. The percentage is what you already have free in your collection",
+          )}
+          {loggedIn
+            ? t(
+                " (sin contar lo que usan tus otros mazos)",
+                " (not counting what your other decks use)",
+              )
+            : ""}
+          .
         </p>
       </div>
 
       {error && <Banner tone="out">{error}</Banner>}
       {items === null ? (
-        <TilesSkeleton label="Cargando mazos…" />
+        <TilesSkeleton label={t("Cargando mazos…", "Loading decks…")} />
       ) : items.length === 0 ? (
         <div className="panel">
           <EmptyState
-            title={filtered ? "Ningún mazo con esos filtros" : "Aún no hay mazos públicos"}
+            title={
+              filtered
+                ? t("Ningún mazo con esos filtros", "No decks match those filters")
+                : t("Aún no hay mazos públicos", "No public decks yet")
+            }
           >
             {filtered
-              ? "Prueba a quitar algún filtro."
-              : "Guarda uno de los tuyos y será el primero."}
+              ? t("Prueba a quitar algún filtro.", "Try removing a filter.")
+              : t(
+                  "Guarda uno de los tuyos y será el primero.",
+                  "Save one of yours and it'll be the first.",
+                )}
           </EmptyState>
         </div>
       ) : (
@@ -252,7 +276,9 @@ export function CommunityDecks() {
               disabled={loadingMore}
               onClick={() => void more()}
             >
-              {loadingMore ? "Cargando…" : `Ver más (${fmt(total - items.length)})`}
+              {loadingMore
+                ? t("Cargando…", "Loading…")
+                : `${t("Ver más", "Show more")} (${fmt(total - items.length)})`}
             </button>
           )}
         </>

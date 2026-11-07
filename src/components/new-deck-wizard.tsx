@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { COLORS } from "@/domain/cards/types";
 import { suggestedDeckName } from "@/domain/deck/naming";
@@ -22,14 +20,21 @@ import { IconX } from "./icons";
 import { localCollection, notifyDecksChanged, ownedPairs } from "./local-collection";
 import { ColorPips } from "./mana";
 import { Banner, Loading, fmt } from "./ui";
+import {
+  Link,
+  goTo,
+  useIntlLocale,
+  useLocale,
+  useLocalePath,
+  useRouter,
+  useT,
+} from "@/components/i18n";
 
 type Mode = "average" | "owned" | "empty";
 /** De dónde sale el mazo: el comandante (mazo medio o vacío) o una lista/enlace que ya tengo. */
 type Source = "commander" | "list";
 
 const isLink = (s: string) => /^\s*https?:\/\//i.test(s);
-const LIST_PLACEHOLDER =
-  "Pega la lista (Commander / Deck, una carta por línea) o el enlace de un mazo público";
 
 /** Deja la lista en el navegador y la abre en el analizador (sin cuenta, o para elegir comandante). */
 function openInAnalyzer(input: string, name: string, tab: string) {
@@ -43,12 +48,12 @@ function openInAnalyzer(input: string, name: string, tab: string) {
     useOtherDecks: true,
     visibility: "public",
   });
-  window.location.assign(new URL(`/analyze?analyze=1&tab=${tab}`, window.location.origin));
+  goTo(`/analyze?analyze=1&tab=${tab}`);
 }
 
 const shortName = (name: string) => name.split(/,| \/\/ /)[0] ?? name;
-const compact = (n: number) =>
-  n >= 1000 ? `${(n / 1000).toLocaleString("es", { maximumFractionDigits: 1 })}K` : String(n);
+const compact = (n: number, intl: string) =>
+  n >= 1000 ? `${(n / 1000).toLocaleString(intl, { maximumFractionDigits: 1 })}K` : String(n);
 
 /**
  * /decks/new: crear un mazo eligiendo el comandante (el mazo medio de EDHREC, general o de un
@@ -56,6 +61,10 @@ const compact = (n: number) =>
  * "<colores> - <de qué va>".
  */
 export function NewDeckWizard() {
+  const t = useT();
+  const locale = useLocale();
+  const intl = useIntlLocale();
+  const lp = useLocalePath();
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const loggedIn = Boolean(session);
@@ -133,16 +142,21 @@ export function NewDeckWizard() {
       .catch((e: unknown) => {
         if (cancelled) return;
         setInfo(null);
-        setError(e instanceof ApiError ? e.message : "No se pudieron cargar los temas");
+        setError(
+          e instanceof ApiError
+            ? e.message
+            : t("No se pudieron cargar los temas", "Couldn't load the themes"),
+        );
       })
       .finally(() => !cancelled && setLoadingInfo(false));
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t solo cambia con el idioma (recarga)
   }, [ids]);
 
   // Nombre propuesto: "<colores> - <tema elegido o los dos más jugados>" (o el comandante, vacío).
-  const chosenTheme = info?.themes.find((t) => t.slug === theme);
+  const chosenTheme = info?.themes.find((th) => th.slug === theme);
   const proposed =
     commanders.length === 0
       ? ""
@@ -152,8 +166,9 @@ export function NewDeckWizard() {
             ? []
             : chosenTheme
               ? [chosenTheme.name]
-              : (info?.themes ?? []).map((t) => t.name),
+              : (info?.themes ?? []).map((th) => th.name),
           shortName(commanders[0]?.name ?? ""),
+          locale,
         );
   const finalName = nameTouched ? name : proposed;
 
@@ -188,7 +203,11 @@ export function NewDeckWizard() {
       if (e instanceof ApiError && e.code === "no_commander") {
         return openInAnalyzer(input, name.trim(), "changes");
       }
-      setError(e instanceof ApiError ? e.message : "No se pudo importar la lista");
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : t("No se pudo importar la lista", "Couldn't import the list"),
+      );
       setBusy(false);
     }
   }
@@ -232,7 +251,11 @@ export function NewDeckWizard() {
         router.push(`/analyze?analyze=1&tab=${tab}`);
       }
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "No se pudo crear el mazo");
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : t("No se pudo crear el mazo", "Couldn't create the deck"),
+      );
       setBusy(false);
     }
   }
@@ -240,18 +263,20 @@ export function NewDeckWizard() {
   return (
     <main className="page" style={{ gap: 20 }}>
       <div className="flex flex-col gap-1">
-        <h1 className="h1">Nuevo mazo</h1>
+        <h1 className="h1">{t("Nuevo mazo", "New deck")}</h1>
         <p className="muted text-[13px]">
-          Elige el comandante y te monto el mazo con lo que juega la comunidad (o empiezas desde
-          cero), o importa una lista que ya tengas.
+          {t(
+            "Elige el comandante y te monto el mazo con lo que juega la comunidad (o empiezas desde cero), o importa una lista que ya tengas.",
+            "Pick the commander and I'll build the deck with what the community plays (or start from scratch), or import a list you already have.",
+          )}
         </p>
       </div>
 
-      <nav className="tabs" aria-label="Cómo empiezas">
+      <nav className="tabs" aria-label={t("Cómo empiezas", "How to start")}>
         {(
           [
-            ["commander", "Desde un comandante"],
-            ["list", "Importar una lista o enlace"],
+            ["commander", t("Desde un comandante", "From a commander")],
+            ["list", t("Importar una lista o enlace", "Import a list or link")],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -280,7 +305,7 @@ export function NewDeckWizard() {
           >
             <div className="field">
               <label className="label" htmlFor="import-list">
-                Lista o enlace
+                {t("Lista o enlace", "List or link")}
               </label>
               {isLink(list) ? (
                 <input
@@ -296,26 +321,35 @@ export function NewDeckWizard() {
                   className="textarea"
                   spellCheck={false}
                   value={list}
-                  placeholder={LIST_PLACEHOLDER}
+                  placeholder={t(
+                    "Pega la lista (Commander / Deck, una carta por línea) o el enlace de un mazo público",
+                    "Paste the list (Commander / Deck, one card per line) or a public deck's link",
+                  )}
                   onChange={(e) => setList(e.target.value)}
                 />
               )}
               <span className="hint">
-                Formatos: <span className="mono">1 Sol Ring</span>,{" "}
-                <span className="mono">1x Sol Ring (C21) 263</span>, secciones Commander/Deck o{" "}
-                <span className="mono">*CMDR*</span>, y enlaces de mazos públicos.
+                {t("Formatos:", "Formats:")} <span className="mono">1 Sol Ring</span>,{" "}
+                <span className="mono">1x Sol Ring (C21) 263</span>,{" "}
+                {t("secciones Commander/Deck o", "Commander/Deck sections or")}{" "}
+                <span className="mono">*CMDR*</span>,{" "}
+                {t("y enlaces de mazos públicos.", "and links to public decks.")}
               </span>
             </div>
             <div className="field" style={{ maxWidth: 480 }}>
               <label className="label" htmlFor="import-name">
-                Nombre <span className="subtle font-normal">(opcional)</span>
+                {t("Nombre", "Name")}{" "}
+                <span className="subtle font-normal">{t("(opcional)", "(optional)")}</span>
               </label>
               <input
                 id="import-name"
                 className="input"
                 value={name}
                 maxLength={120}
-                placeholder="El de la lista o el del comandante"
+                placeholder={t(
+                  "El de la lista o el del comandante",
+                  "The list's or the commander's",
+                )}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
@@ -323,15 +357,21 @@ export function NewDeckWizard() {
               <VisibilityPicker value={visibility} onChange={setVisibility} />
             ) : (
               <Banner tone="info">
-                Sin cuenta, el mazo se abre en el analizador y se queda en este navegador.{" "}
-                <Link href="/signup?next=/decks/new">Crea una cuenta</Link> para guardarlo.
+                {t(
+                  "Sin cuenta, el mazo se abre en el analizador y se queda en este navegador.",
+                  "Without an account, the deck opens in the analyzer and stays in this browser.",
+                )}{" "}
+                <Link href={`/signup?next=${encodeURIComponent(lp("/decks/new"))}`}>
+                  {t("Crea una cuenta", "Create an account")}
+                </Link>{" "}
+                {t("para guardarlo.", "to save it.")}
               </Banner>
             )}
             {error && <Banner tone="out">{error}</Banner>}
             <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
               {loggedIn && (
                 <Link className="btn btn-ghost mr-auto" href="/analyze?new=1">
-                  Solo analizarla, sin guardar
+                  {t("Solo analizarla, sin guardar", "Just analyze it, without saving")}
                 </Link>
               )}
               <button
@@ -339,10 +379,21 @@ export function NewDeckWizard() {
                 className="btn btn-primary btn-lg full-sm"
                 disabled={busy || !list.trim()}
               >
-                {busy ? "Importando…" : loggedIn ? "Importar y guardar" : "Importar"}
+                {busy
+                  ? t("Importando…", "Importing…")
+                  : loggedIn
+                    ? t("Importar y guardar", "Import and save")
+                    : t("Importar", "Import")}
               </button>
             </div>
-            {busy && <Loading>Leyendo la lista y buscando las cartas…</Loading>}
+            {busy && (
+              <Loading>
+                {t(
+                  "Leyendo la lista y buscando las cartas…",
+                  "Reading the list and finding the cards…",
+                )}
+              </Loading>
+            )}
           </form>
         </section>
       )}
@@ -351,7 +402,7 @@ export function NewDeckWizard() {
         <>
           <section className="panel">
             <div className="panel-h">
-              <span className="h2">1 · El comandante</span>
+              <span className="h2">{t("1 · El comandante", "1 · The commander")}</span>
             </div>
             <div className="flex flex-col gap-3 p-3.5">
               {commanders.length > 0 && (
@@ -363,7 +414,7 @@ export function NewDeckWizard() {
                         type="button"
                         className="btn btn-icon absolute"
                         style={{ top: 6, right: 6, width: 26, height: 26 }}
-                        aria-label={`Quitar ${c.name}`}
+                        aria-label={t(`Quitar ${c.name}`, `Remove ${c.name}`)}
                         onClick={() => {
                           setCommanders((prev) => prev.filter((x) => x.oracleId !== c.oracleId));
                           setInfo(null);
@@ -380,7 +431,12 @@ export function NewDeckWizard() {
                   <CardSearch
                     id="commander"
                     label={
-                      pairing ? "Segundo comandante (partner, background…)" : "Busca tu comandante"
+                      pairing
+                        ? t(
+                            "Segundo comandante (partner, background…)",
+                            "Second commander (partner, background…)",
+                          )
+                        : t("Busca tu comandante", "Search for your commander")
                     }
                     filters={{ commander: true }}
                     autoFocus
@@ -391,7 +447,7 @@ export function NewDeckWizard() {
               )}
               {commanders.length === 0 && mine && mine.length > 0 && (
                 <div className="field">
-                  <span className="label">De tu colección</span>
+                  <span className="label">{t("De tu colección", "From your collection")}</span>
                   <div className="chips">
                     {mine.map((c) => (
                       <button
@@ -413,7 +469,10 @@ export function NewDeckWizard() {
                   className="btn btn-ghost self-start"
                   onClick={() => setPairing(true)}
                 >
-                  Añadir un segundo comandante (partner, background…)
+                  {t(
+                    "Añadir un segundo comandante (partner, background…)",
+                    "Add a second commander (partner, background…)",
+                  )}
                 </button>
               )}
             </div>
@@ -422,9 +481,11 @@ export function NewDeckWizard() {
           {commanders.length > 0 && (
             <section className="panel fade">
               <div className="panel-h">
-                <span className="h2">2 · Cómo lo montas</span>
+                <span className="h2">{t("2 · Cómo lo montas", "2 · How to build it")}</span>
                 {info?.totalDecks !== null && info?.totalDecks !== undefined && (
-                  <span className="subtle text-xs">{fmt(info.totalDecks)} mazos analizados</span>
+                  <span className="subtle text-xs">
+                    {fmt(info.totalDecks, locale)} {t("mazos analizados", "decks analyzed")}
+                  </span>
                 )}
               </div>
               <div className="flex flex-col gap-4 p-3.5">
@@ -438,22 +499,31 @@ export function NewDeckWizard() {
                     [
                       [
                         "average",
-                        "Con el mazo medio de la comunidad",
-                        "Las ~99 cartas que juega de media la gente con este comandante. Después te digo qué tienes, qué te falta y qué cambiar.",
+                        t("Con el mazo medio de la comunidad", "With the community's average deck"),
+                        t(
+                          "Las ~99 cartas que juega de media la gente con este comandante. Después te digo qué tienes, qué te falta y qué cambiar.",
+                          "The ~99 cards people play on average with this commander. Then I'll tell you what you have, what's missing and what to change.",
+                        ),
                       ],
                       ...(hasCollection
                         ? ([
                             [
                               "owned",
-                              "Con mis cartas",
-                              "Lo que se recomienda para este comandante y tienes libre en tu colección, más básicas hasta 36 tierras. Si no llega a 99, completas el resto.",
+                              t("Con mis cartas", "With my cards"),
+                              t(
+                                "Lo que se recomienda para este comandante y tienes libre en tu colección, más básicas hasta 36 tierras. Si no llega a 99, completas el resto.",
+                                "What's recommended for this commander and free in your collection, plus basics up to 36 lands. If it doesn't reach 99, you fill in the rest.",
+                              ),
                             ],
                           ] as const)
                         : []),
                       [
                         "empty",
-                        "Desde cero",
-                        "Solo el comandante. Añades tú las cartas una a una, con sugerencias de tu colección.",
+                        t("Desde cero", "From scratch"),
+                        t(
+                          "Solo el comandante. Añades tú las cartas una a una, con sugerencias de tu colección.",
+                          "Just the commander. You add the cards one by one, with suggestions from your collection.",
+                        ),
                       ],
                     ] as const
                   ).map(([m, title, text]) => (
@@ -477,25 +547,31 @@ export function NewDeckWizard() {
 
                 {mode !== "empty" && (
                   <div className="field">
-                    <span className="label">Tema</span>
+                    <span className="label">{t("Tema", "Theme")}</span>
                     {loadingInfo ? (
-                      <Loading>Buscando los temas…</Loading>
+                      <Loading>{t("Buscando los temas…", "Looking for themes…")}</Loading>
                     ) : (
-                      <div className="chips" role="radiogroup" aria-label="Tema">
+                      <div className="chips" role="radiogroup" aria-label={t("Tema", "Theme")}>
                         {[
-                          { slug: "", name: "General", count: info?.totalDecks ?? null },
+                          {
+                            slug: "",
+                            name: t("General", "General"),
+                            count: info?.totalDecks ?? null,
+                          },
                           ...(info?.themes ?? []).slice(0, 14),
-                        ].map((t) => (
+                        ].map((th) => (
                           <button
-                            key={t.slug || "general"}
+                            key={th.slug || "general"}
                             type="button"
                             role="radio"
-                            aria-checked={theme === t.slug}
-                            className={`chipbtn ${theme === t.slug ? "is-on" : ""}`}
-                            onClick={() => setTheme(t.slug)}
+                            aria-checked={theme === th.slug}
+                            className={`chipbtn ${theme === th.slug ? "is-on" : ""}`}
+                            onClick={() => setTheme(th.slug)}
                           >
-                            {t.name}
-                            {t.count !== null && <span className="n">{compact(t.count)}</span>}
+                            {th.name}
+                            {th.count !== null && (
+                              <span className="n">{compact(th.count, intl)}</span>
+                            )}
                           </button>
                         ))}
                       </div>
@@ -505,7 +581,7 @@ export function NewDeckWizard() {
 
                 <div className="field" style={{ maxWidth: 480 }}>
                   <label className="label" htmlFor="deck-name">
-                    Nombre
+                    {t("Nombre", "Name")}
                   </label>
                   <div className="flex items-center gap-2">
                     <ColorPips colors={[...new Set(commanders.flatMap((c) => c.colorIdentity))]} />
@@ -520,15 +596,26 @@ export function NewDeckWizard() {
                       }}
                     />
                   </div>
-                  <span className="hint">Colores - de qué va el mazo. Puedes cambiarlo.</span>
+                  <span className="hint">
+                    {t(
+                      "Colores - de qué va el mazo. Puedes cambiarlo.",
+                      "Colors - what the deck is about. You can change it.",
+                    )}
+                  </span>
                 </div>
 
                 {loggedIn ? (
                   <VisibilityPicker value={visibility} onChange={setVisibility} />
                 ) : (
                   <Banner tone="info">
-                    Sin cuenta, el mazo se abre en el analizador y se queda en este navegador.{" "}
-                    <Link href="/signup?next=/decks/new">Crea una cuenta</Link> para guardarlo.
+                    {t(
+                      "Sin cuenta, el mazo se abre en el analizador y se queda en este navegador.",
+                      "Without an account, the deck opens in the analyzer and stays in this browser.",
+                    )}{" "}
+                    <Link href={`/signup?next=${encodeURIComponent(lp("/decks/new"))}`}>
+                      {t("Crea una cuenta", "Create an account")}
+                    </Link>{" "}
+                    {t("para guardarlo.", "to save it.")}
                   </Banner>
                 )}
 
@@ -541,19 +628,25 @@ export function NewDeckWizard() {
                     onClick={() => void create()}
                   >
                     {busy
-                      ? "Creando…"
+                      ? t("Creando…", "Creating…")
                       : mode === "average"
-                        ? "Crear con el mazo medio"
+                        ? t("Crear con el mazo medio", "Create with the average deck")
                         : mode === "owned"
-                          ? "Crear con mis cartas"
-                          : "Crear vacío"}
+                          ? t("Crear con mis cartas", "Create with my cards")
+                          : t("Crear vacío", "Create empty")}
                   </button>
                 </div>
                 {busy && mode !== "empty" && (
                   <Loading>
                     {mode === "owned"
-                      ? "Buscando en tu colección lo que se recomienda…"
-                      : "Montando el mazo medio de la comunidad…"}
+                      ? t(
+                          "Buscando en tu colección lo que se recomienda…",
+                          "Looking in your collection for what's recommended…",
+                        )
+                      : t(
+                          "Montando el mazo medio de la comunidad…",
+                          "Building the community's average deck…",
+                        )}
                   </Loading>
                 )}
               </div>

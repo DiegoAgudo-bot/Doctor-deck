@@ -8,6 +8,8 @@ import { withOverrides } from "@/domain/roles/overrides";
 import { getContainer } from "@/server/container";
 import { cardDTO, type ComboCardDTO, type ComboDTO, type DeckCombosDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
+import { requestLocale } from "@/server/i18n";
+import { localizeWarning } from "@/domain/i18n/warnings";
 import {
   browserRoleEditsSchema,
   loadDeckRoleEdits,
@@ -45,17 +47,20 @@ export async function POST(request: Request) {
       await readJson(request, BODY_LIMIT.large),
     );
     const c = getContainer();
-    const result = await deckCombos(req, {
-      sources: c.deckSources,
-      cards: c.cards,
-      collection: user ? c.collectionFor(user.id) : new BrowserCollectionRepository(collection),
-      decks: user ? c.decksFor(user.id) : noSavedDecks,
-      combos: c.combos,
-      classifier: withOverrides(c.classifier, {
-        deck: overridesOf(await loadDeckRoleEdits(user?.id ?? null, req.deckId)),
-        mine: overridesOf(await loadRoleEdits(user?.id ?? null, roleEdits)),
-      }),
-    });
+    const result = await deckCombos(
+      { ...req, locale: requestLocale(request) },
+      {
+        sources: c.deckSources,
+        cards: c.cards,
+        collection: user ? c.collectionFor(user.id) : new BrowserCollectionRepository(collection),
+        decks: user ? c.decksFor(user.id) : noSavedDecks,
+        combos: c.combos,
+        classifier: withOverrides(c.classifier, {
+          deck: overridesOf(await loadDeckRoleEdits(user?.id ?? null, req.deckId)),
+          mine: overridesOf(await loadRoleEdits(user?.id ?? null, roleEdits)),
+        }),
+      },
+    );
     if (!result) {
       return Response.json(
         { error: { code: "needs_commander", message: "Elige primero el comandante." } },
@@ -99,7 +104,7 @@ export async function POST(request: Request) {
       bracket: result.bracket,
       fetchedAt: result.fetchedAt.toISOString(),
       stale: result.stale,
-      warning: result.warning,
+      warning: localizeWarning(result.warning, requestLocale(request)),
     };
     return Response.json(body);
   } catch (err) {

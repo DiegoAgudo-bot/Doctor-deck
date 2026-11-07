@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { ErrorLogEntryDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { ago, Banner, EmptyState, Loading } from "./ui";
+import { Link } from "@/components/i18n";
 
 /** /admin/errors: errores del servidor y del navegador (solo para los emails de `ADMIN_EMAILS`). */
 export function AdminErrors() {

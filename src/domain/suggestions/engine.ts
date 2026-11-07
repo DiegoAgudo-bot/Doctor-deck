@@ -12,6 +12,7 @@ import { ROLES, type Role, type RoleClassifier, type RoleSet } from "../roles/ty
 import type { EngineConfig } from "./config";
 import { formatEuros } from "./format";
 import { swapReason } from "./reason";
+import type { Locale } from "../i18n/locale";
 
 /** Copias de una carta usadas en otros mazos guardados. */
 export interface CardUsage {
@@ -40,6 +41,8 @@ export interface EngineInput {
    * destrucción masiva de tierras por debajo del 4. Si falta, no se limita nada.
    */
   targetBracket?: Bracket | undefined;
+  /** Idioma de los motivos de cada cambio (por defecto, español). */
+  locale?: Locale | undefined;
 }
 
 /** Motivo por el que una carta del mazo debe salir sí o sí. */
@@ -243,7 +246,12 @@ export function suggestSwaps(input: EngineInput): SuggestionResult {
     maxSwaps: config.maxSuggestions,
     gameChangers,
     reason: (pair, counts) =>
-      swapReason(pair, { counts, minimums: config.minimums }, ownedSentence(pair.in)),
+      swapReason(
+        pair,
+        { counts, minimums: config.minimums },
+        ownedSentence(pair.in, input.locale ?? "es"),
+        input.locale ?? "es",
+      ),
   });
 
   return {
@@ -287,7 +295,12 @@ export function suggestPurchases(
     budget: options.budget,
     gameChangers,
     reason: (pair, counts) =>
-      swapReason(pair, { counts, minimums: config.minimums }, purchaseSentence(pair.in)),
+      swapReason(
+        pair,
+        { counts, minimums: config.minimums },
+        purchaseSentence(pair.in, input.locale ?? "es"),
+        input.locale ?? "es",
+      ),
   });
 
   return {
@@ -382,7 +395,15 @@ function keepsMinimums(
   );
 }
 
-function ownedSentence(c: AddCandidate): string {
+function ownedSentence(c: AddCandidate, l: Locale): string {
+  if (l === "en") {
+    if (c.usedIn.length === 0) {
+      return c.owned > 1
+        ? `It's in your collection (${c.owned} copies).`
+        : "It's in your collection.";
+    }
+    return `It's in your collection (${c.owned} copies, ${c.available} free; also in ${c.usedIn.join(", ")}).`;
+  }
   if (c.usedIn.length === 0) {
     return c.owned > 1
       ? `La tienes en tu colección (${c.owned} copias).`
@@ -391,7 +412,13 @@ function ownedSentence(c: AddCandidate): string {
   return `La tienes en tu colección (${c.owned} copias, ${c.available} libre${c.available === 1 ? "" : "s"}; también en ${c.usedIn.join(", ")}).`;
 }
 
-function purchaseSentence(c: PurchaseCandidate): string {
+function purchaseSentence(c: PurchaseCandidate, l: Locale): string {
+  if (l === "en") {
+    const p = `it costs about ${formatEuros(c.price, "en")} (reference price)`;
+    return c.owned > 0
+      ? `You own it, but it's in ${c.usedIn.join(", ")}: ${p}.`
+      : `You don't own it: ${p}.`;
+  }
   const price = `cuesta unos ${formatEuros(c.price)} (precio de referencia)`;
   return c.owned > 0
     ? `La tienes, pero ocupada en ${c.usedIn.join(", ")}: ${price}.`

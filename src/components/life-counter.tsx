@@ -2,8 +2,6 @@
 
 /* eslint-disable @next/next/no-img-element -- símbolos de maná servidos desde /symbols */
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   changeCommander,
@@ -32,6 +30,7 @@ import { authClient } from "./auth-client";
 import { IconX } from "./icons";
 import { SYMBOL_URL } from "./mana";
 import { RecordGameDialog } from "./record-game-dialog";
+import { Link, useRouter } from "@/components/i18n";
 
 const KEY = "deck-doctor:life";
 

@@ -1,10 +1,26 @@
 "use client";
 
 import { createAuthClient } from "better-auth/react";
+import type { Locale } from "@/domain/i18n/locale";
 import { internalPath } from "@/domain/security/internal-path";
 
 /** Cliente de Better Auth (usa /api/auth del mismo origen). */
 export const authClient = createAuthClient();
+
+const MESSAGES_EN: Record<string, string> = {
+  INVALID_EMAIL_OR_PASSWORD: "Wrong email or password.",
+  INVALID_EMAIL: "That email isn't valid.",
+  INVALID_PASSWORD: "Wrong password.",
+  PASSWORD_TOO_SHORT: "The password must be at least 8 characters long.",
+  PASSWORD_TOO_LONG: "The password is too long.",
+  USER_ALREADY_EXISTS:
+    "There's already an account with that email. Sign in or reset your password.",
+  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL:
+    "There's already an account with that email. Sign in or reset your password.",
+  INVALID_TOKEN: "The link isn't valid or has already been used. Ask for another one.",
+  TOKEN_EXPIRED: "The link has expired. Ask for another one.",
+  USER_NOT_FOUND: "There's no account with that email.",
+};
 
 const MESSAGES: Record<string, string> = {
   INVALID_EMAIL_OR_PASSWORD: "Email o contraseña incorrectos.",
@@ -20,14 +36,22 @@ const MESSAGES: Record<string, string> = {
   USER_NOT_FOUND: "No hay ninguna cuenta con ese email.",
 };
 
-/** Mensaje en español para un error de Better Auth. */
+/** Mensaje para un error de Better Auth, en español o en inglés. */
 export function authErrorMessage(
   error: { code?: string | undefined; status?: number; message?: string | undefined } | null,
+  locale: Locale = "es",
 ): string {
-  if (!error) return "Ha ocurrido un error.";
-  if (error.code && MESSAGES[error.code]) return MESSAGES[error.code] as string;
-  if (error.status === 429) return "Demasiados intentos. Espera un minuto y vuelve a probar.";
-  return "No se ha podido completar. Inténtalo de nuevo.";
+  const en = locale === "en";
+  const messages = en ? MESSAGES_EN : MESSAGES;
+  if (!error) return en ? "Something went wrong." : "Ha ocurrido un error.";
+  if (error.code && messages[error.code]) return messages[error.code] as string;
+  if (error.status === 429)
+    return en
+      ? "Too many attempts. Wait a minute and try again."
+      : "Demasiados intentos. Espera un minuto y vuelve a probar.";
+  return en
+    ? "Couldn't complete it. Please try again."
+    : "No se ha podido completar. Inténtalo de nuevo.";
 }
 
 /** Solo rutas internas como destino tras entrar (evita redirecciones a otros dominios). */

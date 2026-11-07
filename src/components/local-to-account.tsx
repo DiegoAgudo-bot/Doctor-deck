@@ -12,6 +12,7 @@ import {
   type LocalCollection,
 } from "./local-collection";
 import { Banner, fmt } from "./ui";
+import { useLocale, useT } from "./i18n";
 
 /** Pasa la colección de este navegador (CSV y sueltas) a la cuenta. */
 async function moveToAccount(l: LocalCollection) {
@@ -40,6 +41,8 @@ async function moveToAccount(l: LocalCollection) {
  * avisa de que lo sustituye (subir el CSV reemplaza lo importado).
  */
 export function LocalCollectionToAccount({ loggedIn }: { loggedIn: boolean }) {
+  const t = useT();
+  const locale = useLocale();
   const [local, setLocal] = useState<LocalCollection | null>(null);
   const [accountCopies, setAccountCopies] = useState<number | null>(null);
   const [moving, setMoving] = useState(false);
@@ -85,7 +88,10 @@ export function LocalCollectionToAccount({ loggedIn }: { loggedIn: boolean }) {
                     setError(
                       err instanceof ApiError
                         ? err.message
-                        : "No se pudo pasar la colección a tu cuenta",
+                        : t(
+                            "No se pudo pasar la colección a tu cuenta",
+                            "Couldn't move the collection to your account",
+                          ),
                     );
                   } finally {
                     setMoving(false);
@@ -93,10 +99,10 @@ export function LocalCollectionToAccount({ loggedIn }: { loggedIn: boolean }) {
                 }}
               >
                 {moving
-                  ? "Guardando…"
+                  ? t("Guardando…", "Saving…")
                   : replaces
-                    ? "Sustituir la de mi cuenta"
-                    : "Guardarla en mi cuenta"}
+                    ? t("Sustituir la de mi cuenta", "Replace my account's")
+                    : t("Guardarla en mi cuenta", "Save it to my account")}
               </button>
             )}
             <button
@@ -105,20 +111,34 @@ export function LocalCollectionToAccount({ loggedIn }: { loggedIn: boolean }) {
               disabled={moving}
               onClick={() => localCollection.clear()}
             >
-              Olvidarla
+              {t("Olvidarla", "Forget it")}
             </button>
           </div>
         }
       >
-        <b>Tienes una colección guardada en este navegador</b>{" "}
+        <b>
+          {t(
+            "Tienes una colección guardada en este navegador",
+            "You have a collection saved in this browser",
+          )}
+        </b>{" "}
         <span className="muted">
-          ({fmt(localCopies(local))} copias
+          ({fmt(localCopies(local), locale)} {t("copias", "copies")}
           {local.import ? `, ${local.import.fileName}` : ""}).{" "}
           {tooBig
-            ? "Era demasiado grande para guardarla aquí: vuelve a subir el CSV en tu colección."
+            ? t(
+                "Era demasiado grande para guardarla aquí: vuelve a subir el CSV en tu colección.",
+                "It was too big to keep here: upload the CSV again in your collection.",
+              )
             : replaces
-              ? `Tu cuenta ya tiene ${fmt(accountCopies ?? 0)} copias: el CSV del navegador sustituirá al de tu cuenta (las cartas añadidas a mano se suman).`
-              : "Pásala a tu cuenta para tenerla en cualquier dispositivo."}
+              ? t(
+                  `Tu cuenta ya tiene ${fmt(accountCopies ?? 0, locale)} copias: el CSV del navegador sustituirá al de tu cuenta (las cartas añadidas a mano se suman).`,
+                  `Your account already has ${fmt(accountCopies ?? 0, locale)} copies: the browser's CSV will replace your account's (cards added by hand are kept).`,
+                )
+              : t(
+                  "Pásala a tu cuenta para tenerla en cualquier dispositivo.",
+                  "Move it to your account to have it on any device.",
+                )}
         </span>
       </Banner>
       {error && <Banner tone="out">{error}</Banner>}

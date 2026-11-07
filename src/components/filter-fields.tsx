@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { useT } from "./i18n";
 
 /** Piezas de los filtros avanzados (colección y buscador de cartas), como los de ManaBox. */
 
@@ -129,14 +130,15 @@ export function RangeFields({
   /** "€", por ejemplo. */
   unit?: string;
 }) {
+  const t = useT();
   return (
     <span className="flex items-center gap-1">
       <DebouncedInput
         className="input"
         style={{ width: 84 }}
         inputMode="decimal"
-        placeholder={unit ? `mín. ${unit}` : "mín."}
-        aria-label={`${label}: desde`}
+        placeholder={unit ? `${t("mín.", "min")} ${unit}` : t("mín.", "min")}
+        aria-label={`${label}: ${t("desde", "from")}`}
         value={min}
         toText={numText}
         fromText={parseNumber}
@@ -147,8 +149,8 @@ export function RangeFields({
         className="input"
         style={{ width: 84 }}
         inputMode="decimal"
-        placeholder={unit ? `máx. ${unit}` : "máx."}
-        aria-label={`${label}: hasta`}
+        placeholder={unit ? `${t("máx.", "max")} ${unit}` : t("máx.", "max")}
+        aria-label={`${label}: ${t("hasta", "to")}`}
         value={max}
         toText={numText}
         fromText={parseNumber}

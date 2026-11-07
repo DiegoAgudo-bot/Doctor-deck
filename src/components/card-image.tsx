@@ -7,7 +7,6 @@ import {
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from "react";
-import Link from "next/link";
 import { createPortal } from "react-dom";
 import { formatEuros } from "@/domain/suggestions/format";
 import type { CardDetailDTO } from "@/server/card-dto";
@@ -16,6 +15,7 @@ import { api } from "./api-client";
 import { IconX } from "./icons";
 import { ManaCost } from "./mana";
 import { AddToDeck } from "./add-to-deck";
+import { Link, useLocale, useT } from "@/components/i18n";
 
 /** "/img/normal/…" → la misma en tamaño pequeño de Scryfall (146×204). */
 const smallVariant = (url: string) =>
@@ -104,6 +104,8 @@ type HoverCard = Pick<CardDTO, "name" | "imageUrl"> & { oracleId?: string };
 export function CardSheet({ card, onClose }: { card: HoverCard; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [detail, setDetail] = useState<CardDetailDTO | null>(null);
+  const t = useT();
+  const locale = useLocale();
 
   useEffect(() => {
     const d = ref.current;
@@ -147,7 +149,7 @@ export function CardSheet({ card, onClose }: { card: HoverCard; onClose: () => v
           <button
             type="button"
             className="btn btn-ghost btn-icon"
-            aria-label="Cerrar"
+            aria-label={t("Cerrar", "Close")}
             onClick={() => ref.current?.close()}
           >
             <IconX size={14} />
@@ -157,19 +159,22 @@ export function CardSheet({ card, onClose }: { card: HoverCard; onClose: () => v
         {detail && (
           <div className="flex w-full flex-wrap justify-center gap-x-4 gap-y-1 text-[13px]">
             <span>
-              <span className="subtle">Desde </span>
+              <span className="subtle">{t("Desde ", "From ")}</span>
               <b className="mono">
-                {detail.minPrice !== null ? formatEuros(detail.minPrice) : "—"}
+                {detail.minPrice !== null ? formatEuros(detail.minPrice, locale) : "—"}
               </b>
             </span>
             {detail.mine && (
               <span>
                 {detail.mine.owned === 0 ? (
-                  <span className="subtle">No la tienes</span>
+                  <span className="subtle">{t("No la tienes", "Not owned")}</span>
                 ) : (
                   <>
-                    Tienes <b>{detail.mine.owned}</b>
-                    <span className="subtle"> · {detail.mine.free} libres</span>
+                    {t("Tienes", "You own")} <b>{detail.mine.owned}</b>
+                    <span className="subtle">
+                      {" "}
+                      · {detail.mine.free} {t("libres", "free")}
+                    </span>
                   </>
                 )}
               </span>
@@ -184,7 +189,7 @@ export function CardSheet({ card, onClose }: { card: HoverCard; onClose: () => v
         )}
         {card.oracleId && (
           <Link className="btn btn-primary w-full justify-center" href={`/cards/${card.oracleId}`}>
-            Ver ficha
+            {t("Ver ficha", "Card page")}
           </Link>
         )}
       </div>

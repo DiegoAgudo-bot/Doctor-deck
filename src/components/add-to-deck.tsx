@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { SavedDeckSummaryDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
@@ -9,6 +8,7 @@ import { IconDecks, IconPlus } from "./icons";
 import { notifyDecksChanged } from "./local-collection";
 import { ColorPips } from "./mana";
 import { Banner, Dialog, Loading } from "./ui";
+import { Link, useT } from "@/components/i18n";
 
 interface AddableCard {
   oracleId: string;
@@ -26,12 +26,13 @@ interface AddableCard {
 export function AddToDeck({ card, className = "btn" }: { card: AddableCard; className?: string }) {
   const { data: session } = authClient.useSession();
   const [open, setOpen] = useState(false);
+  const t = useT();
   if (!session) return null;
   return (
     <>
       <button type="button" className={className} onClick={() => setOpen(true)}>
         <IconDecks size={14} />
-        Añadir a un mazo
+        {t("Añadir a un mazo", "Add to a deck")}
       </button>
       {open && <AddToDeckDialog card={card} onClose={() => setOpen(false)} />}
     </>
@@ -44,13 +45,19 @@ function AddToDeckDialog({ card, onClose }: { card: AddableCard; onClose: () => 
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<{ id: string; name: string } | null>(null);
   const loading = decks === null && error === null;
+  const t = useT();
 
   useEffect(() => {
     api<SavedDeckSummaryDTO[]>("/api/decks")
       .then(setDecks)
       .catch((e: unknown) =>
-        setError(e instanceof ApiError ? e.message : "No se pudieron cargar tus mazos"),
+        setError(
+          e instanceof ApiError
+            ? e.message
+            : t("No se pudieron cargar tus mazos", "Couldn't load your decks"),
+        ),
       );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` no cambia en la página
   }, []);
 
   async function add(d: SavedDeckSummaryDTO) {
@@ -66,7 +73,11 @@ function AddToDeckDialog({ card, onClose }: { card: AddableCard; onClose: () => 
       setAdded({ id: d.id, name: d.name });
       notifyDecksChanged();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "No se pudo añadir la carta");
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : t("No se pudo añadir la carta", "Couldn't add the card"),
+      );
     } finally {
       setBusy(null);
     }
@@ -81,17 +92,17 @@ function AddToDeckDialog({ card, onClose }: { card: AddableCard; onClose: () => 
     <Dialog
       open
       onClose={onClose}
-      title={`Añadir «${card.name}» a un mazo`}
+      title={t(`Añadir «${card.name}» a un mazo`, `Add “${card.name}” to a deck`)}
       width={440}
       footer={
         <>
           {card.canBeCommander && (
             <Link className="btn mr-auto" href={`/decks/new?commander=${card.oracleId}`}>
-              <IconPlus size={13} /> Crear mazo con ella
+              <IconPlus size={13} /> {t("Crear mazo con ella", "Build a deck with it")}
             </Link>
           )}
           <button type="button" className="btn" onClick={onClose}>
-            Cerrar
+            {t("Cerrar", "Close")}
           </button>
         </>
       }
@@ -100,25 +111,29 @@ function AddToDeckDialog({ card, onClose }: { card: AddableCard; onClose: () => 
         {added && (
           <Banner
             tone="in"
-            action={<Link href={`/decks/${added.id}?tab=list`}>Abrir el mazo</Link>}
+            action={
+              <Link href={`/decks/${added.id}?tab=list`}>
+                {t("Abrir el mazo", "Open the deck")}
+              </Link>
+            }
           >
-            Añadida a «{added.name}».
+            {t(`Añadida a «${added.name}».`, `Added to “${added.name}”.`)}
           </Banner>
         )}
         {error && <Banner tone="out">{error}</Banner>}
-        {loading && <Loading>Cargando tus mazos…</Loading>}
+        {loading && <Loading>{t("Cargando tus mazos…", "Loading your decks…")}</Loading>}
         {decks?.length === 0 && (
           <p className="muted text-[13px]">
-            Aún no tienes mazos guardados.{" "}
+            {t("Aún no tienes mazos guardados.", "You don't have any saved decks yet.")}{" "}
             {card.canBeCommander ? (
-              "Crea uno con esta carta de comandante."
+              t("Crea uno con esta carta de comandante.", "Create one with this card as commander.")
             ) : (
-              <Link href="/decks/new">Crea uno</Link>
+              <Link href="/decks/new">{t("Crea uno", "Create one")}</Link>
             )}
           </p>
         )}
         {sorted.length > 0 && (
-          <ul className="flex flex-col gap-1" aria-label="Tus mazos">
+          <ul className="flex flex-col gap-1" aria-label={t("Tus mazos", "Your decks")}>
             {sorted.map((d) => {
               const ok = fits(d);
               return (
@@ -135,10 +150,13 @@ function AddToDeckDialog({ card, onClose }: { card: AddableCard; onClose: () => 
                       <span className="nm">{d.name}</span>
                       <span className="cmd">
                         {busy === d.id
-                          ? "Añadiendo…"
+                          ? t("Añadiendo…", "Adding…")
                           : ok
                             ? d.commanderNames.join(" + ")
-                            : "Fuera de los colores del comandante"}
+                            : t(
+                                "Fuera de los colores del comandante",
+                                "Outside the commander's colors",
+                              )}
                       </span>
                     </span>
                   </button>

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatEuros } from "@/domain/suggestions/format";
 import type {
@@ -25,6 +24,7 @@ import {
   type LocalCollection,
 } from "./local-collection";
 import { Banner, CardGridSkeleton, EmptyState, fmt } from "./ui";
+import { Link } from "@/components/i18n";
 
 type Tab = "cartas" | "precios" | "anadir" | "importar";
 

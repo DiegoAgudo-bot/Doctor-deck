@@ -1,3 +1,5 @@
+import { splitLocale } from "@/domain/i18n/locale";
+import { apiErrorMessage } from "@/domain/i18n/errors";
 import type { ApiErrorBody } from "@/server/dto";
 
 export class ApiError extends Error {
@@ -20,23 +22,34 @@ export async function api<T>(
   { silent = false }: { silent?: boolean } = {},
 ): Promise<T> {
   let res: Response;
+  const { locale } = splitLocale(window.location.pathname);
   try {
     // Contra el origin y no la ruta relativa: si la página se abrió con credenciales en la URL
     // (https://usuario:clave@…), fetch rechaza las URLs relativas que las heredan.
-    res = await fetch(new URL(path, window.location.origin), init);
+    // Con el idioma de la página: el servidor responde en él (motivos, avisos…).
+    const headers = new Headers(init?.headers);
+    headers.set("x-locale", locale);
+    res = await fetch(new URL(path, window.location.origin), { ...init, headers });
   } catch {
-    throw new ApiError("network", "No se pudo contactar con el servidor", 0);
+    throw new ApiError(
+      "network",
+      locale === "en" ? "Couldn't reach the server" : "No se pudo contactar con el servidor",
+      0,
+    );
   }
   const body: unknown = await res.json().catch(() => null);
   if (res.status === 401 && !silent) {
     // Sesión caducada o inexistente: a la página de entrar, volviendo luego aquí. Recarga completa a
     // propósito: se descarta el estado del cliente.
     const next = encodeURIComponent(window.location.pathname + window.location.search);
-    window.location.assign(new URL(`/login?next=${next}`, window.location.origin));
+    const login = locale === "en" ? "/en/login" : "/login";
+    window.location.assign(new URL(`${login}?next=${next}`, window.location.origin));
   }
   if (!res.ok) {
     const err = (body as ApiErrorBody | null)?.error;
-    throw new ApiError(err?.code ?? "http", err?.message ?? `Error HTTP ${res.status}`, res.status);
+    const code = err?.code ?? "http";
+    const message = err?.message ?? `Error HTTP ${res.status}`;
+    throw new ApiError(code, apiErrorMessage(code, message, locale), res.status);
   }
   return body as T;
 }

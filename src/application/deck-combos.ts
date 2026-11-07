@@ -1,6 +1,7 @@
 import { oneAwayCombos, type OneAwayCombo } from "@/domain/combos/analysis";
 import type { Combo } from "@/domain/combos/types";
 import { estimateBracket, type BracketEstimate } from "@/domain/deck/bracket";
+import type { Locale } from "@/domain/i18n/locale";
 import { chooseCommanders } from "@/domain/deck/resolve";
 import type { CardRepository } from "@/domain/ports/card-repository";
 import type { CollectionRepository } from "@/domain/ports/collection-repository";
@@ -32,6 +33,7 @@ export async function deckCombos(
     commanders?: readonly string[] | undefined;
     deckId?: string | undefined;
     useOtherDecks?: boolean | undefined;
+    locale?: Locale | undefined;
   },
   deps: {
     sources: readonly DeckSource[];
@@ -75,6 +77,7 @@ export async function deckCombos(
     bracket: estimateBracket(
       all.map((card) => ({ card, roles: deps.classifier.classify(card).roles })),
       found.included,
+      req.locale,
     ),
     fetchedAt: found.fetchedAt,
     stale: found.stale,

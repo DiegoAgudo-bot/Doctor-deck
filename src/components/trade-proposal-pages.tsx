@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import type { ProposalStatusDTO, TradeCalculatorDTO, TradeProposalDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { linesForApi, toLines, TradeEditor, type TradeLine } from "./trade-editor";
 import { Banner, Dialog, Loading, ago } from "./ui";
+import { Link, useRouter } from "@/components/i18n";
 
 const json = (body: unknown) => ({
   headers: { "Content-Type": "application/json" },

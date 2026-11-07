@@ -4,8 +4,7 @@ import { useMemo, useState } from "react";
 import { HAND_SIZE, openingHandOdds, shuffleLibrary } from "@/domain/deck/draw-odds";
 import type { DeckCardDTO } from "@/server/dto";
 import { CardImage } from "./card-image";
-
-const pct = (p: number) => `${Math.round(p * 100)} %`;
+import { useLocale, useT } from "./i18n";
 const count = (cards: DeckCardDTO[], role: DeckCardDTO["primaryRole"]) =>
   cards
     .filter((c) => c.roles.includes(role) && (role === "land" || !c.roles.includes("land")))
@@ -16,6 +15,9 @@ const count = (cards: DeckCardDTO[], role: DeckCardDTO["primaryRole"]) =>
  * muestra con mulligan (en Commander el primero es gratis).
  */
 export function OpeningHand({ cards }: { cards: DeckCardDTO[] }) {
+  const t = useT();
+  const locale = useLocale();
+  const pct = (p: number) => `${Math.round(p * 100)}${locale === "en" ? "" : " "}%`;
   const odds = useMemo(
     () =>
       openingHandOdds({
@@ -46,9 +48,12 @@ export function OpeningHand({ cards }: { cards: DeckCardDTO[] }) {
   return (
     <div className="panel">
       <div className="panel-h">
-        <span className="h2">Mano inicial</span>
+        <span className="h2">{t("Mano inicial", "Opening hand")}</span>
         <span className="subtle text-xs">
-          {odds.lands} tierras en {odds.library} cartas
+          {t(
+            `${odds.lands} tierras en ${odds.library} cartas`,
+            `${odds.lands} lands in ${odds.library} cards`,
+          )}
         </span>
       </div>
       <div
@@ -57,33 +62,41 @@ export function OpeningHand({ cards }: { cards: DeckCardDTO[] }) {
       >
         <div>
           <div className="kv">
-            <span className="muted">Mano de 2 a 4 tierras</span>
+            <span className="muted">{t("Mano de 2 a 4 tierras", "Hand with 2 to 4 lands")}</span>
             <b>{pct(odds.keepable)}</b>
           </div>
           <div className="kv">
-            <span className="muted">3 tierras en el turno 3</span>
+            <span className="muted">{t("3 tierras en el turno 3", "3 lands by turn 3")}</span>
             <b>{pct(odds.landDropT3)}</b>
           </div>
           <div className="kv">
-            <span className="muted">4 tierras en el turno 4</span>
+            <span className="muted">{t("4 tierras en el turno 4", "4 lands by turn 4")}</span>
             <b>{pct(odds.landDropT4)}</b>
           </div>
           <div className="kv">
-            <span className="muted">Ramp en la mano / en el turno 2</span>
+            <span className="muted">
+              {t("Ramp en la mano / en el turno 2", "Ramp in hand / by turn 2")}
+            </span>
             <b>
               {pct(odds.rampInHand)} / {pct(odds.rampByT2)}
             </b>
           </div>
           <div className="kv">
-            <span className="muted">Robo en el turno 3</span>
+            <span className="muted">{t("Robo en el turno 3", "Card draw by turn 3")}</span>
             <b>{pct(odds.drawByT3)}</b>
           </div>
           <p className="subtle mt-2 text-xs">
-            En multijugador todos roban en su primer turno: en el turno T has visto 7 + T cartas.
+            {t(
+              "En multijugador todos roban en su primer turno: en el turno T has visto 7 + T cartas.",
+              "In multiplayer everyone draws on their first turn: by turn T you've seen 7 + T cards.",
+            )}
           </p>
         </div>
-        <div className="flex flex-col gap-1.5" aria-label="Tierras en la mano inicial">
-          <span className="cap">Tierras en la mano de 7</span>
+        <div
+          className="flex flex-col gap-1.5"
+          aria-label={t("Tierras en la mano inicial", "Lands in the opening hand")}
+        >
+          <span className="cap">{t("Tierras en la mano de 7", "Lands in the 7-card hand")}</span>
           {odds.landsInHand.map((p, i) => (
             <div key={i} className="flex items-center gap-2 text-xs">
               <span className="mono subtle" style={{ width: 12 }}>
@@ -107,7 +120,7 @@ export function OpeningHand({ cards }: { cards: DeckCardDTO[] }) {
       <div className="flex flex-col gap-3 border-t border-line p-3">
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" className="btn btn-primary" onClick={() => draw(false)}>
-            {library ? "Nueva mano" : "Robar 7"}
+            {library ? t("Nueva mano", "New hand") : t("Robar 7", "Draw 7")}
           </button>
           {library && (
             <>
@@ -120,15 +133,18 @@ export function OpeningHand({ cards }: { cards: DeckCardDTO[] }) {
                 disabled={seen >= library.length}
                 onClick={() => setSeen((s) => s + 1)}
               >
-                Robar una
+                {t("Robar una", "Draw one")}
               </button>
               <span className="subtle text-xs">
-                {landsInHand} {landsInHand === 1 ? "tierra" : "tierras"} en la mano
+                {landsInHand} {landsInHand === 1 ? t("tierra", "land") : t("tierras", "lands")}{" "}
+                {t("en la mano", "in hand")}
                 {mulligans > 0 &&
                   ` · ${mulligans} mulligan${mulligans > 1 ? "s" : ""}${
-                    toBottom ? `: pon ${toBottom} al fondo` : " (gratis)"
+                    toBottom
+                      ? t(`: pon ${toBottom} al fondo`, `: put ${toBottom} on the bottom`)
+                      : t(" (gratis)", " (free)")
                   }`}
-                {seen > HAND_SIZE && ` · turno ${seen - HAND_SIZE}`}
+                {seen > HAND_SIZE && ` · ${t("turno", "turn")} ${seen - HAND_SIZE}`}
               </span>
             </>
           )}

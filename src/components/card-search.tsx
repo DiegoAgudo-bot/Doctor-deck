@@ -5,6 +5,7 @@ import type { CardDTO } from "@/server/dto";
 import { api } from "./api-client";
 import { CardImage } from "./card-image";
 import { ManaCost } from "./mana";
+import { useT } from "./i18n";
 
 /**
  * Buscador de cartas con autocompletado (flechas, Enter, Escape). Al elegir una carta llama a
@@ -15,7 +16,7 @@ import { ManaCost } from "./mana";
 export function CardSearch({
   id,
   label,
-  placeholder = "Escribe el nombre (en inglés)…",
+  placeholder,
   filters,
   onPick,
   onType,
@@ -34,6 +35,7 @@ export function CardSearch({
   autoFocus?: boolean;
   inputRef?: Ref<HTMLInputElement> | undefined;
 }) {
+  const t = useT();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CardDTO[]>([]);
   const [open, setOpen] = useState(false);
@@ -100,7 +102,7 @@ export function CardSearch({
         aria-activedescendant={showList ? `${listId}-${active}` : undefined}
         autoComplete="off"
         autoFocus={autoFocus}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t("Escribe el nombre…", "Type the name…")}
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);

@@ -3,6 +3,7 @@ import { commanderInfo } from "@/application/new-deck";
 import { getContainer } from "@/server/container";
 import { cardDTO, type CommanderInfoDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
+import { requestLocale } from "@/server/i18n";
 
 /** GET /api/commanders?ids=oracleId[,oracleId]: temas de EDHREC y nombre propuesto para el mazo. */
 export async function GET(request: NextRequest) {
@@ -14,7 +15,11 @@ export async function GET(request: NextRequest) {
       .filter(Boolean)
       .slice(0, 2);
     const c = getContainer();
-    const info = await commanderInfo(ids, { cards: c.cards, recommendations: c.edhrec });
+    const info = await commanderInfo(
+      ids,
+      { cards: c.cards, recommendations: c.edhrec },
+      requestLocale(request),
+    );
     const body: CommanderInfoDTO = {
       commanders: info.commanders.map(cardDTO),
       themes: info.themes,

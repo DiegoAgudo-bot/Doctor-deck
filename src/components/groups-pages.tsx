@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import type { CardDTO, MyProfileDTO } from "@/server/dto";
 import type { GroupCardDTO, GroupDTO, GroupDeckDTO, GroupSummaryDTO } from "@/server/social-dto";
@@ -15,6 +14,7 @@ import { IconCopy, IconLink, IconPlus, IconTrash, IconUsers } from "./icons";
 import { LendDialog } from "./loans-page";
 import { RecordGameDialog } from "./record-game-dialog";
 import { ago, Banner, Dialog, EmptyState, fmt, Loading, TilesSkeleton } from "./ui";
+import { Link, useRouter } from "@/components/i18n";
 
 const json = (body: unknown) => ({
   headers: { "Content-Type": "application/json" },

@@ -1,20 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import type { DeckOwnershipSummary } from "@/domain/community/rank";
-import { formatEuros } from "@/domain/suggestions/format";
 import type { SavedDeckSummaryDTO } from "@/server/dto";
 import { CardImage } from "./card-image";
-import { nextVisibility, VISIBILITY } from "./deck-visibility";
+import { nextVisibility, useVisibility } from "./deck-visibility";
 import { IconCopy, IconHeart, IconPencil, IconTrash } from "./icons";
 import { ColorPips } from "./mana";
-import { ago } from "./ui";
-
-const SOURCE_LABEL: Record<string, string> = {
-  text: "Texto",
-  archidekt: "Enlace",
-  moxfield: "Enlace",
-};
+import { useFormat } from "./ui";
+import { Link, useT } from "@/components/i18n";
 
 /**
  * Tarjeta de un mazo (Mis mazos, perfiles, comunidad). Con `onToggleVisibility` / `onDelete`
@@ -44,6 +37,14 @@ export function DeckTile({
   bracket?: number | null | undefined;
   delay?: number;
 }) {
+  const t = useT();
+  const { ago } = useFormat();
+  const VISIBILITY = useVisibility();
+  const SOURCE_LABEL: Record<string, string> = {
+    text: t("Texto", "Text"),
+    archidekt: t("Enlace", "Link"),
+    moxfield: t("Enlace", "Link"),
+  };
   const mine = Boolean(onToggleVisibility || onDelete);
   const Vis = VISIBILITY[d.visibility].Icon;
   const next = nextVisibility(d.visibility);
@@ -70,7 +71,7 @@ export function DeckTile({
           <span className="mono subtle flex flex-wrap gap-3 text-xs">
             {owner && <span>@{owner.username ?? owner.name}</span>}
             <span>{SOURCE_LABEL[d.source] ?? d.source}</span>
-            <span>{d.cardCount} cartas</span>
+            <span>{t(`${d.cardCount} cartas`, `${d.cardCount} cards`)}</span>
             <span>{ago(d.updatedAt)}</span>
             {bracket != null && <span>Bracket {bracket}</span>}
             {likes !== undefined && likes > 0 && (
@@ -96,8 +97,8 @@ export function DeckTile({
               type="button"
               className="btn btn-ghost btn-icon"
               style={{ width: 28, height: 28 }}
-              aria-label={`Cambiar el nombre de ${d.name}`}
-              title="Cambiar el nombre"
+              aria-label={t(`Cambiar el nombre de ${d.name}`, `Rename ${d.name}`)}
+              title={t("Cambiar el nombre", "Rename")}
               onClick={onRename}
             >
               <IconPencil size={14} />
@@ -108,8 +109,8 @@ export function DeckTile({
               type="button"
               className="btn btn-ghost btn-icon"
               style={{ width: 28, height: 28 }}
-              aria-label={`Duplicar ${d.name}`}
-              title="Duplicar"
+              aria-label={t(`Duplicar ${d.name}`, `Duplicate ${d.name}`)}
+              title={t("Duplicar", "Duplicate")}
               onClick={onDuplicate}
             >
               <IconCopy size={14} />
@@ -120,8 +121,14 @@ export function DeckTile({
               type="button"
               className="btn btn-ghost btn-icon"
               style={{ width: 28, height: 28 }}
-              aria-label={`${VISIBILITY[d.visibility].label}: cambiar a ${VISIBILITY[next].label.toLowerCase()} ${d.name}`}
-              title={`${VISIBILITY[d.visibility].label}: ${VISIBILITY[d.visibility].hint} Clic para hacerlo ${VISIBILITY[next].label.toLowerCase()}.`}
+              aria-label={t(
+                `${VISIBILITY[d.visibility].label}: cambiar a ${VISIBILITY[next].label.toLowerCase()} ${d.name}`,
+                `${VISIBILITY[d.visibility].label}: make ${d.name} ${VISIBILITY[next].label.toLowerCase()}`,
+              )}
+              title={t(
+                `${VISIBILITY[d.visibility].label}: ${VISIBILITY[d.visibility].hint} Clic para hacerlo ${VISIBILITY[next].label.toLowerCase()}.`,
+                `${VISIBILITY[d.visibility].label}: ${VISIBILITY[d.visibility].hint} Click to make it ${VISIBILITY[next].label.toLowerCase()}.`,
+              )}
               onClick={onToggleVisibility}
             >
               <Vis size={14} />
@@ -132,7 +139,7 @@ export function DeckTile({
               type="button"
               className="btn btn-ghost btn-icon"
               style={{ width: 28, height: 28 }}
-              aria-label={`Borrar ${d.name}`}
+              aria-label={t(`Borrar ${d.name}`, `Delete ${d.name}`)}
               onClick={onDelete}
             >
               <IconTrash size={14} />
@@ -146,16 +153,21 @@ export function DeckTile({
 
 /** "Tienes el 72 % · faltan 12 (≈ 35,40 €)" con una barra. */
 function OwnershipBar({ o }: { o: DeckOwnershipSummary }) {
+  const t = useT();
+  const { eur } = useFormat();
+  const cost = o.cost ? ` (≈ ${eur(o.cost)}${o.unpriced ? "+" : ""})` : "";
   return (
     <span className="mt-auto flex flex-col gap-1 pt-1">
       <span className="text-xs">
-        <b style={{ color: o.toBuy ? undefined : "var(--color-in)" }}>Tienes el {o.percent} %</b>
+        <b style={{ color: o.toBuy ? undefined : "var(--color-in)" }}>
+          {t(`Tienes el ${o.percent} %`, `You own ${o.percent}%`)}
+        </b>
         <span className="subtle">
           {o.toBuy
-            ? ` · faltan ${o.toBuy}${o.cost ? ` (≈ ${formatEuros(o.cost)}${o.unpriced ? "+" : ""})` : ""}`
+            ? t(` · faltan ${o.toBuy}${cost}`, ` · ${o.toBuy} missing${cost}`)
             : o.fromOtherDecks
-              ? ` · ${o.fromOtherDecks} en otros mazos`
-              : " · ¡lo puedes montar ya!"}
+              ? t(` · ${o.fromOtherDecks} en otros mazos`, ` · ${o.fromOtherDecks} in other decks`)
+              : t(" · ¡lo puedes montar ya!", " · you can build it now!")}
         </span>
       </span>
       <span className="role-bar" style={{ height: 4 }}>

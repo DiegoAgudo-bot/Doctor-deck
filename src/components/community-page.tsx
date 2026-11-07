@@ -1,21 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { UserSummaryDTO } from "@/server/dto";
 import { api } from "./api-client";
 import { CommunityDecks } from "./community-decks";
-import { Loading, fmt } from "./ui";
+import { Loading, useFormat } from "./ui";
+import { Link, useT } from "@/components/i18n";
 
 /** /community: buscar gente y mazos públicos (con cuánto tienes de cada uno). */
 export function CommunityPage() {
   const [q, setQ] = useState("");
   const [users, setUsers] = useState<UserSummaryDTO[] | null>(null);
+  const t = useT();
+  const { fmt } = useFormat();
 
   // Buscar con un respiro mientras se escribe; sin texto, los más activos.
   useEffect(() => {
     let cancelled = false;
-    const t = setTimeout(
+    const timer = setTimeout(
       () => {
         api<UserSummaryDTO[]>(`/api/users?q=${encodeURIComponent(q.trim())}`)
           .then((u) => !cancelled && setUsers(u))
@@ -25,38 +27,42 @@ export function CommunityPage() {
     );
     return () => {
       cancelled = true;
-      clearTimeout(t);
+      clearTimeout(timer);
     };
   }, [q]);
 
   return (
     <main className="page" style={{ gap: 20 }}>
       <div className="flex flex-col gap-1">
-        <h1 className="h1">Comunidad</h1>
+        <h1 className="h1">{t("Comunidad", "Community")}</h1>
         <p className="muted text-[13px]">
-          Mira los mazos de otros jugadores, sigue a quien te interese y te avisaremos cuando
-          publiquen un mazo o consigan una carta gorda.
+          {t(
+            "Mira los mazos de otros jugadores, sigue a quien te interese y te avisaremos cuando publiquen un mazo o consigan una carta gorda.",
+            "Browse other players' decks, follow whoever you like and we'll let you know when they publish a deck or get a big card.",
+          )}
         </p>
       </div>
 
       <section className="panel">
         <div className="panel-h">
-          <span className="h2">Jugadores</span>
+          <span className="h2">{t("Jugadores", "Players")}</span>
         </div>
         <div className="flex flex-col gap-3 p-3">
           <input
             className="input"
             style={{ maxWidth: 360 }}
-            placeholder="Buscar por nombre o @usuario…"
-            aria-label="Buscar jugadores"
+            placeholder={t("Buscar por nombre o @usuario…", "Search by name or @username…")}
+            aria-label={t("Buscar jugadores", "Search players")}
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
           {users === null ? (
-            <Loading>Buscando…</Loading>
+            <Loading>{t("Buscando…", "Searching…")}</Loading>
           ) : users.length === 0 ? (
             <p className="muted text-[13px]">
-              {q ? `Nadie con «${q}».` : "Todavía no hay nadie con perfil."}
+              {q
+                ? t(`Nadie con «${q}».`, `Nobody matches “${q}”.`)
+                : t("Todavía no hay nadie con perfil.", "Nobody has a profile yet.")}
             </p>
           ) : (
             <div
@@ -78,7 +84,9 @@ export function CommunityPage() {
                       {u.name}
                     </span>
                     <span className="cmd">
-                      @{u.username} · {fmt(u.publicDecks)} mazos · {fmt(u.followers)} seguidores
+                      @{u.username} ·{" "}
+                      {t(`${fmt(u.publicDecks)} mazos`, `${fmt(u.publicDecks)} decks`)} ·{" "}
+                      {t(`${fmt(u.followers)} seguidores`, `${fmt(u.followers)} followers`)}
                     </span>
                   </span>
                 </Link>

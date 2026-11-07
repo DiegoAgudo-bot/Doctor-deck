@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api, ApiError, storage } from "./api-client";
 import { Banner, Dialog } from "./ui";
+import { goTo } from "@/components/i18n";
 
 /** Confirmar el borrado de la cuenta escribiendo el email y la contraseña (o, con Google, sin ella). */
 export function DeleteAccountDialog({
@@ -30,7 +31,7 @@ export function DeleteAccountDialog({
         body: JSON.stringify({ confirm, ...(password ? { password } : {}) }),
       });
       storage.remove("deck-doctor:mazo");
-      window.location.assign(new URL("/?account=deleted", window.location.origin));
+      goTo("/?account=deleted");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "No se pudo borrar la cuenta");
       setBusy(false);

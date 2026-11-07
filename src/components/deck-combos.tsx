@@ -6,23 +6,47 @@ import { formatEuros } from "@/domain/suggestions/format";
 import type { ComboCardDTO, ComboDTO, DeckCombosDTO, OneAwayComboDTO } from "@/server/dto";
 import { CardHover, CardImage } from "./card-image";
 import { Banner, EmptyState, Loading, fmt } from "./ui";
+import { useIntlLocale, useLocale, useT, type T } from "./i18n";
 
-/** Etiquetas de bracket de Commander Spellbook, en español. */
-const TAG: Record<ComboBracketTag, { label: string; tone: string; hint: string }> = {
-  R: { label: "Temprano", tone: "pill-out", hint: "Combo temprano de dos cartas: bracket 4 o más" },
-  S: { label: "Fuerte", tone: "pill-warn", hint: "Combo de dos cartas para más tarde: bracket 3" },
-  P: { label: "Potente", tone: "pill-warn", hint: "Combo potente: bracket 3" },
-  O: { label: "Curioso", tone: "", hint: "Combo poco habitual" },
-  C: { label: "Básico", tone: "", hint: "Combo que encaja en cualquier bracket" },
-  E: { label: "Exhibición", tone: "", hint: "Combo casual" },
-  B: { label: "Prohibido", tone: "pill-out", hint: "Usa una carta prohibida" },
-};
+/** Etiquetas de bracket de Commander Spellbook, en el idioma de la página. */
+const tags = (t: T): Record<ComboBracketTag, { label: string; tone: string; hint: string }> => ({
+  R: {
+    label: t("Temprano", "Early"),
+    tone: "pill-out",
+    hint: t(
+      "Combo temprano de dos cartas: bracket 4 o más",
+      "Early two-card combo: bracket 4 or higher",
+    ),
+  },
+  S: {
+    label: t("Fuerte", "Strong"),
+    tone: "pill-warn",
+    hint: t("Combo de dos cartas para más tarde: bracket 3", "Late-game two-card combo: bracket 3"),
+  },
+  P: {
+    label: t("Potente", "Powerful"),
+    tone: "pill-warn",
+    hint: t("Combo potente: bracket 3", "Powerful combo: bracket 3"),
+  },
+  O: { label: t("Curioso", "Oddball"), tone: "", hint: t("Combo poco habitual", "Unusual combo") },
+  C: {
+    label: t("Básico", "Casual"),
+    tone: "",
+    hint: t("Combo que encaja en cualquier bracket", "Fits any bracket"),
+  },
+  E: { label: t("Exhibición", "Exhibition"), tone: "", hint: t("Combo casual", "Casual combo") },
+  B: {
+    label: t("Prohibido", "Banned"),
+    tone: "pill-out",
+    hint: t("Usa una carta prohibida", "Uses a banned card"),
+  },
+});
 
-const STATUS: Record<OneAwayComboDTO["status"], { label: string; tone: string }> = {
-  owned: { label: "La tienes", tone: "pill-in" },
-  in_other_decks: { label: "En otro mazo", tone: "pill-warn" },
-  buy: { label: "Hay que comprarla", tone: "" },
-};
+const statuses = (t: T): Record<OneAwayComboDTO["status"], { label: string; tone: string }> => ({
+  owned: { label: t("La tienes", "You have it"), tone: "pill-in" },
+  in_other_decks: { label: t("En otro mazo", "In another deck"), tone: "pill-warn" },
+  buy: { label: t("Hay que comprarla", "Needs buying"), tone: "" },
+});
 
 type Filter = "all" | "owned" | "buy";
 
@@ -58,7 +82,8 @@ function ComboCards({ cards, highlight }: { cards: ComboCardDTO[]; highlight?: s
 }
 
 function ComboRow({ combo, extra }: { combo: ComboDTO; extra?: React.ReactNode }) {
-  const tag = combo.bracketTag ? TAG[combo.bracketTag] : null;
+  const t = useT();
+  const tag = combo.bracketTag ? tags(t)[combo.bracketTag] : null;
   return (
     <li className="flex flex-col gap-2 border-b border-line px-3.5 py-3 last:border-b-0">
       <div className="flex flex-wrap items-center gap-2 text-[13.5px]">
@@ -75,18 +100,20 @@ function ComboRow({ combo, extra }: { combo: ComboDTO; extra?: React.ReactNode }
         <div className="flex min-w-0 flex-1 flex-col gap-1 text-[13px]" style={{ minWidth: 200 }}>
           {combo.produces.length > 0 && (
             <span>
-              <span className="muted">Consigue: </span>
+              <span className="muted">{t("Consigue: ", "Produces: ")}</span>
               {combo.produces.join(" · ")}
             </span>
           )}
           {combo.requires.length > 0 && (
             <span>
-              <span className="muted">Necesita además: </span>
+              <span className="muted">{t("Necesita además: ", "Also requires: ")}</span>
               {combo.requires.join(" · ")}
             </span>
           )}
           {combo.manaValueNeeded > 0 && (
-            <span className="subtle text-xs">Maná para hacerlo: {combo.manaValueNeeded}</span>
+            <span className="subtle text-xs">
+              {t("Maná para hacerlo:", "Mana needed:")} {combo.manaValueNeeded}
+            </span>
           )}
         </div>
       </div>
@@ -107,10 +134,14 @@ export function CombosPanel({
   error: string | null;
   loading: boolean;
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const intl = useIntlLocale();
+  const STATUS = statuses(t);
   const [filter, setFilter] = useState<Filter>("all");
 
   if (error) return <Banner tone="out">{error}</Banner>;
-  if (!data) return <Loading>Buscando combos…</Loading>;
+  if (!data) return <Loading>{t("Buscando combos…", "Looking for combos…")}</Loading>;
 
   const owned = data.oneAway.filter((o) => o.status !== "buy");
   const shown =
@@ -127,15 +158,15 @@ export function CombosPanel({
       <section className="panel">
         <div className="panel-h">
           <span className="h2">
-            En tu mazo{" "}
+            {t("En tu mazo", "In your deck")}{" "}
             <span className="mono subtle" style={{ fontWeight: 400 }}>
               {data.included.length}
             </span>
           </span>
         </div>
         {data.included.length === 0 ? (
-          <EmptyState title="No tiene ningún combo completo">
-            Abajo tienes los que están a una carta.
+          <EmptyState title={t("No tiene ningún combo completo", "No complete combos")}>
+            {t("Abajo tienes los que están a una carta.", "Below are the ones one card away.")}
           </EmptyState>
         ) : (
           <ul style={{ listStyle: "none" }}>
@@ -149,7 +180,9 @@ export function CombosPanel({
       {data.keyCards.length > 0 && (
         <section className="panel">
           <div className="panel-h">
-            <span className="h2">Las cartas que más combos te abren</span>
+            <span className="h2">
+              {t("Las cartas que más combos te abren", "The cards that unlock the most combos")}
+            </span>
           </div>
           <div className="overflow-x-auto">
             <table className="table">
@@ -163,11 +196,15 @@ export function CombosPanel({
                         k.card.name
                       )}
                     </td>
-                    <td className="mono whitespace-nowrap">{k.combos} combos</td>
+                    <td className="mono whitespace-nowrap">
+                      {k.combos} {t("combos", "combos")}
+                    </td>
                     <td className="r whitespace-nowrap">
                       <span className={`pill ${STATUS[k.status].tone}`}>
                         {STATUS[k.status].label}
-                        {k.status === "buy" && k.price !== null && ` · ${formatEuros(k.price)}`}
+                        {k.status === "buy" &&
+                          k.price !== null &&
+                          ` · ${formatEuros(k.price, locale)}`}
                       </span>
                     </td>
                   </tr>
@@ -181,17 +218,20 @@ export function CombosPanel({
       <section className="panel">
         <div className="panel-h stack-sm py-2">
           <span className="h2">
-            A una carta{" "}
+            {t("A una carta", "One card away")}{" "}
             <span className="mono subtle" style={{ fontWeight: 400 }}>
-              {fmt(data.oneAwayTotal)}
+              {fmt(data.oneAwayTotal, locale)}
             </span>
           </span>
-          <div className="chips" role="radiogroup" aria-label="Filtrar">
+          <div className="chips" role="radiogroup" aria-label={t("Filtrar", "Filter")}>
             {(
               [
-                ["all", "Todos"],
-                ["owned", `Con tu colección (${owned.length})`],
-                ["buy", "Comprando"],
+                ["all", t("Todos", "All")],
+                [
+                  "owned",
+                  t(`Con tu colección (${owned.length})`, `With your collection (${owned.length})`),
+                ],
+                ["buy", t("Comprando", "Buying")],
               ] as const
             ).map(([f, label]) => (
               <button
@@ -210,8 +250,11 @@ export function CombosPanel({
         {shown.length === 0 ? (
           <p className="subtle p-3.5 text-[13px]">
             {filter === "owned"
-              ? "Ninguno se completa con cartas de tu colección."
-              : "No hay combos a una carta."}
+              ? t(
+                  "Ninguno se completa con cartas de tu colección.",
+                  "None can be completed with cards from your collection.",
+                )
+              : t("No hay combos a una carta.", "No combos one card away.")}
           </p>
         ) : (
           <ul style={{ listStyle: "none" }}>
@@ -221,11 +264,13 @@ export function CombosPanel({
                 combo={o.combo}
                 extra={
                   <>
-                    <span className="muted">· falta</span>
+                    <span className="muted">· {t("falta", "missing")}</span>
                     <b>{o.missing.name}</b>
                     <span className={`pill ${STATUS[o.status].tone}`}>
                       {STATUS[o.status].label}
-                      {o.status === "buy" && o.price !== null && ` · ${formatEuros(o.price)}`}
+                      {o.status === "buy" &&
+                        o.price !== null &&
+                        ` · ${formatEuros(o.price, locale)}`}
                     </span>
                   </>
                 }
@@ -235,14 +280,19 @@ export function CombosPanel({
         )}
         {data.oneAwayTotal > data.oneAway.length && (
           <p className="subtle px-3.5 pb-3 text-xs">
-            Se muestran los {data.oneAway.length} más interesantes de {fmt(data.oneAwayTotal)}.
+            {t(
+              `Se muestran los ${data.oneAway.length} más interesantes de ${fmt(data.oneAwayTotal, locale)}.`,
+              `Showing the ${data.oneAway.length} most interesting of ${fmt(data.oneAwayTotal, locale)}.`,
+            )}
           </p>
         )}
       </section>
 
       <p className="subtle text-xs">
-        Combos actualizados el {new Date(data.fetchedAt).toLocaleDateString("es")}. Las etiquetas
-        (temprano, fuerte…) cuentan para el bracket estimado.
+        {t(
+          `Combos actualizados el ${new Date(data.fetchedAt).toLocaleDateString(intl)}. Las etiquetas (temprano, fuerte…) cuentan para el bracket estimado.`,
+          `Combos updated on ${new Date(data.fetchedAt).toLocaleDateString(intl)}. The tags (early, strong…) count towards the estimated bracket.`,
+        )}
       </p>
     </div>
   );
