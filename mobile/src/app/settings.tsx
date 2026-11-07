@@ -3,8 +3,13 @@ import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
+import {
+  NOTIFICATION_GROUP_KEYS,
+  NOTIFICATION_GROUP_LABELS,
+} from "@/domain/social/notification-prefs";
 import type { AppInfoDTO, MyProfileDTO } from "@/server/dto";
 import type { MemberDTO } from "@/server/social-dto";
+import { ChangePassword, OpenSessions } from "~/components/account-security";
 import { Sheet } from "~/components/sheet";
 import { Card, PersonRow, SectionTitle, SwitchRow } from "~/components/social";
 import { toast } from "~/components/toast";
@@ -19,7 +24,10 @@ import { colors } from "~/lib/theme";
 
 const ALERT_OPTIONS: (number | null)[] = [null, 10, 15, 25, 40];
 
-/** Ajustes: cuenta, perfil público, privacidad, avisos de precio, bloqueados y mis datos. */
+/**
+ * Ajustes: cuenta (contraseña y sesiones), perfil público, privacidad, avisos, bloqueados y mis
+ * datos.
+ */
 export default function Settings() {
   const qc = useQueryClient();
   const profile = useQuery({
@@ -126,6 +134,29 @@ export default function Settings() {
         onChange={(v) => save.mutate({ tradesPublic: v })}
       />
 
+      <SectionTitle>Avisos</SectionTitle>
+      <T variant="small" style={{ paddingHorizontal: 16 }}>
+        Los que desactives no te llegarán ni al móvil ni a la web.
+      </T>
+      {NOTIFICATION_GROUP_KEYS.map((g) => (
+        <SwitchRow
+          key={g}
+          label={NOTIFICATION_GROUP_LABELS[g].label}
+          {...(NOTIFICATION_GROUP_LABELS[g].hint
+            ? { detail: NOTIFICATION_GROUP_LABELS[g].hint }
+            : {})}
+          value={!me.mutedNotifications.includes(g)}
+          disabled={save.isPending}
+          onChange={(on) =>
+            save.mutate({
+              mutedNotifications: on
+                ? me.mutedNotifications.filter((x) => x !== g)
+                : [...me.mutedNotifications, g],
+            })
+          }
+        />
+      ))}
+
       <SectionTitle>Avisos de precio</SectionTitle>
       <View style={{ paddingHorizontal: 16, gap: 8 }}>
         <T variant="small">
@@ -214,6 +245,7 @@ function AccountSection() {
   if (!session) return null;
   const verified = session.user.emailVerified;
   const hasGoogle = (accounts.data ?? []).some((a) => a.providerId === "google");
+  const hasPassword = (accounts.data ?? []).some((a) => a.providerId === "credential");
 
   return (
     <>
@@ -278,6 +310,13 @@ function AccountSection() {
             />
           ))}
       </View>
+      {hasPassword && (
+        <>
+          <SectionTitle>Cambiar la contraseña</SectionTitle>
+          <ChangePassword />
+        </>
+      )}
+      <OpenSessions />
     </>
   );
 }

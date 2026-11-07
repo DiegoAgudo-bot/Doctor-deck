@@ -12,14 +12,16 @@ export function useDebounced<T>(value: T, ms = 300): T {
 }
 
 /** Estado que se recuerda en el móvil (vista en rejilla o lista, orden…). */
-export function useStoredState<T>(key: string, initial: T): [T, (v: T) => void] {
+export function useStoredState<T>(key: string, initial: T): [T, (v: T) => void, boolean] {
   const [value, setValue] = useState(initial);
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     AsyncStorage.getItem(`pref:${key}`)
       .then((raw) => {
         if (raw) setValue(JSON.parse(raw) as T);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoaded(true));
   }, [key]);
   return [
     value,
@@ -27,5 +29,6 @@ export function useStoredState<T>(key: string, initial: T): [T, (v: T) => void] 
       setValue(v);
       AsyncStorage.setItem(`pref:${key}`, JSON.stringify(v)).catch(() => {});
     },
+    loaded,
   ];
 }

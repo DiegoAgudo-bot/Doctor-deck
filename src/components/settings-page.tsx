@@ -7,6 +7,7 @@ import { ChangePassword, OpenSessions } from "./account-security";
 import { DeleteAccountDialog } from "./delete-account-dialog";
 import {
   NOTIFICATION_GROUP_KEYS,
+  NOTIFICATION_GROUP_LABELS,
   type NotificationGroup,
 } from "@/domain/social/notification-prefs";
 import { USERNAME_HELP } from "@/domain/social/username";
@@ -118,26 +119,6 @@ function AccountSection({ google, mail }: { google: boolean; mail: boolean }) {
     </section>
   );
 }
-
-/** Qué avisos puedo silenciar (`NOTIFICATION_GROUPS`), con lo que ve el usuario. */
-const GROUP_LABELS: Record<NotificationGroup, { label: string; hint: string }> = {
-  follows: {
-    label: "Gente que sigo",
-    hint: "Mazos nuevos y cartas caras que añaden a su colección.",
-  },
-  prices: { label: "Bajadas de precio", hint: "De cartas que te faltan para tus mazos." },
-  trades: { label: "Cruces de intercambio", hint: "Alguien tiene algo de tu lista de deseos." },
-  proposals: {
-    label: "Propuestas de intercambio",
-    hint: "Te mandan una, la contraproponen, la aceptan…",
-  },
-  groups: {
-    label: "Grupos y partidas",
-    hint: "Alguien entra en tu grupo o te apunta a una partida.",
-  },
-  comments: { label: "Comentarios en tus mazos", hint: "" },
-  loans: { label: "Préstamos", hint: "Alguien te presta una carta." },
-};
 
 /** /settings: nombre de usuario, privacidad de la colección, avisos de precio y salir. */
 export function SettingsPage({ google, mail }: { google: boolean; mail: boolean }) {
@@ -318,9 +299,9 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
                 }}
               />
               <span>
-                {GROUP_LABELS[g].label}
-                {GROUP_LABELS[g].hint && (
-                  <span className="subtle block text-xs">{GROUP_LABELS[g].hint}</span>
+                {NOTIFICATION_GROUP_LABELS[g].label}
+                {NOTIFICATION_GROUP_LABELS[g].hint && (
+                  <span className="subtle block text-xs">{NOTIFICATION_GROUP_LABELS[g].hint}</span>
                 )}
               </span>
             </label>

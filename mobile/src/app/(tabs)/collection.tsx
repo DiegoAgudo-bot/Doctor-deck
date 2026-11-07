@@ -32,6 +32,7 @@ import { api } from "~/lib/api";
 import { euros, thousands } from "~/lib/format";
 import { conditionShort } from "~/lib/copies";
 import { useDebounced, useStoredState } from "~/lib/hooks";
+import { naturalDesc, useSharedCollectionLook } from "~/lib/prefs";
 import { pickImportFile } from "~/lib/import-file";
 import {
   activeFilters,
@@ -52,16 +53,28 @@ const SORTS = [
   { key: "coste", label: "Coste" },
 ] as const;
 type Sort = (typeof SORTS)[number]["key"];
+const SORT_KEYS = SORTS.map((s) => s.key);
 
 /** Mi colección agrupada por carta, como la de ManaBox: buscar, ordenar, filtrar, lista o rejilla. */
 export default function Collection() {
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
-  const [grid, setGrid] = useStoredState("collection.grid", false);
-  const [stored, setSort] = useStoredState<Sort | "valor">("collection.sort", "precio");
+  const [grid, setGrid, gridLoaded] = useStoredState("collection.grid", false);
+  const [stored, setSort, sortLoaded] = useStoredState<Sort | "valor">("collection.sort", "precio");
   // Antes había «Valor» (el total de las copias); quien lo tenía guardado pasa a «Precio».
   const sort: Sort = stored === "valor" ? "precio" : stored;
-  const [desc, setDesc] = useStoredState("collection.desc", true);
+  const [desc, setDesc, descLoaded] = useStoredState("collection.desc", true);
+  // Orden y vista, los mismos que en la web con la misma cuenta.
+  useSharedCollectionLook(
+    gridLoaded && sortLoaded && descLoaded,
+    { sort, desc, grid },
+    SORT_KEYS,
+    (p) => {
+      if (p.sort) setSort(p.sort as Sort);
+      if (p.desc !== undefined) setDesc(p.desc);
+      if (p.grid !== undefined) setGrid(p.grid);
+    },
+  );
   // Como ManaBox: una fila por variante (edición, foil, idioma, estado); o todas juntas por carta.
   const [by, setBy] = useStoredState<"copy" | "card">("collection.by", "copy");
   const [q, setQ] = useState("");
@@ -129,7 +142,7 @@ export default function Collection() {
     if (key === sort) setDesc(!desc);
     else {
       setSort(key);
-      setDesc(key !== "nombre" && key !== "coste");
+      setDesc(naturalDesc(key));
     }
   };
   const clearFilters = () => setFilters(EMPTY_FILTERS);

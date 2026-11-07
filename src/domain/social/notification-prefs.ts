@@ -19,6 +19,27 @@ export const NOTIFICATION_GROUPS = {
 
 export type NotificationGroup = keyof typeof NOTIFICATION_GROUPS;
 
+/** Qué avisos puedo silenciar (`NOTIFICATION_GROUPS`), con lo que ve el usuario. */
+export const NOTIFICATION_GROUP_LABELS: Record<NotificationGroup, { label: string; hint: string }> =
+  {
+    follows: {
+      label: "Gente que sigo",
+      hint: "Mazos nuevos y cartas caras que añaden a su colección.",
+    },
+    prices: { label: "Bajadas de precio", hint: "De cartas que te faltan para tus mazos." },
+    trades: { label: "Cruces de intercambio", hint: "Alguien tiene algo de tu lista de deseos." },
+    proposals: {
+      label: "Propuestas de intercambio",
+      hint: "Te mandan una, la contraproponen, la aceptan…",
+    },
+    groups: {
+      label: "Grupos y partidas",
+      hint: "Alguien entra en tu grupo o te apunta a una partida.",
+    },
+    comments: { label: "Comentarios en tus mazos", hint: "" },
+    loans: { label: "Préstamos", hint: "Alguien te presta una carta." },
+  };
+
 export const NOTIFICATION_GROUP_KEYS = Object.keys(NOTIFICATION_GROUPS) as NotificationGroup[];
 
 const isGroup = (g: string): g is NotificationGroup => g in NOTIFICATION_GROUPS;
