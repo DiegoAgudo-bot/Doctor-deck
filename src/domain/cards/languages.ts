@@ -65,4 +65,25 @@ export function normalizeLanguage(value: string | null | undefined): Language | 
 
 /** "ES", "JA"… para las etiquetas pequeñas; el nombre completo va en el `title`. */
 export const languageBadge = (lang: string) => lang.toUpperCase();
-export const languageLabel = (lang: string) => LANGUAGES[lang as Language] ?? lang;
+const LANGUAGES_EN: Record<Language, string> = {
+  en: "English",
+  es: "Spanish",
+  fr: "French",
+  de: "German",
+  it: "Italian",
+  pt: "Portuguese",
+  ja: "Japanese",
+  ko: "Korean",
+  ru: "Russian",
+  zhs: "Simplified Chinese",
+  zht: "Traditional Chinese",
+  he: "Hebrew",
+  la: "Latin",
+  grc: "Ancient Greek",
+  ar: "Arabic",
+  sa: "Sanskrit",
+  ph: "Phyrexian",
+};
+
+export const languageLabel = (lang: string, locale: "es" | "en" = "es") =>
+  (locale === "en" ? LANGUAGES_EN : LANGUAGES)[lang as Language] ?? lang;

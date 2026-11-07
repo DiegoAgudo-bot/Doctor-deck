@@ -8,13 +8,7 @@ import { CardHover } from "./card-image";
 import { CardPriceDialog } from "./card-price-dialog";
 import { formatChange, PriceChart } from "./price-chart";
 import { Banner, EmptyState, Loading } from "./ui";
-
-const PERIODS = [
-  [7, "7 días"],
-  [30, "30 días"],
-  [90, "90 días"],
-  [365, "1 año"],
-] as const;
+import { useLocale, useT } from "./i18n";
 
 function Movers({
   title,
@@ -27,6 +21,8 @@ function Movers({
   onOpen: (card: CardDTO) => void;
   empty: string;
 }) {
+  const t = useT();
+  const locale = useLocale();
   return (
     <section className="panel">
       <div className="panel-h">
@@ -53,17 +49,17 @@ function Movers({
                       {m.copies > 1 && <span className="subtle"> ×{m.copies}</span>}
                     </span>
                     <span className="mono subtle block text-xs">
-                      {formatEuros(m.before)} → {formatEuros(m.now)}
+                      {formatEuros(m.before, locale)} → {formatEuros(m.now, locale)}
                     </span>
                   </td>
                   <td className="r mono whitespace-nowrap">
                     <button
                       type="button"
                       className="linkbtn"
-                      title="Ver el histórico de precio"
+                      title={t("Ver el histórico de precio", "See the price history")}
                       onClick={() => onOpen(m.card)}
                     >
-                      {formatChange(m.valueDelta, m.percent)}
+                      {formatChange(m.valueDelta, m.percent, locale)}
                     </button>
                   </td>
                 </tr>
@@ -87,6 +83,14 @@ export function CollectionPrices({
   loggedIn: boolean;
   localPairs: [string, number][] | null;
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const PERIODS = [
+    [7, t("7 días", "7 days")],
+    [30, t("30 días", "30 days")],
+    [90, t("90 días", "90 days")],
+    [365, t("1 año", "1 year")],
+  ] as const;
   const [days, setDays] = useState<number>(30);
   const [data, setData] = useState<CollectionPricesDTO | null>(null);
   const [loading, setLoading] = useState(true);
@@ -112,22 +116,26 @@ export function CollectionPrices({
       })
       .catch(
         (e: unknown) =>
-          !cancelled && setError(e instanceof ApiError ? e.message : "Error al cargar"),
+          !cancelled &&
+          setError(e instanceof ApiError ? e.message : t("Error al cargar", "Couldn't load")),
       )
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t solo cambia con el idioma (recarga)
   }, [days, loggedIn, localPairs]);
 
   if (error) return <Banner tone="out">{error}</Banner>;
-  if (!data) return <Loading>Cargando precios…</Loading>;
+  if (!data) return <Loading>{t("Cargando precios…", "Loading prices…")}</Loading>;
   if (!data.latest) {
     return (
       <div className="panel">
-        <EmptyState title="Todavía no hay histórico de precios">
-          Cada noche se guarda el precio de las cartas de las colecciones y los mazos. Vuelve
-          mañana.
+        <EmptyState title={t("Todavía no hay histórico de precios", "No price history yet")}>
+          {t(
+            "Cada noche se guarda el precio de las cartas de las colecciones y los mazos. Vuelve mañana.",
+            "Every night the price of the cards in collections and decks is saved. Come back tomorrow.",
+          )}
         </EmptyState>
       </div>
     );
@@ -138,7 +146,7 @@ export function CollectionPrices({
   return (
     // Al cambiar de periodo se queda lo anterior, más tenue, hasta que llegan los datos.
     <div className="flex flex-col gap-4" style={{ opacity: loading ? 0.5 : 1 }}>
-      <div className="chips" role="radiogroup" aria-label="Periodo">
+      <div className="chips" role="radiogroup" aria-label={t("Periodo", "Period")}>
         {PERIODS.map(([d, label]) => (
           <button
             key={d}
@@ -155,18 +163,19 @@ export function CollectionPrices({
 
       <section className="panel">
         <div className="panel-h">
-          <span className="h2">Valor de la colección</span>
+          <span className="h2">{t("Valor de la colección", "Collection value")}</span>
           {first && last && first.date !== last.date && (
             <span className="mono text-[13px]">
               {formatChange(
                 Math.round((last.eur - first.eur) * 100) / 100,
                 first.eur > 0 ? Math.round(((last.eur - first.eur) / first.eur) * 1000) / 10 : null,
+                locale,
               )}
             </span>
           )}
         </div>
         <div className="p-3">
-          <PriceChart points={data.value} label="Valor de la colección" />
+          <PriceChart points={data.value} label={t("Valor de la colección", "Collection value")} />
         </div>
       </section>
 
@@ -175,22 +184,29 @@ export function CollectionPrices({
         style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
       >
         <Movers
-          title="Lo que más sube"
+          title={t("Lo que más sube", "Biggest gainers")}
           items={data.up}
           onOpen={setPriceCard}
-          empty="Nada ha subido en este periodo (o aún no hay dos días de precios)."
+          empty={t(
+            "Nada ha subido en este periodo (o aún no hay dos días de precios).",
+            "Nothing went up in this period (or there aren't two days of prices yet).",
+          )}
         />
         <Movers
-          title="Lo que más baja"
+          title={t("Lo que más baja", "Biggest losers")}
           items={data.down}
           onOpen={setPriceCard}
-          empty="Nada ha bajado en este periodo (o aún no hay dos días de precios)."
+          empty={t(
+            "Nada ha bajado en este periodo (o aún no hay dos días de precios).",
+            "Nothing went down in this period (or there aren't two days of prices yet).",
+          )}
         />
       </div>
       <p className="subtle text-xs">
-        Precio de referencia del mercado europeo de la impresión más barata de cada carta, guardado
-        cada noche (hay datos desde el {first?.date ?? data.latest}). Ordenado por lo que cambia el
-        valor de tus copias.
+        {t(
+          `Precio de referencia del mercado europeo de la impresión más barata de cada carta, guardado cada noche (hay datos desde el ${first?.date ?? data.latest}). Ordenado por lo que cambia el valor de tus copias.`,
+          `European market reference price of each card's cheapest printing, saved every night (data since ${first?.date ?? data.latest}). Sorted by how much the value of your copies changes.`,
+        )}
       </p>
       <CardPriceDialog card={priceCard} onClose={() => setPriceCard(null)} />
     </div>

@@ -7,6 +7,7 @@ import { tradeBalance, type TradeBalance } from "@/domain/trades/proposal";
 import type { TradeCopyDTO } from "@/server/dto";
 import { CardHover } from "./card-image";
 import { IconMinus, IconPlus } from "./icons";
+import { useLocale, useT } from "./i18n";
 
 export type Side = "give" | "get";
 
@@ -53,6 +54,7 @@ export function linesBalance(lines: readonly TradeLine[]): TradeBalance {
 
 /** Etiquetas de la copia: edición, foil e idioma (si no es inglés). */
 function CopyTags({ copy }: { copy: TradeCopyDTO }) {
+  const locale = useLocale();
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
       {copy.printing && (
@@ -65,7 +67,7 @@ function CopyTags({ copy }: { copy: TradeCopyDTO }) {
       )}
       {copy.foil && <span className="pill pill-warn">foil</span>}
       {copy.language && copy.language !== "en" && (
-        <span className="pill" title={languageLabel(copy.language)}>
+        <span className="pill" title={languageLabel(copy.language, locale)}>
           {languageBadge(copy.language)}
         </span>
       )}
@@ -84,23 +86,38 @@ export function BalanceBar({
   /** Si se puede editar, dice qué hacer para cuadrarla; si no, solo cuánto se desvía. */
   editable: boolean;
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const eur = (x: number) => formatEuros(x, locale);
   const off = Math.abs(balance.diff);
   return (
     <div className="panel flex flex-wrap items-center gap-x-5 gap-y-2 p-3.5 text-[13.5px]">
       <span>
-        Das <b className="mono">{formatEuros(balance.giveValue)}</b>
+        {t("Das", "You give")} <b className="mono">{eur(balance.giveValue)}</b>
       </span>
       <span>
-        Recibes <b className="mono">{formatEuros(balance.getValue)}</b>
+        {t("Recibes", "You get")} <b className="mono">{eur(balance.getValue)}</b>
       </span>
       <span className="ml-auto">
         {balance.balanced ? (
-          <span className="pill pill-in">Cuadrado{off > 0 ? ` (±${formatEuros(off)})` : ""}</span>
+          <span className="pill pill-in">
+            {t("Cuadrado", "Balanced")}
+            {off > 0 ? ` (±${eur(off)})` : ""}
+          </span>
         ) : (
-          <span className="pill pill-warn" title={`Margen: ${formatEuros(balance.tolerance)}`}>
+          <span
+            className="pill pill-warn"
+            title={`${t("Margen", "Margin")}: ${eur(balance.tolerance)}`}
+          >
             {balance.diff > 0
-              ? `Sales ganando ${formatEuros(off)}${editable ? `: añade algo para @${partner}` : ""}`
-              : `Das ${formatEuros(off)} de más${editable ? `: pide algo más a @${partner}` : ""}`}
+              ? t(
+                  `Sales ganando ${eur(off)}${editable ? `: añade algo para @${partner}` : ""}`,
+                  `You come out ${eur(off)} ahead${editable ? `: add something for @${partner}` : ""}`,
+                )
+              : t(
+                  `Das ${eur(off)} de más${editable ? `: pide algo más a @${partner}` : ""}`,
+                  `You give ${eur(off)} too much${editable ? `: ask @${partner} for something else` : ""}`,
+                )}
           </span>
         )}
       </span>
@@ -125,6 +142,9 @@ function Column({
   unavailable: ReadonlySet<string>;
   onChange: (copy: TradeCopyDTO, quantity: number) => void;
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const eur = (x: number) => formatEuros(x, locale);
   const [filter, setFilter] = useState("");
   const value = lines.reduce((n, l) => n + (l.copy.unitPrice ?? 0) * l.quantity, 0);
   const max = (copy: TradeCopyDTO) =>
@@ -138,10 +158,10 @@ function Column({
     <section className="panel flex min-w-0 flex-col">
       <div className="panel-h">
         <span className="h2">{title}</span>
-        <span className="mono subtle text-xs">{formatEuros(value)}</span>
+        <span className="mono subtle text-xs">{eur(value)}</span>
       </div>
       {lines.length === 0 ? (
-        <p className="subtle p-3.5 text-[13px]">Ninguna carta.</p>
+        <p className="subtle p-3.5 text-[13px]">{t("Ninguna carta.", "No cards.")}</p>
       ) : (
         <ul className="m-0 flex list-none flex-col p-0">
           {lines.map((l) => (
@@ -155,7 +175,10 @@ function Column({
                     type="button"
                     className="btn btn-ghost btn-icon"
                     style={{ width: 24, height: 24 }}
-                    aria-label={`Una copia menos de ${l.copy.card.name}`}
+                    aria-label={t(
+                      `Una copia menos de ${l.copy.card.name}`,
+                      `One fewer ${l.copy.card.name}`,
+                    )}
                     onClick={() => onChange(l.copy, l.quantity - 1)}
                   >
                     <IconMinus size={12} />
@@ -168,7 +191,10 @@ function Column({
                     className="btn btn-ghost btn-icon"
                     style={{ width: 24, height: 24 }}
                     disabled={l.quantity >= max(l.copy)}
-                    aria-label={`Una copia más de ${l.copy.card.name}`}
+                    aria-label={t(
+                      `Una copia más de ${l.copy.card.name}`,
+                      `One more ${l.copy.card.name}`,
+                    )}
                     onClick={() => onChange(l.copy, l.quantity + 1)}
                   >
                     <IconPlus size={12} />
@@ -186,12 +212,15 @@ function Column({
                 <CopyTags copy={l.copy} />
               </span>
               {unavailable.has(l.copy.card.oracleId) && (
-                <span className="pill pill-out" title="Ya no está en su lista para cambiar">
-                  no disponible
+                <span
+                  className="pill pill-out"
+                  title={t("Ya no está en su lista para cambiar", "No longer on their trade list")}
+                >
+                  {t("no disponible", "unavailable")}
                 </span>
               )}
               <span className="mono subtle whitespace-nowrap">
-                {l.copy.unitPrice !== null ? formatEuros(l.copy.unitPrice * l.quantity) : "—"}
+                {l.copy.unitPrice !== null ? eur(l.copy.unitPrice * l.quantity) : "—"}
               </span>
             </li>
           ))}
@@ -200,12 +229,12 @@ function Column({
       {editable && available && (
         <details className="border-t border-line">
           <summary className="cursor-pointer px-3.5 py-2 text-[13px]">
-            Añadir más ({addable.length})
+            {t("Añadir más", "Add more")} ({addable.length})
           </summary>
           <div className="flex flex-col gap-2 px-3.5 pb-3">
             <input
               className="input"
-              placeholder="Filtrar por nombre…"
+              placeholder={t("Filtrar por nombre…", "Filter by name…")}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             />
@@ -222,20 +251,24 @@ function Column({
                     <CopyTags copy={a} />
                   </span>
                   <span className="mono subtle whitespace-nowrap text-xs">
-                    {a.unitPrice !== null ? formatEuros(a.unitPrice) : "—"} · {a.quantity}
+                    {a.unitPrice !== null ? eur(a.unitPrice) : "—"} · {a.quantity}
                   </span>
                   <button
                     type="button"
                     className="btn btn-ghost btn-icon"
                     style={{ width: 24, height: 24 }}
-                    aria-label={`Añadir ${a.card.name}`}
+                    aria-label={t(`Añadir ${a.card.name}`, `Add ${a.card.name}`)}
                     onClick={() => onChange(a, (used.get(a.key) ?? 0) + 1)}
                   >
                     <IconPlus size={12} />
                   </button>
                 </li>
               ))}
-              {addable.length === 0 && <li className="subtle text-[13px]">Nada más que añadir.</li>}
+              {addable.length === 0 && (
+                <li className="subtle text-[13px]">
+                  {t("Nada más que añadir.", "Nothing else to add.")}
+                </li>
+              )}
             </ul>
           </div>
         </details>
@@ -264,6 +297,7 @@ export function TradeEditor({
   theirCopies?: TradeCopyDTO[] | null | undefined;
   unavailable?: readonly string[];
 }) {
+  const t = useT();
   const balance = useMemo(() => linesBalance(lines), [lines]);
   const missing = useMemo(() => new Set(unavailable), [unavailable]);
   const change = (side: Side) => (copy: TradeCopyDTO, quantity: number) => {
@@ -282,7 +316,7 @@ export function TradeEditor({
         style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
       >
         <Column
-          title={`Das a @${partner}`}
+          title={t(`Das a @${partner}`, `You give @${partner}`)}
           lines={lines.filter((l) => l.side === "give")}
           available={myCopies ?? null}
           editable={Boolean(onChange)}
@@ -290,7 +324,7 @@ export function TradeEditor({
           onChange={change("give")}
         />
         <Column
-          title={`Recibes de @${partner}`}
+          title={t(`Recibes de @${partner}`, `You get from @${partner}`)}
           lines={lines.filter((l) => l.side === "get")}
           available={theirCopies ?? null}
           editable={Boolean(onChange)}

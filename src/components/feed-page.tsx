@@ -7,15 +7,15 @@ import { CardImage } from "./card-image";
 import { Avatar } from "./games-ui";
 import { IconDecks, IconHeart, IconSwap, IconUsers } from "./icons";
 import { ago, Banner, EmptyState, TilesSkeleton } from "./ui";
-import { Link } from "@/components/i18n";
+import { Link, useLocale, useT, type T } from "@/components/i18n";
 
-const FILTERS: [string, string][] = [
-  ["", "Todo"],
-  ["deck", "Mazos"],
-  ["game", "Partidas"],
-  ["comment", "Comentarios"],
-  ["like", "Me gusta"],
-  ["trade", "Intercambios"],
+const filters = (t: T): [string, string][] => [
+  ["", t("Todo", "All")],
+  ["deck", t("Mazos", "Decks")],
+  ["game", t("Partidas", "Games")],
+  ["comment", t("Comentarios", "Comments")],
+  ["like", t("Me gusta", "Likes")],
+  ["trade", t("Intercambios", "Trades")],
 ];
 
 const who = (i: FeedItemDTO) => (
@@ -25,40 +25,68 @@ const who = (i: FeedItemDTO) => (
 );
 
 function FeedEntry({ item: i }: { item: FeedItemDTO }) {
+  const t = useT();
+  const locale = useLocale();
   const deck = "deck" in i ? i.deck : null;
   return (
     <li className={`feeditem feed-${i.type}`}>
       <Avatar m={i.actor} size={36} />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <p className="text-[13.5px]">
-          {i.type === "deck" && <>{who(i)} ha publicado un mazo</>}
+          {i.type === "deck" && (
+            <>
+              {who(i)} {t("ha publicado un mazo", "published a deck")}
+            </>
+          )}
           {i.type === "like" && (
             <>
-              A {who(i)} le gusta un mazo de{" "}
+              {locale === "en" ? (
+                <>{who(i)} liked a deck by </>
+              ) : (
+                <>A {who(i)} le gusta un mazo de </>
+              )}
               <Link href={`/u/${i.owner.username}`}>@{i.owner.username}</Link>
             </>
           )}
-          {i.type === "comment" && <>{who(i)} ha comentado</>}
+          {i.type === "comment" && (
+            <>
+              {who(i)} {t("ha comentado", "commented")}
+            </>
+          )}
           {i.type === "game" && (
             <>
-              {who(i)} {i.game.won ? "ha ganado" : "ha jugado"} una partida de {i.game.players}
-              {i.game.won && i.game.deckName ? ` con ${i.game.deckName}` : ""}
-              {!i.game.won && i.game.winner ? ` (ganó ${i.game.winner})` : ""}
+              {who(i)}{" "}
+              {i.game.won
+                ? t(
+                    `ha ganado una partida de ${i.game.players}`,
+                    `won a ${i.game.players}-player game`,
+                  )
+                : t(
+                    `ha jugado una partida de ${i.game.players}`,
+                    `played a ${i.game.players}-player game`,
+                  )}
+              {i.game.won && i.game.deckName ? ` ${t("con", "with")} ${i.game.deckName}` : ""}
+              {!i.game.won && i.game.winner ? ` (${t("ganó", "won by")} ${i.game.winner})` : ""}
               {i.game.group && (
                 <>
                   {" "}
-                  en <Link href={`/groups/${i.game.group.id}`}>{i.game.group.name}</Link>
+                  {t("en", "in")}{" "}
+                  <Link href={`/groups/${i.game.group.id}`}>{i.game.group.name}</Link>
                 </>
               )}
             </>
           )}
           {i.type === "trade" && (
             <>
-              {who(i)} ha cerrado un intercambio de {i.cards} {i.cards === 1 ? "carta" : "cartas"}{" "}
-              con <Link href={`/u/${i.partner.username}`}>@{i.partner.username}</Link>
+              {who(i)}{" "}
+              {t(
+                `ha cerrado un intercambio de ${i.cards} ${i.cards === 1 ? "carta" : "cartas"} con`,
+                `closed a trade of ${i.cards} ${i.cards === 1 ? "card" : "cards"} with`,
+              )}{" "}
+              <Link href={`/u/${i.partner.username}`}>@{i.partner.username}</Link>
             </>
           )}
-          <span className="subtle"> · {ago(i.at)}</span>
+          <span className="subtle"> · {ago(i.at, locale)}</span>
         </p>
         {deck && (
           <Link
@@ -81,7 +109,7 @@ function FeedEntry({ item: i }: { item: FeedItemDTO }) {
         )}
         {i.type === "game" && (
           <Link href={`/games/${i.game.id}`} className="text-xs">
-            Ver la partida
+            {t("Ver la partida", "See the game")}
           </Link>
         )}
       </div>
@@ -102,6 +130,8 @@ function FeedEntry({ item: i }: { item: FeedItemDTO }) {
 
 /** Feed de actividad de la gente que sigo y de mis grupos. `compact`: para la portada. */
 export function ActivityFeed({ compact = false }: { compact?: boolean }) {
+  const t = useT();
+  const FILTERS = filters(t);
   const [type, setType] = useState("");
   const [items, setItems] = useState<FeedItemDTO[] | null>(null);
   const [next, setNext] = useState<string | null>(null);
@@ -121,12 +151,16 @@ export function ActivityFeed({ compact = false }: { compact?: boolean }) {
         setNext(d.next);
         setFollowing(d.following);
       } catch (e) {
-        setError(e instanceof ApiError ? e.message : "No se pudo cargar la actividad");
+        setError(
+          e instanceof ApiError
+            ? e.message
+            : t("No se pudo cargar la actividad", "Couldn't load the activity"),
+        );
       } finally {
         setBusy(false);
       }
     },
-    [type, compact],
+    [type, compact, t],
   );
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- carga al montar o cambiar el filtro
@@ -138,13 +172,13 @@ export function ActivityFeed({ compact = false }: { compact?: boolean }) {
     <div className="flex flex-col gap-3">
       {!compact && (
         <div className="chips">
-          {FILTERS.map(([t, label]) => (
+          {FILTERS.map(([k, label]) => (
             <button
-              key={t}
+              key={k}
               type="button"
-              className={`chipbtn ${type === t ? "is-on" : ""}`}
-              aria-pressed={type === t}
-              onClick={() => setType(t)}
+              className={`chipbtn ${type === k ? "is-on" : ""}`}
+              aria-pressed={type === k}
+              onClick={() => setType(k)}
             >
               {label}
             </button>
@@ -152,23 +186,36 @@ export function ActivityFeed({ compact = false }: { compact?: boolean }) {
         </div>
       )}
       {error && <Banner tone="out">{error}</Banner>}
-      {!items && !error && <TilesSkeleton count={5} columns={1} label="Cargando la actividad…" />}
+      {!items && !error && (
+        <TilesSkeleton
+          count={5}
+          columns={1}
+          label={t("Cargando la actividad…", "Loading the activity…")}
+        />
+      )}
       {items && items.length === 0 && (
         <div className="panel">
           <EmptyState
-            title={following === 0 ? "Aún no sigues a nadie" : "Nada nuevo por aquí"}
+            title={
+              following === 0
+                ? t("Aún no sigues a nadie", "You don't follow anyone yet")
+                : t("Nada nuevo por aquí", "Nothing new here")
+            }
             action={
               <div className="flex flex-wrap justify-center gap-2">
                 <Link className={compact ? "btn" : "btn btn-primary"} href="/community">
-                  <IconUsers size={14} /> Buscar gente
+                  <IconUsers size={14} /> {t("Buscar gente", "Find people")}
                 </Link>
                 <Link className="btn" href="/groups">
-                  Crear un grupo
+                  {t("Crear un grupo", "Create a group")}
                 </Link>
               </div>
             }
           >
-            Aquí verás los mazos que publican, sus partidas, comentarios e intercambios.
+            {t(
+              "Aquí verás los mazos que publican, sus partidas, comentarios e intercambios.",
+              "Here you'll see the decks they publish, their games, comments and trades.",
+            )}
           </EmptyState>
         </div>
       )}
@@ -181,7 +228,7 @@ export function ActivityFeed({ compact = false }: { compact?: boolean }) {
       )}
       {compact && items && items.length > 6 && (
         <Link className="btn btn-ghost self-start" href="/feed">
-          Ver toda la actividad
+          {t("Ver toda la actividad", "See all activity")}
         </Link>
       )}
       {!compact && next && (
@@ -191,7 +238,7 @@ export function ActivityFeed({ compact = false }: { compact?: boolean }) {
           disabled={busy}
           onClick={() => void load(next)}
         >
-          {busy ? "Cargando…" : "Cargar más"}
+          {busy ? t("Cargando…", "Loading…") : t("Cargar más", "Load more")}
         </button>
       )}
     </div>
@@ -199,12 +246,18 @@ export function ActivityFeed({ compact = false }: { compact?: boolean }) {
 }
 
 export function FeedPage() {
+  const t = useT();
   return (
     <main className="page">
       <div className="flex flex-col gap-1">
-        <span className="eyebrow">Comunidad</span>
-        <h1 className="h1">Actividad</h1>
-        <p className="muted text-[13px]">Lo último de la gente que sigues y de tus grupos.</p>
+        <span className="eyebrow">{t("Comunidad", "Community")}</span>
+        <h1 className="h1">{t("Actividad", "Activity")}</h1>
+        <p className="muted text-[13px]">
+          {t(
+            "Lo último de la gente que sigues y de tus grupos.",
+            "The latest from people you follow and your groups.",
+          )}
+        </p>
       </div>
       <ActivityFeed />
     </main>

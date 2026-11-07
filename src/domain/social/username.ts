@@ -35,6 +35,9 @@ export function usernameProblem(username: string): UsernameProblem | null {
   return null;
 }
 
+export const USERNAME_HELP_EN =
+  "3 to 20 characters: lowercase letters without accents, numbers and _, starting with a letter.";
+
 export const USERNAME_HELP =
   "De 3 a 20 caracteres: letras minúsculas sin tildes, números y _, empezando por letra.";
 

@@ -40,6 +40,23 @@ export const NOTIFICATION_GROUP_LABELS: Record<NotificationGroup, { label: strin
     loans: { label: "Préstamos", hint: "Alguien te presta una carta." },
   };
 
+const NOTIFICATION_GROUP_LABELS_EN: Record<NotificationGroup, { label: string; hint: string }> = {
+  follows: {
+    label: "People I follow",
+    hint: "New decks and pricey cards they add to their collection.",
+  },
+  prices: { label: "Price drops", hint: "Of cards you're missing for your decks." },
+  trades: { label: "Trade matches", hint: "Someone has something from your wishlist." },
+  proposals: { label: "Trade proposals", hint: "You get one, it's countered, accepted…" },
+  groups: { label: "Groups and games", hint: "Someone joins your group or adds you to a game." },
+  comments: { label: "Comments on your decks", hint: "" },
+  loans: { label: "Loans", hint: "Someone lends you a card." },
+};
+
+/** Etiqueta de un grupo de avisos en el idioma pedido. */
+export const notificationGroupLabel = (g: NotificationGroup, locale: "es" | "en" = "es") =>
+  (locale === "en" ? NOTIFICATION_GROUP_LABELS_EN : NOTIFICATION_GROUP_LABELS)[g];
+
 export const NOTIFICATION_GROUP_KEYS = Object.keys(NOTIFICATION_GROUPS) as NotificationGroup[];
 
 const isGroup = (g: string): g is NotificationGroup => g in NOTIFICATION_GROUPS;

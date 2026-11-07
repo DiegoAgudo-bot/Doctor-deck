@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api, ApiError, storage } from "./api-client";
 import { Banner, Dialog } from "./ui";
-import { goTo } from "@/components/i18n";
+import { goTo, useT } from "@/components/i18n";
 
 /** Confirmar el borrado de la cuenta escribiendo el email y la contraseña (o, con Google, sin ella). */
 export function DeleteAccountDialog({
@@ -15,6 +15,7 @@ export function DeleteAccountDialog({
   email: string;
   onClose: () => void;
 }) {
+  const t = useT();
   const [confirm, setConfirm] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -33,7 +34,11 @@ export function DeleteAccountDialog({
       storage.remove("deck-doctor:mazo");
       goTo("/?account=deleted");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "No se pudo borrar la cuenta");
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : t("No se pudo borrar la cuenta", "Couldn't delete the account"),
+      );
       setBusy(false);
     }
   }
@@ -42,12 +47,12 @@ export function DeleteAccountDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Borrar mi cuenta"
+      title={t("Borrar mi cuenta", "Delete my account")}
       width={460}
       footer={
         <>
           <button type="button" className="btn" onClick={onClose}>
-            Cancelar
+            {t("Cancelar", "Cancel")}
           </button>
           <button
             type="button"
@@ -55,18 +60,20 @@ export function DeleteAccountDialog({
             disabled={!matches || busy}
             onClick={() => void remove()}
           >
-            {busy ? "Borrando…" : "Borrar para siempre"}
+            {busy ? t("Borrando…", "Deleting…") : t("Borrar para siempre", "Delete forever")}
           </button>
         </>
       }
     >
       <p className="text-[13.5px]">
-        Se borrarán tu perfil, tu colección, tus mazos, tus listas de intercambio, tus propuestas y
-        tus avisos. Si quieres conservar algo, descarga antes tus datos.
+        {t(
+          "Se borrarán tu perfil, tu colección, tus mazos, tus listas de intercambio, tus propuestas y tus avisos. Si quieres conservar algo, descarga antes tus datos.",
+          "Your profile, collection, decks, trade lists, proposals and notifications will be deleted. If you want to keep anything, download your data first.",
+        )}
       </p>
       <div className="field">
         <label className="label" htmlFor="confirm-email">
-          Escribe tu email para confirmar: <b>{email}</b>
+          {t("Escribe tu email para confirmar:", "Type your email to confirm:")} <b>{email}</b>
         </label>
         <input
           id="confirm-email"
@@ -78,7 +85,7 @@ export function DeleteAccountDialog({
       </div>
       <div className="field">
         <label className="label" htmlFor="confirm-password">
-          Tu contraseña
+          {t("Tu contraseña", "Your password")}
         </label>
         <input
           id="confirm-password"
@@ -89,8 +96,10 @@ export function DeleteAccountDialog({
           onChange={(e) => setPassword(e.target.value)}
         />
         <span className="hint">
-          Si entras solo con Google, déjala vacía (te pedirá volver a entrar si hace rato que lo
-          hiciste).
+          {t(
+            "Si entras solo con Google, déjala vacía (te pedirá volver a entrar si hace rato que lo hiciste).",
+            "If you only sign in with Google, leave it empty (you'll be asked to sign in again if it's been a while).",
+          )}
         </span>
       </div>
       {error && <Banner tone="out">{error}</Banner>}

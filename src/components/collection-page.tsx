@@ -24,12 +24,16 @@ import {
   type LocalCollection,
 } from "./local-collection";
 import { Banner, CardGridSkeleton, EmptyState, fmt } from "./ui";
-import { Link } from "@/components/i18n";
+import { Link, useLocale, useLocalePath, useT } from "@/components/i18n";
 
 type Tab = "cartas" | "precios" | "anadir" | "importar";
 
 /** /collection: ver la colección con filtros, añadir cartas sueltas e importar el CSV de ManaBox. */
 export function CollectionPage() {
+  const t = useT();
+  const locale = useLocale();
+  const lp = useLocalePath();
+  const n = (x: number) => fmt(x, locale);
   const { data, isPending } = authClient.useSession();
   const loggedIn = Boolean(data);
   const [tab, setTab] = useState<Tab>("cartas");
@@ -67,8 +71,13 @@ export function CollectionPage() {
       setStatus(st);
       setAccountAdded(added);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo cargar la colección");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : t("No se pudo cargar la colección", "Couldn't load the collection"),
+      );
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t solo cambia con el idioma (recarga)
   }, [loggedIn]);
 
   useEffect(() => {
@@ -99,7 +108,11 @@ export function CollectionPage() {
       await api(`/api/collection/cards/${encodeURIComponent(id)}`, { method: "DELETE" });
       notifyCollectionChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo quitar la carta");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : t("No se pudo quitar la carta", "Couldn't remove the card"),
+      );
     }
   }
 
@@ -113,26 +126,37 @@ export function CollectionPage() {
   const copies = overall?.copies ?? 0;
   const value = overall?.value ?? 0;
   const tabs: [Tab, string, number | null][] = [
-    ["cartas", "Mis cartas", overall?.cards ?? null],
-    ["precios", "Precios", null],
-    ["anadir", "Añadir cartas", null],
-    ["importar", "Importar CSV", null],
+    ["cartas", t("Mis cartas", "My cards"), overall?.cards ?? null],
+    ["precios", t("Precios", "Prices"), null],
+    ["anadir", t("Añadir cartas", "Add cards"), null],
+    ["importar", t("Importar CSV", "Import CSV"), null],
   ];
 
   return (
     <main className="page">
       <div className="stack-sm flex items-end justify-between gap-3">
-        <h1 className="h1">Mi colección</h1>
+        <h1 className="h1">{t("Mi colección", "My collection")}</h1>
         {overall && overall.cards > 0 && (
           <span className="muted text-[13px]">
             <b className="mono" style={{ color: "var(--color-text)" }}>
-              {fmt(copies)}
+              {n(copies)}
             </b>{" "}
-            copias · {fmt(overall.cards)} cartas distintas
-            {value > 0 && <> · valor aprox. {formatEuros(value)}</>}
+            {t("copias", "copies")} · {n(overall.cards)} {t("cartas distintas", "unique cards")}
+            {value > 0 && (
+              <>
+                {" "}
+                · {t("valor aprox.", "approx. value")} {formatEuros(value, locale)}
+              </>
+            )}
             {" · "}
-            <Link href="/community?sort=owned" title="Mazos públicos ordenados por cuánto tienes">
-              Mazos que puedes montar
+            <Link
+              href="/community?sort=owned"
+              title={t(
+                "Mazos públicos ordenados por cuánto tienes",
+                "Public decks sorted by how much you own",
+              )}
+            >
+              {t("Mazos que puedes montar", "Decks you can build")}
             </Link>
             {loggedIn && (
               <>
@@ -140,9 +164,12 @@ export function CollectionPage() {
                 <a
                   href="/api/collection/export"
                   download
-                  title="Tu colección en CSV, para llevarla a otra app"
+                  title={t(
+                    "Tu colección en CSV, para llevarla a otra app",
+                    "Your collection as CSV, to take to another app",
+                  )}
                 >
-                  Exportar CSV
+                  {t("Exportar CSV", "Export CSV")}
                 </a>
               </>
             )}
@@ -154,19 +181,32 @@ export function CollectionPage() {
         <Banner
           tone="info"
           action={
-            <Link className="btn btn-sm" href="/signup?next=/collection">
-              Crear cuenta
+            <Link
+              className="btn btn-sm"
+              href={`/signup?next=${encodeURIComponent(lp("/collection"))}`}
+            >
+              {t("Crear cuenta", "Create account")}
             </Link>
           }
         >
-          <b>Sin cuenta, tu colección se guarda solo en este navegador.</b>{" "}
-          <span className="muted">Con una cuenta la tendrás en cualquier dispositivo.</span>
+          <b>
+            {t(
+              "Sin cuenta, tu colección se guarda solo en este navegador.",
+              "Without an account, your collection is only saved in this browser.",
+            )}
+          </b>{" "}
+          <span className="muted">
+            {t(
+              "Con una cuenta la tendrás en cualquier dispositivo.",
+              "With an account you'll have it on any device.",
+            )}
+          </span>
         </Banner>
       )}
       {error && <Banner tone="out">{error}</Banner>}
 
-      <nav className="tabs" aria-label="Secciones de la colección">
-        {tabs.map(([id, label, n]) => (
+      <nav className="tabs" aria-label={t("Secciones de la colección", "Collection sections")}>
+        {tabs.map(([id, label, count]) => (
           <button
             key={id}
             type="button"
@@ -175,18 +215,18 @@ export function CollectionPage() {
             onClick={() => setTab(id)}
           >
             {label}
-            {n !== null && <span className="n">{fmt(n)}</span>}
+            {count !== null && <span className="n">{n(count)}</span>}
           </button>
         ))}
       </nav>
 
       {tab === "cartas" &&
         (overall === null ? (
-          <CardGridSkeleton label="Cargando tu colección…" />
+          <CardGridSkeleton label={t("Cargando tu colección…", "Loading your collection…")} />
         ) : overall.cards === 0 ? (
           <div className="panel">
             <EmptyState
-              title="Tu colección está vacía"
+              title={t("Tu colección está vacía", "Your collection is empty")}
               action={
                 <div className="flex gap-2">
                   <button
@@ -194,15 +234,18 @@ export function CollectionPage() {
                     className="btn btn-primary"
                     onClick={() => setTab("importar")}
                   >
-                    Importar un CSV
+                    {t("Importar un CSV", "Import a CSV")}
                   </button>
                   <button type="button" className="btn" onClick={() => setTab("anadir")}>
-                    Añadir cartas a mano
+                    {t("Añadir cartas a mano", "Add cards by hand")}
                   </button>
                 </div>
               }
             >
-              Importa el CSV de tu colección o añade cartas una a una.
+              {t(
+                "Importa el CSV de tu colección o añade cartas una a una.",
+                "Import your collection's CSV or add cards one by one.",
+              )}
             </EmptyState>
           </div>
         ) : (

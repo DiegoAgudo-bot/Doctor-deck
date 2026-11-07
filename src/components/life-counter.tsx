@@ -30,7 +30,7 @@ import { authClient } from "./auth-client";
 import { IconX } from "./icons";
 import { SYMBOL_URL } from "./mana";
 import { RecordGameDialog } from "./record-game-dialog";
-import { Link, useRouter } from "@/components/i18n";
+import { Link, useLocalePath, useRouter, useT } from "@/components/i18n";
 
 const KEY = "deck-doctor:life";
 
@@ -137,6 +137,7 @@ function PlayerTile({
   span: number;
   onChange: (g: LifeGame) => void;
 }) {
+  const t = useT();
   const p = game.players[index]!;
   const [panel, setPanel] = useState(false);
   // Lo ganado/perdido seguido: se ve mientras se sigue pulsando y se va 1,3 s después del último.
@@ -147,10 +148,10 @@ function PlayerTile({
   });
   useEffect(() => {
     if (!delta) return;
-    const t = delta.leaving
+    const timer = delta.leaving
       ? setTimeout(() => setDelta(null), 300)
       : setTimeout(() => setDelta((x) => x && { ...x, leaving: true }), 1300);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [delta]);
 
   const bump = (d: number) => {
@@ -179,18 +180,20 @@ function PlayerTile({
     <section
       className={`lifetile life-${p.color} ${out ? "is-out" : ""} ${game.active === index ? "is-active" : ""}`}
       style={{ gridColumn: `span ${span}`, gridRow: rotated ? 1 : 3 }}
-      aria-label={`${p.name}: ${p.life} vidas`}
+      aria-label={`${p.name}: ${p.life} ${t("vidas", "life")}`}
     >
       <div className={`lifetile-inner ${rotated ? "is-rotated" : ""}`}>
         <div className="lifetile-head">
           <span className="lifetile-name">{p.name}</span>
-          {game.active === index && !out && <span className="lifetile-turn">Su turno</span>}
+          {game.active === index && !out && (
+            <span className="lifetile-turn">{t("Su turno", "Their turn")}</span>
+          )}
         </div>
 
         <button
           type="button"
           className="lifezone lifezone-minus"
-          aria-label="Quitar una vida"
+          aria-label={t("Quitar una vida", "Lose one life")}
           {...minus}
         >
           <span>−</span>
@@ -198,7 +201,7 @@ function PlayerTile({
         <button
           type="button"
           className="lifezone lifezone-plus"
-          aria-label="Sumar una vida"
+          aria-label={t("Sumar una vida", "Gain one life")}
           {...plus}
         >
           <span>+</span>
@@ -214,14 +217,14 @@ function PlayerTile({
             </span>
           )}
           <b>{p.life}</b>
-          {out && <span className="lifetile-out">Eliminado</span>}
+          {out && <span className="lifetile-out">{t("Eliminado", "Out")}</span>}
         </div>
 
         <div className="lifetile-foot">
           {p.poison > 0 && (
             <span
               className={`lifechip ${p.poison >= LETHAL_POISON - 3 ? "danger" : ""}`}
-              title="Veneno"
+              title={t("Veneno", "Poison")}
             >
               <img src={`${SYMBOL_URL}P.svg`} alt="" /> {p.poison}
             </span>
@@ -229,7 +232,10 @@ function PlayerTile({
           {cmdTotal > 0 && (
             <span
               className={`lifechip ${worstCmd >= LETHAL_COMMANDER - 5 ? "danger" : ""}`}
-              title="Daño de comandante (el máximo de un solo comandante)"
+              title={t(
+                "Daño de comandante (el máximo de un solo comandante)",
+                "Commander damage (the most from a single commander)",
+              )}
             >
               ⚔ {worstCmd}
             </span>
@@ -238,20 +244,27 @@ function PlayerTile({
             type="button"
             className="lifechip lifechip-btn"
             onClick={() => setPanel(true)}
-            aria-label={`Daño de comandante y veneno de ${p.name}`}
+            aria-label={t(
+              `Daño de comandante y veneno de ${p.name}`,
+              `${p.name}'s commander damage and poison`,
+            )}
           >
             ⚔ ☠ …
           </button>
         </div>
 
         {panel && (
-          <div className="lifepanel" role="dialog" aria-label={`Contadores de ${p.name}`}>
+          <div
+            className="lifepanel"
+            role="dialog"
+            aria-label={t(`Contadores de ${p.name}`, `${p.name}'s counters`)}
+          >
             <div className="lifepanel-head">
               <b>{p.name}</b>
               <button
                 type="button"
                 className="btn btn-ghost btn-icon"
-                aria-label="Cerrar"
+                aria-label={t("Cerrar", "Close")}
                 onClick={() => setPanel(false)}
               >
                 <IconX size={14} />
@@ -269,7 +282,7 @@ function PlayerTile({
                 />
               ))}
               <Counter
-                label="Veneno"
+                label={t("Veneno", "Poison")}
                 value={p.poison}
                 danger={p.poison >= LETHAL_POISON - 3}
                 onDelta={(d) => onChange(changePoison(gameRef.current, index, d))}
@@ -281,14 +294,14 @@ function PlayerTile({
                 checked={p.partner ?? false}
                 onChange={(e) => onChange(setPartner(gameRef.current, index, e.target.checked))}
               />
-              <span>Juega con dos comandantes</span>
+              <span>{t("Juega con dos comandantes", "Plays with two commanders")}</span>
             </label>
             <button
               type="button"
               className="btn btn-sm"
               onClick={() => onChange(setConceded(gameRef.current, index, !p.conceded))}
             >
-              {p.conceded ? "Vuelve a la partida" : "Concede"}
+              {p.conceded ? t("Vuelve a la partida", "Back in the game") : t("Concede", "Concede")}
             </button>
           </div>
         )}
@@ -310,6 +323,7 @@ function Counter({
   color?: PlayerColor;
   danger: boolean;
 }) {
+  const t = useT();
   const minus = useHold(() => onDelta(-1));
   const plus = useHold(() => onDelta(1));
   return (
@@ -319,11 +333,11 @@ function Counter({
         {label}
       </span>
       <div className="lifecounter-row">
-        <button type="button" className="btn btn-icon" aria-label="Menos" {...minus}>
+        <button type="button" className="btn btn-icon" aria-label={t("Menos", "Less")} {...minus}>
           −
         </button>
         <b className="mono">{value}</b>
-        <button type="button" className="btn btn-icon" aria-label="Más" {...plus}>
+        <button type="button" className="btn btn-icon" aria-label={t("Más", "More")} {...plus}>
           +
         </button>
       </div>
@@ -334,6 +348,8 @@ function Counter({
 /** Contador de vidas de Commander a pantalla completa, para jugar con el móvil en la mesa. */
 export function LifeCounter() {
   const router = useRouter();
+  const t = useT();
+  const lp = useLocalePath();
   const { data } = authClient.useSession();
   const loggedIn = !!data?.user;
   const [s, setS] = useState<Stored>(DEFAULTS);
@@ -425,17 +441,19 @@ export function LifeCounter() {
     return (
       <main className="page" style={{ gap: 18 }}>
         <div className="flex flex-col gap-1">
-          <span className="eyebrow">Contador de vidas</span>
-          <h1 className="h1">A jugar</h1>
+          <span className="eyebrow">{t("Contador de vidas", "Life counter")}</span>
+          <h1 className="h1">{t("A jugar", "Let's play")}</h1>
           <p className="muted text-[13px]">
-            Vidas, daño de comandante y veneno, a pantalla completa en el móvil. Al acabar, registra
-            la partida para la clasificación de tu grupo.
+            {t(
+              "Vidas, daño de comandante y veneno, a pantalla completa en el móvil. Al acabar, registra la partida para la clasificación de tu grupo.",
+              "Life, commander damage and poison, full screen on your phone. When you're done, record the game for your group's standings.",
+            )}
           </p>
         </div>
 
         <div className="panel flex flex-col gap-4 p-4">
           <div className="field">
-            <span className="label">Jugadores</span>
+            <span className="label">{t("Jugadores", "Players")}</span>
             <div className="chips">
               {Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => i + MIN_PLAYERS).map(
                 (n) => (
@@ -453,7 +471,7 @@ export function LifeCounter() {
             </div>
           </div>
           <div className="field">
-            <span className="label">Vidas</span>
+            <span className="label">{t("Vidas", "Life")}</span>
             <div className="chips">
               {[20, 30, 40].map((n) => (
                 <button
@@ -470,13 +488,13 @@ export function LifeCounter() {
           </div>
           {groups.length > 0 && (
             <label className="field">
-              <span className="label">Grupo</span>
+              <span className="label">{t("Grupo", "Group")}</span>
               <select
                 className="select"
                 value={s.groupId}
                 onChange={(e) => void pickGroup(e.target.value)}
               >
-                <option value="">Sin grupo</option>
+                <option value="">{t("Sin grupo", "No group")}</option>
                 {groups.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}
@@ -486,14 +504,14 @@ export function LifeCounter() {
             </label>
           )}
           <div className="field">
-            <span className="label">Nombres</span>
+            <span className="label">{t("Nombres", "Names")}</span>
             <div className="grid gap-2 sm:grid-cols-2">
               {names.map((n, i) => (
                 <label key={i} className="lifename">
                   <i className={`dot life-dot-${PLAYER_COLORS[i % PLAYER_COLORS.length]}`} />
                   <input
                     className="input"
-                    placeholder={`Jugador ${i + 1}`}
+                    placeholder={t(`Jugador ${i + 1}`, `Player ${i + 1}`)}
                     value={n}
                     maxLength={40}
                     onChange={(e) => setName(i, e.target.value)}
@@ -507,10 +525,15 @@ export function LifeCounter() {
             className="btn btn-primary btn-lg"
             onClick={() => {
               setDismissed(null);
-              setGame(newLifeGame(names, s.life));
+              setGame(
+                newLifeGame(
+                  names.map((n, i) => n.trim() || t(`Jugador ${i + 1}`, `Player ${i + 1}`)),
+                  s.life,
+                ),
+              );
             }}
           >
-            Empezar partida
+            {t("Empezar partida", "Start game")}
           </button>
         </div>
       </main>
@@ -538,7 +561,7 @@ export function LifeCounter() {
         <button
           type="button"
           className="lifehub-btn"
-          aria-label="Menú"
+          aria-label={t("Menú", "Menu")}
           aria-expanded={menu}
           onClick={() => setMenu((m) => !m)}
         >
@@ -546,14 +569,14 @@ export function LifeCounter() {
         </button>
         <button type="button" className="lifehub-turn" onClick={() => setGame(nextTurn(game))}>
           <span>T{game.turn}</span>
-          <small>Pasar turno</small>
+          <small>{t("Pasar turno", "Pass turn")}</small>
         </button>
       </div>
 
       {menu && (
         <div className="lifemenu" role="menu">
           <span className="subtle text-xs">
-            Turno {game.turn} · {minutes} min
+            {t("Turno", "Turn")} {game.turn} · {minutes} min
           </span>
           <button
             type="button"
@@ -563,7 +586,7 @@ export function LifeCounter() {
               setRecord(true);
             }}
           >
-            Registrar partida
+            {t("Registrar partida", "Record game")}
           </button>
           <button
             type="button"
@@ -574,7 +597,7 @@ export function LifeCounter() {
               setGame(rematch(game));
             }}
           >
-            Revancha (mismos jugadores)
+            {t("Revancha (mismos jugadores)", "Rematch (same players)")}
           </button>
           <button
             type="button"
@@ -584,26 +607,32 @@ export function LifeCounter() {
               setGame(null);
             }}
           >
-            Salir de la mesa
+            {t("Salir de la mesa", "Leave the table")}
           </button>
         </div>
       )}
 
       {winner !== null && dismissed !== game.startedAt && !record && (
-        <div className="lifewin" role="dialog" aria-label="Fin de la partida">
+        <div className="lifewin" role="dialog" aria-label={t("Fin de la partida", "Game over")}>
           <span className="lifewin-crown">♛</span>
-          <b>Gana {game.players[winner]!.name}</b>
+          <b>
+            {t("Gana", "Winner:")} {game.players[winner]!.name}
+          </b>
           <span className="subtle">
-            {game.turn} {game.turn === 1 ? "turno" : "turnos"} · {minutes} min
+            {game.turn} {game.turn === 1 ? t("turno", "turn") : t("turnos", "turns")} · {minutes}{" "}
+            min
           </span>
           <div className="flex flex-wrap justify-center gap-2">
             {loggedIn ? (
               <button type="button" className="btn btn-primary" onClick={() => setRecord(true)}>
-                Registrar partida
+                {t("Registrar partida", "Record game")}
               </button>
             ) : (
-              <Link className="btn btn-primary" href="/login?next=/play">
-                Entra para registrarla
+              <Link
+                className="btn btn-primary"
+                href={`/login?next=${encodeURIComponent(lp("/play"))}`}
+              >
+                {t("Entra para registrarla", "Sign in to record it")}
               </Link>
             )}
             <button
@@ -614,14 +643,14 @@ export function LifeCounter() {
                 setGame(rematch(game));
               }}
             >
-              Revancha
+              {t("Revancha", "Rematch")}
             </button>
             <button
               type="button"
               className="btn btn-ghost"
               onClick={() => setDismissed(game.startedAt)}
             >
-              Seguir
+              {t("Seguir", "Keep playing")}
             </button>
           </div>
         </div>

@@ -10,7 +10,7 @@ import { memberLabel, MemberLink, playedOn } from "./games-ui";
 import { IconPlus, IconTrash } from "./icons";
 import { NOTIFICATIONS_EVENT } from "./local-collection";
 import { ago, Banner, Dialog, EmptyState, Loading } from "./ui";
-import { Link } from "@/components/i18n";
+import { Link, useIntlLocale, useLocale, useT } from "@/components/i18n";
 
 const json = (body: unknown) => ({
   headers: { "Content-Type": "application/json" },
@@ -32,6 +32,7 @@ export function LendDialog({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const t = useT();
   const [card, setCard] = useState<CardDTO | null>(initial);
   const [to, setTo] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -59,7 +60,11 @@ export function LendDialog({
       setNote("");
       onDone();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "No se pudo apuntar el préstamo");
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : t("No se pudo apuntar el préstamo", "Couldn't record the loan"),
+      );
     } finally {
       setBusy(false);
     }
@@ -69,12 +74,12 @@ export function LendDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Prestar una carta"
+      title={t("Prestar una carta", "Lend a card")}
       width={460}
       footer={
         <>
           <button type="button" className="btn" onClick={onClose}>
-            Cancelar
+            {t("Cancelar", "Cancel")}
           </button>
           <button
             type="button"
@@ -82,7 +87,7 @@ export function LendDialog({
             disabled={busy || !card || !to.trim()}
             onClick={() => void save()}
           >
-            Apuntar préstamo
+            {t("Apuntar préstamo", "Record loan")}
           </button>
         </>
       }
@@ -101,27 +106,27 @@ export function LendDialog({
                 className="linkbtn self-start text-xs"
                 onClick={() => setCard(null)}
               >
-                Otra carta
+                {t("Otra carta", "Another card")}
               </button>
             )}
           </div>
         </div>
       ) : (
-        <CardSearch id="lend-card" label="Carta" onPick={setCard} autoFocus />
+        <CardSearch id="lend-card" label={t("Carta", "Card")} onPick={setCard} autoFocus />
       )}
       <div className="grid gap-2.5" style={{ gridTemplateColumns: "minmax(0, 1fr) 90px" }}>
         <label className="field">
-          <span className="label">A quién</span>
+          <span className="label">{t("A quién", "To whom")}</span>
           <input
             className="input"
-            placeholder="@usuario o un nombre"
+            placeholder={t("@usuario o un nombre", "@username or a name")}
             value={to}
             maxLength={60}
             onChange={(e) => setTo(e.target.value)}
           />
         </label>
         <label className="field">
-          <span className="label">Copias</span>
+          <span className="label">{t("Copias", "Copies")}</span>
           <input
             className="input"
             type="number"
@@ -133,18 +138,20 @@ export function LendDialog({
         </label>
       </div>
       <label className="field">
-        <span className="label">Nota (opcional)</span>
+        <span className="label">{t("Nota (opcional)", "Note (optional)")}</span>
         <input
           className="input"
-          placeholder="Para el torneo del sábado"
+          placeholder={t("Para el torneo del sábado", "For Saturday's tournament")}
           value={note}
           maxLength={200}
           onChange={(e) => setNote(e.target.value)}
         />
       </label>
       <p className="subtle text-xs">
-        Sigue siendo tuya, pero mientras no te la devuelvan cuenta como ocupada: no se propone en
-        tus mazos ni sale en tu lista para cambiar. Con @usuario, le llega un aviso.
+        {t(
+          "Sigue siendo tuya, pero mientras no te la devuelvan cuenta como ocupada: no se propone en tus mazos ni sale en tu lista para cambiar. Con @usuario, le llega un aviso.",
+          "It's still yours, but until it's returned it counts as in use: it isn't suggested for your decks or listed for trade. With @username, they get a notification.",
+        )}
       </p>
     </Dialog>
   );
@@ -161,6 +168,9 @@ function LoanRow({
   onReturned: () => void;
   onDelete: () => void;
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const intl = useIntlLocale();
   const who = mine
     ? loan.borrower
       ? memberLabel(loan.borrower)
@@ -177,7 +187,7 @@ function LoanRow({
           {loan.name}
         </b>
         <span className="subtle text-xs">
-          {mine ? "A " : "De "}
+          {mine ? t("A ", "To ") : t("De ", "From ")}
           {mine && loan.borrower ? (
             <MemberLink m={loan.borrower} />
           ) : !mine ? (
@@ -186,22 +196,24 @@ function LoanRow({
             who
           )}
           {" · "}
-          {ago(loan.createdAt)}
-          {loan.returnedAt ? ` · devuelta el ${playedOn(loan.returnedAt)}` : ""}
+          {ago(loan.createdAt, locale)}
+          {loan.returnedAt
+            ? ` · ${t("devuelta el", "returned on")} ${playedOn(loan.returnedAt, intl)}`
+            : ""}
         </span>
         {loan.note && <span className="muted truncate text-[12.5px]">{loan.note}</span>}
       </div>
       {!loan.returnedAt && (
         <button type="button" className="btn btn-sm" onClick={onReturned}>
-          {mine ? "Me la devolvió" : "Ya la devolví"}
+          {mine ? t("Me la devolvió", "Got it back") : t("Ya la devolví", "I returned it")}
         </button>
       )}
       {mine && (
         <button
           type="button"
           className="btn btn-ghost btn-icon"
-          aria-label="Borrar el préstamo"
-          title="Borrar (si lo apuntaste por error)"
+          aria-label={t("Borrar el préstamo", "Delete the loan")}
+          title={t("Borrar (si lo apuntaste por error)", "Delete (if you recorded it by mistake)")}
           onClick={onDelete}
         >
           <IconTrash size={13} />
@@ -213,6 +225,7 @@ function LoanRow({
 
 /** /loans: lo que he prestado y lo que me han prestado. */
 export function LoansPage() {
+  const t = useT();
   const [loans, setLoans] = useState<LoansDTO | null>(null);
   const [all, setAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -221,8 +234,10 @@ export function LoansPage() {
   const load = useCallback(() => {
     api<LoansDTO>(`/api/loans${all ? "?all=1" : ""}`)
       .then(setLoans)
-      .catch((e: unknown) => setError(e instanceof ApiError ? e.message : "No se pudo cargar"));
-  }, [all]);
+      .catch((e: unknown) =>
+        setError(e instanceof ApiError ? e.message : t("No se pudo cargar", "Couldn't load")),
+      );
+  }, [all, t]);
   useEffect(load, [load]);
 
   const act = (l: LoanDTO, del: boolean) =>
@@ -234,30 +249,34 @@ export function LoansPage() {
         load();
         window.dispatchEvent(new Event(NOTIFICATIONS_EVENT));
       })
-      .catch((e: unknown) => setError(e instanceof ApiError ? e.message : "No se pudo guardar"));
+      .catch((e: unknown) =>
+        setError(e instanceof ApiError ? e.message : t("No se pudo guardar", "Couldn't save")),
+      );
 
   return (
     <main className="page">
       <div className="stack-sm flex items-end gap-3">
         <div className="flex flex-1 flex-col gap-1">
-          <span className="eyebrow">Entre amigos</span>
-          <h1 className="h1">Préstamos</h1>
+          <span className="eyebrow">{t("Entre amigos", "Among friends")}</span>
+          <h1 className="h1">{t("Préstamos", "Loans")}</h1>
           <p className="muted text-[13px]">
-            Las cartas que has dejado y las que te han dejado. Las prestadas siguen en tu colección
-            pero cuentan como ocupadas.
+            {t(
+              "Las cartas que has dejado y las que te han dejado. Las prestadas siguen en tu colección pero cuentan como ocupadas.",
+              "Cards you've lent and cards you've borrowed. Lent cards stay in your collection but count as in use.",
+            )}
           </p>
         </div>
         <button type="button" className="btn btn-primary" onClick={() => setLending(true)}>
-          <IconPlus size={14} /> Prestar una carta
+          <IconPlus size={14} /> {t("Prestar una carta", "Lend a card")}
         </button>
       </div>
       {error && <Banner tone="out">{error}</Banner>}
-      {!loans && !error && <Loading>Cargando préstamos…</Loading>}
+      {!loans && !error && <Loading>{t("Cargando préstamos…", "Loading loans…")}</Loading>}
       {loans && (
         <>
           <label className="check self-start">
             <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} />
-            Ver también los devueltos
+            {t("Ver también los devueltos", "Also show returned ones")}
           </label>
           <div
             className="grid-1-sm grid gap-4"
@@ -265,13 +284,16 @@ export function LoansPage() {
           >
             <section className="flex flex-col gap-2">
               <h2 className="h2">
-                He prestado{" "}
+                {t("He prestado", "I've lent")}{" "}
                 <span className="subtle">{loans.lent.filter((l) => !l.returnedAt).length}</span>
               </h2>
               {loans.lent.length === 0 ? (
                 <div className="panel">
-                  <EmptyState title="No tienes nada prestado">
-                    Apunta aquí lo que dejas para no perderle la pista.
+                  <EmptyState title={t("No tienes nada prestado", "You haven't lent anything")}>
+                    {t(
+                      "Apunta aquí lo que dejas para no perderle la pista.",
+                      "Record what you lend here so you don't lose track of it.",
+                    )}
                   </EmptyState>
                 </div>
               ) : (
@@ -290,14 +312,18 @@ export function LoansPage() {
             </section>
             <section className="flex flex-col gap-2">
               <h2 className="h2">
-                Me han prestado{" "}
+                {t("Me han prestado", "I've borrowed")}{" "}
                 <span className="subtle">{loans.borrowed.filter((l) => !l.returnedAt).length}</span>
               </h2>
               {loans.borrowed.length === 0 ? (
                 <div className="panel">
-                  <EmptyState title="Nadie te ha dejado nada">
-                    Cuando alguien te preste una carta con tu usuario, aparecerá aquí.{" "}
-                    <Link href="/groups">Busca en tus grupos</Link> quién tiene lo que te falta.
+                  <EmptyState title={t("Nadie te ha dejado nada", "Nobody has lent you anything")}>
+                    {t(
+                      "Cuando alguien te preste una carta con tu usuario, aparecerá aquí.",
+                      "When someone lends you a card with your username, it'll show up here.",
+                    )}{" "}
+                    <Link href="/groups">{t("Busca en tus grupos", "Look in your groups")}</Link>{" "}
+                    {t("quién tiene lo que te falta.", "for who has what you're missing.")}
                   </EmptyState>
                 </div>
               ) : (

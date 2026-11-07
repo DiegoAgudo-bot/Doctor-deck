@@ -1,7 +1,8 @@
 /** "Chrome en Android", "Safari en iPhone", "App de Android"… a partir del User-Agent. */
-export function deviceLabel(ua: string | null | undefined): string {
-  if (!ua) return "Dispositivo desconocido";
-  if (/okhttp|expo|doctordeck/i.test(ua)) return "App de Android";
+export function deviceLabel(ua: string | null | undefined, locale: "es" | "en" = "es"): string {
+  const en = locale === "en";
+  if (!ua) return en ? "Unknown device" : "Dispositivo desconocido";
+  if (/okhttp|expo|doctordeck/i.test(ua)) return en ? "Android app" : "App de Android";
   const os = /android/i.test(ua)
     ? "Android"
     : /iphone|ipad/i.test(ua)
@@ -21,6 +22,8 @@ export function deviceLabel(ua: string | null | undefined): string {
         ? "Chrome"
         : /safari/i.test(ua)
           ? "Safari"
-          : "Navegador";
-  return os ? `${browser} en ${os}` : browser;
+          : en
+            ? "Browser"
+            : "Navegador";
+  return os ? `${browser} ${en ? "on" : "en"} ${os}` : browser;
 }

@@ -89,6 +89,7 @@ const EN: Record<string, string> = {
   trade_unavailable: "Some cards are no longer available for trade.",
   trade_missing_copies: "Someone no longer has some of the copies: nothing has been moved.",
   trade_blocked: "You can't trade with this person.",
+  collection_private: "This collection is private.",
 };
 
 /** El mensaje de un error de la API en el idioma de la página. */
