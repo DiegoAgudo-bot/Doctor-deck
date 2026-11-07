@@ -708,19 +708,20 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     (`(SET) número` → impresión con `findPrintingsBySetNumbers`), primero sin guardar (vista previa
     con `BrowserCollectionRepository`) y luego como cartas sueltas; `looksLikeDeck` si trae
     comandante o 60–101 cartas. Reemplazar con el CSV sigue siendo `POST /api/collection`.
-    En la app, lo compartido va a un buzón (`lib/share-inbox.ts`) por dos vías: el evento del
-    módulo y, por si se pierde, `takeShareIntent` (función nativa del parche, que guarda lo último
-    hasta que se recoge), que `useSharedContent` (`_layout.tsx`) pide al arrancar y al volver a
-    primer plano. Mientras haya algo sin recoger se abre `/share` (al arrancar, `index.tsx`
-    redirige allí), que lo recoge al leerlo (la misma entrega por la otra vía se ignora 15 s) y lee el fichero con la ruta codificada
-    (`shareFileUri`: los nombres con espacios rompían la lectura; 20 s de tope), lo parte en tandas
+    En la app (1.9.0), lo compartido lo recibe una actividad nativa propia, no la de React Native
+    (`ShareReceiverActivity`, `mobile/plugins/share-receiver/` + `with-share-receiver.js`; antes
+    `expo-share-intent` lo mandaba a la actividad principal y, con la app en segundo plano, se
+    quedaba en negro): guarda el texto o una copia del fichero (≤ 30 MB) en
+    `files/shared-inbox/pending.json` y abre la app como desde el icono. `pollNativeShare`
+    (`lib/share-intake.ts`, `itemFromPending` en `share-pending.ts`) lo recoge al arrancar y al
+    volver a primer plano y lo pasa al buzón (`lib/share-inbox.ts`; si ya hay algo sin recoger, lo
+    nuevo espera). Mientras haya algo sin recoger se abre `/share` (al arrancar, `index.tsx`
+    redirige allí), que lo recoge al leerlo, borra la copia y lee el fichero con la ruta codificada
+    (`shareFileUri`; 20 s de tope), lo parte en tandas
     (`splitImportText`: el CSV repite la cabecera, como mucho 12) y enseña las cartas según se
-    reconocen con una barra de progreso; añadirlas va también por tandas.
-    `expo-share-intent` va parcheado (`mobile/patches/`, `patch-package` en `postinstall`): un
-    fichero compartido como `text/plain` sin texto se trata como fichero, sin `!!` al leer su
-    nombre y tipo, y cualquier excepción llega a JS como `error` (`/share` la enseña); avisar a
-    JS nunca lanza (una excepción ahí tira el motor de React Native: pantalla en negro hasta
-    forzar el cierre). Si algo falla al pintar, el `ErrorBoundary` de `_layout.tsx` lo enseña con
+    reconocen con una barra de progreso; añadirlas va también por tandas. Una lista también puede
+    abrirse como mazo nuevo («Crear un mazo con esta lista» → `/deck-new?fromShare=1`).
+    Si algo falla al pintar, el `ErrorBoundary` de `_layout.tsx` lo enseña con
     «Reintentar» y lo manda a `POST /api/errors` (se ve en `/admin/errors`).
   - Push: `PushDevice` (token de FCM, `POST|DELETE /api/me/devices`); `PrismaSocialRepository`
     llama a `afterCreate` con cada aviso guardado y el container lo manda con `pushNotifications`

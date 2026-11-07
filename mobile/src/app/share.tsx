@@ -2,7 +2,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { File } from "expo-file-system";
 import { readAsStringAsync } from "expo-file-system/legacy";
 import { router, Stack } from "expo-router";
-import { useShareIntentContext } from "expo-share-intent";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, View } from "react-native";
 import { looksLikeCollectionCsv } from "@/domain/collection/manabox";
@@ -15,7 +14,7 @@ import { thousands } from "~/lib/format";
 import { shareFileUri } from "~/lib/share-path";
 import { setPendingImport, splitImportText, takePendingImport } from "~/lib/shared";
 import { peekShare, takeShare } from "~/lib/share-inbox";
-import { useShareInbox } from "~/lib/share-intake";
+import { removeSharedCopy, useShareInbox } from "~/lib/share-intake";
 import { colors, radius } from "~/lib/theme";
 import { alert } from "~/components/dialog";
 
@@ -55,7 +54,6 @@ const READ_TIMEOUT_MS = 20_000;
  */
 export default function ShareScreen() {
   const qc = useQueryClient();
-  const { resetShareIntent } = useShareIntentContext();
   const inbox = useShareInbox();
   const [source, setSource] = useState<Source | null>(() => {
     const p = takePendingImport();
@@ -74,7 +72,6 @@ export default function ShareScreen() {
     readFor.current = inbox;
     const done = () => {
       takeShare();
-      resetShareIntent();
     };
     if (inbox.kind === "error") {
       done();
@@ -94,6 +91,7 @@ export default function ShareScreen() {
     (file?.path ? readSharedFile(file.path) : Promise.resolve(inbox.text ?? ""))
       .then((text) => {
         done();
+        if (file?.path) removeSharedCopy(file.path);
         if (!text.trim()) {
           setStage({ step: "error", message: "Lo compartido está vacío." });
           return;
@@ -107,7 +105,7 @@ export default function ShareScreen() {
           message: `No se ha podido leer el fichero (${errorText(e)}). Prueba a guardarlo y elegirlo desde Colección › + › Importar.`,
         });
       });
-  }, [source, inbox, resetShareIntent]);
+  }, [source, inbox]);
 
   // 2. Reconocer las cartas por tandas.
   const check = useCallback(async (src: Source) => {
