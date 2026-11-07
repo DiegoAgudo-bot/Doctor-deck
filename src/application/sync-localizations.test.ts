@@ -168,3 +168,32 @@ describe("syncLocalizations", () => {
     expect(await browse({ keyword: "vuela" })).toEqual(["Serra Angel"]);
   });
 });
+
+describe("buscar en otros idiomas con muchas coincidencias", () => {
+  it("más de 999 cartas que coinciden no rompen la búsqueda (límite de parámetros)", async () => {
+    const many = Array.from({ length: 1200 }, (_, i) =>
+      makeCard({ oracleId: `many-${i}`, name: `Many Card ${i}`, typeLine: "Instant" }),
+    );
+    await cards.insertCards(many);
+    await cards.replaceLocalizations(
+      many.map((c) => ({
+        oracleId: c.oracleId,
+        lang: "es",
+        name: `Carta solar ${c.name}`,
+        typeLine: "Instantáneo",
+        text: "Roba una carta solamente",
+      })),
+      [],
+      { syncedAt: new Date(), bulkUpdatedAt: "x" },
+    );
+    const { total } = await cards.searchCatalog({ ...EMPTY_CATALOG_QUERY, text: "sol" }, 0, 45);
+    expect(total).toBeGreaterThanOrEqual(1200);
+    expect(await cards.searchByName("carta solar", 6)).toHaveLength(6);
+  });
+
+  it("al volver a llenar el catálogo, las cartas conservan sus textos en otros idiomas", async () => {
+    await cards.clearCatalog();
+    await cards.insertCards([makeCard({ oracleId: "many-7", name: "Many Card 7" })]);
+    expect(await find({ text: "solamente" })).toEqual(["Many Card 7"]);
+  });
+});

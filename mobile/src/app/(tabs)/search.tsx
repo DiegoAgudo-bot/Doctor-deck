@@ -1,9 +1,9 @@
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { FlatList, Pressable, ScrollView, useWindowDimensions, View } from "react-native";
-import type { CatalogPageDTO } from "@/server/card-dto";
-import { CardThumb } from "~/components/card-bits";
+import type { CatalogCardDTO, CatalogPageDTO } from "@/server/card-dto";
+import { CardThumb, prefetchThumbs } from "~/components/card-bits";
 import { FilterSheetBody } from "~/components/filters";
 import { Sheet } from "~/components/sheet";
 import { Button, Chip, Empty, ErrorView, Loading, SearchField, T } from "~/components/ui";
@@ -22,6 +22,32 @@ import { colors, manaColors } from "~/lib/theme";
 
 const PAGE = 45;
 const COLORS = ["W", "U", "B", "R", "G", "C"] as const;
+
+/** Una carta de la rejilla (memorizada: al llegar más páginas no se vuelven a pintar todas). */
+const CatalogTile = memo(function CatalogTile({
+  item,
+  width,
+  onAdd,
+}: {
+  item: CatalogCardDTO;
+  width: number;
+  onAdd: (item: CatalogCardDTO) => void;
+}) {
+  return (
+    <Pressable
+      onPress={() => router.push(`/card/${item.oracleId}`)}
+      onLongPress={() => onAdd(item)}
+      accessibilityLabel={item.name}
+      accessibilityHint="Mantén pulsada para añadir 1 copia a tu colección"
+      style={({ pressed }) => ({ width, gap: 3, opacity: pressed ? 0.8 : 1 })}
+    >
+      <CardThumb uri={item.imageUrl} width={width} name={item.name} />
+      <T variant="mono" style={{ textAlign: "center" }}>
+        {euros(item.price)}
+      </T>
+    </Pressable>
+  );
+});
 
 /**
  * Buscador de todas las cartas: nombre, tipo o texto, y en la hoja «Filtros» lo mismo que
@@ -55,6 +81,23 @@ export default function Search() {
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   const total = list.data?.pages[0]?.total;
   const tile = (width - 32 - 16) / 3;
+  // Las imágenes de cada página, en cuanto llega (no al bajar hasta ellas).
+  const lastPage = list.data?.pages.at(-1);
+  useEffect(() => {
+    if (lastPage) prefetchThumbs(lastPage.items.map((c) => c.imageUrl));
+  }, [lastPage]);
+  const { mutate: add } = addCopies;
+  const onAdd = useCallback(
+    (item: CatalogCardDTO) =>
+      add({
+        oracleId: item.oracleId,
+        printingLabel: item.name,
+        quantity: 1,
+        foil: false,
+        ...defaults,
+      }),
+    [add, defaults],
+  );
 
   return (
     <View style={{ flex: 1 }}>
@@ -148,30 +191,14 @@ export default function Search() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ padding: 16, gap: 8 }}
           columnWrapperStyle={{ gap: 8 }}
+          // La página siguiente se pide con antelación (más de una pantalla antes del final).
           onEndReached={() => list.hasNextPage && !list.isFetchingNextPage && list.fetchNextPage()}
-          onEndReachedThreshold={0.6}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => router.push(`/card/${item.oracleId}`)}
-              onLongPress={() =>
-                addCopies.mutate({
-                  oracleId: item.oracleId,
-                  printingLabel: item.name,
-                  quantity: 1,
-                  foil: false,
-                  ...defaults,
-                })
-              }
-              accessibilityLabel={item.name}
-              accessibilityHint="Mantén pulsada para añadir 1 copia a tu colección"
-              style={({ pressed }) => ({ width: tile, gap: 3, opacity: pressed ? 0.8 : 1 })}
-            >
-              <CardThumb uri={item.imageUrl} width={tile} name={item.name} />
-              <T variant="mono" style={{ textAlign: "center" }}>
-                {euros(item.price)}
-              </T>
-            </Pressable>
-          )}
+          onEndReachedThreshold={1.5}
+          initialNumToRender={18}
+          maxToRenderPerBatch={18}
+          windowSize={9}
+          removeClippedSubviews
+          renderItem={({ item }) => <CatalogTile item={item} width={tile} onAdd={onAdd} />}
           ListFooterComponent={list.isFetchingNextPage ? <Loading /> : null}
         />
       )}

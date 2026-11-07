@@ -67,7 +67,11 @@ function bump(model: string, args: unknown) {
 /** `url` en formato Prisma (`file:./data/x.db`) o ruta directa. */
 export function createDb(url: string): Db {
   const file = url.replace(/^file:/, "");
-  const client = new PrismaClient({ adapter: new PrismaBetterSqlite3({ url: file }) });
+  const client = new PrismaClient({
+    adapter: new PrismaBetterSqlite3({ url: file }),
+    // Solo sirven para buscar (`where`): no se cargan con cada carta (pueden ser varios KB).
+    omit: { oracleCard: { localNames: true, localTypes: true, localText: true } },
+  });
   return client.$extends({
     query: {
       $allModels: {

@@ -96,37 +96,20 @@ const printingFromRow = (r: PrintingRow): Printing => ({
 /** No salen en el buscador: lo que no es carta de juego (tokens, emblemas, caras sueltas…). */
 const NOT_PLAYABLE = [...NON_GAME_LAYOUTS];
 
-/** Como mucho, cuántas cartas se toman de lo que coincide en otros idiomas en una búsqueda. */
-const LOCALIZED_MATCHES = 5000;
+/**
+ * Rellena `localNames`, `localTypes` y `localText` de las cartas con sus textos de
+ * CardLocalization (todas o, con `ids`, las de esa lista JSON). Ver la migración `localized_search`.
+ */
+const LOCAL_SEARCH_SQL = (filter: string) => `UPDATE "OracleCard" SET
+  "localNames" = COALESCE((SELECT ' ' || group_concat(l."nameKey", ' ') FROM "CardLocalization" l WHERE l."oracleId" = "OracleCard"."oracleId"), ''),
+  "localTypes" = COALESCE((SELECT group_concat(l."typeLine", ' | ') FROM "CardLocalization" l WHERE l."oracleId" = "OracleCard"."oracleId"), ''),
+  "localText" = COALESCE((SELECT group_concat(l."text", ' | ') FROM "CardLocalization" l WHERE l."oracleId" = "OracleCard"."oracleId"), '')
+  ${filter}`;
 
 export class PrismaCardRepository
   implements CardRepository, CardCatalogWriter, CardTagWriter, LocalizationWriter
 {
   constructor(private readonly db: Db) {}
-
-  /** Cartas con algún texto en otro idioma que contiene esto (en el nombre, tipo o texto). */
-  private async localizedIds(
-    q: string,
-    fields: readonly ("name" | "typeLine" | "text")[],
-    mode: "contains" | "word" = "contains",
-  ): Promise<string[]> {
-    const key = searchKey(q.trim());
-    if (!key) return [];
-    const column = { name: "nameKey", typeLine: "typeLine", text: "text" } as const;
-    const rows = await this.db.cardLocalization.findMany({
-      where: {
-        OR: fields.flatMap((f) =>
-          mode === "word"
-            ? [{ [column[f]]: { startsWith: key } }, { [column[f]]: { contains: ` ${key}` } }]
-            : [{ [column[f]]: { contains: key } }],
-        ),
-      },
-      select: { oracleId: true },
-      distinct: ["oracleId"],
-      take: LOCALIZED_MATCHES,
-    });
-    return rows.map((r) => r.oracleId);
-  }
 
   async findLocalizations(oracleIds: readonly string[]) {
     const out = new Map<string, LocalizedText[]>();
@@ -179,6 +162,7 @@ export class PrismaCardRepository
         }
         const row = { ...sync, rows: rows.length };
         await tx.localizationSync.upsert({ where: { id: 1 }, create: row, update: row });
+        await tx.$executeRawUnsafe(LOCAL_SEARCH_SQL(""));
       },
       { timeout: 10 * 60_000 },
     );
@@ -249,10 +233,7 @@ export class PrismaCardRepository
       { name: "asc" as const },
     ];
     // También por su nombre en otros idiomas ("ángel de serra" → Serra Angel).
-    const [localWord, localAny] = await Promise.all([
-      this.localizedIds(query, ["name"], "word"),
-      this.localizedIds(query, ["name"]),
-    ]);
+    const local = searchKey(query.trim());
     const prefix = await this.db.oracleCard.findMany({
       // Empieza así el nombre o alguna de sus palabras ("bolt" → Lightning Bolt).
       where: where({
@@ -260,7 +241,7 @@ export class PrismaCardRepository
           { nameKey: { startsWith: key } },
           { frontFaceKey: { startsWith: key } },
           { nameKey: { contains: ` ${key}` } },
-          ...(localWord.length ? [{ oracleId: { in: localWord } }] : []),
+          ...(local ? [{ localNames: { contains: ` ${local}` } }] : []),
         ],
       }),
       orderBy: order,
@@ -272,7 +253,7 @@ export class PrismaCardRepository
             where: where({
               OR: [
                 { nameKey: { contains: key } },
-                ...(localAny.length ? [{ oracleId: { in: localAny } }] : []),
+                ...(local ? [{ localNames: { contains: local } }] : []),
               ],
               oracleId: { notIn: prefix.map((r) => r.oracleId) },
             }),
@@ -285,10 +266,11 @@ export class PrismaCardRepository
 
   async searchCatalog(q: CatalogQuery, offset: number, limit: number) {
     const and: Prisma.OracleCardWhereInput[] = [{ layout: { notIn: NOT_PLAYABLE } }];
-    // Lo escrito vale en cualquier idioma: también busca en lo impreso en otros idiomas.
-    const inLocalized = async (text: string, fields: Parameters<typeof this.localizedIds>[1]) => {
-      const ids = await this.localizedIds(text, fields);
-      return ids.length ? [{ oracleId: { in: ids } }] : [];
+    // Lo escrito vale en cualquier idioma: también busca en lo impreso en otros idiomas
+    // (`localNames`/`localTypes`/`localText`, ya sin tildes ni mayúsculas).
+    const local = (text: string, ...fields: ("localNames" | "localTypes" | "localText")[]) => {
+      const k = searchKey(text.trim());
+      return k ? fields.map((f) => ({ [f]: { contains: k } })) : [];
     };
     if (q.text) {
       const key = nameKey(q.text);
@@ -297,7 +279,7 @@ export class PrismaCardRepository
           ...(key ? [{ nameKey: { contains: key } }] : []),
           { typeLine: { contains: q.text } },
           { oracleText: { contains: q.text } },
-          ...(await inLocalized(q.text, ["name", "typeLine", "text"])),
+          ...local(q.text, "localNames", "localTypes", "localText"),
         ],
       });
     }
@@ -342,7 +324,7 @@ export class PrismaCardRepository
     if (q.maxPrice !== null) and.push({ minPriceEur: { lte: q.maxPrice } });
     if (q.oracle) {
       and.push({
-        OR: [{ oracleText: { contains: q.oracle } }, ...(await inLocalized(q.oracle, ["text"]))],
+        OR: [{ oracleText: { contains: q.oracle } }, ...local(q.oracle, "localText")],
       });
     }
     // Los subtipos van tras la raya: "— Elf" o "Elf" más adelante ("— Elf Druid").
@@ -350,7 +332,7 @@ export class PrismaCardRepository
       and.push({
         OR: [
           { AND: [{ typeLine: { contains: "—" } }, { typeLine: { contains: q.subtype } }] },
-          ...(await inLocalized(q.subtype, ["typeLine"])),
+          ...local(q.subtype, "localTypes"),
         ],
       });
     }
@@ -492,6 +474,11 @@ export class PrismaCardRepository
   async insertCards(cards: readonly Card[]) {
     for (const batch of chunks(cards)) {
       await this.db.oracleCard.createMany({ data: batch.map(toRow) });
+      // Sus textos en otros idiomas (sobreviven a vaciar el catálogo, como las etiquetas).
+      await this.db.$executeRawUnsafe(
+        LOCAL_SEARCH_SQL(`WHERE "oracleId" IN (SELECT value FROM json_each(?))`),
+        JSON.stringify(batch.map((c) => c.oracleId)),
+      );
     }
   }
 
