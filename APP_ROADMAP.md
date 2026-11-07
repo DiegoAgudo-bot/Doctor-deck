@@ -22,7 +22,7 @@ typecheck && npm test` y `expo export` antes de cada commit, subir `VERSION` en 
 | Fase  | Contenido                                                          | Esfuerzo | API nueva |
 | ----- | ------------------------------------------------------------------ | -------- | --------- |
 | M1 ✅ | Gestionar mazos: ajustes, historial, tema, candados, exportar      | Medio    | No        |
-| M2    | Editor de mazos: añadir cartas, copias, edición, roles y etiquetas | Alto     | No        |
+| M2 ✅ | Editor de mazos: añadir cartas, copias, edición, roles y etiquetas | Alto     | No        |
 | M3    | Análisis: combos, mano inicial, alternativas y modo compra         | Medio    | No        |
 | M4    | Precios: valor de la colección, lo que sube y baja, histórico      | Medio    | No        |
 | M5    | Cuenta: contraseña, sesiones, avisos por tipo, preferencias        | Bajo     | No        |
@@ -62,7 +62,9 @@ nada que no sean las cartas.
 
 **Hecho cuando**: todo lo de «Ajustes» del mazo de la web se puede hacer desde la app.
 
-## Fase M2 · Editor de mazos
+## Fase M2 · Editor de mazos ✅
+
+Hecha en la app 1.4.0 (`components/deck-editor.tsx`).
 
 **Ahora en la app**: se quitan cartas manteniéndolas pulsadas y se aplican los cambios
 sugeridos; no se pueden añadir cartas sueltas ni tocar copias, ediciones o roles.
