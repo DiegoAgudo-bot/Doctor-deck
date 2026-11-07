@@ -172,7 +172,15 @@ export default function ShareScreen() {
         body: source.text,
         raw: true,
       });
-      finish(`Colección reemplazada: ${thousands(r.totalCards)} copias.`);
+      finish(
+        `Colección reemplazada: ${thousands(r.totalCards)} copias reconocidas` +
+          (r.unmatched.length > 0
+            ? ` y ${thousands(r.unmatched.length)} filas sin reconocer (${r.unmatched
+                .slice(0, 3)
+                .map((u) => u.name)
+                .join(", ")}${r.unmatched.length > 3 ? "…" : ""}).`
+            : "."),
+      );
     } catch (e) {
       setStage({ step: "error", message: errorText(e) });
     }

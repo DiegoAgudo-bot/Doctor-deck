@@ -24,7 +24,7 @@ typecheck && npm test` y `expo export` antes de cada commit, subir `VERSION` en 
 | M1 ✅ | Gestionar mazos: ajustes, historial, tema, candados, exportar      | Medio    | No        |
 | M2 ✅ | Editor de mazos: añadir cartas, copias, edición, roles y etiquetas | Alto     | No        |
 | M3 ✅ | Análisis: combos, mano inicial, alternativas y modo compra         | Medio    | No        |
-| M4    | Precios: valor de la colección, lo que sube y baja, histórico      | Medio    | No        |
+| M4 ✅ | Precios: valor de la colección, lo que sube y baja, histórico      | Medio    | No        |
 | M5    | Cuenta: contraseña, sesiones, avisos por tipo, preferencias        | Bajo     | No        |
 | M6    | Inicio y buscador global                                           | Medio    | No        |
 
@@ -105,7 +105,9 @@ va con la gráfica de la fase M4.
 
 **Hecho cuando**: el análisis de un mazo en la app enseña lo mismo que en la web.
 
-## Fase M4 · Precios y colección
+## Fase M4 · Precios y colección ✅
+
+Hecha en la app 1.6.0 (`components/price-chart.tsx`, pantalla `collection-prices`).
 
 **Ahora en la app**: precio actual de cada copia y la variación desde que se añadió.
 

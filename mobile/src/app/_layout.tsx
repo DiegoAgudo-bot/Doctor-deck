@@ -161,6 +161,7 @@ function Root() {
         <Stack.Screen name="trades/with/[username]" options={{ title: "" }} />
         <Stack.Screen name="trades/proposals/[id]" options={{ title: "" }} />
         <Stack.Screen name="loans" options={{ title: "Préstamos" }} />
+        <Stack.Screen name="collection-prices" options={{ title: "Precios de tu colección" }} />
         <Stack.Screen name="community" options={{ title: "Comunidad" }} />
         <Stack.Screen name="feed" options={{ title: "Actividad" }} />
         <Stack.Screen name="u/[username]" options={{ title: "" }} />
