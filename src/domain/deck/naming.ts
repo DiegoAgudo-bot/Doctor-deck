@@ -1,4 +1,5 @@
 import { COLORS, type Color } from "../cards/types";
+import type { Locale } from "../i18n/locale";
 
 /** Nombres habituales (en la comunidad hispana se usan los ingleses) de cada combinación. */
 const COMBOS: Record<string, string> = {
@@ -36,10 +37,21 @@ const COMBOS: Record<string, string> = {
   WUBRG: "Cinco colores",
 };
 
+/** En inglés solo cambian los que no son nombres propios. */
+const COMBOS_EN: Record<string, string> = {
+  "": "Colorless",
+  W: "Mono-White",
+  U: "Mono-Blue",
+  B: "Mono-Black",
+  R: "Mono-Red",
+  G: "Mono-Green",
+  WUBRG: "Five-Color",
+};
+
 /** Nombre de una identidad de color: "Boros", "Jund", "Mono azul"… */
-export function colorGroupName(identity: readonly Color[]): string {
+export function colorGroupName(identity: readonly Color[], locale: Locale = "es"): string {
   const key = COLORS.filter((c) => identity.includes(c)).join("");
-  return COMBOS[key] ?? key;
+  return (locale === "en" ? COMBOS_EN[key] : undefined) ?? COMBOS[key] ?? key;
 }
 
 /** Temas de EDHREC más comunes, en español (los demás se dejan como vienen). */
@@ -101,7 +113,12 @@ const THEMES: Record<string, string> = {
   zombies: "Zombis",
 };
 
-export const themeLabel = (name: string) => THEMES[name.trim().toLowerCase()] ?? name.trim();
+/** Un tema en el idioma pedido (en inglés, como lo nombra la comunidad). */
+export const themeLabel = (name: string, locale: Locale = "es") =>
+  locale === "en" ? titleCase(name.trim()) : (THEMES[name.trim().toLowerCase()] ?? name.trim());
+
+const titleCase = (s: string) =>
+  s.replace(/(^|[\s-])([a-z])/g, (_, a: string, b: string) => a + b.toUpperCase());
 
 /**
  * Nombre para un mazo nuevo: "<colores> - <de qué va>", p. ej. "Boros - Fichas y Combates extra".
@@ -112,8 +129,9 @@ export function suggestedDeckName(
   identity: readonly Color[],
   themes: readonly string[],
   fallback: string,
+  locale: Locale = "es",
 ): string {
-  const labels = [...new Set(themes.map(themeLabel))].slice(0, 2);
-  const about = labels.length > 0 ? labels.join(" y ") : fallback;
-  return `${colorGroupName(identity)} - ${about}`;
+  const labels = [...new Set(themes.map((t) => themeLabel(t, locale)))].slice(0, 2);
+  const about = labels.length > 0 ? labels.join(locale === "en" ? " & " : " y ") : fallback;
+  return `${colorGroupName(identity, locale)} - ${about}`;
 }

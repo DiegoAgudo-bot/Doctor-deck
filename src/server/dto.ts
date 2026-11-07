@@ -14,7 +14,10 @@ import type { SkippedLine } from "@/domain/deck/decklist";
 import { maxCopies, type DeckIssue } from "@/domain/deck/resolve";
 import type { CollectionSummary } from "@/domain/ports/collection-repository";
 import type { ThemeLink } from "@/domain/recommendations/types";
-import { ROLE_LABELS, type Role } from "@/domain/roles/types";
+import type { Role } from "@/domain/roles/types";
+import { roleLabel } from "@/domain/i18n/labels";
+import type { Locale } from "@/domain/i18n/locale";
+import { localizeWarning } from "@/domain/i18n/warnings";
 import type { EngineConfig } from "@/domain/suggestions/config";
 import type {
   AddCandidate,
@@ -722,7 +725,21 @@ const swapDTO = (s: SwapSuggestion | PurchaseSuggestion): SwapDTO => ({
   reason: s.reason,
 });
 
-export function issueMessage(i: DeckIssue): string {
+export function issueMessage(i: DeckIssue, locale: Locale = "es"): string {
+  if (locale === "en") {
+    switch (i.kind) {
+      case "size":
+        return `The deck has ${i.count} cards (it should have 100).`;
+      case "noCommander":
+        return "There's no commander.";
+      case "duplicate":
+        return `${i.card.name} appears ${i.quantity} times (Commander is singleton).`;
+      case "colorIdentity":
+        return `${i.card.name} is outside the commander's color identity.`;
+      case "notLegal":
+        return `${i.card.name} isn't legal in Commander.`;
+    }
+  }
   switch (i.kind) {
     case "size":
       return `El mazo tiene ${i.count} cartas (deberían ser 100).`;
@@ -737,7 +754,11 @@ export function issueMessage(i: DeckIssue): string {
   }
 }
 
-export function analyzeResponse(result: AnalyzeDeckResult, config: EngineConfig): AnalyzeResponse {
+export function analyzeResponse(
+  result: AnalyzeDeckResult,
+  config: EngineConfig,
+  locale: Locale = "es",
+): AnalyzeResponse {
   const unresolved = result.deck.unresolved.map((e) => e.name);
   if (result.status === "needs_commander") {
     return {
@@ -775,17 +796,21 @@ export function analyzeResponse(result: AnalyzeDeckResult, config: EngineConfig)
       };
     }),
     totalCards: deck.commanders.length + deck.cards.reduce((n, c) => n + c.quantity, 0),
-    issues: result.issues.map((i) => ({ kind: i.kind, message: issueMessage(i) })),
+    issues: result.issues.map((i) => ({ kind: i.kind, message: issueMessage(i, locale) })),
     skipped: result.skipped,
     unresolved,
     curve: result.curve,
     roles: (Object.keys(s.roleCounts) as Role[]).map((role) => ({
       role,
-      label: ROLE_LABELS[role],
+      label: roleLabel(role, locale),
       count: s.roleCounts[role],
       min: config.minimums[role] ?? 0,
     })),
-    edhrec: { ...result.edhrec, fetchedAt: result.edhrec.fetchedAt.toISOString() },
+    edhrec: {
+      ...result.edhrec,
+      fetchedAt: result.edhrec.fetchedAt.toISOString(),
+      warning: localizeWarning(result.edhrec.warning, locale),
+    },
     swaps: s.swaps.map(swapDTO),
     addCandidates: s.addCandidates.slice(0, 40).map(scoredDTO),
     unavailableCandidates: s.unavailableCandidates.slice(0, 40).map(scoredDTO),

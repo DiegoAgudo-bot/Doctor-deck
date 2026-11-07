@@ -44,3 +44,17 @@ export function pageMetadata(o: { title: Pair; description?: Pair; path?: string
     };
   };
 }
+
+/** Cabecera con el idioma de la página desde la que se llama a la API (la pone `api-client`). */
+export const LOCALE_HEADER = "x-locale";
+
+/**
+ * Idioma en el que responder a una petición de la API: el de la página (`x-locale`) o, si no
+ * viene (la app móvil), el primero de `Accept-Language`. Español por defecto.
+ */
+export function requestLocale(request: Request): Locale {
+  const explicit = request.headers.get(LOCALE_HEADER);
+  if (isLocale(explicit)) return explicit;
+  const first = request.headers.get("accept-language")?.split(",")[0]?.trim().slice(0, 2);
+  return first === "en" ? "en" : DEFAULT_LOCALE;
+}

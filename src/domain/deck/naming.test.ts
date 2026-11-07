@@ -29,3 +29,14 @@ describe("nombres de mazos", () => {
     );
   });
 });
+
+describe("naming en inglés", () => {
+  it("colores, temas y unión", () => {
+    expect(colorGroupName(["U"], "en")).toBe("Mono-Blue");
+    expect(colorGroupName(["R", "W"], "en")).toBe("Boros");
+    expect(themeLabel("tokens", "en")).toBe("Tokens");
+    expect(suggestedDeckName(["R", "W"], ["tokens", "extra combats"], "X", "en")).toBe(
+      "Boros - Tokens & Extra Combats",
+    );
+  });
+});

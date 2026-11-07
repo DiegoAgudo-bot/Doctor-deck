@@ -8,6 +8,8 @@ import { withOverrides } from "@/domain/roles/overrides";
 import { getContainer } from "@/server/container";
 import { cardDTO, type ComboCardDTO, type ComboDTO, type DeckCombosDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
+import { requestLocale } from "@/server/i18n";
+import { localizeWarning } from "@/domain/i18n/warnings";
 import {
   browserRoleEditsSchema,
   loadDeckRoleEdits,
@@ -99,7 +101,7 @@ export async function POST(request: Request) {
       bracket: result.bracket,
       fetchedAt: result.fetchedAt.toISOString(),
       stale: result.stale,
-      warning: result.warning,
+      warning: localizeWarning(result.warning, requestLocale(request)),
     };
     return Response.json(body);
   } catch (err) {

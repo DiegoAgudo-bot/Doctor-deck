@@ -1,3 +1,5 @@
+import type { Locale } from "@/domain/i18n/locale";
+import { localizeWarning } from "@/domain/i18n/warnings";
 import {
   canBeCommander,
   combinedColorIdentity,
@@ -55,6 +57,7 @@ export interface CommanderInfo {
 export async function commanderInfo(
   commanderIds: readonly string[],
   deps: { cards: CardRepository; recommendations: RecommendationSource },
+  locale: Locale = "es",
 ): Promise<CommanderInfo> {
   const commanders = await loadCommanders(commanderIds, deps.cards);
   const recs = await deps.recommendations.getRecommendations({
@@ -69,8 +72,9 @@ export async function commanderInfo(
       combinedColorIdentity(commanders),
       themes.map((t) => t.name),
       shortName(commanders[0]?.name ?? ""),
+      locale,
     ),
-    warning: recs.warning,
+    warning: localizeWarning(recs.warning, locale),
   };
 }
 
@@ -83,6 +87,8 @@ export interface NewDeckRequest {
   mode: "average" | "owned" | "empty";
   /** Slug del tema de EDHREC (con "average" y "owned"). */
   theme?: string | undefined;
+  /** Idioma del nombre propuesto y de los avisos. */
+  locale?: Locale | undefined;
 }
 
 export interface NewDeck {
@@ -116,12 +122,14 @@ export async function newDeckFromCommander(
   const commanders = await loadCommanders(req.commanderIds, deps.cards);
   const identity = combinedColorIdentity(commanders);
   const fallback = shortName(commanders[0]?.name ?? "");
+  const locale = req.locale ?? "es";
+  const name = (themes: readonly string[]) => suggestedDeckName(identity, themes, fallback, locale);
   const commanderLines = commanders.map((c) => ({ oracleId: c.oracleId, name: c.name }));
 
   if (req.mode === "empty") {
     return {
       input: exportDecklist({ commanders: commanderLines, cards: [] }),
-      name: suggestedDeckName(identity, [], fallback),
+      name: name([]),
       theme: null,
       commanders,
       cardCount: 0,
@@ -150,16 +158,18 @@ export async function newDeckFromCommander(
     const chosen = req.theme ? recs.themes.find((t) => t.slug === req.theme) : undefined;
     const themes = chosen ? [chosen.name] : byPopularity(recs.themes).map((t) => t.name);
     const short =
-      built.missing > 0
-        ? `Con tu colección entran ${built.spells} hechizos recomendados; faltan ${built.missing} para las 99: añádelos desde la lista o mira «Qué me falta».`
-        : null;
+      built.missing === 0
+        ? null
+        : locale === "en"
+          ? `Your collection covers ${built.spells} recommended spells; ${built.missing} are missing for the 99: add them from the list or check “What I'm missing”.`
+          : `Con tu colección entran ${built.spells} hechizos recomendados; faltan ${built.missing} para las 99: añádelos desde la lista o mira «Qué me falta».`;
     return {
       input: built.input,
-      name: suggestedDeckName(identity, themes, fallback),
+      name: name(themes),
       theme: req.theme ?? null,
       commanders,
       cardCount: built.spells + built.nonbasicLands + built.basics,
-      warning: recs.warning ?? short,
+      warning: localizeWarning(recs.warning, locale) ?? short,
     };
   }
 
@@ -178,10 +188,10 @@ export async function newDeckFromCommander(
   ].join("\n");
   return {
     input: deckText,
-    name: suggestedDeckName(identity, themes, fallback),
+    name: name(themes),
     theme: req.theme ?? null,
     commanders,
     cardCount: average.cards.reduce((n, c) => n + c.quantity, 0),
-    warning: average.warning ?? recs.warning,
+    warning: localizeWarning(average.warning ?? recs.warning, locale),
   };
 }

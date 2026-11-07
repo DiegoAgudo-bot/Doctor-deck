@@ -8,6 +8,7 @@ import { errorResponse } from "@/server/http";
 import { browserRoleEditsSchema, loadDeckRoleEdits, loadRoleEdits } from "@/server/role-edits";
 import { currentUser } from "@/server/session";
 import { Timing } from "@/server/timing";
+import { requestLocale } from "@/server/i18n";
 import { BODY_LIMIT, readJson } from "@/server/body";
 import { clientKey, enforceLimit, routeLimits } from "@/server/rate-limit";
 
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
       await readJson(request, BODY_LIMIT.large),
     );
     const c = getContainer();
+    const locale = requestLocale(request);
     const t = new Timing();
     const result = await t.step("total", async () =>
       analyzeDeck(
@@ -57,6 +59,7 @@ export async function POST(request: Request) {
           ...req,
           roleEdits: await loadRoleEdits(user?.id ?? null, roleEdits),
           deckRoleEdits: await loadDeckRoleEdits(user?.id ?? null, req.deckId),
+          locale,
         },
         {
           sources: c.deckSources,
@@ -72,7 +75,7 @@ export async function POST(request: Request) {
         },
       ),
     );
-    const body = await t.step("dto", async () => analyzeResponse(result, c.engineConfig));
+    const body = await t.step("dto", async () => analyzeResponse(result, c.engineConfig, locale));
     return Response.json(body, { headers: t.header() });
   } catch (err) {
     return errorResponse(err);

@@ -7,6 +7,7 @@ import { announceNewDeck } from "@/application/social";
 import { getContainer } from "@/server/container";
 import type { NewDeckResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
+import { requestLocale } from "@/server/i18n";
 import { currentUser } from "@/server/session";
 import { BODY_LIMIT, readJson } from "@/server/body";
 import { clientKey, enforceLimit, routeLimits } from "@/server/rate-limit";
@@ -38,17 +39,20 @@ export async function POST(request: Request) {
     enforceLimit(routeLimits.newDeck, clientKey(request, user?.id));
     const req = schema.parse(await readJson(request, BODY_LIMIT.large));
     const c = getContainer();
-    const deck = await newDeckFromCommander(req, {
-      cards: c.cards,
-      recommendations: c.edhrec,
-      averageDecks: c.edhrec,
-      collection: user
-        ? c.collectionFor(user.id)
-        : req.collection
-          ? new BrowserCollectionRepository(req.collection)
-          : undefined,
-      usage: user ? () => c.decksFor(user.id).usage() : undefined,
-    });
+    const deck = await newDeckFromCommander(
+      { ...req, locale: requestLocale(request) },
+      {
+        cards: c.cards,
+        recommendations: c.edhrec,
+        averageDecks: c.edhrec,
+        collection: user
+          ? c.collectionFor(user.id)
+          : req.collection
+            ? new BrowserCollectionRepository(req.collection)
+            : undefined,
+        usage: user ? () => c.decksFor(user.id).usage() : undefined,
+      },
+    );
     const name = req.name || deck.name;
     if (!user) {
       const body: NewDeckResponse = {

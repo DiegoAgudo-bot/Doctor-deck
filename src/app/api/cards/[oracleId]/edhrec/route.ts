@@ -4,6 +4,8 @@ import type { CommanderStaplesDTO } from "@/server/card-dto";
 import { getContainer } from "@/server/container";
 import { cardDTO } from "@/server/dto";
 import { errorResponse } from "@/server/http";
+import { requestLocale } from "@/server/i18n";
+import { localizeWarning } from "@/domain/i18n/warnings";
 import { currentUser } from "@/server/session";
 import { clientKey, enforceLimit, routeLimits } from "@/server/rate-limit";
 
@@ -34,7 +36,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/cards/[oracl
       themes: s.themes,
       totalDecks: s.totalDecks,
       slug: s.slug,
-      warning: s.warning,
+      warning: localizeWarning(s.warning, requestLocale(req)),
       sections: s.sections.map((sec) => ({
         key: sec.key,
         label: sec.label,
