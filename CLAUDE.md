@@ -761,6 +761,10 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     `maxCopies`, edición con `setPrinting` + `exportDecklist` y roles/etiquetas en todos mis mazos
     o solo en este), lista «Por tipo» o «Por rol» y «N en otros mazos» en la portada
     (`OtherDecksSheet`, con enlace a cada mazo).
+  - Análisis (fase M3, `components/deck-analysis.tsx`): pestaña Combos (`POST /api/combos`
+    aparte, `CombosPanel`; su bracket pasa a la portada y a Datos), mano inicial en Datos
+    (`openingHandOdds` + «Robar 7» con mulligan) y, al final de «Falta», alternativas más baratas
+    (`ownership.alternatives`) y modo compra (`BuyPanel`, `POST /api/analyze` con `buy`).
   - Rejillas (Buscar y Colección): `CardThumb` enseña el nombre al momento y la imagen encima en
     cuanto llega (como ManaBox); tarjetas memorizadas, la página siguiente se pide con antelación
     (`onEndReachedThreshold` 1,5) y las miniaturas de cada página se descargan al llegar
