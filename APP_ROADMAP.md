@@ -19,21 +19,23 @@ typecheck && npm test` y `expo export` antes de cada commit, subir `VERSION` en 
 
 ## Resumen
 
-| Fase | Contenido                                                          | Esfuerzo | API nueva |
-| ---- | ------------------------------------------------------------------ | -------- | --------- |
-| M1   | Gestionar mazos: ajustes, historial, tema, candados, exportar      | Medio    | No        |
-| M2   | Editor de mazos: añadir cartas, copias, edición, roles y etiquetas | Alto     | No        |
-| M3   | Análisis: combos, mano inicial, alternativas y modo compra         | Medio    | No        |
-| M4   | Precios: valor de la colección, lo que sube y baja, histórico      | Medio    | No        |
-| M5   | Cuenta: contraseña, sesiones, avisos por tipo, preferencias        | Bajo     | No        |
-| M6   | Inicio y buscador global                                           | Medio    | No        |
+| Fase  | Contenido                                                          | Esfuerzo | API nueva |
+| ----- | ------------------------------------------------------------------ | -------- | --------- |
+| M1 ✅ | Gestionar mazos: ajustes, historial, tema, candados, exportar      | Medio    | No        |
+| M2    | Editor de mazos: añadir cartas, copias, edición, roles y etiquetas | Alto     | No        |
+| M3    | Análisis: combos, mano inicial, alternativas y modo compra         | Medio    | No        |
+| M4    | Precios: valor de la colección, lo que sube y baja, histórico      | Medio    | No        |
+| M5    | Cuenta: contraseña, sesiones, avisos por tipo, preferencias        | Bajo     | No        |
+| M6    | Inicio y buscador global                                           | Medio    | No        |
 
 Orden recomendado: M1 → M2 → M3 (lo que más se echa en falta al usar la app de verdad), luego
 M4, M5 y M6. M1 y M5 son rápidas y se pueden hacer antes si se quiere una mejora visible pronto.
 
 ---
 
-## Fase M1 · Gestionar mazos
+## Fase M1 · Gestionar mazos ✅
+
+Hecha en la app 1.3.0 (`components/deck-manage.tsx`).
 
 **Ahora en la app**: la lista de mazos solo abre o crea. Dentro del mazo no se puede cambiar
 nada que no sean las cartas.

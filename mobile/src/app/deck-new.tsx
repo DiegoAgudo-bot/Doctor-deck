@@ -3,7 +3,12 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
 import type { CatalogPageDTO } from "@/server/card-dto";
-import type { CardDTO, CollectionViewResponse, NewDeckResponse } from "@/server/dto";
+import type {
+  CardDTO,
+  CollectionViewResponse,
+  CommanderInfoDTO,
+  NewDeckResponse,
+} from "@/server/dto";
 import { CardThumb } from "~/components/card-bits";
 import { OptionRow } from "~/components/sheet";
 import { toast } from "~/components/toast";
@@ -13,6 +18,7 @@ import { tapFeedback } from "~/lib/feedback";
 import { useDebounced } from "~/lib/hooks";
 import { takePendingImport } from "~/lib/shared";
 import { colors, radius } from "~/lib/theme";
+import { ThemePicker } from "~/components/deck-manage";
 
 const VISIBILITY = [
   { key: "public", label: "Público" },
@@ -123,6 +129,7 @@ function useOpenNewDeck() {
 function FromCommander({ initialId, ...common }: Common & { initialId?: string | undefined }) {
   const [commander, setCommander] = useState<CardDTO | null>(null);
   const [mode, setMode] = useState<Mode>("average");
+  const [theme, setTheme] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const query = useDebounced(q.trim());
   const open = useOpenNewDeck();
@@ -151,6 +158,13 @@ function FromCommander({ initialId, ...common }: Common & { initialId?: string |
       }),
   });
   const hasCollection = (mine.data?.overall.cards ?? 0) > 0;
+  // Temas de la comunidad para ese comandante (mazo medio o «con mis cartas» de un tema).
+  const info = useQuery({
+    queryKey: ["commander-info", chosen?.oracleId],
+    enabled: Boolean(chosen),
+    staleTime: 60 * 60_000,
+    queryFn: () => api<CommanderInfoDTO>(`/api/commanders?ids=${chosen!.oracleId}`),
+  });
 
   const create = useMutation({
     mutationFn: () =>
@@ -158,6 +172,7 @@ function FromCommander({ initialId, ...common }: Common & { initialId?: string |
         body: {
           commanderIds: [chosen!.oracleId],
           mode,
+          ...(theme && mode !== "empty" ? { theme } : {}),
           visibility: common.visibility,
           ...(common.name.trim() ? { name: common.name.trim() } : {}),
         },
@@ -230,6 +245,7 @@ function FromCommander({ initialId, ...common }: Common & { initialId?: string |
           kind="ghost"
           onPress={() => {
             setCommander(null);
+            setTheme(null);
             if (initialId) router.setParams({ commander: "" });
           }}
         />
@@ -246,6 +262,9 @@ function FromCommander({ initialId, ...common }: Common & { initialId?: string |
           />
         ))}
       </View>
+      {mode !== "empty" && (
+        <ThemePicker themes={info.data?.themes ?? []} value={theme} onChange={setTheme} />
+      )}
       <NameAndVisibility {...common} />
       {create.error && <Banner text={create.error.message} />}
       <Button

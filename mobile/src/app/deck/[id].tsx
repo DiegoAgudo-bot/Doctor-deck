@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, SectionList, Share, View } from "react-native";
 import type {
   AnalyzeResponse,
@@ -13,6 +13,12 @@ import type {
   SwapDTO,
 } from "@/server/dto";
 import { CardThumb, ColorPips, ManaCost } from "~/components/card-bits";
+import {
+  DeckSettingsSheet,
+  ExportSheet,
+  ThemePicker,
+  useDeckManage,
+} from "~/components/deck-manage";
 import { toast } from "~/components/toast";
 import {
   Banner,
@@ -61,13 +67,17 @@ export default function DeckScreen() {
   const [tab, setTab] = useState<Tab>(initialTab === "missing" ? "missing" : "list");
   /** Comandantes elegidos aquí (si la lista no lo dice); en un mazo mío se guardan. */
   const [chosen, setChosen] = useState<string[] | null>(null);
+  /** En el mazo de otro, el tema se elige solo para verlo (no se guarda). */
+  const [themeHere, setThemeHere] = useState<string | null | undefined>(undefined);
+  const [sheet, setSheet] = useState<"settings" | "export" | null>(null);
   const deck = useQuery({
     queryKey: ["deck", id],
     queryFn: () => api<DeckViewDTO>(`/api/decks/${id}`),
   });
   const d = deck.data;
+  const theme = d ? (d.isMine || themeHere === undefined ? d.theme : themeHere) : null;
   const analysis = useQuery({
-    queryKey: ["analysis", id, d?.updatedAt, chosen],
+    queryKey: ["analysis", id, d?.updatedAt, chosen, theme],
     enabled: Boolean(d),
     staleTime: 5 * 60_000,
     // Al aplicar un cambio se vuelve a analizar: mientras, se sigue viendo lo de antes.
@@ -79,7 +89,7 @@ export default function DeckScreen() {
           commanders: chosen ?? d!.commanders,
           locked: d!.locked,
           excluded: d!.excluded,
-          ...(d!.theme ? { theme: d!.theme } : {}),
+          ...(theme ? { theme } : {}),
           ...(d!.isMine ? { deckId: d!.id } : {}),
           ...(d!.targetBracket ? { targetBracket: d!.targetBracket } : {}),
         },
@@ -87,6 +97,14 @@ export default function DeckScreen() {
   });
 
   const actions = useDeckActions(d);
+  const manage = useDeckManage(d);
+  // Los temas solo vienen en la página general del comandante: se recuerdan al elegir uno.
+  const [themes, setThemes] = useState<ThemeList>([]);
+  const found = analysis.data?.status === "ok" ? analysis.data.edhrec.themes : null;
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- se guarda lo que llega
+    if (found && found.length > 0) setThemes(found);
+  }, [found]);
 
   if (deck.isPending) return <Loading />;
   if (deck.isError || !d) return <ErrorView error={deck.error} onRetry={() => deck.refetch()} />;
@@ -129,6 +147,18 @@ export default function DeckScreen() {
                   onPress={() => router.push(`/deck-comments/${d.id}`)}
                 />
               )}
+              <IconButton
+                icon="download-outline"
+                label="Exportar"
+                onPress={() => setSheet("export")}
+              />
+              {d.isMine && (
+                <IconButton
+                  icon="settings-outline"
+                  label="Ajustes del mazo"
+                  onPress={() => setSheet("settings")}
+                />
+              )}
             </View>
           ),
         }}
@@ -148,10 +178,37 @@ export default function DeckScreen() {
           if (d.isMine) actions.saveCommanders.mutate(ids);
         }}
         actions={actions}
+        themes={themes}
+        theme={theme}
+        onTheme={(t) => (d.isMine ? manage.save.mutate({ theme: t }) : setThemeHere(t))}
+        onToggleLock={(oracleId) =>
+          manage.save.mutate({
+            locked: d.locked.includes(oracleId)
+              ? d.locked.filter((x) => x !== oracleId)
+              : [...d.locked, oracleId],
+          })
+        }
+        saving={manage.save.isPending}
       />
+      <ExportSheet
+        name={d.name}
+        analysis={a}
+        open={sheet === "export"}
+        onClose={() => setSheet(null)}
+      />
+      {d.isMine && (
+        <DeckSettingsSheet
+          deckId={d.id}
+          open={sheet === "settings"}
+          onClose={() => setSheet(null)}
+          onDeleted={() => router.back()}
+        />
+      )}
     </>
   );
 }
+
+type ThemeList = Analysis["edhrec"]["themes"];
 
 /**
  * Lo que se puede hacer con un mazo desde la app: aplicar o descartar cambios, quitar cartas,
@@ -282,6 +339,11 @@ function DeckBody({
   candidates,
   onChooseCommanders,
   actions,
+  themes,
+  theme,
+  onTheme,
+  onToggleLock,
+  saving,
 }: {
   deck: DeckViewDTO;
   analysis: Analysis | null;
@@ -294,9 +356,15 @@ function DeckBody({
   candidates: CardDTO[] | null;
   onChooseCommanders: (ids: string[]) => void;
   actions: DeckActions;
+  themes: ThemeList;
+  theme: string | null;
+  onTheme: (slug: string | null) => void;
+  onToggleLock: (oracleId: string) => void;
+  saving: boolean;
 }) {
   const mine = deck.isMine;
-  const busy = actions.apply.isPending || actions.discard.isPending || actions.remove.isPending;
+  const busy =
+    actions.apply.isPending || actions.discard.isPending || actions.remove.isPending || saving;
   // Hasta que llega el análisis nuevo, los cambios que se ven pueden estar ya aplicados.
   const waiting = busy || refreshing;
   const ownership = useMemo(
@@ -379,6 +447,7 @@ function DeckBody({
           value={tab}
           onChange={setTab}
         />
+        <ThemePicker themes={themes} value={theme} onChange={onTheme} disabled={waiting} />
         {(refreshing || busy) && a && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <ActivityIndicator size="small" color={colors.accent} />
@@ -386,7 +455,9 @@ function DeckBody({
           </View>
         )}
         {tab === "list" && mine && a && (
-          <T variant="small">Mantén pulsada una carta para quitarla del mazo.</T>
+          <T variant="small">
+            Mantén pulsada una carta para quitarla. El candado hace que nunca se proponga sacarla.
+          </T>
         )}
         {tab === "changes" && mine && a && a.swaps.length > 1 && (
           <Button
@@ -518,6 +589,15 @@ function DeckBody({
           dot={ownership.get(item.card.oracleId)?.status}
           right={"price" in item && item.price != null ? euros(item.price as number) : undefined}
           note={"note" in item ? (item.note as string) : undefined}
+          lock={
+            mine && tab === "list" && !a?.commanders.some((c) => c.oracleId === item.card.oracleId)
+              ? {
+                  on: deck.locked.includes(item.card.oracleId),
+                  toggle: () => onToggleLock(item.card.oracleId),
+                  disabled: waiting,
+                }
+              : undefined
+          }
           onLongPress={
             mine && tab === "list" && !a?.commanders.some((c) => c.oracleId === item.card.oracleId)
               ? () =>
@@ -652,6 +732,7 @@ function CardLine({
   dot,
   right,
   note,
+  lock,
   onLongPress,
 }: {
   card: CardDTO;
@@ -659,6 +740,8 @@ function CardLine({
   dot?: OwnershipItemDTO["status"] | undefined;
   right?: string | undefined;
   note?: string | undefined;
+  /** Candado (en mis mazos): bloqueada = nunca se propone sacarla. */
+  lock?: { on: boolean; toggle: () => void; disabled: boolean } | undefined;
   onLongPress?: (() => void) | undefined;
 }) {
   return (
@@ -691,6 +774,24 @@ function CardLine({
         <View
           style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: STATUS_COLOR[dot] }}
         />
+      )}
+      {lock && (
+        <Pressable
+          onPress={lock.toggle}
+          disabled={lock.disabled}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityState={{ selected: lock.on }}
+          accessibilityLabel={
+            lock.on ? `Desbloquear ${card.name}` : `Bloquear ${card.name} (no se propondrá sacarla)`
+          }
+        >
+          <Ionicons
+            name={lock.on ? "lock-closed" : "lock-open-outline"}
+            size={16}
+            color={lock.on ? colors.accent : colors.text3}
+          />
+        </Pressable>
       )}
     </Pressable>
   );
