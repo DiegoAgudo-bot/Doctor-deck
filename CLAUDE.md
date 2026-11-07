@@ -755,6 +755,12 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     reemplazar la lista, duplicar y borrar; también al mantener pulsado un mazo en la lista),
     selector de tema (`ThemePicker`; en los míos se guarda, en los de otros solo se mira; también
     al crear desde un comandante) y candado por carta en la Lista (`locked`).
+  - Editor de mazos (fase M2, `components/deck-editor.tsx`): en la Lista de un mazo mío,
+    «Añadir» (`AddCardsSheet`: buscador limitado a la identidad y recomendadas libres de mi
+    colección, `addCandidates`), tocar una carta abre `CardActionsSheet` (copias −/+ con
+    `maxCopies`, edición con `setPrinting` + `exportDecklist` y roles/etiquetas en todos mis mazos
+    o solo en este), lista «Por tipo» o «Por rol» y «N en otros mazos» en la portada
+    (`OtherDecksSheet`, con enlace a cada mazo).
   - Rejillas (Buscar y Colección): `CardThumb` enseña el nombre al momento y la imagen encima en
     cuanto llega (como ManaBox); tarjetas memorizadas, la página siguiente se pide con antelación
     (`onEndReachedThreshold` 1,5) y las miniaturas de cada página se descargan al llegar

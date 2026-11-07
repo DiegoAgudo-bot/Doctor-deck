@@ -450,6 +450,13 @@ export function exportableDeck(a: Analysis): ExportableDeck {
         ...(c.isBasicLand || c.primaryRole === "synergy" ? [] : [ROLE_TAGS[c.primaryRole]]),
         ...c.tags,
       ],
+      // Las que venían en la lista: se conservan al reescribirla (cambiar una edición…).
+      listTags: [
+        ...(c.roleSource === "list"
+          ? c.roles.filter((r) => r !== "synergy" && r !== "land").map((r) => ROLE_TAGS[r])
+          : []),
+        ...c.tags,
+      ],
     })),
   };
 }
