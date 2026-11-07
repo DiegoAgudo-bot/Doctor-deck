@@ -17,16 +17,12 @@ import {
 } from "./local-collection";
 import { ColorPips } from "./mana";
 import { Banner, Loading, ago, fmt } from "./ui";
-import { Link, useLocale } from "@/components/i18n";
-
-const SOURCE: Record<string, string> = {
-  text: "texto",
-  archidekt: "enlace",
-  moxfield: "enlace",
-};
+import { Link, useLocale, useT } from "@/components/i18n";
 
 export function Home() {
   const locale = useLocale();
+  const t = useT();
+  const n = (x: number) => fmt(x, locale);
   const { data, isPending } = authClient.useSession();
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [decks, setDecks] = useState<SavedDeckSummaryDTO[] | null>(null);
@@ -40,7 +36,11 @@ export function Home() {
     api<StatusResponse>("/api/status")
       .then(setStatus)
       .catch((e: unknown) =>
-        setError(e instanceof ApiError ? e.message : "Error al cargar el estado"),
+        setError(
+          e instanceof ApiError
+            ? e.message
+            : t("Error al cargar el estado", "Couldn't load the status"),
+        ),
       );
     if (data) {
       api<SavedDeckSummaryDTO[]>("/api/decks", undefined, { silent: true })
@@ -54,6 +54,7 @@ export function Home() {
     readLocal();
     window.addEventListener(LOCAL_COLLECTION_EVENT, readLocal);
     return () => window.removeEventListener(LOCAL_COLLECTION_EVENT, readLocal);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t solo cambia con el idioma (recarga)
   }, [data, isPending]);
 
   if (error) {
@@ -66,7 +67,7 @@ export function Home() {
   if (!status) {
     return (
       <main className="page">
-        <Loading>Cargando…</Loading>
+        <Loading>{t("Cargando…", "Loading…")}</Loading>
       </main>
     );
   }
@@ -88,21 +89,26 @@ export function Home() {
   return (
     <main className="page" style={{ gap: 20 }}>
       <div className="stack-sm flex items-center justify-between gap-3">
-        <h1 className="h1">Hola, {user?.name}</h1>
+        <h1 className="h1">
+          {t("Hola,", "Hi,")} {user?.name}
+        </h1>
         <div className="flex flex-wrap gap-2">
           <Link className="btn btn-primary" href="/decks/new">
             <IconPlus size={14} />
-            Nuevo mazo
+            {t("Nuevo mazo", "New deck")}
           </Link>
         </div>
       </div>
 
       {status.catalog.cards === 0 && (
         <Banner tone="out">
-          <b>El catálogo de cartas está vacío.</b>{" "}
+          <b>{t("El catálogo de cartas está vacío.", "The card catalog is empty.")}</b>{" "}
           <span className="muted">
-            Hay que descargar los datos de cartas en el servidor (<code>npm run scryfall:sync</code>
-            ).
+            {t(
+              "Hay que descargar los datos de cartas en el servidor",
+              "The card data has to be downloaded on the server",
+            )}{" "}
+            (<code>npm run scryfall:sync</code>).
           </span>
         </Banner>
       )}
@@ -111,12 +117,17 @@ export function Home() {
           tone="warn"
           action={
             <Link className="btn btn-sm" href="/collection">
-              Importar mi colección
+              {t("Importar mi colección", "Import my collection")}
             </Link>
           }
         >
-          <b>No has importado tu colección.</b>{" "}
-          <span className="muted">Sin ella no puedo priorizar las cartas que ya tienes.</span>
+          <b>{t("No has importado tu colección.", "You haven't imported your collection.")}</b>{" "}
+          <span className="muted">
+            {t(
+              "Sin ella no puedo priorizar las cartas que ya tienes.",
+              "Without it I can't prioritize the cards you already own.",
+            )}
+          </span>
         </Banner>
       )}
 
@@ -126,53 +137,61 @@ export function Home() {
       >
         <Stat
           href="/collection"
-          label="Tu colección"
-          value={`${fmt(copies)} ${copies === 1 ? "copia" : "copias"}`}
+          label={t("Tu colección", "Your collection")}
+          value={`${n(copies)} ${copies === 1 ? t("copia", "copy") : t("copias", "copies")}`}
           meta={
             user && collection?.unmatchedRows
-              ? `${fmt(unique)} distintas · ${fmt(collection.unmatchedRows)} filas sin emparejar`
-              : `${fmt(unique)} cartas distintas`
+              ? t(
+                  `${n(unique)} distintas · ${n(collection.unmatchedRows)} filas sin emparejar`,
+                  `${n(unique)} unique · ${n(collection.unmatchedRows)} unmatched rows`,
+                )
+              : t(`${n(unique)} cartas distintas`, `${n(unique)} unique cards`)
           }
           first
         />
         <Stat
           href="/decks"
-          label="Mazos guardados"
-          value={decks ? fmt(decks.length) : "…"}
-          meta="Sus cartas cuentan como en uso"
+          label={t("Mazos guardados", "Saved decks")}
+          value={decks ? n(decks.length) : "…"}
+          meta={t("Sus cartas cuentan como en uso", "Their cards count as in use")}
         />
         <Stat
           href={myTurn ? "/trades?tab=proposals" : "/trades"}
-          label="Intercambios"
-          value={myTurn === null ? "…" : fmt(myTurn)}
-          meta={myTurn ? "Propuestas por responder" : "Ver cruces con otros jugadores"}
+          label={t("Intercambios", "Trades")}
+          value={myTurn === null ? "…" : n(myTurn)}
+          meta={
+            myTurn
+              ? t("Propuestas por responder", "Proposals to answer")
+              : t("Ver cruces con otros jugadores", "See matches with other players")
+          }
         />
       </div>
 
       <section className="panel">
         <div className="panel-h">
-          <span className="h2">Tus mazos</span>
+          <span className="h2">{t("Tus mazos", "Your decks")}</span>
           {decks && decks.length > 0 && (
             <Link href="/decks" style={{ fontSize: 13 }}>
-              Ver todos
+              {t("Ver todos", "See all")}
             </Link>
           )}
         </div>
         {decks && decks.length === 0 ? (
           <p className="muted p-4 text-[13px]">
-            Aún no tienes ningún mazo. <Link href="/decks/new">Crea uno</Link> desde un comandante o
-            importa una lista.
+            {t("Aún no tienes ningún mazo.", "You don't have any decks yet.")}{" "}
+            <Link href="/decks/new">{t("Crea uno", "Create one")}</Link>{" "}
+            {t("desde un comandante o importa una lista.", "from a commander or import a list.")}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Mazo</th>
-                  <th className="hide-sm">Colores</th>
-                  <th className="r hide-sm">Cartas</th>
-                  <th className="hide-sm">Origen</th>
-                  <th className="r">Actualizado</th>
+                  <th>{t("Mazo", "Deck")}</th>
+                  <th className="hide-sm">{t("Colores", "Colors")}</th>
+                  <th className="r hide-sm">{t("Cartas", "Cards")}</th>
+                  <th className="hide-sm">{t("Origen", "Source")}</th>
+                  <th className="r">{t("Actualizado", "Updated")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -199,8 +218,10 @@ export function Home() {
                       <ColorPips colors={d.colorIdentity} />
                     </td>
                     <td className="r mono hide-sm">{d.cardCount}</td>
-                    <td className="muted hide-sm">{SOURCE[d.source] ?? d.source}</td>
-                    <td className="r mono subtle">{ago(d.updatedAt)}</td>
+                    <td className="muted hide-sm">
+                      {d.source === "text" ? t("texto", "text") : t("enlace", "link")}
+                    </td>
+                    <td className="r mono subtle">{ago(d.updatedAt, locale)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -211,9 +232,9 @@ export function Home() {
 
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <span className="h2">Actividad</span>
+          <span className="h2">{t("Actividad", "Activity")}</span>
           <Link href="/feed" style={{ fontSize: 13 }}>
-            Ver todo
+            {t("Ver todo", "See all")}
           </Link>
         </div>
         <ActivityFeed compact />

@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { deckId, expect, test } from "./fixtures";
 
 test.describe("versión en inglés, sin sesión", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
@@ -57,5 +57,33 @@ test.describe("versión en inglés, sin sesión", () => {
     const en = await (await request.get("/sitemap/en.xml")).text();
     expect(en).toContain("/en/cards</loc>");
     expect(en).toContain('hreflang="es"');
+  });
+});
+
+test.describe("analizador y mazos en inglés", () => {
+  test("el mazo de ejemplo se analiza en inglés", async ({ page }) => {
+    await page.goto("/en/analyze?sample=1");
+    await expect(page.getByRole("heading", { name: "Teferi, Temporal Archmage" })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByRole("button", { name: /^What I'm missing/ })).toBeVisible();
+    await page.getByRole("button", { name: /^Stats/ }).click();
+    await expect(page.getByText("Opening hand")).toBeVisible();
+    await expect(page.getByText("Mana curve").first()).toBeVisible();
+    // Nada del analizador en español.
+    await expect(page.getByText("Qué me falta")).toHaveCount(0);
+  });
+
+  test("un mazo guardado: cambios, lista y ajustes en inglés", async ({ page }) => {
+    await page.goto(`/en/decks/${await deckId(page, "Teferi control")}`);
+    await expect(page.getByRole("button", { name: /^Changes/ })).toBeVisible({ timeout: 30_000 });
+    // Los motivos de cada cambio los escribe el servidor en el idioma de la página.
+    const reason = page.locator(".diff-meta").first();
+    if ((await reason.count()) > 0) await expect(reason).toContainText("Replace");
+    await page.getByRole("button", { name: "Settings" }).click();
+    await expect(page.getByRole("dialog", { name: "Deck settings" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: /^List\s*\d+$/ }).click();
+    await expect(page.getByText("Locked: never suggested to cut.")).toBeVisible();
   });
 });
