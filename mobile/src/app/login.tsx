@@ -40,7 +40,7 @@ export default function Login() {
     await clearCache();
     const { error: e } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/collection",
+      callbackURL: "/home",
     });
     if (e) {
       setError(
