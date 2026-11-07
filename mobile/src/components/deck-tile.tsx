@@ -16,11 +16,22 @@ const VISIBILITY_ICON = {
 } as const;
 
 /** Un mazo con el arte del comandante de portada. */
-export function DeckTile({ deck, owner }: { deck: SavedDeckSummaryDTO; owner?: string | null }) {
+export function DeckTile({
+  deck,
+  owner,
+  onLongPress,
+}: {
+  deck: SavedDeckSummaryDTO;
+  owner?: string | null;
+  /** En mis mazos: abre sus ajustes (renombrar, visibilidad, duplicar, borrar…). */
+  onLongPress?: () => void;
+}) {
   const art = artUri(deck.commanderCard?.imageUrl);
   return (
     <Pressable
       onPress={() => router.push(`/deck/${deck.id}`)}
+      onLongPress={onLongPress}
+      accessibilityHint={onLongPress ? "Mantén pulsado para ver sus ajustes" : undefined}
       style={({ pressed }) => ({
         borderRadius: radius.lg,
         overflow: "hidden",

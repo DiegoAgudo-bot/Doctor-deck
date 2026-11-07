@@ -749,6 +749,12 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     impresión exacta la corrige (`upgradeLatest`). La lista (`addScanned`: misma copia suma) se
     guarda en el móvil; «Añadir N a la colección» → `POST /api/collection/cards` (foil, idioma
     impreso o el de la última vez, estado). Límite `routeLimits.scan` 900/min.
+  - Gestionar mazos (fase M1 de `APP_ROADMAP.md`, `components/deck-manage.tsx`): en la cabecera
+    del mazo «Exportar» (`exportDeck` del dominio, con «Compartir») y, en los míos, «Ajustes»
+    (`DeckSettingsSheet`: nombre, visibilidad, bracket objetivo, historial con restaurar,
+    reemplazar la lista, duplicar y borrar; también al mantener pulsado un mazo en la lista),
+    selector de tema (`ThemePicker`; en los míos se guarda, en los de otros solo se mira; también
+    al crear desde un comandante) y candado por carta en la Lista (`locked`).
   - Rejillas (Buscar y Colección): `CardThumb` enseña el nombre al momento y la imagen encima en
     cuanto llega (como ManaBox); tarjetas memorizadas, la página siguiente se pide con antelación
     (`onEndReachedThreshold` 1,5) y las miniaturas de cada página se descargan al llegar
