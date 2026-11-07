@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ROLE_LABELS, ROLES, type Role } from "@/domain/roles/types";
+import { ROLES, type Role } from "@/domain/roles/types";
+import { roleLabel as localizedRole } from "@/domain/i18n/labels";
+import type { Locale } from "@/domain/i18n/locale";
+import { useIntlLocale, useLocale, useT, type T } from "./i18n";
 import type { CardDTO, DeckCardDTO, RoleStatDTO, ScoredCardDTO, SwapDTO } from "@/server/dto";
 import { CardHover, CardImage } from "./card-image";
 import { IconArrowRight, IconChevron, IconLock, IconMinus, IconPlus, IconX } from "./icons";
@@ -9,22 +12,30 @@ import { ManaCost } from "./mana";
 
 export type Decision = "accepted" | "rejected";
 
-const pct = (x: number) => `${Math.round(x * 100)} %`;
-const signedPct = (x: number) => `${x >= 0 ? "+" : "−"}${Math.round(Math.abs(x) * 100)} %`;
-/** Mejora de la puntuación del motor, con un decimal ("4,4"). */
-export const points = (score: number) => score.toFixed(1).replace(".", ",");
+const pct = (x: number, intl: string) => `${Math.round(x * 100)}${intl === "en-GB" ? "" : " "}%`;
+const signedPct = (x: number, intl: string) => `${x >= 0 ? "+" : "−"}${pct(Math.abs(x), intl)}`;
+/** Mejora de la puntuación del motor, con un decimal ("4,4" / "4.4"). */
+export const points = (score: number, intl = "es-ES") =>
+  score.toLocaleString(intl, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 /** De dónde salen los roles (la etiqueta pequeña junto al rol en la tabla). */
-const ROLE_SOURCE_PILL = { auto: "", list: "lista", mine: "tuyo", deck: "este mazo" } as const;
-const ROLE_SOURCE_TITLE = {
-  auto: "",
-  list: "De la lista",
-  mine: "Corregido por ti (en todos tus mazos)",
-  deck: "Corregido por ti solo en este mazo",
-} as const;
+const roleSourcePill = (s: DeckCardDTO["roleSource"], t: T) =>
+  ({
+    auto: "",
+    list: t("lista", "list"),
+    mine: t("tuyo", "yours"),
+    deck: t("este mazo", "this deck"),
+  })[s];
+const roleSourceTitle = (s: DeckCardDTO["roleSource"], t: T) =>
+  ({
+    auto: "",
+    list: t("De la lista", "From the list"),
+    mine: t("Corregido por ti (en todos tus mazos)", "Corrected by you (in all your decks)"),
+    deck: t("Corregido por ti solo en este mazo", "Corrected by you in this deck only"),
+  })[s];
 
 /** Las etiquetas de rol van en minúscula (se usan dentro de frases); en la interfaz, con mayúscula. */
-export const roleLabel = (role: Role) => {
-  const l = ROLE_LABELS[role];
+export const roleLabel = (role: Role, locale: Locale = "es") => {
+  const l = localizedRole(role, locale);
   return l.charAt(0).toUpperCase() + l.slice(1);
 };
 const isLand = (c: Pick<CardDTO, "typeLine">) => /\bLand\b/.test(c.typeLine.split("//")[0] ?? "");
@@ -32,10 +43,12 @@ const isLand = (c: Pick<CardDTO, "typeLine">) => /\bLand\b/.test(c.typeLine.spli
 // ---------- Cambios (diff) ----------
 
 function SwapRow({ sign, scored }: { sign: "−" | "+"; scored: ScoredCardDTO }) {
+  const t = useT();
+  const intl = useIntlLocale();
   const { card } = scored;
   return (
     <CardHover card={card} as="div" className={`diff-row ${sign === "−" ? "minus" : "plus"}`}>
-      <span className="sign" aria-label={sign === "−" ? "Sale" : "Entra"}>
+      <span className="sign" aria-label={sign === "−" ? t("Sale", "Out") : t("Entra", "In")}>
         {sign}
       </span>
       <span className="nm" style={sign === "+" ? { fontWeight: 500 } : undefined}>
@@ -45,7 +58,7 @@ function SwapRow({ sign, scored }: { sign: "−" | "+"; scored: ScoredCardDTO })
         <ManaCost cost={card.manaCost} />
         {scored.price !== undefined && (
           <span className="mono subtle hide-sm w-14 text-right text-xs">
-            {scored.price.toFixed(2).replace(".", ",")} €
+            {scored.price.toLocaleString(intl, { style: "currency", currency: "EUR" })}
           </span>
         )}
       </span>
@@ -53,9 +66,11 @@ function SwapRow({ sign, scored }: { sign: "−" | "+"; scored: ScoredCardDTO })
   );
 }
 
-function ownedLabel(s: ScoredCardDTO): string | null {
+function ownedLabel(s: ScoredCardDTO, t: T): string | null {
   if (s.available === undefined) return null;
-  return s.available === 1 ? "Tienes 1 libre" : `Tienes ${s.available} libres`;
+  return s.available === 1
+    ? t("Tienes 1 libre", "You have 1 free")
+    : t(`Tienes ${s.available} libres`, `You have ${s.available} free`);
 }
 
 /** Un cambio: "− sale / + entra", con su puntuación, datos de EDHREC y motivo. */
@@ -70,9 +85,12 @@ export function SwapDiff({
   onDecide: (d: Decision | undefined) => void;
   commanderName: string;
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const intl = useIntlLocale();
   const [open, setOpen] = useState(false);
-  const role = roleLabel(swap.in.primaryRole);
-  const owned = ownedLabel(swap.in);
+  const role = roleLabel(swap.in.primaryRole, locale);
+  const owned = ownedLabel(swap.in, t);
   const cls =
     decision === "accepted" ? "is-accepted" : decision === "rejected" ? "is-discarded" : "";
   return (
@@ -82,7 +100,9 @@ export function SwapDiff({
           type="button"
           className="btn btn-ghost btn-icon"
           style={{ width: 24, height: 24 }}
-          aria-label={open ? "Ocultar las cartas" : "Ver las cartas"}
+          aria-label={
+            open ? t("Ocultar las cartas", "Hide the cards") : t("Ver las cartas", "Show the cards")
+          }
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
         >
@@ -103,21 +123,24 @@ export function SwapDiff({
         )}
         <span
           className="score ml-auto"
-          title="Mejora estimada: cuánto más se juega la que entra que la que sale, más el rol"
+          title={t(
+            "Mejora estimada: cuánto más se juega la que entra que la que sale, más el rol",
+            "Estimated improvement: how much more the incoming card is played than the outgoing one, plus the role",
+          )}
         >
-          +{points(swap.score)}
+          +{points(swap.score, intl)}
         </span>
         {decision ? (
           <span className="flex items-center gap-2">
             <span className={decision === "accepted" ? "pill pill-in" : "pill subtle"}>
-              {decision === "accepted" ? "Aceptado" : "Descartado"}
+              {decision === "accepted" ? t("Aceptado", "Accepted") : t("Descartado", "Dismissed")}
             </span>
             <button
               type="button"
               className="btn btn-ghost btn-sm"
               onClick={() => onDecide(undefined)}
             >
-              Deshacer
+              {t("Deshacer", "Undo")}
             </button>
           </span>
         ) : (
@@ -127,12 +150,12 @@ export function SwapDiff({
               className="btn btn-in btn-sm"
               onClick={() => onDecide("accepted")}
             >
-              Aceptar
+              {t("Aceptar", "Accept")}
             </button>
             <button
               type="button"
               className="btn btn-ghost btn-icon btn-sm"
-              aria-label={`Descartar ${swap.in.card.name}`}
+              aria-label={t(`Descartar ${swap.in.card.name}`, `Dismiss ${swap.in.card.name}`)}
               onClick={() => onDecide("rejected")}
             >
               <IconX size={13} />
@@ -145,12 +168,13 @@ export function SwapDiff({
       <div className="diff-meta">
         {swap.in.synergy !== null && (
           <span>
-            Sinergia <b className="mono">{signedPct(swap.in.synergy)}</b>
+            {t("Sinergia", "Synergy")} <b className="mono">{signedPct(swap.in.synergy, intl)}</b>
           </span>
         )}
         {swap.in.inclusion !== null && (
           <span>
-            En el <b className="mono">{pct(swap.in.inclusion)}</b> de los mazos de {commanderName}
+            {t("En el", "In")} <b className="mono">{pct(swap.in.inclusion, intl)}</b>{" "}
+            {t(`de los mazos de ${commanderName}`, `of ${commanderName} decks`)}
           </span>
         )}
         <span>{swap.reason}</span>
@@ -195,15 +219,16 @@ export function DiffSkeleton() {
 // ---------- Estadísticas ----------
 
 type Seg = "w" | "u" | "b" | "r" | "g" | "m" | "c";
-const SEG_LABEL: Record<Seg, string> = {
-  w: "Blanco",
-  u: "Azul",
-  b: "Negro",
-  r: "Rojo",
-  g: "Verde",
-  m: "Multicolor",
-  c: "Incoloro",
-};
+const segLabel = (s: Seg, t: T) =>
+  ({
+    w: t("Blanco", "White"),
+    u: t("Azul", "Blue"),
+    b: t("Negro", "Black"),
+    r: t("Rojo", "Red"),
+    g: t("Verde", "Green"),
+    m: t("Multicolor", "Multicolor"),
+    c: t("Incoloro", "Colorless"),
+  })[s];
 const SEG_ORDER: Seg[] = ["w", "u", "b", "r", "g", "m", "c"];
 
 function segOf(card: CardDTO): Seg {
@@ -214,6 +239,7 @@ function segOf(card: CardDTO): Seg {
 
 /** Curva de maná de las cartas que no son tierra, apilada por color (identidad de cada carta). */
 export function ManaCurve({ cards }: { cards: { card: CardDTO; quantity: number }[] }) {
+  const t = useT();
   const cols = Array.from({ length: 8 }, () => new Map<Seg, number>());
   let spells = 0;
   for (const { card, quantity } of cards) {
@@ -231,14 +257,16 @@ export function ManaCurve({ cards }: { cards: { card: CardDTO; quantity: number 
   return (
     <div className="panel">
       <div className="panel-h">
-        <span className="h2">Curva de maná</span>
-        <span className="mono subtle text-xs">{spells} hechizos</span>
+        <span className="h2">{t("Curva de maná", "Mana curve")}</span>
+        <span className="mono subtle text-xs">
+          {spells} {t("hechizos", "spells")}
+        </span>
       </div>
       <div className="p-3">
         <div
           className="curve"
           role="img"
-          aria-label={`Curva de maná: ${totals.map((t, i) => `${i === 7 ? "7+" : i}: ${t}`).join(", ")}`}
+          aria-label={`${t("Curva de maná", "Mana curve")}: ${totals.map((n, i) => `${i === 7 ? "7+" : i}: ${n}`).join(", ")}`}
         >
           {cols.map((col, i) => (
             <div key={i} className="curve-col">
@@ -266,7 +294,7 @@ export function ManaCurve({ cards }: { cards: { card: CardDTO; quantity: number 
           {used.map((s) => (
             <span key={s} className="flex items-center gap-1">
               <span className={`dot seg-${s}`} />
-              {SEG_LABEL[s]}
+              {segLabel(s, t)}
             </span>
           ))}
         </div>
@@ -277,12 +305,18 @@ export function ManaCurve({ cards }: { cards: { card: CardDTO; quantity: number 
 
 /** Roles con su mínimo marcado: verde si llega, ámbar si se queda cerca, rojo si muy lejos. */
 export function RoleMeters({ roles }: { roles: RoleStatDTO[] }) {
+  const t = useT();
+  const locale = useLocale();
   const low = roles.filter((r) => r.min > 0 && r.count < r.min).length;
   return (
     <div className="panel">
       <div className="panel-h">
-        <span className="h2">Roles</span>
-        {low > 0 && <span className="pill pill-warn">{low} bajo mínimo</span>}
+        <span className="h2">{t("Roles", "Roles")}</span>
+        {low > 0 && (
+          <span className="pill pill-warn">
+            {low} {t("bajo mínimo", "below minimum")}
+          </span>
+        )}
       </div>
       <div className="px-3 pt-1 pb-2">
         {roles.map((r, i) => {
@@ -292,7 +326,7 @@ export function RoleMeters({ roles }: { roles: RoleStatDTO[] }) {
             r.min === 0 ? "na" : r.count >= r.min ? "" : r.count >= r.min * 0.75 ? "low" : "crit";
           return (
             <div key={r.role} className={`role ${cls}`}>
-              <span>{roleLabel(r.role)}</span>
+              <span>{roleLabel(r.role, locale)}</span>
               <div className="role-bar">
                 <i style={{ width: `${width}%`, ["--d" as string]: `${i * 30}ms` }} />
                 {r.min > 0 && <s style={{ left: "80%" }} />}
@@ -308,6 +342,8 @@ export function RoleMeters({ roles }: { roles: RoleStatDTO[] }) {
 
 /** Cifras generales del mazo. */
 export function DeckFacts({ cards }: { cards: DeckCardDTO[] }) {
+  const t = useT();
+  const intl = useIntlLocale();
   const nonLand = cards.filter((c) => !isLand(c.card));
   const spells = nonLand.reduce((n, c) => n + c.quantity, 0);
   const lands = cards.filter((c) => isLand(c.card)).reduce((n, c) => n + c.quantity, 0);
@@ -315,20 +351,22 @@ export function DeckFacts({ cards }: { cards: DeckCardDTO[] }) {
   return (
     <div className="panel">
       <div className="panel-h">
-        <span className="h2">Resumen</span>
+        <span className="h2">{t("Resumen", "Summary")}</span>
       </div>
       <div className="px-3 pt-1 pb-2">
         <div className="kv">
-          <span className="muted">Tierras</span>
+          <span className="muted">{t("Tierras", "Lands")}</span>
           <b>{lands}</b>
         </div>
         <div className="kv">
-          <span className="muted">Hechizos</span>
+          <span className="muted">{t("Hechizos", "Spells")}</span>
           <b>{spells}</b>
         </div>
         <div className="kv">
-          <span className="muted">Coste medio (sin tierras)</span>
-          <b>{avg.toFixed(2).replace(".", ",")}</b>
+          <span className="muted">
+            {t("Coste medio (sin tierras)", "Avg. mana value (no lands)")}
+          </span>
+          <b>{avg.toLocaleString(intl, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
         </div>
       </div>
     </div>
@@ -387,13 +425,15 @@ export function DeckList({
   inOtherDecks?: ReadonlyMap<string, readonly string[]> | undefined;
   busy?: boolean;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const groups = groupByRole(cards);
   if (view === "texto") {
     return (
       <textarea
         className="textarea"
         readOnly
-        aria-label="Lista en texto"
+        aria-label={t("Lista en texto", "List as text")}
         style={{ minHeight: 320 }}
         value={text}
       />
@@ -406,10 +446,10 @@ export function DeckList({
           <thead>
             <tr>
               <th style={{ width: 30 }} />
-              <th>Carta</th>
-              <th>Coste</th>
-              <th>Rol</th>
-              <th>Edición</th>
+              <th>{t("Carta", "Card")}</th>
+              <th>{t("Coste", "Cost")}</th>
+              <th>{t("Rol", "Role")}</th>
+              <th>{t("Edición", "Printing")}</th>
               <th style={{ width: 40 }} />
               {onChangeQuantity && <th style={{ width: 70 }} />}
             </tr>
@@ -430,22 +470,22 @@ export function DeckList({
                           </span>
                         )}
                         {leaving.has(c.card.oracleId) && (
-                          <span className="pill pill-out">sale</span>
+                          <span className="pill pill-out">{t("sale", "out")}</span>
                         )}
                         {inOtherDecks?.has(c.card.oracleId) && (
                           <span
                             className="pill pill-inuse"
-                            title={`La tienes en: ${inOtherDecks.get(c.card.oracleId)?.join(", ")}`}
+                            title={`${t("La tienes en", "You have it in")}: ${inOtherDecks.get(c.card.oracleId)?.join(", ")}`}
                           >
-                            en {inOtherDecks.get(c.card.oracleId)?.join(", ")}
+                            {t("en", "in")} {inOtherDecks.get(c.card.oracleId)?.join(", ")}
                           </span>
                         )}
                       </CardHover>
                       {c.tags.length > 0 && (
                         <span className="ml-2 inline-flex flex-wrap gap-1 align-middle">
-                          {c.tags.map((t) => (
-                            <span key={t} className="pill subtle">
-                              #{t}
+                          {c.tags.map((tag) => (
+                            <span key={tag} className="pill subtle">
+                              #{tag}
                             </span>
                           ))}
                         </span>
@@ -461,29 +501,41 @@ export function DeckList({
                           className="linkbtn"
                           title={
                             c.roleSource === "deck"
-                              ? "Roles corregidos por ti solo en este mazo. Clic para cambiarlos"
+                              ? t(
+                                  "Roles corregidos por ti solo en este mazo. Clic para cambiarlos",
+                                  "Roles corrected by you in this deck only. Click to change them",
+                                )
                               : c.roleSource === "mine"
-                                ? "Roles corregidos por ti. Clic para cambiarlos"
+                                ? t(
+                                    "Roles corregidos por ti. Clic para cambiarlos",
+                                    "Roles corrected by you. Click to change them",
+                                  )
                                 : c.roleSource === "list"
-                                  ? "Roles de las etiquetas de la lista. Clic para cambiarlos"
-                                  : "Roles automáticos. Clic para corregirlos"
+                                  ? t(
+                                      "Roles de las etiquetas de la lista. Clic para cambiarlos",
+                                      "Roles from the list's tags. Click to change them",
+                                    )
+                                  : t(
+                                      "Roles automáticos. Clic para corregirlos",
+                                      "Automatic roles. Click to correct them",
+                                    )
                           }
                           onClick={() => onEditRoles(c)}
                         >
-                          {roleLabel(c.primaryRole)}
+                          {roleLabel(c.primaryRole, locale)}
                           {c.roles.length > 1 && (
                             <span className="subtle"> +{c.roles.length - 1}</span>
                           )}
                         </button>
                       ) : (
-                        roleLabel(c.primaryRole)
+                        roleLabel(c.primaryRole, locale)
                       )}
                       {c.roleSource !== "auto" && (
                         <span
                           className="pill subtle ml-1.5"
-                          title={ROLE_SOURCE_TITLE[c.roleSource]}
+                          title={roleSourceTitle(c.roleSource, t)}
                         >
-                          {ROLE_SOURCE_PILL[c.roleSource]}
+                          {roleSourcePill(c.roleSource, t)}
                         </span>
                       )}
                     </td>
@@ -494,12 +546,17 @@ export function DeckList({
                           className="linkbtn"
                           title={
                             c.card.printing
-                              ? `${c.card.printing.setName ?? ""} #${c.card.printing.collectorNumber}. Clic para cambiarla`
-                              : "Por defecto. Clic para elegir edición"
+                              ? `${c.card.printing.setName ?? ""} #${c.card.printing.collectorNumber}. ${t("Clic para cambiarla", "Click to change it")}`
+                              : t(
+                                  "Por defecto. Clic para elegir edición",
+                                  "Default. Click to choose a printing",
+                                )
                           }
                           onClick={() => onEditPrinting(c.card)}
                         >
-                          {c.card.printing ? c.card.printing.setCode.toUpperCase() : "elegir"}
+                          {c.card.printing
+                            ? c.card.printing.setCode.toUpperCase()
+                            : t("elegir", "choose")}
                         </button>
                       ) : (
                         (c.card.printing?.setCode.toUpperCase() ?? "—")
@@ -518,7 +575,9 @@ export function DeckList({
                           }}
                           aria-pressed={isLocked}
                           aria-label={
-                            isLocked ? `Desbloquear ${c.card.name}` : `Bloquear ${c.card.name}`
+                            isLocked
+                              ? t(`Desbloquear ${c.card.name}`, `Unlock ${c.card.name}`)
+                              : t(`Bloquear ${c.card.name}`, `Lock ${c.card.name}`)
                           }
                           onClick={() => onToggleLock(c.card.oracleId)}
                         >
@@ -535,7 +594,10 @@ export function DeckList({
                               className="btn btn-ghost btn-icon"
                               style={{ width: 26, height: 26 }}
                               disabled={busy || (c.maxCopies !== null && c.quantity >= c.maxCopies)}
-                              aria-label={`Añadir otra ${c.card.name}`}
+                              aria-label={t(
+                                `Añadir otra ${c.card.name}`,
+                                `Add another ${c.card.name}`,
+                              )}
                               onClick={() => onChangeQuantity(c.card, 1)}
                             >
                               <IconPlus size={12} />
@@ -547,9 +609,15 @@ export function DeckList({
                             style={{ width: 26, height: 26, color: "var(--color-out)" }}
                             disabled={busy}
                             aria-label={
-                              c.quantity > 1 ? `Quitar una ${c.card.name}` : `Quitar ${c.card.name}`
+                              c.quantity > 1
+                                ? t(`Quitar una ${c.card.name}`, `Remove one ${c.card.name}`)
+                                : t(`Quitar ${c.card.name}`, `Remove ${c.card.name}`)
                             }
-                            title={c.quantity > 1 ? "Quitar una copia" : "Quitar del mazo"}
+                            title={
+                              c.quantity > 1
+                                ? t("Quitar una copia", "Remove a copy")
+                                : t("Quitar del mazo", "Remove from deck")
+                            }
                             onClick={() => onChangeQuantity(c.card, -1)}
                           >
                             <IconMinus size={12} />
@@ -571,7 +639,7 @@ export function DeckList({
       {groups.map((g) => (
         <div key={g.role}>
           <div className="stack-h">
-            {roleLabel(g.role)} <span>{g.cards.reduce((n, c) => n + c.quantity, 0)}</span>
+            {roleLabel(g.role, locale)} <span>{g.cards.reduce((n, c) => n + c.quantity, 0)}</span>
           </div>
           <div className="stack">
             {g.cards.map((c) => {
@@ -584,18 +652,20 @@ export function DeckList({
                   title={
                     c.isBasicLand
                       ? c.card.name
-                      : `${c.card.name} — clic para ${isLocked ? "desbloquear" : "bloquear"}`
+                      : `${c.card.name} — ${isLocked ? t("clic para desbloquear", "click to unlock") : t("clic para bloquear", "click to lock")}`
                   }
                   aria-pressed={c.isBasicLand ? undefined : isLocked}
                   disabled={c.isBasicLand}
                   onClick={() => onToggleLock(c.card.oracleId)}
                 >
                   {isLocked && (
-                    <span className="lockmark" aria-label="Bloqueada">
+                    <span className="lockmark" aria-label={t("Bloqueada", "Locked")}>
                       <IconLock size={11} weight={2.6} />
                     </span>
                   )}
-                  {leaving.has(c.card.oracleId) && <span className="outmark">sale</span>}
+                  {leaving.has(c.card.oracleId) && (
+                    <span className="outmark">{t("sale", "out")}</span>
+                  )}
                   {c.card.gameChanger && !leaving.has(c.card.oracleId) && (
                     <span className="gcmark" title="Game changer (brackets)">
                       GC

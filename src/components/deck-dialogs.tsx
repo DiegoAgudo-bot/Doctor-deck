@@ -7,10 +7,7 @@ import type { DeckVersionDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { VisibilityPicker } from "./deck-visibility";
 import { Banner, Dialog, Loading } from "./ui";
-import { Link } from "@/components/i18n";
-
-/** Tras crear la cuenta o entrar: de vuelta al mazo (sigue en el navegador) y a guardarlo. */
-const AFTER_ACCOUNT = encodeURIComponent("/analyze?analyze=1&save=1");
+import { Link, useIntlLocale, useLocalePath, useT, type T } from "@/components/i18n";
 
 /** Guardar en "Mis mazos". Sin sesión, invita a entrar (el mazo sigue en el navegador). */
 export function SaveDialog({
@@ -42,6 +39,10 @@ export function SaveDialog({
     visibility: DeckVisibility;
   }) => void;
 }) {
+  const t = useT();
+  const lp = useLocalePath();
+  /** Tras crear la cuenta o entrar: de vuelta al mazo (sigue en el navegador) y a guardarlo. */
+  const afterAccount = encodeURIComponent(lp("/analyze?analyze=1&save=1"));
   const [name, setName] = useState(defaultName);
   const [includeAccepted, setIncludeAccepted] = useState(true);
   const [visibility, setVisibility] = useState(initialVisibility);
@@ -57,25 +58,30 @@ export function SaveDialog({
       <Dialog
         open={open}
         onClose={onClose}
-        title="Guardar mazo"
+        title={t("Guardar mazo", "Save deck")}
         width={380}
         footer={
           <>
-            <Link className="btn btn-primary" href={`/signup?next=${AFTER_ACCOUNT}`}>
-              Crear cuenta
+            <Link className="btn btn-primary" href={`/signup?next=${afterAccount}`}>
+              {t("Crear cuenta", "Create account")}
             </Link>
-            <Link className="btn" href={`/login?next=${AFTER_ACCOUNT}`}>
-              Entrar
+            <Link className="btn" href={`/login?next=${afterAccount}`}>
+              {t("Entrar", "Sign in")}
             </Link>
           </>
         }
       >
         <p>
-          Para guardar mazos necesitas una cuenta (gratis). Al crearla vuelves aquí para guardarlo.
+          {t(
+            "Para guardar mazos necesitas una cuenta (gratis). Al crearla vuelves aquí para guardarlo.",
+            "You need a (free) account to save decks. Once you create it, you'll come back here to save it.",
+          )}
         </p>
         <p className="muted text-[13px]">
-          Tu lista, los candados y los descartes se quedan en este navegador: al volver los
-          encontrarás tal cual. Los mazos guardados además descuentan sus cartas al analizar otros.
+          {t(
+            "Tu lista, los candados y los descartes se quedan en este navegador: al volver los encontrarás tal cual. Los mazos guardados además descuentan sus cartas al analizar otros.",
+            "Your list, locks and dismissals stay in this browser: you'll find them as they are when you come back. Saved decks also count their cards as in use when analyzing others.",
+          )}
         </p>
       </Dialog>
     );
@@ -89,12 +95,18 @@ export function SaveDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title={copyOf ? "Guardar una copia" : asNewOnly ? "Guardar como nuevo mazo" : "Guardar mazo"}
+      title={
+        copyOf
+          ? t("Guardar una copia", "Save a copy")
+          : asNewOnly
+            ? t("Guardar como nuevo mazo", "Save as a new deck")
+            : t("Guardar mazo", "Save deck")
+      }
       width={380}
       footer={
         <>
           <button type="button" className="btn" onClick={onClose}>
-            Cancelar
+            {t("Cancelar", "Cancel")}
           </button>
           <button
             type="button"
@@ -102,7 +114,11 @@ export function SaveDialog({
             disabled={busy}
             onClick={() => submit(asNewOnly)}
           >
-            {busy ? "Guardando…" : asNewOnly ? "Guardar como nuevo" : "Guardar"}
+            {busy
+              ? t("Guardando…", "Saving…")
+              : asNewOnly
+                ? t("Guardar como nuevo", "Save as new")
+                : t("Guardar", "Save")}
           </button>
         </>
       }
@@ -116,26 +132,34 @@ export function SaveDialog({
       >
         <div className="field">
           <label className="label" htmlFor="deck-name">
-            Nombre
+            {t("Nombre", "Name")}
           </label>
           <input
             id="deck-name"
             className="input"
             value={name}
             maxLength={120}
-            placeholder="Por defecto, el nombre del comandante"
+            placeholder={t(
+              "Por defecto, el nombre del comandante",
+              "Defaults to the commander's name",
+            )}
             onChange={(e) => setName(e.target.value)}
           />
         </div>
         {asNewOnly && (
           <p className="muted text-[13px]">
-            Los cambios de este mazo ya se guardan solos. Esto crea otro mazo a partir de él.
+            {t(
+              "Los cambios de este mazo ya se guardan solos. Esto crea otro mazo a partir de él.",
+              "This deck's changes already save themselves. This creates another deck from it.",
+            )}
           </p>
         )}
         {copyOf && (
           <p className="muted text-[13px]">
-            Es el mazo de {copyOf.username ? `@${copyOf.username}` : copyOf.name}: se guardará una
-            copia en tus mazos, con tu nombre.
+            {t(
+              `Es el mazo de ${copyOf.username ? `@${copyOf.username}` : copyOf.name}: se guardará una copia en tus mazos, con tu nombre.`,
+              `It's ${copyOf.username ? `@${copyOf.username}` : copyOf.name}'s deck: a copy will be saved in your decks, under your name.`,
+            )}
           </p>
         )}
         <VisibilityPicker value={visibility} onChange={setVisibility} />
@@ -147,8 +171,11 @@ export function SaveDialog({
               onChange={(e) => setIncludeAccepted(e.target.checked)}
             />
             {acceptedCount === 1
-              ? "Incluir el cambio aceptado"
-              : `Incluir los ${acceptedCount} cambios aceptados`}
+              ? t("Incluir el cambio aceptado", "Include the accepted change")
+              : t(
+                  `Incluir los ${acceptedCount} cambios aceptados`,
+                  `Include the ${acceptedCount} accepted changes`,
+                )}
           </label>
         )}
       </form>
@@ -157,28 +184,40 @@ export function SaveDialog({
 }
 
 /** Exportar la lista (con los cambios aceptados) o solo los cambios. */
-const FORMAT: Record<ExportFormat, { label: string; hint: string; file: string }> = {
+const formats = (t: T): Record<ExportFormat, { label: string; hint: string; file: string }> => ({
   text: {
-    label: "Texto",
-    hint: "Una carta por línea; lo leen casi todas las webs y apps de mazos.",
-    file: "mazo.txt",
+    label: t("Texto", "Text"),
+    hint: t(
+      "Una carta por línea; lo leen casi todas las webs y apps de mazos.",
+      "One card per line; almost every deck site and app reads it.",
+    ),
+    file: t("mazo.txt", "deck.txt"),
   },
   arena: {
     label: "MTG Arena",
-    hint: "En Arena: Mazos › Importar (copia y pulsa Importar). Solo entran las cartas que existen en Arena.",
-    file: "mazo-arena.txt",
+    hint: t(
+      "En Arena: Mazos › Importar (copia y pulsa Importar). Solo entran las cartas que existen en Arena.",
+      "In Arena: Decks › Import (copy and press Import). Only cards that exist in Arena are included.",
+    ),
+    file: t("mazo-arena.txt", "deck-arena.txt"),
   },
   mtgo: {
     label: "MTGO",
-    hint: "Para Magic Online: el comandante va en el banquillo.",
-    file: "mazo-mtgo.txt",
+    hint: t(
+      "Para Magic Online: el comandante va en el banquillo.",
+      "For Magic Online: the commander goes in the sideboard.",
+    ),
+    file: t("mazo-mtgo.txt", "deck-mtgo.txt"),
   },
   moxfield: {
-    label: "Texto con etiquetas",
-    hint: "Texto con el rol de cada carta y tus etiquetas (#Ramp, #wincon); al volver a importarlo aquí se leen igual.",
-    file: "mazo-etiquetas.txt",
+    label: t("Texto con etiquetas", "Text with tags"),
+    hint: t(
+      "Texto con el rol de cada carta y tus etiquetas (#Ramp, #wincon); al volver a importarlo aquí se leen igual.",
+      "Text with each card's role and your tags (#Ramp, #wincon); importing it here again reads them back.",
+    ),
+    file: t("mazo-etiquetas.txt", "deck-tags.txt"),
   },
-};
+});
 
 export function ExportDialog({
   open,
@@ -192,6 +231,8 @@ export function ExportDialog({
   deck: ExportableDeck;
   changes: string;
 }) {
+  const t = useT();
+  const FORMAT = formats(t);
   const [mode, setMode] = useState<"full" | "changes">("full");
   const [format, setFormat] = useState<ExportFormat>("text");
   const [copied, setCopied] = useState(false);
@@ -210,7 +251,7 @@ export function ExportDialog({
     const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = mode === "full" ? FORMAT[format].file : "cambios.txt";
+    a.download = mode === "full" ? FORMAT[format].file : t("cambios.txt", "changes.txt");
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -219,17 +260,17 @@ export function ExportDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Exportar"
+      title={t("Exportar", "Export")}
       width={460}
       headerExtra={
-        <div className="btn-group" role="group" aria-label="Qué exportar">
+        <div className="btn-group" role="group" aria-label={t("Qué exportar", "What to export")}>
           <button
             type="button"
             className={`btn btn-sm ${mode === "full" ? "is-on" : ""}`}
             aria-pressed={mode === "full"}
             onClick={() => setMode("full")}
           >
-            Lista completa
+            {t("Lista completa", "Full list")}
           </button>
           <button
             type="button"
@@ -237,24 +278,24 @@ export function ExportDialog({
             aria-pressed={mode === "changes"}
             onClick={() => setMode("changes")}
           >
-            Solo cambios
+            {t("Solo cambios", "Changes only")}
           </button>
         </div>
       }
       footer={
         <>
-          {copied && <span className="pill pill-in mr-auto">Copiado</span>}
+          {copied && <span className="pill pill-in mr-auto">{t("Copiado", "Copied")}</span>}
           <button type="button" className="btn" onClick={download}>
-            Descargar .txt
+            {t("Descargar .txt", "Download .txt")}
           </button>
           <button type="button" className="btn btn-primary" onClick={() => void copy()}>
-            Copiar
+            {t("Copiar", "Copy")}
           </button>
         </>
       }
     >
       {mode === "full" && (
-        <div className="chips" role="radiogroup" aria-label="Formato">
+        <div className="chips" role="radiogroup" aria-label={t("Formato", "Format")}>
           {(Object.keys(FORMAT) as ExportFormat[]).map((f) => (
             <button
               key={f}
@@ -271,15 +312,15 @@ export function ExportDialog({
       )}
       <p className="subtle text-[12.5px]">
         {mode === "full"
-          ? `${FORMAT[format].hint} Incluye los cambios aceptados.`
-          : "Los cambios aceptados: − sale, + entra."}
+          ? `${FORMAT[format].hint} ${t("Incluye los cambios aceptados.", "Includes the accepted changes.")}`
+          : t("Los cambios aceptados: − sale, + entra.", "The accepted changes: − out, + in.")}
       </p>
       <textarea
         className="textarea"
         readOnly
-        value={text || "(ningún cambio aceptado)"}
+        value={text || t("(ningún cambio aceptado)", "(no accepted changes)")}
         style={{ minHeight: 220 }}
-        aria-label="Texto para exportar"
+        aria-label={t("Texto para exportar", "Text to export")}
       />
     </Dialog>
   );
@@ -317,6 +358,7 @@ export function DeckSettingsDialog({
   deckId: string;
   onRestored: () => void;
 }) {
+  const t = useT();
   const [draft, setDraft] = useState(name);
   const [confirming, setConfirming] = useState(false);
   useEffect(() => {
@@ -331,11 +373,11 @@ export function DeckSettingsDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Ajustes del mazo"
+      title={t("Ajustes del mazo", "Deck settings")}
       width={420}
       footer={
         <button type="button" className="btn" onClick={onClose}>
-          Cerrar
+          {t("Cerrar", "Close")}
         </button>
       }
     >
@@ -348,7 +390,7 @@ export function DeckSettingsDialog({
           }}
         >
           <label className="label" htmlFor="deck-settings-name">
-            Nombre
+            {t("Nombre", "Name")}
           </label>
           <div className="flex gap-2">
             <input
@@ -359,7 +401,7 @@ export function DeckSettingsDialog({
               onChange={(e) => setDraft(e.target.value)}
             />
             <button type="submit" className="btn" disabled={busy || !renamed}>
-              Cambiar
+              {t("Cambiar", "Rename")}
             </button>
           </div>
         </form>
@@ -370,17 +412,20 @@ export function DeckSettingsDialog({
         />
 
         <div className="field">
-          <span className="label">Lista</span>
+          <span className="label">{t("Lista", "List")}</span>
           <div className="flex flex-wrap gap-2">
             <button type="button" className="btn" onClick={onDuplicate}>
-              Duplicar mazo
+              {t("Duplicar mazo", "Duplicate deck")}
             </button>
             <button type="button" className="btn" onClick={onReplaceList}>
-              Reemplazar la lista
+              {t("Reemplazar la lista", "Replace the list")}
             </button>
           </div>
           <span className="hint">
-            Para quitar o añadir cartas sueltas, usa la pestaña Lista. Los cambios se guardan solos.
+            {t(
+              "Para quitar o añadir cartas sueltas, usa la pestaña Lista. Los cambios se guardan solos.",
+              "To add or remove single cards, use the List tab. Changes save themselves.",
+            )}
           </span>
         </div>
 
@@ -390,14 +435,17 @@ export function DeckSettingsDialog({
           {confirming ? (
             <div className="flex flex-col gap-2">
               <span className="text-[13px]">
-                ¿Borrar «{name}»? Sus cartas dejarán de contar como en uso. No se puede deshacer.
+                {t(
+                  `¿Borrar «${name}»? Sus cartas dejarán de contar como en uso. No se puede deshacer.`,
+                  `Delete “${name}”? Its cards will no longer count as in use. This can't be undone.`,
+                )}
               </span>
               <div className="flex gap-2">
                 <button type="button" className="btn" onClick={() => setConfirming(false)}>
-                  Cancelar
+                  {t("Cancelar", "Cancel")}
                 </button>
                 <button type="button" className="btn btn-out" disabled={busy} onClick={onDelete}>
-                  Borrar «{name}»
+                  {t(`Borrar «${name}»`, `Delete “${name}”`)}
                 </button>
               </div>
             </div>
@@ -407,7 +455,7 @@ export function DeckSettingsDialog({
               className="btn btn-out self-start"
               onClick={() => setConfirming(true)}
             >
-              Borrar mazo
+              {t("Borrar mazo", "Delete deck")}
             </button>
           )}
         </div>
@@ -416,8 +464,8 @@ export function DeckSettingsDialog({
   );
 }
 
-const fmtWhen = (iso: string) =>
-  new Date(iso).toLocaleString("es", {
+const fmtWhen = (iso: string, intl: string) =>
+  new Date(iso).toLocaleString(intl, {
     day: "numeric",
     month: "short",
     hour: "2-digit",
@@ -425,9 +473,14 @@ const fmtWhen = (iso: string) =>
   });
 
 /** "Sol Ring, Island ×2 y 3 más". */
-const cardsLine = (rows: { name: string; copies: number }[]) => {
+const cardsLine = (rows: { name: string; copies: number }[], t: T) => {
   const shown = rows.slice(0, 3).map((r) => (r.copies > 1 ? `${r.name} ×${r.copies}` : r.name));
-  return rows.length > 3 ? `${shown.join(", ")} y ${rows.length - 3} más` : shown.join(", ");
+  return rows.length > 3
+    ? t(
+        `${shown.join(", ")} y ${rows.length - 3} más`,
+        `${shown.join(", ")} and ${rows.length - 3} more`,
+      )
+    : shown.join(", ");
 };
 
 /**
@@ -443,6 +496,8 @@ function DeckHistory({
   open: boolean;
   onRestored: () => void;
 }) {
+  const t = useT();
+  const intl = useIntlLocale();
   const [shown, setShown] = useState(false);
   const [versions, setVersions] = useState<DeckVersionDTO[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -462,7 +517,11 @@ function DeckHistory({
     try {
       setVersions(await api<DeckVersionDTO[]>(`/api/decks/${encodeURIComponent(deckId)}/versions`));
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "No se pudo cargar el historial");
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : t("No se pudo cargar el historial", "Couldn't load the history"),
+      );
     }
   }
 
@@ -473,38 +532,56 @@ function DeckHistory({
       await api(`/api/decks/${encodeURIComponent(deckId)}/versions/${v.id}`, { method: "POST" });
       onRestored();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "No se pudo restaurar");
+      setError(
+        e instanceof ApiError ? e.message : t("No se pudo restaurar", "Couldn't restore it"),
+      );
       setRestoring(null);
     }
   }
 
   return (
     <div className="field">
-      <span className="label">Historial</span>
+      <span className="label">{t("Historial", "History")}</span>
       {!shown ? (
         <button type="button" className="btn self-start" onClick={() => void load()}>
-          Ver versiones anteriores
+          {t("Ver versiones anteriores", "See previous versions")}
         </button>
       ) : versions === null && !error ? (
-        <Loading>Cargando el historial…</Loading>
+        <Loading>{t("Cargando el historial…", "Loading the history…")}</Loading>
       ) : versions?.length === 0 ? (
         <span className="hint">
-          Aún no hay versiones anteriores: se guarda una cada vez que cambia la lista.
+          {t(
+            "Aún no hay versiones anteriores: se guarda una cada vez que cambia la lista.",
+            "No previous versions yet: one is saved every time the list changes.",
+          )}
         </span>
       ) : (
-        <ul className="flex flex-col gap-2" aria-label="Versiones anteriores">
+        <ul
+          className="flex flex-col gap-2"
+          aria-label={t("Versiones anteriores", "Previous versions")}
+        >
           {(versions ?? []).map((v) => (
             <li key={v.id} className="flex items-start gap-2 text-[13px]">
               <span className="flex min-w-0 flex-1 flex-col">
                 <b>
-                  {fmtWhen(v.createdAt)} · {v.cardCount} cartas
+                  {fmtWhen(v.createdAt, intl)} · {v.cardCount} {t("cartas", "cards")}
                 </b>
                 {v.added.length + v.removed.length > 0 && (
                   <span className="subtle text-xs">
-                    Después
-                    {v.removed.length > 0 && <> salieron {cardsLine(v.removed)}</>}
-                    {v.removed.length > 0 && v.added.length > 0 && " y"}
-                    {v.added.length > 0 && <> entraron {cardsLine(v.added)}</>}
+                    {t("Después", "Afterwards")}
+                    {v.removed.length > 0 && (
+                      <>
+                        {" "}
+                        {t("salieron", "out:")} {cardsLine(v.removed, t)}
+                      </>
+                    )}
+                    {v.removed.length > 0 && v.added.length > 0 && t(" y", ";")}
+                    {v.added.length > 0 && (
+                      <>
+                        {" "}
+                        {t("entraron", "in:")} {cardsLine(v.added, t)}
+                      </>
+                    )}
                   </span>
                 )}
               </span>
@@ -514,7 +591,7 @@ function DeckHistory({
                 disabled={restoring !== null}
                 onClick={() => void restore(v)}
               >
-                {restoring === v.id ? "Restaurando…" : "Restaurar"}
+                {restoring === v.id ? t("Restaurando…", "Restoring…") : t("Restaurar", "Restore")}
               </button>
             </li>
           ))}
