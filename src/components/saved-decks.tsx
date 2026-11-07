@@ -9,9 +9,10 @@ import { nextVisibility, setDeckVisibility } from "./deck-visibility";
 import { IconEye, IconPlus } from "./icons";
 import { DECKS_EVENT, notifyDecksChanged } from "./local-collection";
 import { Banner, Dialog, EmptyState, TilesSkeleton } from "./ui";
-import { Link } from "@/components/i18n";
+import { Link, useT } from "@/components/i18n";
 
 export function SavedDecks() {
+  const t = useT();
   const [decks, setDecks] = useState<SavedDeckSummaryDTO[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
@@ -25,11 +26,16 @@ export function SavedDecks() {
     // Lo de la última vez al momento; después, lo nuevo.
     const load = () =>
       swr("decks", () => api<SavedDeckSummaryDTO[]>("/api/decks"), setDecks).catch((e: unknown) =>
-        setError(e instanceof ApiError ? e.message : "No se pudieron cargar los mazos"),
+        setError(
+          e instanceof ApiError
+            ? e.message
+            : t("No se pudieron cargar los mazos", "Couldn't load the decks"),
+        ),
       );
     void load();
     window.addEventListener(DECKS_EVENT, load);
     return () => window.removeEventListener(DECKS_EVENT, load);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t solo cambia con el idioma (recarga)
   }, []);
 
   async function toggle(d: SavedDeckSummaryDTO) {
@@ -37,7 +43,11 @@ export function SavedDecks() {
       const { visibility } = await setDeckVisibility(api, d.id, nextVisibility(d.visibility));
       setDecks((list) => list?.map((x) => (x.id === d.id ? { ...x, visibility } : x)) ?? null);
     } catch (e: unknown) {
-      setError(e instanceof ApiError ? e.message : "No se pudo cambiar la visibilidad");
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : t("No se pudo cambiar la visibilidad", "Couldn't change who can see it"),
+      );
     }
   }
 
@@ -57,7 +67,9 @@ export function SavedDecks() {
       setToRename(null);
       notifyDecksChanged();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "No se pudo cambiar el nombre");
+      setError(
+        e instanceof ApiError ? e.message : t("No se pudo cambiar el nombre", "Couldn't rename it"),
+      );
     } finally {
       setWorking(false);
     }
@@ -72,7 +84,7 @@ export function SavedDecks() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: `${d.name} (copia)`.slice(0, 120),
+          name: `${d.name} ${t("(copia)", "(copy)")}`.slice(0, 120),
           input: full.input,
           ...(full.theme ? { theme: full.theme } : {}),
           commanders: full.commanders,
@@ -84,7 +96,11 @@ export function SavedDecks() {
       notifyDecksChanged();
       setToast(null);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "No se pudo duplicar el mazo");
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : t("No se pudo duplicar el mazo", "Couldn't duplicate the deck"),
+      );
     } finally {
       setWorking(false);
     }
@@ -98,7 +114,11 @@ export function SavedDecks() {
       setToast(d.name);
       notifyDecksChanged();
     } catch (e: unknown) {
-      setError(e instanceof ApiError ? e.message : "No se pudo borrar el mazo");
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : t("No se pudo borrar el mazo", "Couldn't delete the deck"),
+      );
     }
   }
 
@@ -114,7 +134,7 @@ export function SavedDecks() {
     <main className="page">
       <div className="stack-sm flex items-center justify-between gap-3">
         <h1 className="h1">
-          Mis mazos{" "}
+          {t("Mis mazos", "My decks")}{" "}
           {decks && (
             <span className="mono subtle" style={{ fontSize: 16, fontWeight: 400 }}>
               {decks.length}
@@ -123,18 +143,24 @@ export function SavedDecks() {
         </h1>
         <div className="flex flex-wrap gap-2">
           <Link className="btn" href="/decks/new?from=list">
-            Importar lista
+            {t("Importar lista", "Import list")}
           </Link>
           <Link className="btn btn-primary" href="/decks/new">
             <IconPlus size={14} />
-            Nuevo mazo
+            {t("Nuevo mazo", "New deck")}
           </Link>
         </div>
       </div>
       <p className="muted text-[13px]">
-        Las cartas de estos mazos cuentan como «en uso» al buscar mejoras para los demás. Los
-        públicos (<IconEye size={12} style={{ display: "inline" }} />) salen en tu perfil; los
-        privados solo los ves tú.
+        {t(
+          "Las cartas de estos mazos cuentan como «en uso» al buscar mejoras para los demás. Los públicos",
+          "The cards in these decks count as “in use” when looking for improvements for the others. Public ones",
+        )}{" "}
+        (<IconEye size={12} style={{ display: "inline" }} />){" "}
+        {t(
+          "salen en tu perfil; los privados solo los ves tú.",
+          "show on your profile; private ones are only visible to you.",
+        )}
       </p>
 
       {error && <Banner tone="out">{error}</Banner>}
@@ -143,33 +169,37 @@ export function SavedDecks() {
           tone="in"
           action={
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setToast(null)}>
-              Vale
+              {t("Vale", "OK")}
             </button>
           }
         >
-          Has borrado <b>{toast}</b>.
+          {t("Has borrado", "You deleted")} <b>{toast}</b>.
         </Banner>
       )}
 
-      {!decks && !error && <TilesSkeleton label="Cargando tus mazos…" />}
+      {!decks && !error && (
+        <TilesSkeleton label={t("Cargando tus mazos…", "Loading your decks…")} />
+      )}
 
       {decks && decks.length === 0 && (
         <div className="panel">
           <EmptyState
-            title="Aún no tienes ningún mazo"
+            title={t("Aún no tienes ningún mazo", "You don't have any decks yet")}
             action={
               <div className="flex flex-wrap justify-center gap-2">
                 <Link className="btn btn-primary" href="/decks/new">
-                  Crear desde un comandante
+                  {t("Crear desde un comandante", "Build from a commander")}
                 </Link>
                 <Link className="btn" href="/decks/new?from=list">
-                  Importar una lista
+                  {t("Importar una lista", "Import a list")}
                 </Link>
               </div>
             }
           >
-            Elige un comandante y te monto el mazo con lo que juega la comunidad, empieza desde cero
-            o importa tu lista.
+            {t(
+              "Elige un comandante y te monto el mazo con lo que juega la comunidad, empieza desde cero o importa tu lista.",
+              "Pick a commander and I'll build the deck with what the community plays, start from scratch, or import your list.",
+            )}
           </EmptyState>
         </div>
       )}
@@ -179,8 +209,8 @@ export function SavedDecks() {
           {decks.length > 4 && (
             <input
               className="input"
-              placeholder="Filtrar por nombre o comandante"
-              aria-label="Filtrar mazos"
+              placeholder={t("Filtrar por nombre o comandante", "Filter by name or commander")}
+              aria-label={t("Filtrar mazos", "Filter decks")}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               style={{ maxWidth: 320 }}
@@ -188,12 +218,17 @@ export function SavedDecks() {
           )}
           {shown.length === 0 ? (
             <div className="panel flex flex-col items-center gap-2.5 px-5 py-9 text-center">
-              <span className="mono subtle text-[13px]">0 mazos que contengan «{filter}»</span>
+              <span className="mono subtle text-[13px]">
+                {t(`0 mazos que contengan «${filter}»`, `0 decks containing “${filter}”`)}
+              </span>
               <span className="muted text-[13px]">
-                Prueba con el nombre del mazo o del comandante.
+                {t(
+                  "Prueba con el nombre del mazo o del comandante.",
+                  "Try the deck's or the commander's name.",
+                )}
               </span>
               <button type="button" className="btn" onClick={() => setFilter("")}>
-                Quitar el filtro
+                {t("Quitar el filtro", "Clear the filter")}
               </button>
             </div>
           ) : (
@@ -223,12 +258,12 @@ export function SavedDecks() {
       <Dialog
         open={toRename !== null}
         onClose={() => setToRename(null)}
-        title="Cambiar el nombre"
+        title={t("Cambiar el nombre", "Rename")}
         width={420}
         footer={
           <>
             <button type="button" className="btn" onClick={() => setToRename(null)}>
-              Cancelar
+              {t("Cancelar", "Cancel")}
             </button>
             <button
               type="button"
@@ -236,7 +271,7 @@ export function SavedDecks() {
               disabled={working || !newName.trim()}
               onClick={() => void rename()}
             >
-              Guardar nombre
+              {t("Guardar nombre", "Save name")}
             </button>
           </>
         }
@@ -249,7 +284,7 @@ export function SavedDecks() {
           }}
         >
           <label className="label" htmlFor="rename">
-            Nombre
+            {t("Nombre", "Name")}
           </label>
           <input
             id="rename"
@@ -264,26 +299,29 @@ export function SavedDecks() {
       <Dialog
         open={toDelete !== null}
         onClose={() => setToDelete(null)}
-        title="Borrar mazo"
+        title={t("Borrar mazo", "Delete deck")}
         width={380}
         footer={
           <>
             <button type="button" className="btn" onClick={() => setToDelete(null)}>
-              Cancelar
+              {t("Cancelar", "Cancel")}
             </button>
             <button
               type="button"
               className="btn btn-out"
               onClick={() => toDelete && void remove(toDelete)}
             >
-              Borrar
+              {t("Borrar", "Delete")}
             </button>
           </>
         }
       >
         <p>
-          ¿Borrar <b>{toDelete?.name}</b>? Sus cartas dejarán de contar como en uso. No se puede
-          deshacer.
+          {t("¿Borrar", "Delete")} <b>{toDelete?.name}</b>
+          {t(
+            "? Sus cartas dejarán de contar como en uso. No se puede deshacer.",
+            "? Its cards will no longer count as in use. This can't be undone.",
+          )}
         </p>
       </Dialog>
     </main>
