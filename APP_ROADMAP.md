@@ -25,7 +25,7 @@ typecheck && npm test` y `expo export` antes de cada commit, subir `VERSION` en 
 | M2 ✅ | Editor de mazos: añadir cartas, copias, edición, roles y etiquetas | Alto     | No        |
 | M3 ✅ | Análisis: combos, mano inicial, alternativas y modo compra         | Medio    | No        |
 | M4 ✅ | Precios: valor de la colección, lo que sube y baja, histórico      | Medio    | No        |
-| M5    | Cuenta: contraseña, sesiones, avisos por tipo, preferencias        | Bajo     | No        |
+| M5 ✅ | Cuenta: contraseña, sesiones, avisos por tipo, preferencias        | Bajo     | No        |
 | M6    | Inicio y buscador global                                           | Medio    | No        |
 
 Orden recomendado: M1 → M2 → M3 (lo que más se echa en falta al usar la app de verdad), luego
@@ -122,7 +122,11 @@ Hecha en la app 1.6.0 (`components/price-chart.tsx`, pantalla `collection-prices
 
 **Hecho cuando**: alguien que solo usa la app sabe cuánto vale su colección y cómo va.
 
-## Fase M5 · Cuenta y ajustes
+## Fase M5 · Cuenta y ajustes ✅
+
+Hecha en la app 1.7.0 (`components/account-security.tsx`, `lib/prefs.ts`). Se comparten con la web
+el orden y la vista de la colección (los filtros no: en el móvil se ponen y quitan al momento). El
+tema claro queda para más adelante.
 
 **Ahora en la app**: perfil público, privacidad, avisos de precio, vincular Google, verificar el
 email, bloqueados, exportar datos y borrar la cuenta.

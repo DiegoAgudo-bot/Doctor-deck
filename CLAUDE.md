@@ -770,6 +770,11 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     día a día de 30 días a un año y lo que más sube y baja), histórico de una carta y tabla de
     ediciones con precio normal y foil en su ficha, y al reemplazar la colección con un CSV
     compartido, cuántas filas no se reconocieron.
+  - Cuenta (fase M5): en Ajustes, cambiar la contraseña y sesiones abiertas
+    (`components/account-security.tsx`, `deviceLabel` de `domain/social/device-label.ts`, el mismo
+    que la web) y avisos por grupo (`NOTIFICATION_GROUP_LABELS`, `mutedNotifications`). Orden y
+    vista de la colección compartidos con la web (`useSharedCollectionLook`, `lib/prefs.ts`:
+    `GET|PUT /api/me/prefs`, sin tocar los filtros que guarde la web).
   - Rejillas (Buscar y Colección): `CardThumb` enseña el nombre al momento y la imagen encima en
     cuanto llega (como ManaBox); tarjetas memorizadas, la página siguiente se pide con antelación
     (`onEndReachedThreshold` 1,5) y las miniaturas de cada página se descargan al llegar
