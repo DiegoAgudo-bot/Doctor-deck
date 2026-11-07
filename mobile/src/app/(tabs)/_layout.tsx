@@ -16,8 +16,8 @@ const icon =
   );
 
 /**
- * Barra inferior con lo que más se usa: Colección, Mazos, Buscar, Jugar y Escanear (abre la cámara
- * a pantalla completa). En la cabecera, la campana de avisos y el botón de la cuenta (la inicial),
+ * Barra inferior con lo que más se usa: Inicio, Colección, Mazos, Buscar, Jugar y Escanear (abre la
+ * cámara a pantalla completa). En la cabecera, la campana de avisos y el botón de la cuenta (la inicial),
  * que abre el menú con todo lo demás.
  */
 export default function TabsLayout() {
@@ -40,6 +40,10 @@ export default function TabsLayout() {
         sceneStyle: { backgroundColor: colors.bg },
       }}
     >
+      <Tabs.Screen
+        name="home"
+        options={{ title: "Inicio", tabBarIcon: icon("home-outline", "home") }}
+      />
       <Tabs.Screen
         name="collection"
         options={{ title: "Colección", tabBarIcon: icon("albums-outline", "albums") }}

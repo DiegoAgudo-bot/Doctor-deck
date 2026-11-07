@@ -26,7 +26,7 @@ typecheck && npm test` y `expo export` antes de cada commit, subir `VERSION` en 
 | M3 ✅ | Análisis: combos, mano inicial, alternativas y modo compra         | Medio    | No        |
 | M4 ✅ | Precios: valor de la colección, lo que sube y baja, histórico      | Medio    | No        |
 | M5 ✅ | Cuenta: contraseña, sesiones, avisos por tipo, preferencias        | Bajo     | No        |
-| M6    | Inicio y buscador global                                           | Medio    | No        |
+| M6 ✅ | Inicio y buscador global                                           | Medio    | No        |
 
 Orden recomendado: M1 → M2 → M3 (lo que más se echa en falta al usar la app de verdad), luego
 M4, M5 y M6. M1 y M5 son rápidas y se pueden hacer antes si se quiere una mejora visible pronto.
@@ -141,7 +141,10 @@ email, bloqueados, exportar datos y borrar la cuenta.
 
 **Hecho cuando**: los ajustes de la app son los de la web.
 
-## Fase M6 · Inicio y buscador global
+## Fase M6 · Inicio y buscador global ✅
+
+Hecha en la app 1.8.0 (`(tabs)/home.tsx`, `components/global-matches.tsx`). Inicio es la primera
+pestaña y la que se abre.
 
 **Ahora en la app**: se abre en la colección; «Buscar» solo busca cartas.
 

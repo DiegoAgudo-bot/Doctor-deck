@@ -671,7 +671,9 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
 - **App móvil** (Fase 22, `mobile/`, ver `mobile/README.md`): Expo + React Native con
   `expo-router`, solo Android, con los colores de la web (tema «Pentacromo», `mobile/src/lib/theme.ts`; franja de la gema
   bajo la cabecera de las pestañas, `components/gem-stripe.tsx`).
-  Pestañas Colección, Mazos, Buscar, Jugar (`(tabs)/games.tsx`: contador —jugadores a izquierda y derecha mirando a su lado e impar
+  Pestañas Inicio (`(tabs)/home.tsx`, la que se abre: colección y su valor, propuestas por
+  responder, mazos recientes y actividad), Colección, Mazos, Buscar (también mis mazos y gente,
+  `GlobalMatches`), Jugar (`(tabs)/games.tsx`: contador —jugadores a izquierda y derecha mirando a su lado e impar
   abajo, `lib/seats.ts`—, o seguir la partida abierta, `lib/life-store.ts`—, registrar partida, mis grupos y últimas partidas) y Escanear
   (abre `/scan` a pantalla completa; `(tabs)/scanner.tsx` no pinta nada); en la cabecera, la
   campana de avisos (`components/bell.tsx`, con los sin leer) y un botón redondo con la inicial
@@ -775,6 +777,10 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     que la web) y avisos por grupo (`NOTIFICATION_GROUP_LABELS`, `mutedNotifications`). Orden y
     vista de la colección compartidos con la web (`useSharedCollectionLook`, `lib/prefs.ts`:
     `GET|PUT /api/me/prefs`, sin tocar los filtros que guarde la web).
+  - Inicio y buscador global (fase M6): pestaña Inicio (`(tabs)/home.tsx`; `/` de la web lleva
+    allí) y, al escribir en Buscar, mis mazos (`matchDecks`, `lib/global-search.ts`) y gente
+    (`GET /api/users?q=`) encima de las cartas. `FeedEntry` (`components/feed-entry.tsx`) se
+    comparte con «Actividad».
   - Rejillas (Buscar y Colección): `CardThumb` enseña el nombre al momento y la imagen encima en
     cuanto llega (como ManaBox); tarjetas memorizadas, la página siguiente se pide con antelación
     (`onEndReachedThreshold` 1,5) y las miniaturas de cada página se descargan al llegar

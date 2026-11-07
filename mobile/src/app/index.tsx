@@ -9,5 +9,5 @@ export default function Index() {
   const inbox = useShareInbox();
   if (!data?.user) return <Redirect href="/login" />;
   // Al abrir la app desde «Compartir», directamente a la pantalla de importar.
-  return <Redirect href={hasShareIntent || inbox ? "/share" : "/collection"} />;
+  return <Redirect href={hasShareIntent || inbox ? "/share" : "/home"} />;
 }

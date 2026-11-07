@@ -31,7 +31,7 @@ export function appRoute(webPath: string): string | null {
       : "/trades";
   }
   const simple: Record<string, string> = {
-    "/": "/collection",
+    "/": "/home",
     "/notifications": "/notifications",
     "/collection": "/collection",
     "/decks": "/decks",
