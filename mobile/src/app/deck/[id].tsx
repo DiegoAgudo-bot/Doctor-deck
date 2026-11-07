@@ -2,17 +2,31 @@ import { Ionicons } from "@expo/vector-icons";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, SectionList, Share, View } from "react-native";
 import type {
   AnalyzeResponse,
   CardDTO,
   DeckCardDTO,
+  DeckCombosDTO,
   DeckViewDTO,
   OwnershipItemDTO,
   SwapDTO,
 } from "@/server/dto";
 import { CardThumb, ColorPips, ManaCost } from "~/components/card-bits";
+import {
+  AlternativesPanel,
+  BuyPanel,
+  CombosPanel,
+  OpeningHandPanel,
+} from "~/components/deck-analysis";
+import { AddCardsSheet, CardActionsSheet, OtherDecksSheet } from "~/components/deck-editor";
+import {
+  DeckSettingsSheet,
+  ExportSheet,
+  ThemePicker,
+  useDeckManage,
+} from "~/components/deck-manage";
 import { toast } from "~/components/toast";
 import {
   Banner,
@@ -28,9 +42,10 @@ import { api, artUri } from "~/lib/api";
 import { tapFeedback } from "~/lib/feedback";
 import { euros } from "~/lib/format";
 import { colors, radius } from "~/lib/theme";
+import { ROLE_LABELS, ROLES } from "@/domain/roles/types";
 import { alert } from "~/components/dialog";
 
-type Tab = "list" | "missing" | "changes" | "stats";
+type Tab = "list" | "missing" | "changes" | "combos" | "stats";
 type Analysis = Extract<AnalyzeResponse, { status: "ok" }>;
 
 const TYPE_ORDER: [string, string][] = [
@@ -58,16 +73,22 @@ const STATUS_COLOR: Record<OwnershipItemDTO["status"], string> = {
 /** Un mazo: portada, lista por tipos, lo que me falta, cambios sugeridos y estadísticas. */
 export default function DeckScreen() {
   const { id, tab: initialTab } = useLocalSearchParams<{ id: string; tab?: string }>();
-  const [tab, setTab] = useState<Tab>(initialTab === "missing" ? "missing" : "list");
+  const [tab, setTab] = useState<Tab>(
+    initialTab === "missing" || initialTab === "combos" ? initialTab : "list",
+  );
   /** Comandantes elegidos aquí (si la lista no lo dice); en un mazo mío se guardan. */
   const [chosen, setChosen] = useState<string[] | null>(null);
+  /** En el mazo de otro, el tema se elige solo para verlo (no se guarda). */
+  const [themeHere, setThemeHere] = useState<string | null | undefined>(undefined);
+  const [sheet, setSheet] = useState<"settings" | "export" | null>(null);
   const deck = useQuery({
     queryKey: ["deck", id],
     queryFn: () => api<DeckViewDTO>(`/api/decks/${id}`),
   });
   const d = deck.data;
+  const theme = d ? (d.isMine || themeHere === undefined ? d.theme : themeHere) : null;
   const analysis = useQuery({
-    queryKey: ["analysis", id, d?.updatedAt, chosen],
+    queryKey: ["analysis", id, d?.updatedAt, chosen, theme],
     enabled: Boolean(d),
     staleTime: 5 * 60_000,
     // Al aplicar un cambio se vuelve a analizar: mientras, se sigue viendo lo de antes.
@@ -79,14 +100,37 @@ export default function DeckScreen() {
           commanders: chosen ?? d!.commanders,
           locked: d!.locked,
           excluded: d!.excluded,
-          ...(d!.theme ? { theme: d!.theme } : {}),
+          ...(theme ? { theme } : {}),
           ...(d!.isMine ? { deckId: d!.id } : {}),
           ...(d!.targetBracket ? { targetBracket: d!.targetBracket } : {}),
         },
       }),
   });
 
+  // Los combos van aparte (tardan más): al llegar, el bracket cuenta también con ellos.
+  const ok = analysis.data?.status === "ok";
+  const combos = useQuery({
+    queryKey: ["combos", id, d?.updatedAt, chosen],
+    enabled: ok,
+    staleTime: 10 * 60_000,
+    queryFn: () =>
+      api<DeckCombosDTO>("/api/combos", {
+        body: {
+          input: d!.input,
+          commanders: chosen ?? d!.commanders,
+          ...(d!.isMine ? { deckId: d!.id } : {}),
+        },
+      }),
+  });
   const actions = useDeckActions(d);
+  const manage = useDeckManage(d);
+  // Los temas solo vienen en la página general del comandante: se recuerdan al elegir uno.
+  const [themes, setThemes] = useState<ThemeList>([]);
+  const found = analysis.data?.status === "ok" ? analysis.data.edhrec.themes : null;
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- se guarda lo que llega
+    if (found && found.length > 0) setThemes(found);
+  }, [found]);
 
   if (deck.isPending) return <Loading />;
   if (deck.isError || !d) return <ErrorView error={deck.error} onRetry={() => deck.refetch()} />;
@@ -129,6 +173,18 @@ export default function DeckScreen() {
                   onPress={() => router.push(`/deck-comments/${d.id}`)}
                 />
               )}
+              <IconButton
+                icon="download-outline"
+                label="Exportar"
+                onPress={() => setSheet("export")}
+              />
+              {d.isMine && (
+                <IconButton
+                  icon="settings-outline"
+                  label="Ajustes del mazo"
+                  onPress={() => setSheet("settings")}
+                />
+              )}
             </View>
           ),
         }}
@@ -148,9 +204,49 @@ export default function DeckScreen() {
           if (d.isMine) actions.saveCommanders.mutate(ids);
         }}
         actions={actions}
+        combos={combos.data}
+        combosLoading={combos.isPending || combos.isFetching}
+        combosError={combos.error}
+        themes={themes}
+        theme={theme}
+        onTheme={(t) => (d.isMine ? manage.save.mutate({ theme: t }) : setThemeHere(t))}
+        onToggleLock={(oracleId) =>
+          manage.save.mutate({
+            locked: d.locked.includes(oracleId)
+              ? d.locked.filter((x) => x !== oracleId)
+              : [...d.locked, oracleId],
+          })
+        }
+        saving={manage.save.isPending}
       />
+      <ExportSheet
+        name={d.name}
+        analysis={a}
+        open={sheet === "export"}
+        onClose={() => setSheet(null)}
+      />
+      {d.isMine && (
+        <DeckSettingsSheet
+          deckId={d.id}
+          open={sheet === "settings"}
+          onClose={() => setSheet(null)}
+          onDeleted={() => router.back()}
+        />
+      )}
     </>
   );
+}
+
+type ThemeList = Analysis["edhrec"]["themes"];
+
+/** Una fila de la Lista o de «Me falta». */
+interface ListRow {
+  card: CardDTO;
+  quantity: number;
+  /** En la Lista: la carta del mazo (para editarla); null en los comandantes. */
+  deckCard?: DeckCardDTO | null;
+  price?: number | null;
+  note?: string;
 }
 
 /**
@@ -282,6 +378,14 @@ function DeckBody({
   candidates,
   onChooseCommanders,
   actions,
+  combos,
+  combosLoading,
+  combosError,
+  themes,
+  theme,
+  onTheme,
+  onToggleLock,
+  saving,
 }: {
   deck: DeckViewDTO;
   analysis: Analysis | null;
@@ -294,27 +398,49 @@ function DeckBody({
   candidates: CardDTO[] | null;
   onChooseCommanders: (ids: string[]) => void;
   actions: DeckActions;
+  combos: DeckCombosDTO | undefined;
+  combosLoading: boolean;
+  combosError: Error | null;
+  themes: ThemeList;
+  theme: string | null;
+  onTheme: (slug: string | null) => void;
+  onToggleLock: (oracleId: string) => void;
+  saving: boolean;
 }) {
   const mine = deck.isMine;
-  const busy = actions.apply.isPending || actions.discard.isPending || actions.remove.isPending;
+  const [groupBy, setGroupBy] = useState<"type" | "role">("type");
+  const [editing, setEditing] = useState<DeckCardDTO | null>(null);
+  const [panel, setPanel] = useState<"add" | "others" | null>(null);
+  const busy =
+    actions.apply.isPending || actions.discard.isPending || actions.remove.isPending || saving;
   // Hasta que llega el análisis nuevo, los cambios que se ven pueden estar ya aplicados.
   const waiting = busy || refreshing;
   const ownership = useMemo(
     () => new Map((a?.ownership.items ?? []).map((i) => [i.card.oracleId, i])),
     [a],
   );
-  const sections = useMemo(() => {
+  const sections = useMemo((): { title: string; data: ListRow[] }[] => {
     if (!a) return [];
     if (tab === "list") {
       const groups = new Map<string, DeckCardDTO[]>();
+      const roleStat = new Map(a.roles.map((r) => [r.role, r]));
+      const roleTitle = (role: (typeof ROLES)[number]) => {
+        const s = roleStat.get(role);
+        const label = ROLE_LABELS[role];
+        return `${label.charAt(0).toUpperCase()}${label.slice(1)}${s && s.min > 0 ? ` · mínimo ${s.min}` : ""}`;
+      };
       for (const c of a.cards) {
-        const g = typeGroup(c.card.typeLine);
+        const g = groupBy === "role" ? roleTitle(c.primaryRole) : typeGroup(c.card.typeLine);
         groups.set(g, [...(groups.get(g) ?? []), c]);
       }
-      const order = ["Comandante", ...TYPE_ORDER.map(([, l]) => l), "Otras"];
+      const order =
+        groupBy === "role"
+          ? ROLES.map(roleTitle)
+          : ["Comandante", ...TYPE_ORDER.map(([, l]) => l), "Otras"];
       const commanderRows = a.commanders.map((card) => ({
         card,
         quantity: 1,
+        deckCard: null as DeckCardDTO | null,
       }));
       return [
         { title: a.commanders.length > 1 ? "Comandantes" : "Comandante", data: commanderRows },
@@ -326,7 +452,7 @@ function DeckBody({
             );
             return {
               title: `${g} (${rows.reduce((s, r) => s + r.quantity, 0)})`,
-              data: rows.map((r) => ({ card: r.card, quantity: r.quantity })),
+              data: rows.map((r) => ({ card: r.card, quantity: r.quantity, deckCard: r })),
             };
           }),
       ];
@@ -354,11 +480,16 @@ function DeckBody({
       ];
     }
     return [];
-  }, [a, tab]);
+  }, [a, tab, groupBy]);
 
   const header = (
     <View style={{ gap: 12, paddingBottom: 12 }}>
-      <Cover deck={deck} analysis={a} />
+      <Cover
+        deck={deck}
+        analysis={a}
+        bracket={combos?.bracket.bracket ?? a?.bracket.bracket ?? null}
+        onOtherDecks={() => setPanel("others")}
+      />
       <View style={{ paddingHorizontal: 16, gap: 12 }}>
         <Segmented<Tab>
           options={[
@@ -366,27 +497,53 @@ function DeckBody({
             {
               key: "missing",
               label:
-                a && a.ownership.totals.toBuy > 0
-                  ? `Me falta ${a.ownership.totals.toBuy}`
-                  : "Me falta",
+                a && a.ownership.totals.toBuy > 0 ? `Falta ${a.ownership.totals.toBuy}` : "Falta",
             },
             {
               key: "changes",
               label: a && a.swaps.length > 0 ? `Cambios ${a.swaps.length}` : "Cambios",
+            },
+            {
+              key: "combos",
+              label:
+                combos && combos.included.length > 0
+                  ? `Combos ${combos.included.length}`
+                  : "Combos",
             },
             { key: "stats", label: "Datos" },
           ]}
           value={tab}
           onChange={setTab}
         />
+        <ThemePicker themes={themes} value={theme} onChange={onTheme} disabled={waiting} />
         {(refreshing || busy) && a && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <ActivityIndicator size="small" color={colors.accent} />
             <T variant="small">{busy ? "Guardando…" : "Recalculando…"}</T>
           </View>
         )}
+        {tab === "list" && a && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Segmented<"type" | "role">
+                options={[
+                  { key: "type", label: "Por tipo" },
+                  { key: "role", label: "Por rol" },
+                ]}
+                value={groupBy}
+                onChange={setGroupBy}
+              />
+            </View>
+            {mine && (
+              <Button label="Añadir" icon="add" kind="secondary" onPress={() => setPanel("add")} />
+            )}
+          </View>
+        )}
         {tab === "list" && mine && a && (
-          <T variant="small">Mantén pulsada una carta para quitarla del mazo.</T>
+          <T variant="small">
+            Toca una carta para cambiar sus copias, su edición o sus roles. El candado hace que
+            nunca se proponga sacarla.
+          </T>
         )}
         {tab === "changes" && mine && a && a.swaps.length > 1 && (
           <Button
@@ -462,78 +619,142 @@ function DeckBody({
     );
   }
 
-  if (tab === "changes" || tab === "stats") {
-    return (
-      <SectionList
-        sections={[{ title: "", data: tab === "changes" ? (a?.swaps ?? []) : [] }]}
-        keyExtractor={(s) => s.id}
-        ListHeaderComponent={
-          <>
-            {header}
-            {tab === "stats" && a && <Stats analysis={a} />}
-            {tab === "changes" && a && a.swaps.length === 0 && (
-              <T variant="muted" style={{ paddingHorizontal: 16 }}>
-                Con tu colección no hay cambios que lo mejoren ahora mismo. Añade cartas a tu
-                colección o mira «Me falta» para ver qué comprar.
-              </T>
-            )}
-          </>
-        }
-        renderSectionHeader={() => null}
-        renderItem={({ item }) => (
-          <SwapRow
-            swap={item}
-            actions={
-              mine
-                ? {
-                    apply: () => actions.apply.mutate([item]),
-                    discard: () => actions.discard.mutate(item),
-                    disabled: waiting,
-                  }
-                : undefined
-            }
-          />
-        )}
-        contentContainerStyle={{ paddingBottom: 40 }}
+  // Añadir cartas, acciones de una carta y «en otros mazos»: valen en todas las pestañas.
+  const sheets = a && (
+    <>
+      {mine && (
+        <AddCardsSheet
+          deck={deck}
+          analysis={a}
+          open={panel === "add"}
+          onClose={() => setPanel(null)}
+        />
+      )}
+      {mine && (
+        <CardActionsSheet
+          deck={deck}
+          analysis={a}
+          card={editing}
+          onClose={() => setEditing(null)}
+        />
+      )}
+      <OtherDecksSheet
+        items={a.ownership.items}
+        open={panel === "others"}
+        onClose={() => setPanel(null)}
       />
+    </>
+  );
+
+  if (tab === "changes" || tab === "stats" || tab === "combos") {
+    return (
+      <>
+        <SectionList
+          sections={[{ title: "", data: tab === "changes" ? (a?.swaps ?? []) : [] }]}
+          keyExtractor={(s) => s.id}
+          ListHeaderComponent={
+            <>
+              {header}
+              {tab === "stats" && a && (
+                <Stats analysis={a} bracket={combos?.bracket ?? a.bracket} />
+              )}
+              {tab === "combos" && (
+                <CombosPanel data={combos} loading={combosLoading} error={combosError} />
+              )}
+              {tab === "changes" && a && a.swaps.length === 0 && (
+                <T variant="muted" style={{ paddingHorizontal: 16 }}>
+                  Con tu colección no hay cambios que lo mejoren ahora mismo. Añade cartas a tu
+                  colección o mira «Me falta» para ver qué comprar.
+                </T>
+              )}
+            </>
+          }
+          renderSectionHeader={() => null}
+          renderItem={({ item }) => (
+            <SwapRow
+              swap={item}
+              actions={
+                mine
+                  ? {
+                      apply: () => actions.apply.mutate([item]),
+                      discard: () => actions.discard.mutate(item),
+                      disabled: waiting,
+                    }
+                  : undefined
+              }
+            />
+          )}
+          contentContainerStyle={{ paddingBottom: 40 }}
+        />
+        {sheets}
+      </>
     );
   }
 
   return (
-    <SectionList
-      sections={sections}
-      keyExtractor={(row, i) => `${row.card.oracleId}-${i}`}
-      ListHeaderComponent={header}
-      stickySectionHeadersEnabled={false}
-      contentContainerStyle={{ paddingBottom: 40 }}
-      renderSectionHeader={({ section }) => (
-        <T variant="label" style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
-          {section.title}
-        </T>
-      )}
-      renderItem={({ item }) => (
-        <CardLine
-          card={item.card}
-          quantity={item.quantity}
-          dot={ownership.get(item.card.oracleId)?.status}
-          right={"price" in item && item.price != null ? euros(item.price as number) : undefined}
-          note={"note" in item ? (item.note as string) : undefined}
-          onLongPress={
-            mine && tab === "list" && !a?.commanders.some((c) => c.oracleId === item.card.oracleId)
-              ? () =>
-                  alert(`¿Quitar ${item.card.name}?`, "Se quita una copia del mazo.", [
-                    { text: "Cancelar", style: "cancel" },
-                    {
-                      text: "Quitar",
-                      style: "destructive",
-                      onPress: () => actions.remove.mutate(item.card),
-                    },
-                  ])
-              : undefined
-          }
-        />
-      )}
-    />
+    <>
+      <SectionList
+        sections={sections}
+        keyExtractor={(row, i) => `${row.card.oracleId}-${i}`}
+        ListHeaderComponent={header}
+        ListFooterComponent={
+          tab === "missing" && a ? (
+            <View style={{ gap: 12, padding: 16 }}>
+              <AlternativesPanel alternatives={a.ownership.alternatives} />
+              <BuyPanel deck={deck} analysis={a} />
+            </View>
+          ) : null
+        }
+        stickySectionHeadersEnabled={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        renderSectionHeader={({ section }) => (
+          <T variant="label" style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 }}>
+            {section.title}
+          </T>
+        )}
+        renderItem={({ item }) => (
+          <CardLine
+            card={item.card}
+            quantity={item.quantity}
+            dot={ownership.get(item.card.oracleId)?.status}
+            right={item.price != null ? euros(item.price) : undefined}
+            note={item.note}
+            onPress={
+              mine && tab === "list" && item.deckCard
+                ? () => setEditing(item.deckCard ?? null)
+                : undefined
+            }
+            lock={
+              mine &&
+              tab === "list" &&
+              !a?.commanders.some((c) => c.oracleId === item.card.oracleId)
+                ? {
+                    on: deck.locked.includes(item.card.oracleId),
+                    toggle: () => onToggleLock(item.card.oracleId),
+                    disabled: waiting,
+                  }
+                : undefined
+            }
+            onLongPress={
+              mine &&
+              tab === "list" &&
+              !a?.commanders.some((c) => c.oracleId === item.card.oracleId)
+                ? () =>
+                    alert(`¿Quitar ${item.card.name}?`, "Se quita una copia del mazo.", [
+                      { text: "Cancelar", style: "cancel" },
+                      {
+                        text: "Quitar",
+                        style: "destructive",
+                        onPress: () => actions.remove.mutate(item.card),
+                      },
+                    ])
+                : undefined
+            }
+          />
+        )}
+      />
+      {sheets}
+    </>
   );
 }
 
@@ -586,7 +807,18 @@ function CommanderPicker({
   );
 }
 
-function Cover({ deck, analysis: a }: { deck: DeckViewDTO; analysis: Analysis | null }) {
+function Cover({
+  deck,
+  analysis: a,
+  bracket,
+  onOtherDecks,
+}: {
+  deck: DeckViewDTO;
+  analysis: Analysis | null;
+  /** Con los combos si ya han llegado. */
+  bracket: number | null;
+  onOtherDecks: () => void;
+}) {
   const commander = a?.commanders[0];
   const art = artUri(commander?.imageUrl);
   const t = a?.ownership.totals;
@@ -619,10 +851,19 @@ function Cover({ deck, analysis: a }: { deck: DeckViewDTO; analysis: Analysis | 
             />
           )}
           <Pill text={`${a?.totalCards ?? deck.cardCount} cartas`} />
-          {a && <Pill text={`Bracket ${a.bracket.bracket}`} />}
+          {bracket !== null && <Pill text={`Bracket ${bracket}`} />}
           {pct !== null && <Pill text={`Tienes ${pct} %`} color={colors.owned} />}
           {t && t.toBuy > 0 && (
             <Pill text={`Faltan ${t.toBuy} · ${euros(t.cost)}`} color={colors.warn} />
+          )}
+          {t && t.fromOtherDecks > 0 && (
+            <Pressable
+              onPress={onOtherDecks}
+              accessibilityRole="button"
+              accessibilityLabel={`${t.fromOtherDecks} en otros mazos: ver cuáles`}
+            >
+              <Pill text={`${t.fromOtherDecks} en otros mazos ›`} color={colors.inuse} />
+            </Pressable>
           )}
         </View>
       </View>
@@ -652,6 +893,8 @@ function CardLine({
   dot,
   right,
   note,
+  lock,
+  onPress,
   onLongPress,
 }: {
   card: CardDTO;
@@ -659,11 +902,15 @@ function CardLine({
   dot?: OwnershipItemDTO["status"] | undefined;
   right?: string | undefined;
   note?: string | undefined;
+  /** Candado (en mis mazos): bloqueada = nunca se propone sacarla. */
+  lock?: { on: boolean; toggle: () => void; disabled: boolean } | undefined;
+  /** Si no se da, abre la ficha de la carta. */
+  onPress?: (() => void) | undefined;
   onLongPress?: (() => void) | undefined;
 }) {
   return (
     <Pressable
-      onPress={() => router.push(`/card/${card.oracleId}`)}
+      onPress={onPress ?? (() => router.push(`/card/${card.oracleId}`))}
       onLongPress={onLongPress}
       style={({ pressed }) => ({
         flexDirection: "row",
@@ -691,6 +938,24 @@ function CardLine({
         <View
           style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: STATUS_COLOR[dot] }}
         />
+      )}
+      {lock && (
+        <Pressable
+          onPress={lock.toggle}
+          disabled={lock.disabled}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityState={{ selected: lock.on }}
+          accessibilityLabel={
+            lock.on ? `Desbloquear ${card.name}` : `Bloquear ${card.name} (no se propondrá sacarla)`
+          }
+        >
+          <Ionicons
+            name={lock.on ? "lock-closed" : "lock-open-outline"}
+            size={16}
+            color={lock.on ? colors.accent : colors.text3}
+          />
+        </Pressable>
       )}
     </Pressable>
   );
@@ -764,7 +1029,7 @@ function SwapRow({
   );
 }
 
-function Stats({ analysis: a }: { analysis: Analysis }) {
+function Stats({ analysis: a, bracket }: { analysis: Analysis; bracket: Analysis["bracket"] }) {
   const curve = Object.entries(a.curve)
     .map(([k, v]) => [Number(k), v] as const)
     .sort((x, y) => x[0] - y[0]);
@@ -815,12 +1080,14 @@ function Stats({ analysis: a }: { analysis: Analysis }) {
           </View>
         );
       })}
-      <T variant="label">Bracket {a.bracket.bracket}</T>
-      {a.bracket.reasons.map((r, i) => (
+      <T variant="label">Bracket {bracket.bracket}</T>
+      {bracket.reasons.map((r, i) => (
         <T key={i} variant="small">
           · {r}
         </T>
       ))}
+      {!bracket.combosChecked && <T variant="small">Buscando combos para afinarlo…</T>}
+      <OpeningHandPanel cards={a.cards} />
     </View>
   );
 }

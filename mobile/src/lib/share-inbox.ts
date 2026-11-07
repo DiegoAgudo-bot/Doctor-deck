@@ -1,8 +1,7 @@
 /**
- * Buzón de lo compartido con la app hasta que lo recoge la pantalla de importar. Llega por dos
- * vías (el evento del módulo nativo y `takeShareIntent`, que la app pide al arrancar y al volver
- * a primer plano), así que la misma entrega puede llegar dos veces: lo ya recogido se ignora un
- * rato. Sin dependencias de React Native para poder probarlo.
+ * Buzón de lo compartido con la app hasta que lo recoge la pantalla de importar (lo llena
+ * `pollNativeShare` al arrancar y al volver a primer plano). Por si la misma entrega se leyera dos
+ * veces, lo ya recogido se ignora un rato. Sin dependencias de React Native para poder probarlo.
  */
 
 export interface SharedFile {
@@ -11,7 +10,7 @@ export interface SharedFile {
 }
 
 export type ShareItem =
-  | { kind: "content"; text: string | null; files: SharedFile[] | null }
+  | { kind: "content"; id?: string | null; text: string | null; files: SharedFile[] | null }
   | { kind: "error"; message: string };
 
 /** Lo que ya se recogió no vuelve a entrar en este tiempo (la otra vía de la misma entrega). */

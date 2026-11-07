@@ -5,6 +5,7 @@ import { FlatList, Pressable, ScrollView, useWindowDimensions, View } from "reac
 import type { CatalogCardDTO, CatalogPageDTO } from "@/server/card-dto";
 import { CardThumb, prefetchThumbs } from "~/components/card-bits";
 import { FilterSheetBody } from "~/components/filters";
+import { GlobalMatches } from "~/components/global-matches";
 import { Sheet } from "~/components/sheet";
 import { Button, Chip, Empty, ErrorView, Loading, SearchField, T } from "~/components/ui";
 import { useAddCopies, useCopyDefaults } from "~/lib/add-copies";
@@ -51,7 +52,8 @@ const CatalogTile = memo(function CatalogTile({
 
 /**
  * Buscador de todas las cartas: nombre, tipo o texto, y en la hoja «Filtros» lo mismo que
- * ManaBox (colores, tipo, supertipo, texto de reglas, coste, fuerza, rareza, edición…).
+ * ManaBox (colores, tipo, supertipo, texto de reglas, coste, fuerza, rareza, edición…). Al escribir,
+ * encima salen también mis mazos y la gente que coincide.
  */
 export default function Search() {
   const { width } = useWindowDimensions();
@@ -103,7 +105,7 @@ export default function Search() {
     <View style={{ flex: 1 }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 10, gap: 10 }}>
         <SearchField
-          placeholder="Nombre, tipo o texto, en cualquier idioma"
+          placeholder="Cartas, tus mazos o gente"
           value={q}
           onChangeText={setQ}
           onClear={() => setQ("")}
@@ -168,20 +170,27 @@ export default function Search() {
       ) : list.isError && items.length === 0 ? (
         <ErrorView error={list.error} onRetry={() => list.refetch()} />
       ) : items.length === 0 ? (
-        <Empty
-          icon="search"
-          title="Ninguna carta"
-          text="Prueba con otro nombre (en inglés) o quita filtros."
-          action={
-            chips.length > 0 || filters.colors.length > 0 ? (
-              <Button
-                label="Quitar filtros"
-                kind="secondary"
-                onPress={() => setFilters(EMPTY_FILTERS)}
-              />
-            ) : undefined
-          }
-        />
+        <>
+          {query.length > 0 && (
+            <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+              <GlobalMatches query={query} cards={false} />
+            </View>
+          )}
+          <Empty
+            icon="search"
+            title="Ninguna carta"
+            text="Prueba con otro nombre (en inglés) o quita filtros."
+            action={
+              chips.length > 0 || filters.colors.length > 0 ? (
+                <Button
+                  label="Quitar filtros"
+                  kind="secondary"
+                  onPress={() => setFilters(EMPTY_FILTERS)}
+                />
+              ) : undefined
+            }
+          />
+        </>
       ) : (
         <FlatList
           data={items}
@@ -199,6 +208,7 @@ export default function Search() {
           windowSize={9}
           removeClippedSubviews
           renderItem={({ item }) => <CatalogTile item={item} width={tile} onAdd={onAdd} />}
+          ListHeaderComponent={query ? <GlobalMatches query={query} /> : null}
           ListFooterComponent={list.isFetchingNextPage ? <Loading /> : null}
         />
       )}

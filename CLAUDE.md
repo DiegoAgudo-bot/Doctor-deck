@@ -684,7 +684,9 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
 - **App móvil** (Fase 22, `mobile/`, ver `mobile/README.md`): Expo + React Native con
   `expo-router`, solo Android, con los colores de la web (tema «Pentacromo», `mobile/src/lib/theme.ts`; franja de la gema
   bajo la cabecera de las pestañas, `components/gem-stripe.tsx`).
-  Pestañas Colección, Mazos, Buscar, Jugar (`(tabs)/games.tsx`: contador —jugadores a izquierda y derecha mirando a su lado e impar
+  Pestañas Inicio (`(tabs)/home.tsx`, la que se abre: colección y su valor, propuestas por
+  responder, mazos recientes y actividad), Colección, Mazos, Buscar (también mis mazos y gente,
+  `GlobalMatches`), Jugar (`(tabs)/games.tsx`: contador —jugadores a izquierda y derecha mirando a su lado e impar
   abajo, `lib/seats.ts`—, o seguir la partida abierta, `lib/life-store.ts`—, registrar partida, mis grupos y últimas partidas) y Escanear
   (abre `/scan` a pantalla completa; `(tabs)/scanner.tsx` no pinta nada); en la cabecera, la
   campana de avisos (`components/bell.tsx`, con los sin leer) y un botón redondo con la inicial
@@ -719,19 +721,20 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     (`(SET) número` → impresión con `findPrintingsBySetNumbers`), primero sin guardar (vista previa
     con `BrowserCollectionRepository`) y luego como cartas sueltas; `looksLikeDeck` si trae
     comandante o 60–101 cartas. Reemplazar con el CSV sigue siendo `POST /api/collection`.
-    En la app, lo compartido va a un buzón (`lib/share-inbox.ts`) por dos vías: el evento del
-    módulo y, por si se pierde, `takeShareIntent` (función nativa del parche, que guarda lo último
-    hasta que se recoge), que `useSharedContent` (`_layout.tsx`) pide al arrancar y al volver a
-    primer plano. Mientras haya algo sin recoger se abre `/share` (al arrancar, `index.tsx`
-    redirige allí), que lo recoge al leerlo (la misma entrega por la otra vía se ignora 15 s) y lee el fichero con la ruta codificada
-    (`shareFileUri`: los nombres con espacios rompían la lectura; 20 s de tope), lo parte en tandas
+    En la app (1.9.0), lo compartido lo recibe una actividad nativa propia, no la de React Native
+    (`ShareReceiverActivity`, `mobile/plugins/share-receiver/` + `with-share-receiver.js`; antes
+    `expo-share-intent` lo mandaba a la actividad principal y, con la app en segundo plano, se
+    quedaba en negro): guarda el texto o una copia del fichero (≤ 30 MB) en
+    `files/shared-inbox/pending.json` y abre la app como desde el icono. `pollNativeShare`
+    (`lib/share-intake.ts`, `itemFromPending` en `share-pending.ts`) lo recoge al arrancar y al
+    volver a primer plano y lo pasa al buzón (`lib/share-inbox.ts`; si ya hay algo sin recoger, lo
+    nuevo espera). Mientras haya algo sin recoger se abre `/share` (al arrancar, `index.tsx`
+    redirige allí), que lo recoge al leerlo, borra la copia y lee el fichero con la ruta codificada
+    (`shareFileUri`; 20 s de tope), lo parte en tandas
     (`splitImportText`: el CSV repite la cabecera, como mucho 12) y enseña las cartas según se
-    reconocen con una barra de progreso; añadirlas va también por tandas.
-    `expo-share-intent` va parcheado (`mobile/patches/`, `patch-package` en `postinstall`): un
-    fichero compartido como `text/plain` sin texto se trata como fichero, sin `!!` al leer su
-    nombre y tipo, y cualquier excepción llega a JS como `error` (`/share` la enseña); avisar a
-    JS nunca lanza (una excepción ahí tira el motor de React Native: pantalla en negro hasta
-    forzar el cierre). Si algo falla al pintar, el `ErrorBoundary` de `_layout.tsx` lo enseña con
+    reconocen con una barra de progreso; añadirlas va también por tandas. Una lista también puede
+    abrirse como mazo nuevo («Crear un mazo con esta lista» → `/deck-new?fromShare=1`).
+    Si algo falla al pintar, el `ErrorBoundary` de `_layout.tsx` lo enseña con
     «Reintentar» y lo manda a `POST /api/errors` (se ve en `/admin/errors`).
   - Push: `PushDevice` (token de FCM, `POST|DELETE /api/me/devices`); `PrismaSocialRepository`
     llama a `afterCreate` con cada aviso guardado y el container lo manda con `pushNotifications`
@@ -762,6 +765,36 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     impresión exacta la corrige (`upgradeLatest`). La lista (`addScanned`: misma copia suma) se
     guarda en el móvil; «Añadir N a la colección» → `POST /api/collection/cards` (foil, idioma
     impreso o el de la última vez, estado). Límite `routeLimits.scan` 900/min.
+  - Gestionar mazos (fase M1 de `APP_ROADMAP.md`, `components/deck-manage.tsx`): en la cabecera
+    del mazo «Exportar» (`exportDeck` del dominio, con «Compartir») y, en los míos, «Ajustes»
+    (`DeckSettingsSheet`: nombre, visibilidad, bracket objetivo, historial con restaurar,
+    reemplazar la lista, duplicar y borrar; también al mantener pulsado un mazo en la lista),
+    selector de tema (`ThemePicker`; en los míos se guarda, en los de otros solo se mira; también
+    al crear desde un comandante) y candado por carta en la Lista (`locked`).
+  - Editor de mazos (fase M2, `components/deck-editor.tsx`): en la Lista de un mazo mío,
+    «Añadir» (`AddCardsSheet`: buscador limitado a la identidad y recomendadas libres de mi
+    colección, `addCandidates`), tocar una carta abre `CardActionsSheet` (copias −/+ con
+    `maxCopies`, edición con `setPrinting` + `exportDecklist` y roles/etiquetas en todos mis mazos
+    o solo en este), lista «Por tipo» o «Por rol» y «N en otros mazos» en la portada
+    (`OtherDecksSheet`, con enlace a cada mazo).
+  - Análisis (fase M3, `components/deck-analysis.tsx`): pestaña Combos (`POST /api/combos`
+    aparte, `CombosPanel`; su bracket pasa a la portada y a Datos), mano inicial en Datos
+    (`openingHandOdds` + «Robar 7» con mulligan) y, al final de «Falta», alternativas más baratas
+    (`ownership.alternatives`) y modo compra (`BuyPanel`, `POST /api/analyze` con `buy`).
+  - Precios (fase M4, `components/price-chart.tsx`, gráfica de barras sin librerías): pantalla
+    `collection-prices` (botón en la cabecera de Colección; `POST /api/collection/prices`, valor
+    día a día de 30 días a un año y lo que más sube y baja), histórico de una carta y tabla de
+    ediciones con precio normal y foil en su ficha, y al reemplazar la colección con un CSV
+    compartido, cuántas filas no se reconocieron.
+  - Cuenta (fase M5): en Ajustes, cambiar la contraseña y sesiones abiertas
+    (`components/account-security.tsx`, `deviceLabel` de `domain/social/device-label.ts`, el mismo
+    que la web) y avisos por grupo (`NOTIFICATION_GROUP_LABELS`, `mutedNotifications`). Orden y
+    vista de la colección compartidos con la web (`useSharedCollectionLook`, `lib/prefs.ts`:
+    `GET|PUT /api/me/prefs`, sin tocar los filtros que guarde la web).
+  - Inicio y buscador global (fase M6): pestaña Inicio (`(tabs)/home.tsx`; `/` de la web lleva
+    allí) y, al escribir en Buscar, mis mazos (`matchDecks`, `lib/global-search.ts`) y gente
+    (`GET /api/users?q=`) encima de las cartas. `FeedEntry` (`components/feed-entry.tsx`) se
+    comparte con «Actividad».
   - Rejillas (Buscar y Colección): `CardThumb` enseña el nombre al momento y la imagen encima en
     cuanto llega (como ManaBox); tarjetas memorizadas, la página siguiente se pide con antelación
     (`onEndReachedThreshold` 1,5) y las miniaturas de cada página se descargan al llegar

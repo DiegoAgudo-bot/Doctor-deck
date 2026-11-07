@@ -8,7 +8,6 @@ import {
   usePathname,
   type ErrorBoundaryProps,
 } from "expo-router";
-import { ShareIntentProvider, useShareIntentContext } from "expo-share-intent";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
 import { AppState, Linking, View } from "react-native";
@@ -22,8 +21,7 @@ import { API_URL, APP_VERSION } from "~/lib/config";
 import { isOlder } from "~/lib/format";
 import { openWebPath, registerForPush, useNotificationTaps } from "~/lib/push";
 import { persister, queryClient } from "~/lib/query";
-import { putShare } from "~/lib/share-inbox";
-import { itemFromIntent, pollNativeShare, useShareInbox } from "~/lib/share-intake";
+import { pollNativeShare, useShareInbox } from "~/lib/share-intake";
 import { colors } from "~/lib/theme";
 
 const navTheme = {
@@ -40,19 +38,17 @@ const navTheme = {
 
 export default function RootLayout() {
   return (
-    <ShareIntentProvider options={{ resetOnBackground: false }}>
-      <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{ persister, maxAge: 24 * 60 * 60_000, buster: APP_VERSION }}
-      >
-        <ThemeProvider value={navTheme}>
-          <StatusBar style="light" />
-          <Root />
-          <ToastHost />
-          <DialogHost />
-        </ThemeProvider>
-      </PersistQueryClientProvider>
-    </ShareIntentProvider>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister, maxAge: 24 * 60 * 60_000, buster: APP_VERSION }}
+    >
+      <ThemeProvider value={navTheme}>
+        <StatusBar style="light" />
+        <Root />
+        <ToastHost />
+        <DialogHost />
+      </ThemeProvider>
+    </PersistQueryClientProvider>
   );
 }
 
@@ -161,6 +157,7 @@ function Root() {
         <Stack.Screen name="trades/with/[username]" options={{ title: "" }} />
         <Stack.Screen name="trades/proposals/[id]" options={{ title: "" }} />
         <Stack.Screen name="loans" options={{ title: "Préstamos" }} />
+        <Stack.Screen name="collection-prices" options={{ title: "Precios de tu colección" }} />
         <Stack.Screen name="community" options={{ title: "Comunidad" }} />
         <Stack.Screen name="feed" options={{ title: "Actividad" }} />
         <Stack.Screen name="u/[username]" options={{ title: "" }} />
@@ -176,27 +173,19 @@ function Root() {
 }
 
 /**
- * Al compartir algo con la app (texto o fichero CSV/TXT), va al buzón (`share-inbox`) y se abre la
- * pantalla de importar, que lo lee y lo reconoce con su progreso. Llega por el evento del módulo
- * nativo y, por si ese evento se pierde, se le pregunta al arrancar y al volver a primer plano.
- * Mientras haya algo en el buzón sin recoger, se vuelve a abrir la pantalla de importar. Si aún
- * no hay sesión, espera a que se entre.
+ * Al compartir algo con la app (texto o fichero CSV/TXT), lo recibe una actividad nativa propia
+ * que lo guarda y abre la app como desde el icono (`share-intake`). Aquí se recoge al arrancar y
+ * al volver a primer plano, va al buzón (`share-inbox`) y se abre la pantalla de importar, que lo
+ * lee y lo reconoce con su progreso. Si aún no hay sesión, espera a que se entre.
  */
 function useSharedContent(signedIn: boolean) {
-  const { hasShareIntent, shareIntent, error } = useShareIntentContext();
   const inbox = useShareInbox();
   const pathname = usePathname();
 
   useEffect(() => {
-    // Si no se ha podido recibir, también: la pantalla de importar enseña el error.
-    if (hasShareIntent) putShare(itemFromIntent(shareIntent));
-    else if (error) putShare({ kind: "error", message: error });
-  }, [hasShareIntent, shareIntent, error]);
-
-  useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     const check = () => {
-      for (const ms of [300, 1500, 4000])
+      for (const ms of [0, 800, 2500])
         timers.push(setTimeout(() => void pollNativeShare().catch(() => {}), ms));
     };
     check();

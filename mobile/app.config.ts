@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import type { ExpoConfig } from "expo/config";
 
 /** Versión de la app: súbela en cada publicación (el servidor puede exigir una mínima). */
-const VERSION = "1.2.7";
+const VERSION = "1.9.0";
 /** Para Google Play: entero que sube con cada build que se sube a la tienda. */
 const VERSION_CODE = Number(process.env.ANDROID_VERSION_CODE ?? 1);
 
@@ -58,18 +58,12 @@ const config: ExpoConfig = {
     "expo-secure-store",
     "expo-web-browser",
     "expo-image",
-    [
-      "expo-share-intent",
-      {
-        // Lo que comparte ManaBox: la lista como texto o el CSV como fichero.
-        androidIntentFilters: ["text/*", "application/csv", "application/vnd.ms-excel"],
-        disableIOS: true,
-      },
-    ],
     ["expo-notifications", { color: "#6cb0ff", defaultChannel: "default" }],
     // El reconocimiento de texto del escáner (ML Kit en el móvil) pide Android 8.0 o más.
     ["expo-build-properties", { android: { minSdkVersion: 26 } }],
     "./plugins/with-release-signing.js",
+    // Compartir desde otras apps (listas y CSV): actividad propia que abre la app ya preparada.
+    "./plugins/with-share-receiver.js",
   ],
   experiments: { typedRoutes: false },
   extra: {
