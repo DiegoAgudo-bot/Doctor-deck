@@ -1,36 +1,43 @@
-import { parseShareIntent, ShareIntentModule, type ShareIntent } from "expo-share-intent";
+import { File, Paths } from "expo-file-system";
 import { useSyncExternalStore } from "react";
 import { peekShare, putShare, subscribeShare, type ShareItem } from "./share-inbox";
-
-/** Lo que trae el contexto de compartir, como entrada del buzón. */
-export function itemFromIntent(intent: ShareIntent): ShareItem {
-  return {
-    kind: "content",
-    text: intent.text ?? null,
-    files: intent.files?.map((f) => ({ path: f.path, fileName: f.fileName })) ?? null,
-  };
-}
-
-interface NativeShare {
-  takeShareIntent?: () => Promise<{ value: unknown; error: string | null }>;
-}
+import { itemFromPending } from "./share-pending";
 
 /**
- * Pide al módulo nativo lo último compartido, por si su evento no llegó (el módulo parcheado lo
- * guarda hasta que se recoge). Lo deja en el buzón.
+ * Lo compartido desde otras apps lo recibe una actividad nativa propia
+ * (`plugins/share-receiver/ShareReceiverActivity.kt`), que lo deja en
+ * `files/shared-inbox/pending.json` (el fichero, copiado al lado) y abre la app como desde el
+ * icono. Aquí se recoge: al arrancar y cada vez que la app vuelve a primer plano.
  */
+const pendingFile = () => new File(Paths.document, "shared-inbox", "pending.json");
+
+/** Si hay algo compartido esperando, lo pasa al buzón y lo borra (se recoge una sola vez). */
 export async function pollNativeShare(): Promise<void> {
-  const native = ShareIntentModule as unknown as NativeShare | null;
-  if (!native?.takeShareIntent) return;
-  const { value, error } = await native.takeShareIntent();
-  if (value) {
-    const intent = parseShareIntent(value as never, {});
-    if (intent.text || intent.files?.length) {
-      putShare(itemFromIntent(intent));
-      return;
+  // Mientras haya algo sin recoger se deja esperando lo nuevo (no se pierde).
+  if (peekShare()) return;
+  const file = pendingFile();
+  if (!file.exists) return;
+  let raw: string;
+  try {
+    raw = await file.text();
+  } finally {
+    try {
+      file.delete();
+    } catch {
+      // Si no se puede borrar, `putShare` no lo repite (mismo id durante un rato).
     }
   }
-  if (error) putShare({ kind: "error", message: error });
+  putShare(itemFromPending(raw));
+}
+
+/** Borra la copia del fichero compartido cuando ya se ha leído. */
+export function removeSharedCopy(path: string) {
+  try {
+    const f = new File(path.startsWith("file://") ? path : `file://${path}`);
+    if (f.exists) f.delete();
+  } catch {
+    // Da igual: la siguiente vez que se comparta algo se borran las copias anteriores.
+  }
 }
 
 /** Lo que hay en el buzón ahora mismo. */
