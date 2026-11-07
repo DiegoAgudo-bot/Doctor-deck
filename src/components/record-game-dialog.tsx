@@ -6,6 +6,7 @@ import type { GroupDTO, GroupDeckDTO, GroupSummaryDTO } from "@/server/social-dt
 import { api, ApiError } from "./api-client";
 import { IconPlus, IconTrash } from "./icons";
 import { Banner, Dialog } from "./ui";
+import { useT } from "./i18n";
 
 const json = (body: unknown) => ({
   headers: { "Content-Type": "application/json" },
@@ -63,6 +64,7 @@ export function RecordGameDialog({
   /** Mi nombre de usuario (sin grupo soy el único con cuenta). */
   me: string | null;
 }) {
+  const t = useT();
   const [groups, setGroups] = useState<GroupSummaryDTO[] | null>(null);
   const [groupId, setGroupId] = useState<string>(fixedGroup ?? "");
   const [group, setGroup] = useState<GroupDTO | null>(null);
@@ -102,8 +104,10 @@ export function RecordGameDialog({
         setGroup(g);
         setDecks(d);
       })
-      .catch((e: unknown) => setError(e instanceof ApiError ? e.message : "No se pudo cargar"));
-  }, [open, groupId]);
+      .catch((e: unknown) =>
+        setError(e instanceof ApiError ? e.message : t("No se pudo cargar", "Couldn't load")),
+      );
+  }, [open, groupId, t]);
 
   // Filas iniciales a partir de los asientos del contador (o yo + un invitado).
   useEffect(() => {
@@ -165,7 +169,11 @@ export function RecordGameDialog({
       });
       onSaved(id);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "No se pudo guardar la partida");
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : t("No se pudo guardar la partida", "Couldn't save the game"),
+      );
     } finally {
       setBusy(false);
     }
@@ -175,12 +183,12 @@ export function RecordGameDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Registrar partida"
+      title={t("Registrar partida", "Record game")}
       width={640}
       footer={
         <>
           <button type="button" className="btn" onClick={onClose}>
-            Cancelar
+            {t("Cancelar", "Cancel")}
           </button>
           <button
             type="button"
@@ -188,7 +196,7 @@ export function RecordGameDialog({
             disabled={busy || rows.length < 2}
             onClick={() => void save()}
           >
-            {busy ? "Guardando…" : "Guardar partida"}
+            {busy ? t("Guardando…", "Saving…") : t("Guardar partida", "Save game")}
           </button>
         </>
       }
@@ -196,14 +204,14 @@ export function RecordGameDialog({
       {error && <Banner tone="out">{error}</Banner>}
       <div className="grid gap-2.5 sm:grid-cols-3">
         <label className="field sm:col-span-1">
-          <span className="label">Grupo</span>
+          <span className="label">{t("Grupo", "Group")}</span>
           <select
             className="select"
             value={groupId}
             disabled={fixedGroup !== null}
             onChange={(e) => setGroupId(e.target.value)}
           >
-            <option value="">Sin grupo</option>
+            <option value="">{t("Sin grupo", "No group")}</option>
             {groups?.map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name}
@@ -212,7 +220,7 @@ export function RecordGameDialog({
           </select>
         </label>
         <label className="field">
-          <span className="label">Fecha</span>
+          <span className="label">{t("Fecha", "Date")}</span>
           <input
             className="input"
             type="date"
@@ -222,7 +230,7 @@ export function RecordGameDialog({
           />
         </label>
         <label className="field">
-          <span className="label">Turnos</span>
+          <span className="label">{t("Turnos", "Turns")}</span>
           <input
             className="input"
             inputMode="numeric"
@@ -234,8 +242,10 @@ export function RecordGameDialog({
       </div>
       {!groupId && (
         <p className="subtle text-xs">
-          Sin grupo, los demás van como invitados. En un grupo puedes elegir a sus miembros y sus
-          mazos, y la partida cuenta para la clasificación.
+          {t(
+            "Sin grupo, los demás van como invitados. En un grupo puedes elegir a sus miembros y sus mazos, y la partida cuenta para la clasificación.",
+            "Without a group, the others go in as guests. In a group you can pick its members and their decks, and the game counts towards the standings.",
+          )}
         </p>
       )}
 
@@ -248,7 +258,9 @@ export function RecordGameDialog({
                 type="button"
                 className="gamerow-crown"
                 aria-pressed={r.winner}
-                title={r.winner ? "Ganador" : "Marcar como ganador"}
+                title={
+                  r.winner ? t("Ganador", "Winner") : t("Marcar como ganador", "Mark as winner")
+                }
                 onClick={() =>
                   setRows((rs) => rs.map((x, j) => ({ ...x, winner: j === i ? !x.winner : false })))
                 }
@@ -257,11 +269,11 @@ export function RecordGameDialog({
               </button>
               <select
                 className="select"
-                aria-label="Jugador"
+                aria-label={t("Jugador", "Player")}
                 value={r.who}
                 onChange={(e) => set(i, { who: e.target.value, deckId: "" })}
               >
-                <option value="">Invitado…</option>
+                <option value="">{t("Invitado…", "Guest…")}</option>
                 {people.map((u) => (
                   <option key={u} value={`@${u}`}>
                     @{u}
@@ -271,8 +283,8 @@ export function RecordGameDialog({
               {!r.who && (
                 <input
                   className="input"
-                  placeholder="Nombre"
-                  aria-label="Nombre del invitado"
+                  placeholder={t("Nombre", "Name")}
+                  aria-label={t("Nombre del invitado", "Guest's name")}
                   value={r.guestName}
                   maxLength={40}
                   onChange={(e) => set(i, { guestName: e.target.value })}
@@ -281,11 +293,11 @@ export function RecordGameDialog({
               {options.length > 0 ? (
                 <select
                   className="select"
-                  aria-label="Mazo"
+                  aria-label={t("Mazo", "Deck")}
                   value={r.deckId}
                   onChange={(e) => set(i, { deckId: e.target.value })}
                 >
-                  <option value="">Mazo…</option>
+                  <option value="">{t("Mazo…", "Deck…")}</option>
                   {options.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.name}
@@ -295,8 +307,8 @@ export function RecordGameDialog({
               ) : (
                 <input
                   className="input"
-                  placeholder="Mazo o comandante"
-                  aria-label="Mazo"
+                  placeholder={t("Mazo o comandante", "Deck or commander")}
+                  aria-label={t("Mazo", "Deck")}
                   value={r.deckName}
                   maxLength={80}
                   onChange={(e) => set(i, { deckName: e.target.value })}
@@ -305,7 +317,7 @@ export function RecordGameDialog({
               <button
                 type="button"
                 className="btn btn-ghost btn-icon"
-                aria-label="Quitar jugador"
+                aria-label={t("Quitar jugador", "Remove player")}
                 disabled={rows.length <= 2}
                 onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}
               >
@@ -325,15 +337,18 @@ export function RecordGameDialog({
               ])
             }
           >
-            <IconPlus size={13} /> Añadir jugador
+            <IconPlus size={13} /> {t("Añadir jugador", "Add player")}
           </button>
         )}
       </div>
       <label className="field">
-        <span className="label">Notas</span>
+        <span className="label">{t("Notas", "Notes")}</span>
         <input
           className="input"
-          placeholder="Combo en el turno 6, mesa muy política…"
+          placeholder={t(
+            "Combo en el turno 6, mesa muy política…",
+            "Combo on turn 6, very political table…",
+          )}
           value={notes}
           maxLength={300}
           onChange={(e) => setNotes(e.target.value)}

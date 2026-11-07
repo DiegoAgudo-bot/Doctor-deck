@@ -5,6 +5,7 @@ import { deviceLabel } from "@/domain/social/device-label";
 import { authClient, authErrorMessage } from "./auth-client";
 import { formatDate } from "./collection-import";
 import { Banner } from "./ui";
+import { useIntlLocale, useLocale, useT } from "./i18n";
 
 type Note = { tone: "in" | "out"; text: string } | null;
 
@@ -14,6 +15,8 @@ export function ChangePassword() {
   const [next, setNext] = useState("");
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
+  const t = useT();
+  const locale = useLocale();
   const [note, setNote] = useState<Note>(null);
 
   return (
@@ -30,22 +33,25 @@ export function ChangePassword() {
         });
         setBusy(false);
         if (error) {
-          setNote({ tone: "out", text: authErrorMessage(error) });
+          setNote({ tone: "out", text: authErrorMessage(error, locale) });
           return;
         }
         setCurrent("");
         setNext("");
         setNote({
           tone: "in",
-          text: "Contraseña cambiada. Se han cerrado tus sesiones en otros dispositivos.",
+          text: t(
+            "Contraseña cambiada. Se han cerrado tus sesiones en otros dispositivos.",
+            "Password changed. Your sessions on other devices have been signed out.",
+          ),
         });
       }}
     >
-      <b>Cambiar la contraseña</b>
+      <b>{t("Cambiar la contraseña", "Change password")}</b>
       {note && <Banner tone={note.tone}>{note.text}</Banner>}
       <div className="flex flex-wrap items-end gap-2">
         <label className="field" style={{ minWidth: 0, flex: "1 1 180px" }}>
-          <span className="label">Contraseña actual</span>
+          <span className="label">{t("Contraseña actual", "Current password")}</span>
           <input
             className="input"
             type={show ? "text" : "password"}
@@ -56,7 +62,9 @@ export function ChangePassword() {
           />
         </label>
         <label className="field" style={{ minWidth: 0, flex: "1 1 180px" }}>
-          <span className="label">Nueva (mínimo 8 caracteres)</span>
+          <span className="label">
+            {t("Nueva (mínimo 8 caracteres)", "New (at least 8 characters)")}
+          </span>
           <input
             className="input"
             type={show ? "text" : "password"}
@@ -68,14 +76,14 @@ export function ChangePassword() {
           />
         </label>
         <button type="button" className="btn btn-ghost" onClick={() => setShow((v) => !v)}>
-          {show ? "Ocultar" : "Ver"}
+          {show ? t("Ocultar", "Hide") : t("Ver", "Show")}
         </button>
         <button
           type="submit"
           className="btn btn-primary"
           disabled={busy || current === "" || next.length < 8}
         >
-          Cambiar
+          {t("Cambiar", "Change")}
         </button>
       </div>
     </form>
@@ -91,6 +99,9 @@ interface SessionRow {
 
 /** Sesiones abiertas: dónde tengo la cuenta abierta, con cerrar una o todas las demás. */
 export function OpenSessions() {
+  const t = useT();
+  const locale = useLocale();
+  const intl = useIntlLocale();
   const { data: current } = authClient.useSession();
   const [list, setList] = useState<SessionRow[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -108,7 +119,7 @@ export function OpenSessions() {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <b>Sesiones abiertas</b>
+        <b>{t("Sesiones abiertas", "Open sessions")}</b>
         {others.length > 0 && (
           <button
             type="button"
@@ -121,7 +132,7 @@ export function OpenSessions() {
               load();
             }}
           >
-            Cerrar las demás ({others.length})
+            {t("Cerrar las demás", "Sign out the others")} ({others.length})
           </button>
         )}
       </div>
@@ -130,11 +141,14 @@ export function OpenSessions() {
           <li key={s.token}>
             <span className="flex min-w-0 flex-1 flex-col">
               <span>
-                {deviceLabel(s.userAgent)}
-                {s.token === mine && <span className="pill pill-in ml-2">este dispositivo</span>}
+                {deviceLabel(s.userAgent, locale)}
+                {s.token === mine && (
+                  <span className="pill pill-in ml-2">{t("este dispositivo", "this device")}</span>
+                )}
               </span>
               <span className="subtle text-xs">
-                Última vez: {formatDate(new Date(s.updatedAt).toISOString())}
+                {t("Última vez", "Last seen")}:{" "}
+                {formatDate(new Date(s.updatedAt).toISOString(), intl)}
               </span>
             </span>
             {s.token !== mine && (
@@ -149,7 +163,7 @@ export function OpenSessions() {
                   load();
                 }}
               >
-                Cerrar
+                {t("Cerrar", "Sign out")}
               </button>
             )}
           </li>

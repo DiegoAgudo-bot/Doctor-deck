@@ -6,10 +6,10 @@ import { ChangePassword, OpenSessions } from "./account-security";
 import { DeleteAccountDialog } from "./delete-account-dialog";
 import {
   NOTIFICATION_GROUP_KEYS,
-  NOTIFICATION_GROUP_LABELS,
+  notificationGroupLabel,
   type NotificationGroup,
 } from "@/domain/social/notification-prefs";
-import { USERNAME_HELP } from "@/domain/social/username";
+import { USERNAME_HELP, USERNAME_HELP_EN } from "@/domain/social/username";
 import type { MyProfileDTO } from "@/server/dto";
 import type { MemberDTO } from "@/server/social-dto";
 import { clearCached } from "./swr-cache";
@@ -17,13 +17,15 @@ import { api, ApiError, storage } from "./api-client";
 import { authClient } from "./auth-client";
 import { IconLogout } from "./icons";
 import { Banner, Loading } from "./ui";
-import { Link, goTo } from "@/components/i18n";
+import { Link, goTo, useLocale, useLocalePath, useT } from "@/components/i18n";
 
 /**
  * Cuenta: email verificado o no (con reenvío del enlace) y cuentas vinculadas (Google). Vincular
  * con sesión es la forma segura de unir Google a una cuenta creada con contraseña.
  */
 function AccountSection({ google, mail }: { google: boolean; mail: boolean }) {
+  const t = useT();
+  const lp = useLocalePath();
   const { data: session, refetch } = authClient.useSession();
   const [providers, setProviders] = useState<string[] | null>(null);
   const linkError = useSearchParams().get("linkError");
@@ -31,7 +33,10 @@ function AccountSection({ google, mail }: { google: boolean; mail: boolean }) {
     linkError
       ? {
           tone: "out",
-          text: "No se ha podido vincular Google. Comprueba que usas la cuenta de Google con el mismo email (o que no está ya vinculada a otro usuario).",
+          text: t(
+            "No se ha podido vincular Google. Comprueba que usas la cuenta de Google con el mismo email (o que no está ya vinculada a otro usuario).",
+            "Couldn't link Google. Check you're using the Google account with the same email (and that it isn't already linked to another user).",
+          ),
         }
       : null,
   );
@@ -50,7 +55,7 @@ function AccountSection({ google, mail }: { google: boolean; mail: boolean }) {
   return (
     <section className="panel">
       <div className="panel-h">
-        <span className="h2">Cuenta</span>
+        <span className="h2">{t("Cuenta", "Account")}</span>
       </div>
       <div className="flex flex-col gap-3 p-3.5 text-[13.5px]">
         {note && <Banner tone={note.tone}>{note.text}</Banner>}
@@ -59,7 +64,7 @@ function AccountSection({ google, mail }: { google: boolean; mail: boolean }) {
             Email: <b>{session.user.email}</b>
           </span>
           <span className={`pill ${verified ? "pill-in" : "pill-warn"}`}>
-            {verified ? "verificado" : "sin verificar"}
+            {verified ? t("verificado", "verified") : t("sin verificar", "not verified")}
           </span>
           {!verified && mail && (
             <button
@@ -70,18 +75,30 @@ function AccountSection({ google, mail }: { google: boolean; mail: boolean }) {
                 setBusy(true);
                 const { error } = await authClient.sendVerificationEmail({
                   email: session.user.email,
-                  callbackURL: "/settings",
+                  callbackURL: lp("/settings"),
                 });
                 setBusy(false);
                 setNote(
                   error
-                    ? { tone: "out", text: "No se ha podido enviar el correo. Prueba más tarde." }
-                    : { tone: "in", text: "Te hemos enviado un enlace para verificar el email." },
+                    ? {
+                        tone: "out",
+                        text: t(
+                          "No se ha podido enviar el correo. Prueba más tarde.",
+                          "Couldn't send the email. Try again later.",
+                        ),
+                      }
+                    : {
+                        tone: "in",
+                        text: t(
+                          "Te hemos enviado un enlace para verificar el email.",
+                          "We've sent you a link to verify your email.",
+                        ),
+                      },
                 );
                 void refetch();
               }}
             >
-              Enviar enlace de verificación
+              {t("Enviar enlace de verificación", "Send verification link")}
             </button>
           )}
         </div>
@@ -89,7 +106,9 @@ function AccountSection({ google, mail }: { google: boolean; mail: boolean }) {
           <div className="flex flex-wrap items-center gap-2">
             <span>Google:</span>
             {hasGoogle ? (
-              <span className="pill pill-in">vinculada · puedes entrar con Google</span>
+              <span className="pill pill-in">
+                {t("vinculada · puedes entrar con Google", "linked · you can sign in with Google")}
+              </span>
             ) : (
               <button
                 type="button"
@@ -99,16 +118,19 @@ function AccountSection({ google, mail }: { google: boolean; mail: boolean }) {
                   setBusy(true);
                   const { error } = await authClient.linkSocial({
                     provider: "google",
-                    callbackURL: "/settings",
-                    errorCallbackURL: "/settings?linkError=1",
+                    callbackURL: lp("/settings"),
+                    errorCallbackURL: lp("/settings?linkError=1"),
                   });
                   if (error) {
                     setBusy(false);
-                    setNote({ tone: "out", text: "No se ha podido vincular Google." });
+                    setNote({
+                      tone: "out",
+                      text: t("No se ha podido vincular Google.", "Couldn't link Google."),
+                    });
                   }
                 }}
               >
-                Vincular Google
+                {t("Vincular Google", "Link Google")}
               </button>
             )}
           </div>
@@ -122,6 +144,8 @@ function AccountSection({ google, mail }: { google: boolean; mail: boolean }) {
 
 /** /settings: nombre de usuario, privacidad de la colección, avisos de precio y salir. */
 export function SettingsPage({ google, mail }: { google: boolean; mail: boolean }) {
+  const t = useT();
+  const locale = useLocale();
   const [me, setMe] = useState<MyProfileDTO | null>(null);
   const [username, setUsername] = useState("");
   const [message, setMessage] = useState<{ tone: "in" | "out"; text: string } | null>(null);
@@ -135,9 +159,12 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
         setUsername(p.username);
       })
       .catch((e: unknown) =>
-        setMessage({ tone: "out", text: e instanceof ApiError ? e.message : "Error al cargar" }),
+        setMessage({
+          tone: "out",
+          text: e instanceof ApiError ? e.message : t("Error al cargar", "Couldn't load"),
+        }),
       );
-  }, []);
+  }, [t]);
 
   async function save(changes: {
     username?: string;
@@ -156,9 +183,12 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
       });
       setMe(p);
       setUsername(p.username);
-      setMessage({ tone: "in", text: "Guardado." });
+      setMessage({ tone: "in", text: t("Guardado.", "Saved.") });
     } catch (e) {
-      setMessage({ tone: "out", text: e instanceof ApiError ? e.message : "No se pudo guardar" });
+      setMessage({
+        tone: "out",
+        text: e instanceof ApiError ? e.message : t("No se pudo guardar", "Couldn't save"),
+      });
     } finally {
       setBusy(false);
     }
@@ -167,23 +197,27 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
   if (!me) {
     return (
       <main className="page">
-        <h1 className="h1">Ajustes</h1>
-        {message ? <Banner tone="out">{message.text}</Banner> : <Loading>Cargando…</Loading>}
+        <h1 className="h1">{t("Ajustes", "Settings")}</h1>
+        {message ? (
+          <Banner tone="out">{message.text}</Banner>
+        ) : (
+          <Loading>{t("Cargando…", "Loading…")}</Loading>
+        )}
       </main>
     );
   }
 
   return (
     <main className="page">
-      <h1 className="h1">Ajustes</h1>
+      <h1 className="h1">{t("Ajustes", "Settings")}</h1>
       {message && <Banner tone={message.tone}>{message.text}</Banner>}
       <AccountSection google={google} mail={mail} />
 
       <section className="panel">
         <div className="panel-h">
-          <span className="h2">Perfil público</span>
+          <span className="h2">{t("Perfil público", "Public profile")}</span>
           <Link href={`/u/${me.username}`} style={{ fontSize: 13 }}>
-            Ver mi perfil
+            {t("Ver mi perfil", "View my profile")}
           </Link>
         </div>
         <form
@@ -195,7 +229,7 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
         >
           <div className="field">
             <label className="label" htmlFor="username">
-              Nombre de usuario
+              {t("Nombre de usuario", "Username")}
             </label>
             <div className="flex gap-2">
               <span
@@ -218,19 +252,22 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
                 style={{ height: 34 }}
                 disabled={busy || username === me.username}
               >
-                Guardar
+                {t("Guardar", "Save")}
               </button>
             </div>
             <span className="hint">
-              {USERNAME_HELP} Tu perfil: deckdoctor…/u/{username || "…"}
+              {locale === "en" ? USERNAME_HELP_EN : USERNAME_HELP} {t("Tu perfil", "Your profile")}:
+              doctordeck.app/u/{username || "…"}
             </span>
           </div>
           <div className="kv">
-            <span className="muted">Nombre</span>
+            <span className="muted">{t("Nombre", "Name")}</span>
             <span>{me.name}</span>
           </div>
           <div className="kv">
-            <span className="muted">Email (no se enseña a nadie)</span>
+            <span className="muted">
+              {t("Email (no se enseña a nadie)", "Email (never shown to anyone)")}
+            </span>
             <span>{me.email}</span>
           </div>
         </form>
@@ -238,7 +275,7 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
 
       <section className="panel">
         <div className="panel-h">
-          <span className="h2">Privacidad</span>
+          <span className="h2">{t("Privacidad", "Privacy")}</span>
         </div>
         <div className="flex flex-col gap-3 p-3.5">
           <label className="check">
@@ -249,10 +286,12 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
               onChange={(e) => void save({ collectionPublic: e.target.checked })}
             />
             <span>
-              Colección pública
+              {t("Colección pública", "Public collection")}
               <span className="subtle block text-xs">
-                Cualquiera podrá verla en tu perfil, y quien te siga recibirá un aviso cuando añadas
-                una carta de más de 20 €.
+                {t(
+                  "Cualquiera podrá verla en tu perfil, y quien te siga recibirá un aviso cuando añadas una carta de más de 20 €.",
+                  "Anyone can see it on your profile, and your followers get a notification when you add a card worth over €20.",
+                )}
               </span>
             </span>
           </label>
@@ -264,26 +303,37 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
               onChange={(e) => void save({ tradesPublic: e.target.checked })}
             />
             <span>
-              Listas de intercambio públicas
+              {t("Listas de intercambio públicas", "Public trade lists")}
               <span className="subtle block text-xs">
-                Tu lista de deseos y tus cartas para cambiar salen en tu perfil y en los cruces de{" "}
-                <Link href="/trades">Intercambios</Link>.
+                {t(
+                  "Tu lista de deseos y tus cartas para cambiar salen en tu perfil y en los cruces de",
+                  "Your wishlist and your cards for trade show on your profile and in the matches of",
+                )}{" "}
+                <Link href="/trades">{t("Intercambios", "Trades")}</Link>.
               </span>
             </span>
           </label>
           <p className="subtle text-xs">
-            Cada mazo tiene su propio interruptor público/privado en{" "}
-            <Link href="/decks">Mis mazos</Link>.
+            {t(
+              "Cada mazo tiene su propio interruptor público/privado en",
+              "Each deck has its own public/private switch in",
+            )}{" "}
+            <Link href="/decks">{t("Mis mazos", "My decks")}</Link>.
           </p>
         </div>
       </section>
 
       <section className="panel">
         <div className="panel-h">
-          <span className="h2">Avisos</span>
+          <span className="h2">{t("Avisos", "Notifications")}</span>
         </div>
         <div className="flex flex-col gap-3 p-3.5">
-          <span className="hint">Los que desmarques no te llegarán ni a la web ni al móvil.</span>
+          <span className="hint">
+            {t(
+              "Los que desmarques no te llegarán ni a la web ni al móvil.",
+              "The ones you uncheck won't reach you on the web or on your phone.",
+            )}
+          </span>
           {NOTIFICATION_GROUP_KEYS.map((g) => (
             <label key={g} className="check">
               <input
@@ -299,16 +349,21 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
                 }}
               />
               <span>
-                {NOTIFICATION_GROUP_LABELS[g].label}
-                {NOTIFICATION_GROUP_LABELS[g].hint && (
-                  <span className="subtle block text-xs">{NOTIFICATION_GROUP_LABELS[g].hint}</span>
+                {notificationGroupLabel(g, locale).label}
+                {notificationGroupLabel(g, locale).hint && (
+                  <span className="subtle block text-xs">
+                    {notificationGroupLabel(g, locale).hint}
+                  </span>
                 )}
               </span>
             </label>
           ))}
           <div className="field">
             <label className="label" htmlFor="price-alert">
-              Avisarme si algo que me falta baja de precio
+              {t(
+                "Avisarme si algo que me falta baja de precio",
+                "Notify me if something I'm missing drops in price",
+              )}
             </label>
             <select
               id="price-alert"
@@ -322,17 +377,18 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
                 })
               }
             >
-              <option value="off">No avisarme</option>
+              <option value="off">{t("No avisarme", "Don't notify me")}</option>
               {[10, 15, 20, 25, 30, 40, 50].map((p) => (
                 <option key={p} value={p}>
-                  Si baja un {p} % o más
+                  {t(`Si baja un ${p} % o más`, `If it drops ${p}% or more`)}
                 </option>
               ))}
             </select>
             <span className="hint">
-              Cada noche se miran las cartas que te faltan para tus mazos guardados y se comparan
-              con su precio más alto de los 30 días anteriores. Como mucho, un aviso por carta a la
-              semana.
+              {t(
+                "Cada noche se miran las cartas que te faltan para tus mazos guardados y se comparan con su precio más alto de los 30 días anteriores. Como mucho, un aviso por carta a la semana.",
+                "Every night the cards you're missing for your saved decks are compared with their highest price of the previous 30 days. At most one notification per card a week.",
+              )}
             </span>
           </div>
         </div>
@@ -342,32 +398,36 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
 
       <section className="panel">
         <div className="panel-h">
-          <span className="h2">Tus datos</span>
+          <span className="h2">{t("Tus datos", "Your data")}</span>
         </div>
         <div className="flex flex-col gap-3 p-3.5">
           <div className="flex flex-wrap items-center gap-2">
             <a className="btn" href="/api/me/export" download>
-              Descargar todos mis datos (JSON)
+              {t("Descargar todos mis datos (JSON)", "Download all my data (JSON)")}
             </a>
             <a className="btn" href="/api/collection/export" download>
-              Exportar mi colección (CSV)
+              {t("Exportar mi colección (CSV)", "Export my collection (CSV)")}
             </a>
           </div>
           <p className="subtle text-xs">
-            Tu perfil, colección, mazos, listas de intercambio, propuestas, correcciones de roles,
-            grupos, partidas, préstamos y comentarios. Más detalles en la{" "}
-            <Link href="/privacy">política de privacidad</Link>.
+            {t(
+              "Tu perfil, colección, mazos, listas de intercambio, propuestas, correcciones de roles, grupos, partidas, préstamos y comentarios. Más detalles en la",
+              "Your profile, collection, decks, trade lists, proposals, role corrections, groups, games, loans and comments. More details in the",
+            )}{" "}
+            <Link href="/privacy">{t("política de privacidad", "privacy policy")}</Link>.
           </p>
           <div className="dangerzone">
             <div>
-              <b>Borrar mi cuenta</b>
+              <b>{t("Borrar mi cuenta", "Delete my account")}</b>
               <span className="subtle block text-xs">
-                Se borran para siempre tu colección, tus mazos, tus listas y tus propuestas. No se
-                puede deshacer.
+                {t(
+                  "Se borran para siempre tu colección, tus mazos, tus listas y tus propuestas. No se puede deshacer.",
+                  "Your collection, decks, lists and proposals are deleted forever. This can't be undone.",
+                )}
               </span>
             </div>
             <button type="button" className="btn btn-out" onClick={() => setDeleting(true)}>
-              Borrar mi cuenta
+              {t("Borrar mi cuenta", "Delete my account")}
             </button>
           </div>
         </div>
@@ -385,7 +445,7 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
         }}
       >
         <IconLogout size={14} />
-        Salir
+        {t("Salir", "Sign out")}
       </button>
     </main>
   );
@@ -393,6 +453,7 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
 
 /** La gente que he bloqueado, para desbloquearla. */
 function BlockedUsers() {
+  const t = useT();
   const [list, setList] = useState<(MemberDTO & { blockedAt: string })[] | null>(null);
   const load = () =>
     void api<(MemberDTO & { blockedAt: string })[]>("/api/me/blocks", undefined, { silent: true })
@@ -403,7 +464,7 @@ function BlockedUsers() {
   return (
     <section className="panel">
       <div className="panel-h">
-        <span className="h2">Bloqueados</span>
+        <span className="h2">{t("Bloqueados", "Blocked")}</span>
       </div>
       <ul className="memberlist">
         {list.map((m) => (
@@ -419,7 +480,7 @@ function BlockedUsers() {
                   void api(`/api/users/${m.username}/block`, { method: "DELETE" }).then(load)
                 }
               >
-                Desbloquear
+                {t("Desbloquear", "Unblock")}
               </button>
             )}
           </li>

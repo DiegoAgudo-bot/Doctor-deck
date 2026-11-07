@@ -14,7 +14,15 @@ import { IconCopy, IconLink, IconPlus, IconTrash, IconUsers } from "./icons";
 import { LendDialog } from "./loans-page";
 import { RecordGameDialog } from "./record-game-dialog";
 import { ago, Banner, Dialog, EmptyState, fmt, Loading, TilesSkeleton } from "./ui";
-import { Link, useRouter } from "@/components/i18n";
+import {
+  Link,
+  useIntlLocale,
+  useLocale,
+  useLocalePath,
+  useRouter,
+  useT,
+  type T,
+} from "@/components/i18n";
 
 const json = (body: unknown) => ({
   headers: { "Content-Type": "application/json" },
@@ -25,6 +33,8 @@ const errorText = (e: unknown, fallback: string) => (e instanceof ApiError ? e.m
 /** /groups: mis grupos de juego y crear uno. */
 export function GroupsPage() {
   const router = useRouter();
+  const t = useT();
+  const locale = useLocale();
   const [groups, setGroups] = useState<GroupSummaryDTO[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -35,8 +45,10 @@ export function GroupsPage() {
   useEffect(() => {
     api<GroupSummaryDTO[]>("/api/groups")
       .then(setGroups)
-      .catch((e: unknown) => setError(errorText(e, "No se pudieron cargar tus grupos")));
-  }, []);
+      .catch((e: unknown) =>
+        setError(errorText(e, t("No se pudieron cargar tus grupos", "Couldn't load your groups"))),
+      );
+  }, [t]);
 
   async function create() {
     setBusy(true);
@@ -47,7 +59,7 @@ export function GroupsPage() {
       });
       router.push(`/groups/${id}`);
     } catch (e) {
-      setError(errorText(e, "No se pudo crear el grupo"));
+      setError(errorText(e, t("No se pudo crear el grupo", "Couldn't create the group")));
       setBusy(false);
     }
   }
@@ -56,37 +68,48 @@ export function GroupsPage() {
     <main className="page">
       <div className="stack-sm flex items-end gap-3">
         <div className="flex flex-1 flex-col gap-1">
-          <span className="eyebrow">Tu mesa</span>
-          <h1 className="h1">Grupos de juego</h1>
+          <span className="eyebrow">{t("Tu mesa", "Your table")}</span>
+          <h1 className="h1">{t("Grupos de juego", "Playgroups")}</h1>
           <p className="muted text-[13px]">
-            La gente con la que juegas: sus mazos, quién tiene cada carta para dejártela, las
-            partidas y la clasificación.
+            {t(
+              "La gente con la que juegas: sus mazos, quién tiene cada carta para dejártela, las partidas y la clasificación.",
+              "The people you play with: their decks, who has each card to lend you, the games and the standings.",
+            )}
           </p>
         </div>
         <div className="flex gap-2">
           <Link className="btn" href="/play">
-            Contador de vidas
+            {t("Contador de vidas", "Life counter")}
           </Link>
           {groups && groups.length > 0 && (
             <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
-              <IconPlus size={14} /> Nuevo grupo
+              <IconPlus size={14} /> {t("Nuevo grupo", "New group")}
             </button>
           )}
         </div>
       </div>
       {error && <Banner tone="out">{error}</Banner>}
-      {!groups && !error && <TilesSkeleton count={4} height={76} label="Cargando tus grupos…" />}
+      {!groups && !error && (
+        <TilesSkeleton
+          count={4}
+          height={76}
+          label={t("Cargando tus grupos…", "Loading your groups…")}
+        />
+      )}
       {groups && groups.length === 0 && (
         <div className="panel">
           <EmptyState
-            title="Aún no estás en ningún grupo"
+            title={t("Aún no estás en ningún grupo", "You're not in any group yet")}
             action={
               <button type="button" className="btn btn-primary" onClick={() => setCreating(true)}>
-                Crear un grupo
+                {t("Crear un grupo", "Create a group")}
               </button>
             }
           >
-            Crea uno y comparte el enlace de invitación con tus amigos, o pídeles el suyo.
+            {t(
+              "Crea uno y comparte el enlace de invitación con tus amigos, o pídeles el suyo.",
+              "Create one and share the invite link with your friends, or ask them for theirs.",
+            )}
           </EmptyState>
         </div>
       )}
@@ -108,9 +131,10 @@ export function GroupsPage() {
               <span className="flex min-w-0 flex-col gap-0.5">
                 <b className="truncate">{g.name}</b>
                 <span className="subtle text-xs">
-                  {g.members} {g.members === 1 ? "miembro" : "miembros"} · {fmt(g.games)}{" "}
-                  {g.games === 1 ? "partida" : "partidas"}
-                  {g.lastGameAt ? ` · última ${ago(g.lastGameAt)}` : ""}
+                  {g.members} {g.members === 1 ? t("miembro", "member") : t("miembros", "members")}{" "}
+                  · {fmt(g.games, locale)}{" "}
+                  {g.games === 1 ? t("partida", "game") : t("partidas", "games")}
+                  {g.lastGameAt ? ` · ${t("última", "last")} ${ago(g.lastGameAt, locale)}` : ""}
                 </span>
                 {g.description && (
                   <span className="muted truncate text-[13px]">{g.description}</span>
@@ -124,12 +148,12 @@ export function GroupsPage() {
       <Dialog
         open={creating}
         onClose={() => setCreating(false)}
-        title="Nuevo grupo"
+        title={t("Nuevo grupo", "New group")}
         width={440}
         footer={
           <>
             <button type="button" className="btn" onClick={() => setCreating(false)}>
-              Cancelar
+              {t("Cancelar", "Cancel")}
             </button>
             <button
               type="button"
@@ -137,16 +161,16 @@ export function GroupsPage() {
               disabled={busy || !name.trim()}
               onClick={() => void create()}
             >
-              Crear
+              {t("Crear", "Create")}
             </button>
           </>
         }
       >
         <label className="field">
-          <span className="label">Nombre</span>
+          <span className="label">{t("Nombre", "Name")}</span>
           <input
             className="input"
-            placeholder="Los del jueves"
+            placeholder={t("Los del jueves", "Thursday crew")}
             value={name}
             maxLength={60}
             autoFocus
@@ -154,18 +178,23 @@ export function GroupsPage() {
           />
         </label>
         <label className="field">
-          <span className="label">Descripción (opcional)</span>
+          <span className="label">{t("Descripción (opcional)", "Description (optional)")}</span>
           <input
             className="input"
-            placeholder="Commander casual en la tienda, bracket 2–3"
+            placeholder={t(
+              "Commander casual en la tienda, bracket 2–3",
+              "Casual Commander at the store, bracket 2–3",
+            )}
             value={description}
             maxLength={300}
             onChange={(e) => setDescription(e.target.value)}
           />
         </label>
         <p className="subtle text-xs">
-          Los miembros ven los mazos públicos y ocultos de los demás y quién tiene cada carta (no la
-          colección entera).
+          {t(
+            "Los miembros ven los mazos públicos y ocultos de los demás y quién tiene cada carta (no la colección entera).",
+            "Members see each other's public and unlisted decks and who has each card (not the whole collection).",
+          )}
         </p>
       </Dialog>
     </main>
@@ -173,11 +202,11 @@ export function GroupsPage() {
 }
 
 type Tab = "games" | "members" | "decks" | "cards";
-const TABS: [Tab, string][] = [
-  ["games", "Partidas"],
-  ["cards", "Quién tiene qué"],
-  ["decks", "Mazos"],
-  ["members", "Miembros"],
+const tabs = (t: T): [Tab, string][] => [
+  ["games", t("Partidas", "Games")],
+  ["cards", t("Quién tiene qué", "Who has what")],
+  ["decks", t("Mazos", "Decks")],
+  ["members", t("Miembros", "Members")],
 ];
 
 /** /groups/{id}: un grupo. */
@@ -185,7 +214,12 @@ export function GroupPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const search = useSearchParams();
-  const tab = (TABS.find(([t]) => t === search.get("tab"))?.[0] ?? "games") as Tab;
+  const t = useT();
+  const locale = useLocale();
+  const intl = useIntlLocale();
+  const lp = useLocalePath();
+  const TABS = tabs(t);
+  const tab = (TABS.find(([k]) => k === search.get("tab"))?.[0] ?? "games") as Tab;
   const [group, setGroup] = useState<GroupDTO | null>(null);
   const [me, setMe] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -198,8 +232,10 @@ export function GroupPage() {
   const load = useCallback(() => {
     api<GroupDTO>(`/api/groups/${id}`)
       .then(setGroup)
-      .catch((e: unknown) => setError(errorText(e, "No se pudo cargar el grupo")));
-  }, [id]);
+      .catch((e: unknown) =>
+        setError(errorText(e, t("No se pudo cargar el grupo", "Couldn't load the group"))),
+      );
+  }, [id, t]);
   useEffect(() => {
     load();
     api<MyProfileDTO>("/api/me/profile", undefined, { silent: true })
@@ -207,13 +243,17 @@ export function GroupPage() {
       .catch(() => undefined);
   }, [load]);
 
-  const setTab = (t: Tab) =>
-    router.replace(`/groups/${id}${t === "games" ? "" : `?tab=${t}`}`, { scroll: false });
+  const setTab = (next: Tab) =>
+    router.replace(`/groups/${id}${next === "games" ? "" : `?tab=${next}`}`, { scroll: false });
 
   if (!group) {
     return (
       <main className="page">
-        {error ? <Banner tone="out">{error}</Banner> : <Loading>Cargando el grupo…</Loading>}
+        {error ? (
+          <Banner tone="out">{error}</Banner>
+        ) : (
+          <Loading>{t("Cargando el grupo…", "Loading the group…")}</Loading>
+        )}
       </main>
     );
   }
@@ -221,11 +261,14 @@ export function GroupPage() {
   const invite =
     typeof window === "undefined"
       ? ""
-      : `${window.location.origin}/groups/join/${group.inviteCode}`;
+      : `${window.location.origin}${lp(`/groups/join/${group.inviteCode}`)}`;
   async function copyInvite() {
     try {
       if (navigator.share && /Mobi/i.test(navigator.userAgent)) {
-        await navigator.share({ title: `Únete a ${group!.name} en Doctor Deck`, url: invite });
+        await navigator.share({
+          title: t(`Únete a ${group!.name} en Doctor Deck`, `Join ${group!.name} on Doctor Deck`),
+          url: invite,
+        });
       } else {
         await navigator.clipboard.writeText(invite);
         setCopied(true);
@@ -239,7 +282,7 @@ export function GroupPage() {
     try {
       setGroup(await api<GroupDTO>(`/api/groups/${id}`, { method: "PATCH", ...json(body) }));
     } catch (e) {
-      setError(errorText(e, "No se pudo guardar"));
+      setError(errorText(e, t("No se pudo guardar", "Couldn't save")));
     }
   }
   async function remove(username: string) {
@@ -248,7 +291,7 @@ export function GroupPage() {
       if (username === me) router.push("/groups");
       else load();
     } catch (e) {
-      setError(errorText(e, "No se pudo quitar"));
+      setError(errorText(e, t("No se pudo quitar", "Couldn't remove")));
     }
   }
 
@@ -258,24 +301,26 @@ export function GroupPage() {
       <section className="grouphero">
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <Link className="subtle text-[13px]" href="/groups">
-            ← Grupos
+            ← {t("Grupos", "Groups")}
           </Link>
           <h1 className="h1">{group.name}</h1>
           {group.description && <p className="muted text-[13.5px]">{group.description}</p>}
           <div className="grouphero-stats">
             <span>
-              <b>{group.members.length}</b> {group.members.length === 1 ? "miembro" : "miembros"}
+              <b>{group.members.length}</b>{" "}
+              {group.members.length === 1 ? t("miembro", "member") : t("miembros", "members")}
             </span>
             <span>
-              <b>{fmt(group.stats.games)}</b> {group.stats.games === 1 ? "partida" : "partidas"}
+              <b>{fmt(group.stats.games, locale)}</b>{" "}
+              {group.stats.games === 1 ? t("partida", "game") : t("partidas", "games")}
             </span>
             {leader && leader.wins > 0 && (
               <span>
-                ♛ Lidera <b>{leader.name}</b>
+                ♛ {t("Lidera", "Leading:")} <b>{leader.name}</b>
               </span>
             )}
           </div>
-          <div className="avatarstack" aria-label="Miembros">
+          <div className="avatarstack" aria-label={t("Miembros", "Members")}>
             {group.members.slice(0, 8).map((m) => (
               <Avatar key={m.username ?? m.name} m={m} size={30} />
             ))}
@@ -286,17 +331,17 @@ export function GroupPage() {
         </div>
         <div className="flex flex-col gap-2 sm:items-end">
           <button type="button" className="btn btn-primary" onClick={() => setRecord(true)}>
-            <IconPlus size={14} /> Registrar partida
+            <IconPlus size={14} /> {t("Registrar partida", "Record game")}
           </button>
           <Link className="btn" href="/play">
-            Contador de vidas
+            {t("Contador de vidas", "Life counter")}
           </Link>
           <button type="button" className="btn btn-ghost" onClick={() => void copyInvite()}>
             {copied ? (
-              "¡Enlace copiado!"
+              t("¡Enlace copiado!", "Link copied!")
             ) : (
               <>
-                <IconLink size={14} /> Invitar
+                <IconLink size={14} /> {t("Invitar", "Invite")}
               </>
             )}
           </button>
@@ -305,17 +350,17 @@ export function GroupPage() {
 
       {error && <Banner tone="out">{error}</Banner>}
 
-      <nav className="tabs" aria-label="Secciones del grupo">
-        {TABS.map(([t, label]) => (
+      <nav className="tabs" aria-label={t("Secciones del grupo", "Group sections")}>
+        {TABS.map(([k, label]) => (
           <button
-            key={t}
+            key={k}
             type="button"
-            className={tab === t ? "is-active" : ""}
-            onClick={() => setTab(t)}
+            className={tab === k ? "is-active" : ""}
+            onClick={() => setTab(k)}
           >
             {label}
-            {t === "members" && <span className="n">{group.members.length}</span>}
-            {t === "games" && <span className="n">{group.stats.games}</span>}
+            {k === "members" && <span className="n">{group.members.length}</span>}
+            {k === "games" && <span className="n">{group.stats.games}</span>}
           </button>
         ))}
       </nav>
@@ -327,43 +372,46 @@ export function GroupPage() {
         >
           <section className="panel flex flex-col gap-3 p-3.5">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="h2">Clasificación</h2>
+              <h2 className="h2">{t("Clasificación", "Standings")}</h2>
               <div className="chips">
                 <button
                   type="button"
                   className={`chipbtn ${kind === "player" ? "is-on" : ""}`}
                   onClick={() => setKind("player")}
                 >
-                  Jugadores
+                  {t("Jugadores", "Players")}
                 </button>
                 <button
                   type="button"
                   className={`chipbtn ${kind === "deck" ? "is-on" : ""}`}
                   onClick={() => setKind("deck")}
                 >
-                  Mazos
+                  {t("Mazos", "Decks")}
                 </button>
               </div>
             </div>
             <Standings
               rows={kind === "player" ? group.stats.players : group.stats.decks}
               kind={kind}
-              empty="Aún no hay partidas. Registra la primera desde aquí o desde el contador de vidas."
+              empty={t(
+                "Aún no hay partidas. Registra la primera desde aquí o desde el contador de vidas.",
+                "No games yet. Record the first one here or from the life counter.",
+              )}
             />
           </section>
           <section className="flex flex-col gap-2">
-            <h2 className="h2">Últimas partidas</h2>
+            <h2 className="h2">{t("Últimas partidas", "Latest games")}</h2>
             {group.stats.recent.length === 0 ? (
               <div className="panel">
                 <EmptyState
-                  title="Sin partidas"
+                  title={t("Sin partidas", "No games")}
                   action={
                     <button
                       type="button"
                       className="btn btn-primary"
                       onClick={() => setRecord(true)}
                     >
-                      Registrar partida
+                      {t("Registrar partida", "Record game")}
                     </button>
                   }
                 />
@@ -381,7 +429,7 @@ export function GroupPage() {
       {tab === "members" && (
         <section className="flex flex-col gap-3">
           <div className="panel flex flex-col gap-2 p-3.5">
-            <span className="label">Enlace de invitación</span>
+            <span className="label">{t("Enlace de invitación", "Invite link")}</span>
             <div className="flex gap-2">
               <input
                 className="input mono flex-1"
@@ -390,13 +438,19 @@ export function GroupPage() {
                 onFocus={(e) => e.target.select()}
               />
               <button type="button" className="btn" onClick={() => void copyInvite()}>
-                <IconCopy size={14} /> {copied ? "Copiado" : "Copiar"}
+                <IconCopy size={14} /> {copied ? t("Copiado", "Copied") : t("Copiar", "Copy")}
               </button>
             </div>
             <p className="subtle text-xs">
-              Quien lo abra puede entrar en el grupo.
+              {t(
+                "Quien lo abra puede entrar en el grupo.",
+                "Anyone who opens it can join the group.",
+              )}
               {group.isOwner &&
-                " Si se ha compartido de más, genera uno nuevo y el anterior deja de valer."}
+                t(
+                  " Si se ha compartido de más, genera uno nuevo y el anterior deja de valer.",
+                  " If it's been shared too widely, generate a new one and the old one stops working.",
+                )}
             </p>
             {group.isOwner && (
               <button
@@ -404,7 +458,7 @@ export function GroupPage() {
                 className="btn btn-ghost btn-sm self-start"
                 onClick={() => void patch({ newInvite: true })}
               >
-                Generar un enlace nuevo
+                {t("Generar un enlace nuevo", "Generate a new link")}
               </button>
             )}
           </div>
@@ -415,17 +469,17 @@ export function GroupPage() {
                 <span className="flex min-w-0 flex-1 flex-col">
                   <b className="truncate">{m.name}</b>
                   <span className="subtle text-xs">
-                    <MemberLink m={m} /> · desde {playedOn(m.joinedAt)}
+                    <MemberLink m={m} /> · {t("desde", "since")} {playedOn(m.joinedAt, intl)}
                   </span>
                 </span>
-                {m.isOwner && <span className="pill">Creador</span>}
+                {m.isOwner && <span className="pill">{t("Creador", "Creator")}</span>}
                 {!m.isOwner && (m.isMe || group.isOwner) && m.username && (
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm"
                     onClick={() => void remove(m.username!)}
                   >
-                    {m.isMe ? "Salir del grupo" : "Quitar"}
+                    {m.isMe ? t("Salir del grupo", "Leave the group") : t("Quitar", "Remove")}
                   </button>
                 )}
               </li>
@@ -434,10 +488,10 @@ export function GroupPage() {
           {group.isOwner && (
             <div className="flex flex-wrap gap-2">
               <button type="button" className="btn" onClick={() => setEditing(true)}>
-                Cambiar nombre
+                {t("Cambiar nombre", "Rename")}
               </button>
               <button type="button" className="btn btn-out" onClick={() => setConfirmDelete(true)}>
-                <IconTrash size={13} /> Borrar el grupo
+                <IconTrash size={13} /> {t("Borrar el grupo", "Delete the group")}
               </button>
             </div>
           )}
@@ -467,12 +521,12 @@ export function GroupPage() {
       <Dialog
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        title="Borrar el grupo"
+        title={t("Borrar el grupo", "Delete the group")}
         width={420}
         footer={
           <>
             <button type="button" className="btn" onClick={() => setConfirmDelete(false)}>
-              Cancelar
+              {t("Cancelar", "Cancel")}
             </button>
             <button
               type="button"
@@ -483,14 +537,16 @@ export function GroupPage() {
                 )
               }
             >
-              Borrar con sus partidas
+              {t("Borrar con sus partidas", "Delete with its games")}
             </button>
           </>
         }
       >
         <p className="text-[13.5px]">
-          Se borran el grupo y sus {group.stats.games} partidas. Los mazos y colecciones de cada uno
-          no se tocan.
+          {t(
+            `Se borran el grupo y sus ${group.stats.games} partidas. Los mazos y colecciones de cada uno no se tocan.`,
+            `The group and its ${group.stats.games} games are deleted. Everyone's decks and collections are untouched.`,
+          )}
         </p>
       </Dialog>
     </main>
@@ -508,18 +564,19 @@ function EditGroupDialog({
   onClose: () => void;
   onSave: (name: string, description: string) => void;
 }) {
+  const t = useT();
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description);
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      title="Editar el grupo"
+      title={t("Editar el grupo", "Edit the group")}
       width={440}
       footer={
         <>
           <button type="button" className="btn" onClick={onClose}>
-            Cancelar
+            {t("Cancelar", "Cancel")}
           </button>
           <button
             type="button"
@@ -527,13 +584,13 @@ function EditGroupDialog({
             disabled={!name.trim()}
             onClick={() => onSave(name, description)}
           >
-            Guardar
+            {t("Guardar", "Save")}
           </button>
         </>
       }
     >
       <label className="field">
-        <span className="label">Nombre</span>
+        <span className="label">{t("Nombre", "Name")}</span>
         <input
           className="input"
           value={name}
@@ -542,7 +599,7 @@ function EditGroupDialog({
         />
       </label>
       <label className="field">
-        <span className="label">Descripción</span>
+        <span className="label">{t("Descripción", "Description")}</span>
         <input
           className="input"
           value={description}
@@ -555,20 +612,27 @@ function EditGroupDialog({
 }
 
 function GroupDecks({ groupId }: { groupId: string }) {
+  const t = useT();
   const [decks, setDecks] = useState<GroupDeckDTO[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     api<GroupDeckDTO[]>(`/api/groups/${groupId}/decks`)
       .then(setDecks)
-      .catch((e: unknown) => setError(errorText(e, "No se pudieron cargar los mazos")));
-  }, [groupId]);
+      .catch((e: unknown) =>
+        setError(errorText(e, t("No se pudieron cargar los mazos", "Couldn't load the decks"))),
+      );
+  }, [groupId, t]);
   if (error) return <Banner tone="out">{error}</Banner>;
-  if (!decks) return <Loading>Cargando los mazos del grupo…</Loading>;
+  if (!decks)
+    return <Loading>{t("Cargando los mazos del grupo…", "Loading the group's decks…")}</Loading>;
   if (decks.length === 0) {
     return (
       <div className="panel">
-        <EmptyState title="Nadie tiene mazos públicos todavía">
-          Los mazos privados no salen aquí; los públicos y ocultos, sí.
+        <EmptyState title={t("Nadie tiene mazos públicos todavía", "Nobody has public decks yet")}>
+          {t(
+            "Los mazos privados no salen aquí; los públicos y ocultos, sí.",
+            "Private decks don't show here; public and unlisted ones do.",
+          )}
         </EmptyState>
       </div>
     );
@@ -594,6 +658,7 @@ function HolderList({
   me: string | null;
   onAsk?: ((card: CardDTO) => void) | undefined;
 }) {
+  const t = useT();
   return (
     <ul className="holders">
       {row.holders.map((h) => (
@@ -601,16 +666,16 @@ function HolderList({
           <Avatar m={h.member} size={24} />
           <MemberLink m={h.member} />
           <span className="mono subtle text-xs">
-            {h.free}/{h.owned} libres
+            {h.free}/{h.owned} {t("libres", "free")}
           </span>
           {h.usedIn.length > 0 && (
             <span className="subtle truncate text-xs" title={h.usedIn.join(", ")}>
-              en {h.usedIn.join(", ")}
+              {t("en", "in")} {h.usedIn.join(", ")}
             </span>
           )}
           {onAsk && h.member.username === me && h.free > 0 && (
             <button type="button" className="btn btn-sm ml-auto" onClick={() => onAsk(row.card)}>
-              Prestar
+              {t("Prestar", "Lend")}
             </button>
           )}
         </li>
@@ -621,6 +686,7 @@ function HolderList({
 
 /** "Quién tiene qué": lo que me falta y alguien del grupo tiene libre, y buscar una carta. */
 function GroupCards({ groupId }: { groupId: string }) {
+  const t = useT();
   const [canLend, setCanLend] = useState<GroupCardDTO[] | null>(null);
   const [found, setFound] = useState<GroupCardDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -631,8 +697,10 @@ function GroupCards({ groupId }: { groupId: string }) {
   useEffect(() => {
     api<GroupCardDTO[]>(`/api/groups/${groupId}/can-lend`)
       .then(setCanLend)
-      .catch((e: unknown) => setError(errorText(e, "No se pudo cruzar el grupo")));
-  }, [groupId]);
+      .catch((e: unknown) =>
+        setError(errorText(e, t("No se pudo cruzar el grupo", "Couldn't match the group"))),
+      );
+  }, [groupId, t]);
   useEffect(() => {
     if (!data?.user) return;
     api<MyProfileDTO>("/api/me/profile", undefined, { silent: true })
@@ -648,7 +716,7 @@ function GroupCards({ groupId }: { groupId: string }) {
         ),
       );
     } catch (e) {
-      setError(errorText(e, "No se pudo buscar"));
+      setError(errorText(e, t("No se pudo buscar", "Couldn't search")));
     }
   }
 
@@ -657,7 +725,7 @@ function GroupCards({ groupId }: { groupId: string }) {
       <section className="panel flex flex-col gap-3 p-3.5">
         <CardSearch
           id="group-card"
-          label="¿Quién del grupo tiene…?"
+          label={t("¿Quién del grupo tiene…?", "Who in the group has…?")}
           onPick={(c) => void lookup(c)}
         />
         {found && (
@@ -668,7 +736,9 @@ function GroupCards({ groupId }: { groupId: string }) {
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
               <b>{found.card.name}</b>
               {found.holders.length === 0 ? (
-                <p className="muted text-[13px]">Nadie del grupo la tiene.</p>
+                <p className="muted text-[13px]">
+                  {t("Nadie del grupo la tiene.", "Nobody in the group has it.")}
+                </p>
               ) : (
                 <HolderList row={found} me={me} onAsk={setLend} />
               )}
@@ -679,16 +749,27 @@ function GroupCards({ groupId }: { groupId: string }) {
 
       <section className="flex flex-col gap-2">
         <div>
-          <h2 className="h2">Te lo pueden dejar</h2>
+          <h2 className="h2">{t("Te lo pueden dejar", "They can lend it to you")}</h2>
           <p className="subtle text-xs">
-            Lo que te falta para tus mazos (o está en tu lista de deseos) y alguien del grupo tiene
-            libre: pídeselo prestado.
+            {t(
+              "Lo que te falta para tus mazos (o está en tu lista de deseos) y alguien del grupo tiene libre: pídeselo prestado.",
+              "What you're missing for your decks (or have on your wishlist) that someone in the group has free: ask to borrow it.",
+            )}
           </p>
         </div>
         {error && <Banner tone="out">{error}</Banner>}
-        {!canLend && !error && <Loading>Cruzando las colecciones del grupo…</Loading>}
+        {!canLend && !error && (
+          <Loading>
+            {t("Cruzando las colecciones del grupo…", "Matching the group's collections…")}
+          </Loading>
+        )}
         {canLend && canLend.length === 0 && (
-          <p className="muted text-[13px]">Nadie del grupo tiene libre lo que te falta.</p>
+          <p className="muted text-[13px]">
+            {t(
+              "Nadie del grupo tiene libre lo que te falta.",
+              "Nobody in the group has what you're missing free.",
+            )}
+          </p>
         )}
         {canLend && canLend.length > 0 && (
           <div
@@ -703,7 +784,9 @@ function GroupCards({ groupId }: { groupId: string }) {
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <b className="truncate">{r.card.name}</b>
                   <span className="subtle text-xs">
-                    Te {r.wanted === 1 ? "falta 1 copia" : `faltan ${r.wanted} copias`}
+                    {r.wanted === 1
+                      ? t("Te falta 1 copia", "You need 1 copy")
+                      : t(`Te faltan ${r.wanted} copias`, `You need ${r.wanted} copies`)}
                   </span>
                   <HolderList row={r} me={me} />
                 </div>
@@ -720,6 +803,8 @@ function GroupCards({ groupId }: { groupId: string }) {
 /** /groups/join/{code}: entrar en un grupo con el enlace de invitación. */
 export function JoinGroupPage() {
   const { code } = useParams<{ code: string }>();
+  const t = useT();
+  const lp = useLocalePath();
   const router = useRouter();
   const { data, isPending } = authClient.useSession();
   const [preview, setPreview] = useState<{ group: GroupSummaryDTO; member: boolean } | null>(null);
@@ -731,8 +816,10 @@ export function JoinGroupPage() {
       silent: true,
     })
       .then(setPreview)
-      .catch((e: unknown) => setError(errorText(e, "Ese enlace no vale")));
-  }, [code]);
+      .catch((e: unknown) =>
+        setError(errorText(e, t("Ese enlace no vale", "That link isn't valid"))),
+      );
+  }, [code, t]);
 
   async function join() {
     setBusy(true);
@@ -740,7 +827,7 @@ export function JoinGroupPage() {
       const { id } = await api<{ id: string }>(`/api/groups/join/${code}`, { method: "POST" });
       router.push(`/groups/${id}`);
     } catch (e) {
-      setError(errorText(e, "No se pudo entrar en el grupo"));
+      setError(errorText(e, t("No se pudo entrar en el grupo", "Couldn't join the group")));
       setBusy(false);
     }
   }
@@ -748,22 +835,26 @@ export function JoinGroupPage() {
   return (
     <main className="page" style={{ paddingTop: 48 }}>
       {error && <Banner tone="out">{error}</Banner>}
-      {!preview && !error && <Loading>Abriendo la invitación…</Loading>}
+      {!preview && !error && (
+        <Loading>{t("Abriendo la invitación…", "Opening the invite…")}</Loading>
+      )}
       {preview && (
         <div className="panel invitecard mx-auto flex w-full max-w-[480px] flex-col items-center gap-3 p-6 text-center">
           <span className="groupcard-icon" style={{ width: 56, height: 56 }}>
             <IconUsers size={26} />
           </span>
-          <span className="eyebrow">Te han invitado a</span>
+          <span className="eyebrow">{t("Te han invitado a", "You've been invited to")}</span>
           <h1 className="h1">{preview.group.name}</h1>
           {preview.group.description && <p className="muted">{preview.group.description}</p>}
           <span className="subtle text-[13px]">
-            {preview.group.members} {preview.group.members === 1 ? "miembro" : "miembros"} ·{" "}
-            {preview.group.games} {preview.group.games === 1 ? "partida" : "partidas"}
+            {preview.group.members}{" "}
+            {preview.group.members === 1 ? t("miembro", "member") : t("miembros", "members")} ·{" "}
+            {preview.group.games}{" "}
+            {preview.group.games === 1 ? t("partida", "game") : t("partidas", "games")}
           </span>
           {preview.member ? (
             <Link className="btn btn-primary btn-lg" href={`/groups/${preview.group.id}`}>
-              Ya estás dentro: abrir el grupo
+              {t("Ya estás dentro: abrir el grupo", "You're already in: open the group")}
             </Link>
           ) : isPending ? null : data?.user ? (
             <button
@@ -772,21 +863,29 @@ export function JoinGroupPage() {
               disabled={busy}
               onClick={() => void join()}
             >
-              Entrar en el grupo
+              {t("Entrar en el grupo", "Join the group")}
             </button>
           ) : (
             <div className="flex flex-col gap-2">
-              <Link className="btn btn-primary btn-lg" href={`/signup?next=/groups/join/${code}`}>
-                Crear cuenta y entrar
+              <Link
+                className="btn btn-primary btn-lg"
+                href={`/signup?next=${encodeURIComponent(lp(`/groups/join/${code}`))}`}
+              >
+                {t("Crear cuenta y entrar", "Create an account and join")}
               </Link>
-              <Link className="btn" href={`/login?next=/groups/join/${code}`}>
-                Ya tengo cuenta
+              <Link
+                className="btn"
+                href={`/login?next=${encodeURIComponent(lp(`/groups/join/${code}`))}`}
+              >
+                {t("Ya tengo cuenta", "I already have an account")}
               </Link>
             </div>
           )}
           <p className="subtle text-xs">
-            Los miembros ven tus mazos públicos y ocultos y quién tiene cada carta (no tu colección
-            entera). Puedes salir cuando quieras.
+            {t(
+              "Los miembros ven tus mazos públicos y ocultos y quién tiene cada carta (no tu colección entera). Puedes salir cuando quieras.",
+              "Members see your public and unlisted decks and who has each card (not your whole collection). You can leave whenever you want.",
+            )}
           </p>
         </div>
       )}

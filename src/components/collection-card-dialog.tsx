@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CONDITIONS, conditionShort } from "@/domain/cards/conditions";
-import { LANGUAGES } from "@/domain/cards/languages";
+import { LANGUAGES, languageLabel } from "@/domain/cards/languages";
 import { formatEuros } from "@/domain/suggestions/format";
 import type { CardDTO, CollectionLineDTO, PrintingDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
@@ -11,7 +11,7 @@ import { IconMinus, IconPlus, IconTrash } from "./icons";
 import { LendDialog } from "./loans-page";
 import { Banner, Dialog, Loading } from "./ui";
 import { AddToDeck } from "./add-to-deck";
-import { Link } from "@/components/i18n";
+import { Link, useLocale, useT } from "@/components/i18n";
 
 const json = (body: unknown) => ({
   headers: { "Content-Type": "application/json" },
@@ -32,6 +32,8 @@ export function CollectionCardDialog({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const [lines, setLines] = useState<CollectionLineDTO[] | null>(null);
   const [printings, setPrintings] = useState<PrintingDTO[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -40,19 +42,28 @@ export function CollectionCardDialog({
   const [focus, setFocus] = useState<string | null>(null);
   const [lending, setLending] = useState(false);
 
-  const load = useCallback(async (oracleId: string) => {
-    try {
-      const [l, p] = await Promise.all([
-        api<CollectionLineDTO[]>(`/api/collection/lines?oracleId=${encodeURIComponent(oracleId)}`),
-        api<PrintingDTO[]>(`/api/cards/${encodeURIComponent(oracleId)}/printings`),
-      ]);
-      setLines(l);
-      setPrintings(p);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "No se pudo cargar la carta");
-    }
-  }, []);
+  const load = useCallback(
+    async (oracleId: string) => {
+      try {
+        const [l, p] = await Promise.all([
+          api<CollectionLineDTO[]>(
+            `/api/collection/lines?oracleId=${encodeURIComponent(oracleId)}`,
+          ),
+          api<PrintingDTO[]>(`/api/cards/${encodeURIComponent(oracleId)}/printings`),
+        ]);
+        setLines(l);
+        setPrintings(p);
+        setError(null);
+      } catch (e) {
+        setError(
+          e instanceof ApiError
+            ? e.message
+            : t("No se pudo cargar la carta", "Couldn't load the card"),
+        );
+      }
+    },
+    [t],
+  );
 
   useEffect(() => {
     if (!card) return;
@@ -71,7 +82,7 @@ export function CollectionCardDialog({
       await load(card.oracleId);
       onChanged();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "No se pudo guardar");
+      setError(e instanceof ApiError ? e.message : t("No se pudo guardar", "Couldn't save"));
     } finally {
       setBusy(null);
     }
@@ -109,7 +120,8 @@ export function CollectionCardDialog({
       headerExtra={
         lines && lines.length > 0 ? (
           <span className="mono subtle text-xs">
-            {copies} {copies === 1 ? "copia" : "copias"} · {formatEuros(value)}
+            {copies} {copies === 1 ? t("copia", "copy") : t("copias", "copies")} ·{" "}
+            {formatEuros(value, locale)}
           </span>
         ) : null
       }
@@ -121,27 +133,27 @@ export function CollectionCardDialog({
             disabled={busy !== null}
             onClick={() => void addCopy()}
           >
-            <IconPlus size={13} /> Añadir otra copia
+            <IconPlus size={13} /> {t("Añadir otra copia", "Add another copy")}
           </button>
           {card && (
             <Link className="btn btn-ghost" href={`/cards/${card.oracleId}`}>
-              Ver ficha
+              {t("Ver ficha", "View card")}
             </Link>
           )}
           {card && <AddToDeck card={card} />}
           {lines && lines.length > 0 && (
             <button type="button" className="btn" onClick={() => setLending(true)}>
-              Prestar
+              {t("Prestar", "Lend")}
             </button>
           )}
           <button type="button" className="btn" onClick={onClose}>
-            Cerrar
+            {t("Cerrar", "Close")}
           </button>
         </>
       }
     >
       {error && <Banner tone="out">{error}</Banner>}
-      {!lines && !error && <Loading>Cargando tus copias…</Loading>}
+      {!lines && !error && <Loading>{t("Cargando tus copias…", "Loading your copies…")}</Loading>}
       {lines && (
         <div className="cardsheet">
           <div className="cardsheet-art">
@@ -149,13 +161,16 @@ export function CollectionCardDialog({
             {card?.typeLine && <p className="subtle text-xs">{card.typeLine}</p>}
             {card?.canBeCommander && (
               <Link className="btn btn-primary" href={`/decks/new?commander=${card.oracleId}`}>
-                <IconPlus size={13} /> Crear mazo con {card.name.split(",")[0]}
+                <IconPlus size={13} /> {t("Crear mazo con", "Build a deck with")}{" "}
+                {card.name.split(",")[0]}
               </Link>
             )}
           </div>
           <div className="flex min-w-0 flex-col gap-2.5">
             {lines.length === 0 && (
-              <p className="muted text-[13px]">Ya no tienes copias de esta carta.</p>
+              <p className="muted text-[13px]">
+                {t("Ya no tienes copias de esta carta.", "You no longer have copies of this card.")}
+              </p>
             )}
             {lines.map((l) => (
               <article
@@ -169,7 +184,7 @@ export function CollectionCardDialog({
                     <button
                       type="button"
                       className="btn btn-ghost btn-icon"
-                      aria-label="Una copia menos"
+                      aria-label={t("Una copia menos", "One copy less")}
                       disabled={busy !== null}
                       onClick={() => void patch(l, { quantity: l.quantity - 1 })}
                     >
@@ -179,7 +194,7 @@ export function CollectionCardDialog({
                     <button
                       type="button"
                       className="btn btn-ghost btn-icon"
-                      aria-label="Una copia más"
+                      aria-label={t("Una copia más", "One more copy")}
                       disabled={busy !== null || l.quantity >= 999}
                       onClick={() => void patch(l, { quantity: l.quantity + 1 })}
                     >
@@ -196,16 +211,18 @@ export function CollectionCardDialog({
                         {conditionShort(l.condition)}
                       </span>
                     )}
-                    <span className="pill subtle">{l.source === "csv" ? "del CSV" : "a mano"}</span>
+                    <span className="pill subtle">
+                      {l.source === "csv" ? t("del CSV", "from CSV") : t("a mano", "by hand")}
+                    </span>
                   </span>
                   <span className="mono text-[13px]">
-                    {l.unitPrice !== null ? formatEuros(l.unitPrice * l.quantity) : "—"}
+                    {l.unitPrice !== null ? formatEuros(l.unitPrice * l.quantity, locale) : "—"}
                   </span>
                   <button
                     type="button"
                     className="btn btn-ghost btn-icon"
-                    aria-label="Quitar estas copias"
-                    title="Quitar de la colección"
+                    aria-label={t("Quitar estas copias", "Remove these copies")}
+                    title={t("Quitar de la colección", "Remove from the collection")}
                     disabled={busy !== null}
                     onClick={() => void remove(l)}
                   >
@@ -214,7 +231,7 @@ export function CollectionCardDialog({
                 </div>
                 <div className="copyrow-fields">
                   <label className="field">
-                    <span className="label">Edición</span>
+                    <span className="label">{t("Edición", "Printing")}</span>
                     <select
                       className="select"
                       value={l.printing?.scryfallId ?? ""}
@@ -223,7 +240,7 @@ export function CollectionCardDialog({
                         e.target.value && void patch(l, { scryfallId: e.target.value })
                       }
                     >
-                      {!l.printing && <option value="">Sin elegir</option>}
+                      {!l.printing && <option value="">{t("Sin elegir", "Not chosen")}</option>}
                       {printings.map((p) => (
                         <option key={p.scryfallId} value={p.scryfallId}>
                           {p.setCode.toUpperCase()} {p.collectorNumber}
@@ -233,7 +250,7 @@ export function CollectionCardDialog({
                     </select>
                   </label>
                   <label className="field">
-                    <span className="label">Idioma</span>
+                    <span className="label">{t("Idioma", "Language")}</span>
                     <select
                       className="select"
                       value={l.language ?? ""}
@@ -241,15 +258,15 @@ export function CollectionCardDialog({
                       onChange={(e) => void patch(l, { language: e.target.value || null })}
                     >
                       <option value="">—</option>
-                      {Object.entries(LANGUAGES).map(([code, label]) => (
+                      {Object.keys(LANGUAGES).map((code) => (
                         <option key={code} value={code}>
-                          {label}
+                          {languageLabel(code, locale)}
                         </option>
                       ))}
                     </select>
                   </label>
                   <label className="field">
-                    <span className="label">Estado</span>
+                    <span className="label">{t("Estado", "Condition")}</span>
                     <select
                       className="select"
                       value={l.condition ?? ""}
@@ -278,9 +295,10 @@ export function CollectionCardDialog({
             ))}
             {lines.some((l) => l.source === "csv") && (
               <p className="subtle text-xs">
-                Al editar una copia del CSV pasa a llevarse solo aquí. Si ya gestionas tu colección
-                en Doctor Deck, no vuelvas a importar tu CSV antiguo: sus cartas se sumarían otra
-                vez.
+                {t(
+                  "Al editar una copia del CSV pasa a llevarse solo aquí. Si ya gestionas tu colección en Doctor Deck, no vuelvas a importar tu CSV antiguo: sus cartas se sumarían otra vez.",
+                  "Once you edit a copy from the CSV, it's only tracked here. If you already manage your collection in Doctor Deck, don't import your old CSV again: its cards would be added again.",
+                )}
               </p>
             )}
           </div>

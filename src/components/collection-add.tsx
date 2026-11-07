@@ -10,6 +10,7 @@ import { IconPlus, IconTrash } from "./icons";
 import { localCollection, notifyCollectionChanged } from "./local-collection";
 import { ManaCost } from "./mana";
 import { Banner, ago } from "./ui";
+import { useLocale, useT } from "./i18n";
 
 /** Una carta añadida a mano (de la cuenta o del navegador), para listarla y poder quitarla. */
 export interface AddedRow {
@@ -32,6 +33,8 @@ export function AddCards({
   added: AddedRow[];
   onRemove: (id: string) => Promise<void>;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const [selected, setSelected] = useState<CardDTO | null>(null);
   /** Cambia tras añadir: vacía el buscador (se vuelve a montar). */
   const [searchKey, setSearchKey] = useState(0);
@@ -69,7 +72,10 @@ export function AddCards({
           })),
         );
       }
-      setMessage({ tone: "in", text: `Añadida: ${qty} × ${card.name}${foil ? " (foil)" : ""}.` });
+      setMessage({
+        tone: "in",
+        text: `${t("Añadida", "Added")}: ${qty} × ${card.name}${foil ? " (foil)" : ""}.`,
+      });
       setSelected(null);
       setSearchKey((k) => k + 1);
       setQuantity("1");
@@ -77,7 +83,10 @@ export function AddCards({
     } catch (err) {
       setMessage({
         tone: "out",
-        text: err instanceof ApiError ? err.message : "No se pudo añadir la carta",
+        text:
+          err instanceof ApiError
+            ? err.message
+            : t("No se pudo añadir la carta", "Couldn't add the card"),
       });
     } finally {
       setBusy(false);
@@ -105,14 +114,14 @@ export function AddCards({
               key={searchKey}
               id="add-card"
               autoFocus={searchKey > 0}
-              label="Carta"
+              label={t("Carta", "Card")}
               inputRef={inputRef}
               onPick={setSelected}
               onType={() => setSelected(null)}
             />
             <div className="field">
               <label className="label" htmlFor="add-qty">
-                Copias
+                {t("Copias", "Copies")}
               </label>
               <input
                 id="add-qty"
@@ -124,7 +133,7 @@ export function AddCards({
             </div>
             <div className="field">
               <label className="label" htmlFor="add-lang">
-                Idioma
+                {t("Idioma", "Language")}
               </label>
               <select
                 id="add-lang"
@@ -132,9 +141,9 @@ export function AddCards({
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
               >
-                {Object.entries(LANGUAGES).map(([code, label]) => (
+                {Object.keys(LANGUAGES).map((code) => (
                   <option key={code} value={code}>
-                    {label}
+                    {languageLabel(code, locale)}
                   </option>
                 ))}
               </select>
@@ -155,37 +164,48 @@ export function AddCards({
               disabled={!selected || busy}
             >
               <IconPlus size={14} />
-              {busy ? "Añadiendo…" : "Añadir"}
+              {busy ? t("Añadiendo…", "Adding…") : t("Añadir", "Add")}
             </button>
           </div>
           {message && <Banner tone={message.tone}>{message.text}</Banner>}
           <p className="subtle text-xs">
             {loggedIn
-              ? "Se guardan en tu cuenta y se suman a lo importado del CSV; reimportar el CSV no las borra."
-              : "Sin cuenta se guardan en este navegador, junto a lo importado del CSV."}
+              ? t(
+                  "Se guardan en tu cuenta y se suman a lo importado del CSV; reimportar el CSV no las borra.",
+                  "They're saved to your account on top of the CSV import; reimporting the CSV doesn't delete them.",
+                )
+              : t(
+                  "Sin cuenta se guardan en este navegador, junto a lo importado del CSV.",
+                  "Without an account they're saved in this browser, along with the CSV import.",
+                )}
           </p>
         </form>
 
         <section className="panel">
           <div className="panel-h">
             <span className="h2">
-              Añadidas a mano{" "}
+              {t("Añadidas a mano", "Added by hand")}{" "}
               <span className="mono subtle" style={{ fontWeight: 400 }}>
                 {added.length}
               </span>
             </span>
           </div>
           {added.length === 0 ? (
-            <p className="muted p-3.5 text-[13px]">Aún no has añadido ninguna carta a mano.</p>
+            <p className="muted p-3.5 text-[13px]">
+              {t(
+                "Aún no has añadido ninguna carta a mano.",
+                "You haven't added any cards by hand yet.",
+              )}
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Carta</th>
-                    <th className="r">Copias</th>
-                    <th className="hide-sm">Copia</th>
-                    <th className="r hide-sm">Añadida</th>
+                    <th>{t("Carta", "Card")}</th>
+                    <th className="r">{t("Copias", "Copies")}</th>
+                    <th className="hide-sm">{t("Copia", "Copy")}</th>
+                    <th className="r hide-sm">{t("Añadida", "Added")}</th>
                     <th style={{ width: 40 }} />
                   </tr>
                 </thead>
@@ -207,19 +227,19 @@ export function AddCards({
                         <span className="inline-flex gap-1">
                           {a.foil && <span className="pill pill-warn">foil</span>}
                           {a.language && a.language !== "en" && (
-                            <span className="pill" title={languageLabel(a.language)}>
+                            <span className="pill" title={languageLabel(a.language, locale)}>
                               {languageBadge(a.language)}
                             </span>
                           )}
                         </span>
                       </td>
-                      <td className="r mono subtle hide-sm">{ago(a.addedAt)}</td>
+                      <td className="r mono subtle hide-sm">{ago(a.addedAt, locale)}</td>
                       <td>
                         <button
                           type="button"
                           className="btn btn-ghost btn-icon"
                           style={{ width: 26, height: 26 }}
-                          aria-label={`Quitar ${a.name}`}
+                          aria-label={t(`Quitar ${a.name}`, `Remove ${a.name}`)}
                           onClick={() => void onRemove(a.id)}
                         >
                           <IconTrash size={13} />
@@ -243,10 +263,13 @@ export function AddCards({
         ) : (
           <>
             <div className="cardimg cardimg-missing" style={{ borderStyle: "dashed" }}>
-              Elige una carta
+              {t("Elige una carta", "Pick a card")}
             </div>
             <span className="subtle text-center text-xs">
-              Pronto, también desde el escáner de la app móvil.
+              {t(
+                "También puedes escanearlas con la app de Android.",
+                "You can also scan them with the Android app.",
+              )}
             </span>
           </>
         )}

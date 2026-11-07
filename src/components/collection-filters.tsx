@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  RARITIES,
-  RARITY_LABELS,
-  SUPERTYPE_LABELS,
-  SUPERTYPES,
-  type Rarity,
-  type Supertype,
-} from "@/domain/cards/attributes";
+import { RARITIES, SUPERTYPES, type Rarity, type Supertype } from "@/domain/cards/attributes";
 import { CONDITION_CODES, CONDITIONS, type Condition } from "@/domain/cards/conditions";
 import { LANGUAGES } from "@/domain/cards/languages";
 import {
@@ -22,6 +15,9 @@ import { ROLES, type Role } from "@/domain/roles/types";
 import type { CollectionViewResponse } from "@/server/dto";
 import { roleLabel } from "./deck-views";
 import { ChipChoice, ChipSet, FilterGroup, RangeFields, TextFilter } from "./filter-fields";
+import { useLocale, useT } from "./i18n";
+import { languageLabel } from "@/domain/cards/languages";
+import { rarityLabel, supertypeLabel } from "@/domain/i18n/labels";
 
 export const COLORS = ["W", "U", "B", "R", "G", "C"] as const;
 export type ColorKey = (typeof COLORS)[number];
@@ -276,17 +272,7 @@ export function moreActiveCount(f: Filters): number {
 export const anyActive = (f: Filters) =>
   f.q.trim() !== "" || f.colors.length > 0 || moreActiveCount(f) > 0;
 
-const TYPE_OPTIONS = CARD_TYPES.map((t) => [t, TYPE_LABELS[t]] as const);
-const SUPERTYPE_OPTIONS = SUPERTYPES.map((t) => [t, SUPERTYPE_LABELS[t]] as const);
-const RARITY_OPTIONS = RARITIES.map((r) => [r, RARITY_LABELS[r]] as const);
 const CONDITION_OPTIONS = CONDITION_CODES.map((c) => [c, CONDITIONS[c].short] as const);
-const ADDED_OPTIONS = [
-  [1, "Hoy"],
-  [7, "7 días"],
-  [30, "30 días"],
-  [90, "3 meses"],
-  [365, "1 año"],
-] as const;
 
 /**
  * Los filtros plegados de la colección, por grupos: la carta (texto, tipos, coste, fuerza…) y
@@ -307,101 +293,116 @@ export function CollectionMoreFilters({
   /** Mi colección con cuenta: origen y uso en mazos. */
   mine: boolean;
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const en = locale === "en";
+  const TYPE_OPTIONS = CARD_TYPES.map((ty) => [ty, en ? ty : TYPE_LABELS[ty]] as const);
+  const SUPERTYPE_OPTIONS = SUPERTYPES.map((s) => [s, supertypeLabel(s, locale)] as const);
+  const RARITY_OPTIONS = RARITIES.map((r) => [r, rarityLabel(r, locale)] as const);
+  const ADDED_OPTIONS = [
+    [1, t("Hoy", "Today")],
+    [7, t("7 días", "7 days")],
+    [30, t("30 días", "30 days")],
+    [90, t("3 meses", "3 months")],
+    [365, t("1 año", "1 year")],
+  ] as const;
   const unpicked = sets.filter((s) => !f.sets.includes(s.code));
   return (
     <div className="filtergrid">
-      <FilterGroup label="Texto de reglas">
+      <FilterGroup label={t("Texto de reglas", "Rules text")}>
         <TextFilter
-          label="Texto de reglas"
-          placeholder="roba una carta, draw a card…"
+          label={t("Texto de reglas", "Rules text")}
+          placeholder={t("roba una carta, draw a card…", "draw a card, roba una carta…")}
           value={f.text}
           onChange={(text) => set({ text })}
         />
       </FilterGroup>
-      <FilterGroup label="Tipo (alguno de)">
+      <FilterGroup label={t("Tipo (alguno de)", "Type (any of)")}>
         <ChipSet options={TYPE_OPTIONS} value={f.types} onChange={(types) => set({ types })} />
       </FilterGroup>
-      <FilterGroup label="Supertipo">
+      <FilterGroup label={t("Supertipo", "Supertype")}>
         <ChipSet
           options={SUPERTYPE_OPTIONS}
           value={f.supertypes}
           onChange={(supertypes) => set({ supertypes })}
         />
       </FilterGroup>
-      <FilterGroup label="Subtipo y habilidad">
+      <FilterGroup label={t("Subtipo y habilidad", "Subtype and keyword")}>
         <span className="flex gap-2">
           <TextFilter
-            label="Subtipo"
-            placeholder="Elfo, Elf, Equipo…"
+            label={t("Subtipo", "Subtype")}
+            placeholder={t("Elfo, Elf, Equipo…", "Elf, Equipment, Elfo…")}
             value={f.subtype}
             onChange={(subtype) => set({ subtype })}
           />
           <TextFilter
-            label="Habilidad clave"
-            placeholder="Vuela, Flying, Arrolla…"
+            label={t("Habilidad clave", "Keyword")}
+            placeholder={t("Vuela, Flying, Arrolla…", "Flying, Trample, Vuela…")}
             value={f.keyword}
             onChange={(keyword) => set({ keyword })}
           />
         </span>
       </FilterGroup>
-      <FilterGroup label="Colores">
+      <FilterGroup label={t("Colores", "Colors")}>
         <select
           className="select"
-          aria-label="Qué colores mirar"
+          aria-label={t("Qué colores mirar", "Which colors to look at")}
           value={f.colorBy}
           onChange={(e) => set({ colorBy: e.target.value as Filters["colorBy"] })}
         >
-          <option value="identity">Identidad de color (lo que admite un mazo)</option>
-          <option value="color">Color de la carta</option>
+          <option value="identity">
+            {t("Identidad de color (lo que admite un mazo)", "Color identity (what a deck allows)")}
+          </option>
+          <option value="color">{t("Color de la carta", "Card color")}</option>
         </select>
       </FilterGroup>
-      <FilterGroup label="Rol">
+      <FilterGroup label={t("Rol", "Role")}>
         <select
           className="select"
-          aria-label="Rol"
+          aria-label={t("Rol", "Role")}
           value={f.role}
           onChange={(e) => set({ role: e.target.value as Role | "" })}
         >
-          <option value="">Todos los roles</option>
+          <option value="">{t("Todos los roles", "All roles")}</option>
           {ROLES.map((r) => (
             <option key={r} value={r}>
-              {roleLabel(r)}
+              {roleLabel(r, locale)}
             </option>
           ))}
         </select>
       </FilterGroup>
-      <FilterGroup label="Valor de maná">
+      <FilterGroup label={t("Valor de maná", "Mana value")}>
         <RangeFields
-          label="Valor de maná"
+          label={t("Valor de maná", "Mana value")}
           min={f.cmcMin}
           max={f.cmcMax}
           onChange={(cmcMin, cmcMax) => set({ cmcMin, cmcMax })}
         />
       </FilterGroup>
-      <FilterGroup label="Fuerza">
+      <FilterGroup label={t("Fuerza", "Power")}>
         <RangeFields
-          label="Fuerza"
+          label={t("Fuerza", "Power")}
           min={f.powerMin}
           max={f.powerMax}
           onChange={(powerMin, powerMax) => set({ powerMin, powerMax })}
         />
       </FilterGroup>
-      <FilterGroup label="Resistencia">
+      <FilterGroup label={t("Resistencia", "Toughness")}>
         <RangeFields
-          label="Resistencia"
+          label={t("Resistencia", "Toughness")}
           min={f.toughnessMin}
           max={f.toughnessMax}
           onChange={(toughnessMin, toughnessMax) => set({ toughnessMin, toughnessMax })}
         />
       </FilterGroup>
-      <FilterGroup label="Rareza">
+      <FilterGroup label={t("Rareza", "Rarity")}>
         <ChipSet
           options={RARITY_OPTIONS}
           value={f.rarities}
           onChange={(rarities) => set({ rarities })}
         />
       </FilterGroup>
-      <FilterGroup label="Edición">
+      <FilterGroup label={t("Edición", "Set")}>
         {f.sets.length > 0 && (
           <div className="chips">
             {f.sets.map((code) => (
@@ -409,7 +410,7 @@ export function CollectionMoreFilters({
                 key={code}
                 type="button"
                 className="chipbtn is-on"
-                title="Quitar"
+                title={t("Quitar", "Remove")}
                 onClick={() => set({ sets: f.sets.filter((s) => s !== code) })}
               >
                 {code} ×
@@ -419,13 +420,15 @@ export function CollectionMoreFilters({
         )}
         <select
           className="select"
-          aria-label="Añadir una edición"
+          aria-label={t("Añadir una edición", "Add a set")}
           value=""
           disabled={unpicked.length === 0}
           onChange={(e) => e.target.value && set({ sets: [...f.sets, e.target.value] })}
         >
           <option value="">
-            {sets.length === 0 ? "Sin ediciones conocidas" : "Añadir una edición…"}
+            {sets.length === 0
+              ? t("Sin ediciones conocidas", "No known sets")
+              : t("Añadir una edición…", "Add a set…")}
           </option>
           {unpicked.map((s) => (
             <option key={s.code} value={s.code}>
@@ -435,17 +438,17 @@ export function CollectionMoreFilters({
           ))}
         </select>
       </FilterGroup>
-      <FilterGroup label="Artista">
+      <FilterGroup label={t("Artista", "Artist")}>
         <TextFilter
-          label="Artista"
-          placeholder="Nombre del artista"
+          label={t("Artista", "Artist")}
+          placeholder={t("Nombre del artista", "Artist's name")}
           value={f.artist}
           onChange={(artist) => set({ artist })}
         />
       </FilterGroup>
-      <FilterGroup label="Precio por copia">
+      <FilterGroup label={t("Precio por copia", "Price per copy")}>
         <RangeFields
-          label="Precio por copia"
+          label={t("Precio por copia", "Price per copy")}
           unit="€"
           min={f.priceMin}
           max={f.priceMax}
@@ -454,53 +457,53 @@ export function CollectionMoreFilters({
       </FilterGroup>
       {copyFilters && (
         <>
-          <FilterGroup label="Estado">
+          <FilterGroup label={t("Estado", "Condition")}>
             <ChipSet
               options={CONDITION_OPTIONS}
               value={f.conditions}
               onChange={(conditions) => set({ conditions })}
             />
           </FilterGroup>
-          <FilterGroup label="Acabado e idioma">
+          <FilterGroup label={t("Acabado e idioma", "Finish and language")}>
             <span className="flex flex-wrap gap-2">
               <select
                 className="select"
                 style={{ width: "auto" }}
-                aria-label="Acabado"
+                aria-label={t("Acabado", "Finish")}
                 value={f.finish}
                 onChange={(e) => set({ finish: e.target.value as Filters["finish"] })}
               >
-                <option value="">Foil o normal</option>
-                <option value="foil">Con alguna foil</option>
-                <option value="nonfoil">Con alguna normal</option>
+                <option value="">{t("Foil o normal", "Foil or normal")}</option>
+                <option value="foil">{t("Con alguna foil", "With a foil copy")}</option>
+                <option value="nonfoil">{t("Con alguna normal", "With a normal copy")}</option>
               </select>
               <select
                 className="select"
                 style={{ width: "auto" }}
-                aria-label="Idioma"
+                aria-label={t("Idioma", "Language")}
                 value={f.language}
                 onChange={(e) => set({ language: e.target.value })}
               >
-                <option value="">Cualquier idioma</option>
-                {Object.entries(LANGUAGES).map(([code, label]) => (
+                <option value="">{t("Cualquier idioma", "Any language")}</option>
+                {Object.keys(LANGUAGES).map((code) => (
                   <option key={code} value={code}>
-                    En {label}
+                    {t(`En ${languageLabel(code)}`, `In ${languageLabel(code, "en")}`)}
                   </option>
                 ))}
               </select>
             </span>
           </FilterGroup>
-          <FilterGroup label="Copias">
+          <FilterGroup label={t("Copias", "Copies")}>
             <ChipChoice
               options={[
-                [2, "Repetidas (2+)"],
-                [4, "4 o más"],
+                [2, t("Repetidas (2+)", "Duplicates (2+)")],
+                [4, t("4 o más", "4 or more")],
               ]}
               value={f.quantityMin}
               onChange={(quantityMin) => set({ quantityMin })}
             />
           </FilterGroup>
-          <FilterGroup label="Añadidas en">
+          <FilterGroup label={t("Añadidas en", "Added in")}>
             <ChipChoice
               options={ADDED_OPTIONS}
               value={f.addedWithin}
@@ -511,35 +514,35 @@ export function CollectionMoreFilters({
       )}
       {mine && (
         <>
-          <FilterGroup label="Origen y uso">
+          <FilterGroup label={t("Origen y uso", "Source and use")}>
             <span className="flex flex-wrap gap-2">
               <select
                 className="select"
                 style={{ width: "auto" }}
-                aria-label="Origen"
+                aria-label={t("Origen", "Source")}
                 value={f.origin}
                 onChange={(e) => set({ origin: e.target.value as Filters["origin"] })}
               >
-                <option value="">CSV y a mano</option>
-                <option value="csv">Del CSV</option>
-                <option value="manual">Añadidas a mano</option>
+                <option value="">{t("CSV y a mano", "CSV and by hand")}</option>
+                <option value="csv">{t("Del CSV", "From the CSV")}</option>
+                <option value="manual">{t("Añadidas a mano", "Added by hand")}</option>
               </select>
               <select
                 className="select"
                 style={{ width: "auto" }}
-                aria-label="Uso en mazos"
+                aria-label={t("Uso en mazos", "Use in decks")}
                 value={f.use}
                 onChange={(e) => set({ use: e.target.value as Filters["use"] })}
               >
-                <option value="">Usadas o no</option>
-                <option value="libres">Con copias libres</option>
-                <option value="en-mazos">En algún mazo</option>
+                <option value="">{t("Usadas o no", "Used or not")}</option>
+                <option value="libres">{t("Con copias libres", "With free copies")}</option>
+                <option value="en-mazos">{t("En algún mazo", "In some deck")}</option>
               </select>
             </span>
           </FilterGroup>
         </>
       )}
-      <FilterGroup label="Otros">
+      <FilterGroup label={t("Otros", "Other")}>
         <label className="check" style={{ alignItems: "center" }}>
           <input
             type="checkbox"
@@ -547,7 +550,7 @@ export function CollectionMoreFilters({
             onChange={(e) => set({ commander: e.target.checked })}
             style={{ marginTop: 0 }}
           />
-          Pueden ser comandante
+          {t("Pueden ser comandante", "Can be commander")}
         </label>
         <label className="check" style={{ alignItems: "center" }}>
           <input

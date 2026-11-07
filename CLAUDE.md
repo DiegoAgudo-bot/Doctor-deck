@@ -218,8 +218,10 @@ Name`/`Set Code`/`Printing` y la línea `sep=,`, TCGplayer, Archidekt…); "Edit
 locale)`) y los avisos de datos guardados (`localizeWarning`, `domain/i18n/warnings.ts`). Los
   errores llevan `code` y el cliente enseña el inglés de `domain/i18n/errors.ts`
   (`apiErrorMessage`; uno desconocido, genérico, nunca en español). Los correos de cuenta van en
-  los dos idiomas. **Pendiente** (fases I3–I4): colección, intercambios, grupos, préstamos,
-  ajustes, contador, avisos y la app móvil siguen solo en español.
+  los dos idiomas. Fase I3: colección, intercambios, grupos, partidas,
+  préstamos, ajustes, contador, avisos y actividad también en inglés (etiquetas con `locale`:
+  `languageLabel`, `sinceAddedTrend`, `deviceLabel`, `notificationGroupLabel`, `USERNAME_HELP_EN`).
+  Las páginas de administración siguen en español. **Pendiente** (fase I4): la app móvil.
 - **Tema** «Pentacromo» (`globals.css`): base neutra, acento azul y la gema del logo (`--gem`,
   `--gem-v`) en la franja bajo la barra superior, el subrayado de pestañas y la fila activa del
   lateral. Propuestas descartadas y capturas en `branding/themes/`.

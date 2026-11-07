@@ -17,3 +17,12 @@ describe("deviceLabel", () => {
     expect(deviceLabel(null)).toBe("Dispositivo desconocido");
   });
 });
+
+describe("deviceLabel en inglés", () => {
+  it("cambia la preposición y los genéricos", () => {
+    expect(deviceLabel("okhttp/4", "en")).toBe("Android app");
+    expect(
+      deviceLabel("Mozilla/5.0 (Windows NT 10.0) AppleWebKit Chrome/130 Safari/537.36", "en"),
+    ).toBe("Chrome on Windows");
+  });
+});

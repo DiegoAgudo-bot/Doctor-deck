@@ -87,3 +87,27 @@ test.describe("analizador y mazos en inglés", () => {
     await expect(page.getByText("Locked: never suggested to cut.")).toBeVisible();
   });
 });
+
+test.describe("colección, intercambios, grupos y ajustes en inglés", () => {
+  for (const [path, heading, spanish] of [
+    ["/en/collection", "My collection", "Mi colección"],
+    ["/en/trades", "Trades", "Intercambios"],
+    ["/en/groups", "Playgroups", "Grupos de juego"],
+    ["/en/loans", "Loans", "Préstamos"],
+    ["/en/settings", "Settings", "Ajustes"],
+  ] as const) {
+    test(`${path} en inglés`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible({
+        timeout: 30_000,
+      });
+      await expect(page.getByRole("heading", { level: 1, name: spanish })).toHaveCount(0);
+    });
+  }
+
+  test("el contador de vidas en inglés", async ({ page }) => {
+    await page.goto("/en/play");
+    await expect(page.getByRole("button", { name: "Start game" })).toBeVisible();
+    await expect(page.getByText("Players", { exact: true })).toBeVisible();
+  });
+});
