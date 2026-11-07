@@ -187,7 +187,7 @@ export function OwnershipPanel({
         >
           <Stat
             label={t("Ya las tienes", "You already have")}
-            value={`${fmt(totals.have)} / ${fmt(totals.cards)}`}
+            value={`${fmt(totals.have, locale)} / ${fmt(totals.cards, locale)}`}
             meta={t(
               `${pct} % del mazo, sin contar básicas`,
               `${pct}% of the deck, not counting basics`,
@@ -196,7 +196,7 @@ export function OwnershipPanel({
           />
           <Stat
             label={t("En otros de tus mazos", "In your other decks")}
-            value={fmt(totals.fromOtherDecks)}
+            value={fmt(totals.fromOtherDecks, locale)}
             meta={
               totals.fromOtherDecks
                 ? t("Las tienes, pero las estás usando", "You own them, but they're in use")
@@ -206,7 +206,7 @@ export function OwnershipPanel({
           />
           <Stat
             label={t("Te faltan", "Missing")}
-            value={fmt(totals.toBuy)}
+            value={fmt(totals.toBuy, locale)}
             meta={
               totals.toBuy
                 ? `≈ ${eur(totals.cost)}${unpriced ? t(` (+${unpriced} sin precio)`, ` (+${unpriced} unpriced)`) : ""}`
@@ -228,7 +228,7 @@ export function OwnershipPanel({
             <span className="h2">
               {t("Para comprar", "To buy")}{" "}
               <span className="mono subtle" style={{ fontWeight: 400 }}>
-                {fmt(totals.toBuy)} · ≈ {eur(totals.cost)}
+                {fmt(totals.toBuy, locale)} · ≈ {eur(totals.cost)}
               </span>
             </span>
             <div className="flex flex-wrap gap-2">
@@ -329,7 +329,7 @@ export function OwnershipPanel({
             <span className="h2">
               {t("Las tienes en otros mazos", "In your other decks")}{" "}
               <span className="mono subtle" style={{ fontWeight: 400 }}>
-                {fmt(totals.fromOtherDecks)}
+                {fmt(totals.fromOtherDecks, locale)}
               </span>
             </span>
             <span className="subtle text-xs">
@@ -365,7 +365,12 @@ export function OwnershipPanel({
             <span>
               <b>{t("Ya las tienes libres", "Already free in your collection")}</b>{" "}
               <span className="muted">
-                — {fmt(have.reduce((n, i) => n + i.needed, 0))} {t("copias", "copies")}
+                —{" "}
+                {fmt(
+                  have.reduce((n, i) => n + i.needed, 0),
+                  locale,
+                )}{" "}
+                {t("copias", "copies")}
               </span>
             </span>
           </summary>

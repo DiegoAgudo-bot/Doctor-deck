@@ -246,6 +246,8 @@ export async function analyzeDeck(
         card,
         roles: classifier.classify(card).roles,
       })),
+      undefined,
+      req.locale,
     ),
     ownership: {
       ...own,

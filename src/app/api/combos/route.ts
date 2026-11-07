@@ -47,17 +47,20 @@ export async function POST(request: Request) {
       await readJson(request, BODY_LIMIT.large),
     );
     const c = getContainer();
-    const result = await deckCombos(req, {
-      sources: c.deckSources,
-      cards: c.cards,
-      collection: user ? c.collectionFor(user.id) : new BrowserCollectionRepository(collection),
-      decks: user ? c.decksFor(user.id) : noSavedDecks,
-      combos: c.combos,
-      classifier: withOverrides(c.classifier, {
-        deck: overridesOf(await loadDeckRoleEdits(user?.id ?? null, req.deckId)),
-        mine: overridesOf(await loadRoleEdits(user?.id ?? null, roleEdits)),
-      }),
-    });
+    const result = await deckCombos(
+      { ...req, locale: requestLocale(request) },
+      {
+        sources: c.deckSources,
+        cards: c.cards,
+        collection: user ? c.collectionFor(user.id) : new BrowserCollectionRepository(collection),
+        decks: user ? c.decksFor(user.id) : noSavedDecks,
+        combos: c.combos,
+        classifier: withOverrides(c.classifier, {
+          deck: overridesOf(await loadDeckRoleEdits(user?.id ?? null, req.deckId)),
+          mine: overridesOf(await loadRoleEdits(user?.id ?? null, roleEdits)),
+        }),
+      },
+    );
     if (!result) {
       return Response.json(
         { error: { code: "needs_commander", message: "Elige primero el comandante." } },
