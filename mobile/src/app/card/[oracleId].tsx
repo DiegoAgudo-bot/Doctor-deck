@@ -9,6 +9,7 @@ import type { CollectionLineDTO, PrintingDTO } from "@/server/dto";
 import { AddToDeckSheet } from "~/components/add-to-deck";
 import { CardThumb, FoilMark, ManaCost } from "~/components/card-bits";
 import { LendSheet } from "~/components/lend";
+import { CardPriceHistory } from "~/components/price-chart";
 import { Sheet } from "~/components/sheet";
 import { CommanderStaples } from "~/components/staples";
 import { Stepper } from "~/components/stepper";
@@ -43,6 +44,7 @@ export default function CardScreen() {
   const [sheet, setSheet] = useState<"add" | "deck" | "lend" | null>(null);
   // La edición que se ve y que añade «Añadir 1»: la elegida en «Opciones» o la de mi copia.
   const [shown, setShown] = useState<PrintingDTO | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const [defaults, setDefaults] = useCopyDefaults();
   const addCopies = useAddCopies();
 
@@ -230,6 +232,64 @@ export default function CardScreen() {
                 </View>
               ))}
             </View>
+          </View>
+        )}
+
+        <CardPriceHistory oracleId={oracleId} />
+
+        {d.printings.length > 0 && (
+          <View style={{ gap: 4 }}>
+            <T variant="label">Ediciones ({d.printings.length})</T>
+            <View style={{ flexDirection: "row", paddingVertical: 4 }}>
+              <T variant="small" style={{ flex: 1 }}>
+                Edición
+              </T>
+              <T variant="small" style={{ width: 70, textAlign: "right" }}>
+                Normal
+              </T>
+              <T variant="small" style={{ width: 70, textAlign: "right" }}>
+                Foil
+              </T>
+            </View>
+            {d.printings.slice(0, showAll ? undefined : 12).map((p) => (
+              <Pressable
+                key={p.scryfallId}
+                onPress={() => setShown(p)}
+                accessibilityLabel={`Ver la edición ${p.setName ?? p.setCode}`}
+                style={({ pressed }) => ({
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 6,
+                  borderTopWidth: 1,
+                  borderTopColor: colors.line,
+                  backgroundColor:
+                    shown?.scryfallId === p.scryfallId || pressed ? colors.hover : "transparent",
+                })}
+              >
+                <View style={{ flex: 1 }}>
+                  <T numberOfLines={1}>
+                    <T variant="mono">{p.setCode.toUpperCase()}</T> #{p.collectorNumber}
+                  </T>
+                  <T variant="small" numberOfLines={1}>
+                    {p.setName ?? ""}
+                    {p.releasedAt ? ` · ${p.releasedAt.slice(0, 4)}` : ""}
+                  </T>
+                </View>
+                <T variant="mono" style={{ width: 70, textAlign: "right" }}>
+                  {euros(p.priceEur)}
+                </T>
+                <T variant="mono" style={{ width: 70, textAlign: "right" }}>
+                  {euros(p.priceEurFoil)}
+                </T>
+              </Pressable>
+            ))}
+            {!showAll && d.printings.length > 12 && (
+              <Button
+                label={`Ver las ${d.printings.length}`}
+                kind="ghost"
+                onPress={() => setShowAll(true)}
+              />
+            )}
           </View>
         )}
 

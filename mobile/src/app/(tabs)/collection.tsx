@@ -110,6 +110,11 @@ export default function Collection() {
       headerRight: () => (
         <View style={{ marginRight: 10, flexDirection: "row", alignItems: "center", gap: 4 }}>
           <IconButton
+            icon="trending-up"
+            label="Precios de tu colección"
+            onPress={() => router.push("/collection-prices")}
+          />
+          <IconButton
             icon={grid ? "list" : "grid-outline"}
             label={grid ? "Ver en lista" : "Ver en rejilla"}
             onPress={() => setGrid(!grid)}

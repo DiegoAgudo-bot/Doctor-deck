@@ -765,6 +765,11 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     aparte, `CombosPanel`; su bracket pasa a la portada y a Datos), mano inicial en Datos
     (`openingHandOdds` + «Robar 7» con mulligan) y, al final de «Falta», alternativas más baratas
     (`ownership.alternatives`) y modo compra (`BuyPanel`, `POST /api/analyze` con `buy`).
+  - Precios (fase M4, `components/price-chart.tsx`, gráfica de barras sin librerías): pantalla
+    `collection-prices` (botón en la cabecera de Colección; `POST /api/collection/prices`, valor
+    día a día de 30 días a un año y lo que más sube y baja), histórico de una carta y tabla de
+    ediciones con precio normal y foil en su ficha, y al reemplazar la colección con un CSV
+    compartido, cuántas filas no se reconocieron.
   - Rejillas (Buscar y Colección): `CardThumb` enseña el nombre al momento y la imagen encima en
     cuanto llega (como ManaBox); tarjetas memorizadas, la página siguiente se pide con antelación
     (`onEndReachedThreshold` 1,5) y las miniaturas de cada página se descargan al llegar
