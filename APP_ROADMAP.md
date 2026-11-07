@@ -23,7 +23,7 @@ typecheck && npm test` y `expo export` antes de cada commit, subir `VERSION` en 
 | ----- | ------------------------------------------------------------------ | -------- | --------- |
 | M1 ✅ | Gestionar mazos: ajustes, historial, tema, candados, exportar      | Medio    | No        |
 | M2 ✅ | Editor de mazos: añadir cartas, copias, edición, roles y etiquetas | Alto     | No        |
-| M3    | Análisis: combos, mano inicial, alternativas y modo compra         | Medio    | No        |
+| M3 ✅ | Análisis: combos, mano inicial, alternativas y modo compra         | Medio    | No        |
 | M4    | Precios: valor de la colección, lo que sube y baja, histórico      | Medio    | No        |
 | M5    | Cuenta: contraseña, sesiones, avisos por tipo, preferencias        | Bajo     | No        |
 | M6    | Inicio y buscador global                                           | Medio    | No        |
@@ -85,7 +85,10 @@ sugeridos; no se pueden añadir cartas sueltas ni tocar copias, ediciones o role
 
 **Hecho cuando**: se puede montar un mazo desde uno vacío solo con la app.
 
-## Fase M3 · Análisis del mazo
+## Fase M3 · Análisis del mazo ✅
+
+Hecha en la app 1.5.0 (`components/deck-analysis.tsx`). El histórico de precio al pulsar un precio
+va con la gráfica de la fase M4.
 
 **Ahora en la app**: pestañas Lista, Me falta, Cambios y Datos (curva, roles y bracket).
 

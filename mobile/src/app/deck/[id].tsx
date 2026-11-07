@@ -8,11 +8,18 @@ import type {
   AnalyzeResponse,
   CardDTO,
   DeckCardDTO,
+  DeckCombosDTO,
   DeckViewDTO,
   OwnershipItemDTO,
   SwapDTO,
 } from "@/server/dto";
 import { CardThumb, ColorPips, ManaCost } from "~/components/card-bits";
+import {
+  AlternativesPanel,
+  BuyPanel,
+  CombosPanel,
+  OpeningHandPanel,
+} from "~/components/deck-analysis";
 import { AddCardsSheet, CardActionsSheet, OtherDecksSheet } from "~/components/deck-editor";
 import {
   DeckSettingsSheet,
@@ -38,7 +45,7 @@ import { colors, radius } from "~/lib/theme";
 import { ROLE_LABELS, ROLES } from "@/domain/roles/types";
 import { alert } from "~/components/dialog";
 
-type Tab = "list" | "missing" | "changes" | "stats";
+type Tab = "list" | "missing" | "changes" | "combos" | "stats";
 type Analysis = Extract<AnalyzeResponse, { status: "ok" }>;
 
 const TYPE_ORDER: [string, string][] = [
@@ -66,7 +73,9 @@ const STATUS_COLOR: Record<OwnershipItemDTO["status"], string> = {
 /** Un mazo: portada, lista por tipos, lo que me falta, cambios sugeridos y estadísticas. */
 export default function DeckScreen() {
   const { id, tab: initialTab } = useLocalSearchParams<{ id: string; tab?: string }>();
-  const [tab, setTab] = useState<Tab>(initialTab === "missing" ? "missing" : "list");
+  const [tab, setTab] = useState<Tab>(
+    initialTab === "missing" || initialTab === "combos" ? initialTab : "list",
+  );
   /** Comandantes elegidos aquí (si la lista no lo dice); en un mazo mío se guardan. */
   const [chosen, setChosen] = useState<string[] | null>(null);
   /** En el mazo de otro, el tema se elige solo para verlo (no se guarda). */
@@ -98,6 +107,21 @@ export default function DeckScreen() {
       }),
   });
 
+  // Los combos van aparte (tardan más): al llegar, el bracket cuenta también con ellos.
+  const ok = analysis.data?.status === "ok";
+  const combos = useQuery({
+    queryKey: ["combos", id, d?.updatedAt, chosen],
+    enabled: ok,
+    staleTime: 10 * 60_000,
+    queryFn: () =>
+      api<DeckCombosDTO>("/api/combos", {
+        body: {
+          input: d!.input,
+          commanders: chosen ?? d!.commanders,
+          ...(d!.isMine ? { deckId: d!.id } : {}),
+        },
+      }),
+  });
   const actions = useDeckActions(d);
   const manage = useDeckManage(d);
   // Los temas solo vienen en la página general del comandante: se recuerdan al elegir uno.
@@ -180,6 +204,9 @@ export default function DeckScreen() {
           if (d.isMine) actions.saveCommanders.mutate(ids);
         }}
         actions={actions}
+        combos={combos.data}
+        combosLoading={combos.isPending || combos.isFetching}
+        combosError={combos.error}
         themes={themes}
         theme={theme}
         onTheme={(t) => (d.isMine ? manage.save.mutate({ theme: t }) : setThemeHere(t))}
@@ -351,6 +378,9 @@ function DeckBody({
   candidates,
   onChooseCommanders,
   actions,
+  combos,
+  combosLoading,
+  combosError,
   themes,
   theme,
   onTheme,
@@ -368,6 +398,9 @@ function DeckBody({
   candidates: CardDTO[] | null;
   onChooseCommanders: (ids: string[]) => void;
   actions: DeckActions;
+  combos: DeckCombosDTO | undefined;
+  combosLoading: boolean;
+  combosError: Error | null;
   themes: ThemeList;
   theme: string | null;
   onTheme: (slug: string | null) => void;
@@ -451,7 +484,12 @@ function DeckBody({
 
   const header = (
     <View style={{ gap: 12, paddingBottom: 12 }}>
-      <Cover deck={deck} analysis={a} onOtherDecks={() => setPanel("others")} />
+      <Cover
+        deck={deck}
+        analysis={a}
+        bracket={combos?.bracket.bracket ?? a?.bracket.bracket ?? null}
+        onOtherDecks={() => setPanel("others")}
+      />
       <View style={{ paddingHorizontal: 16, gap: 12 }}>
         <Segmented<Tab>
           options={[
@@ -459,13 +497,18 @@ function DeckBody({
             {
               key: "missing",
               label:
-                a && a.ownership.totals.toBuy > 0
-                  ? `Me falta ${a.ownership.totals.toBuy}`
-                  : "Me falta",
+                a && a.ownership.totals.toBuy > 0 ? `Falta ${a.ownership.totals.toBuy}` : "Falta",
             },
             {
               key: "changes",
               label: a && a.swaps.length > 0 ? `Cambios ${a.swaps.length}` : "Cambios",
+            },
+            {
+              key: "combos",
+              label:
+                combos && combos.included.length > 0
+                  ? `Combos ${combos.included.length}`
+                  : "Combos",
             },
             { key: "stats", label: "Datos" },
           ]}
@@ -603,7 +646,7 @@ function DeckBody({
     </>
   );
 
-  if (tab === "changes" || tab === "stats") {
+  if (tab === "changes" || tab === "stats" || tab === "combos") {
     return (
       <>
         <SectionList
@@ -612,7 +655,12 @@ function DeckBody({
           ListHeaderComponent={
             <>
               {header}
-              {tab === "stats" && a && <Stats analysis={a} />}
+              {tab === "stats" && a && (
+                <Stats analysis={a} bracket={combos?.bracket ?? a.bracket} />
+              )}
+              {tab === "combos" && (
+                <CombosPanel data={combos} loading={combosLoading} error={combosError} />
+              )}
               {tab === "changes" && a && a.swaps.length === 0 && (
                 <T variant="muted" style={{ paddingHorizontal: 16 }}>
                   Con tu colección no hay cambios que lo mejoren ahora mismo. Añade cartas a tu
@@ -649,6 +697,14 @@ function DeckBody({
         sections={sections}
         keyExtractor={(row, i) => `${row.card.oracleId}-${i}`}
         ListHeaderComponent={header}
+        ListFooterComponent={
+          tab === "missing" && a ? (
+            <View style={{ gap: 12, padding: 16 }}>
+              <AlternativesPanel alternatives={a.ownership.alternatives} />
+              <BuyPanel deck={deck} analysis={a} />
+            </View>
+          ) : null
+        }
         stickySectionHeadersEnabled={false}
         contentContainerStyle={{ paddingBottom: 40 }}
         renderSectionHeader={({ section }) => (
@@ -754,10 +810,13 @@ function CommanderPicker({
 function Cover({
   deck,
   analysis: a,
+  bracket,
   onOtherDecks,
 }: {
   deck: DeckViewDTO;
   analysis: Analysis | null;
+  /** Con los combos si ya han llegado. */
+  bracket: number | null;
   onOtherDecks: () => void;
 }) {
   const commander = a?.commanders[0];
@@ -792,7 +851,7 @@ function Cover({
             />
           )}
           <Pill text={`${a?.totalCards ?? deck.cardCount} cartas`} />
-          {a && <Pill text={`Bracket ${a.bracket.bracket}`} />}
+          {bracket !== null && <Pill text={`Bracket ${bracket}`} />}
           {pct !== null && <Pill text={`Tienes ${pct} %`} color={colors.owned} />}
           {t && t.toBuy > 0 && (
             <Pill text={`Faltan ${t.toBuy} · ${euros(t.cost)}`} color={colors.warn} />
@@ -970,7 +1029,7 @@ function SwapRow({
   );
 }
 
-function Stats({ analysis: a }: { analysis: Analysis }) {
+function Stats({ analysis: a, bracket }: { analysis: Analysis; bracket: Analysis["bracket"] }) {
   const curve = Object.entries(a.curve)
     .map(([k, v]) => [Number(k), v] as const)
     .sort((x, y) => x[0] - y[0]);
@@ -1021,12 +1080,14 @@ function Stats({ analysis: a }: { analysis: Analysis }) {
           </View>
         );
       })}
-      <T variant="label">Bracket {a.bracket.bracket}</T>
-      {a.bracket.reasons.map((r, i) => (
+      <T variant="label">Bracket {bracket.bracket}</T>
+      {bracket.reasons.map((r, i) => (
         <T key={i} variant="small">
           · {r}
         </T>
       ))}
+      {!bracket.combosChecked && <T variant="small">Buscando combos para afinarlo…</T>}
+      <OpeningHandPanel cards={a.cards} />
     </View>
   );
 }
