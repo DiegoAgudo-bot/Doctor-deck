@@ -66,6 +66,13 @@ describe("PrismaDeckRepository", () => {
     expect((await repo.get(id))?.name).toBe("Teferi control");
     expect(await new PrismaDeckRepository(db, "u2").rename(id, "Robado")).toBe(false);
     expect((await repo.list()).map((d) => d.name)).toEqual(["Teferi control"]);
+    // Solo los mazos que llevan una carta (también el comandante).
+    const commander = (await repo.list())[0]?.commanders[0];
+    expect(commander).toBeDefined();
+    expect((await repo.list({ withCard: commander! })).map((d) => d.name)).toEqual([
+      "Teferi control",
+    ]);
+    expect(await repo.list({ withCard: "no-esta" })).toEqual([]);
 
     expect((await repo.get(id))?.targetBracket).toBeNull();
     expect(await repo.setTargetBracket(id, 3)).toBe(true);

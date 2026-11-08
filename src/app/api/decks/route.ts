@@ -30,13 +30,16 @@ const saveSchema = z.object({
     .optional(),
 });
 
-/** Mis mazos guardados. */
+/** Mis mazos guardados; con `?card=<oracleId>`, solo los que llevan esa carta. */
 export async function GET(request: Request) {
   await connection();
   try {
     const user = await requireUser(request);
     const c = getContainer();
-    return jsonWithEtag(request, await deckSummaries(await c.decksFor(user.id).list(), c.cards));
+    const card = new URL(request.url).searchParams.get("card");
+    const withCard = card ? z.string().min(1).max(64).parse(card) : undefined;
+    const decks = await c.decksFor(user.id).list(withCard ? { withCard } : {});
+    return jsonWithEtag(request, await deckSummaries(decks, c.cards));
   } catch (err) {
     return errorResponse(err);
   }

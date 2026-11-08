@@ -79,7 +79,9 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
         icon="warning-outline"
         title={t("Algo ha fallado", "Something went wrong")}
         text={error.message || t("Error inesperado.", "Unexpected error.")}
-        action={<Button label="Reintentar" icon="refresh" onPress={() => void retry()} />}
+        action={
+          <Button label={t("Reintentar", "Retry")} icon="refresh" onPress={() => void retry()} />
+        }
       />
     </View>
   );

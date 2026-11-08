@@ -3,7 +3,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, SectionList, Share, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, SectionList, Share, View } from "react-native";
 import type {
   AnalyzeResponse,
   CardDTO,
@@ -35,9 +35,11 @@ import {
   ErrorView,
   IconButton,
   Loading,
+  SearchField,
   Segmented,
   T,
 } from "~/components/ui";
+import { fold } from "~/lib/global-search";
 import { api, artUri } from "~/lib/api";
 import { tapFeedback } from "~/lib/feedback";
 import { euros } from "~/lib/format";
@@ -426,6 +428,11 @@ function DeckBody({
 }) {
   const mine = deck.isMine;
   const [groupBy, setGroupBy] = useState<"type" | "role">("type");
+  // Buscar en la lista: nombre, tipo o etiqueta, y filtros por tipo y por rol.
+  const [find, setFind] = useState("");
+  const [typeF, setTypeF] = useState<string | null>(null);
+  const [roleF, setRoleF] = useState<(typeof ROLES)[number] | null>(null);
+  const filtering = find.trim() !== "" || typeF !== null || roleF !== null;
   const [editing, setEditing] = useState<DeckCardDTO | null>(null);
   const [panel, setPanel] = useState<"add" | "others" | null>(null);
   const busy =
@@ -439,6 +446,14 @@ function DeckBody({
   const sections = useMemo((): { title: string; data: ListRow[] }[] => {
     if (!a) return [];
     if (tab === "list") {
+      const q = fold(find.trim());
+      const keep = (card: CardDTO, dc: DeckCardDTO | null) =>
+        (!q ||
+          fold(card.name).includes(q) ||
+          fold(card.typeLine).includes(q) ||
+          (dc?.tags ?? []).some((tag) => fold(tag).includes(q))) &&
+        (!typeF || (card.typeLine.split("//")[0] ?? "").includes(typeF)) &&
+        (!roleF || (dc !== null && dc.roles.includes(roleF)));
       const groups = new Map<string, DeckCardDTO[]>();
       const roleStat = new Map(a.roles.map((r) => [r.role, r]));
       const roleTitle = (role: (typeof ROLES)[number]) => {
@@ -447,6 +462,7 @@ function DeckBody({
         return `${label.charAt(0).toUpperCase()}${label.slice(1)}${s && s.min > 0 ? ` · ${t("mínimo", "minimum")} ${s.min}` : ""}`;
       };
       for (const c of a.cards) {
+        if (!keep(c.card, c)) continue;
         const g = groupBy === "role" ? roleTitle(c.primaryRole) : typeGroup(c.card.typeLine);
         groups.set(g, [...(groups.get(g) ?? []), c]);
       }
@@ -454,17 +470,25 @@ function DeckBody({
         groupBy === "role"
           ? ROLES.map(roleTitle)
           : [t("Comandante", "Commander"), ...TYPE_ORDER.map(([, l]) => l), t("Otras", "Other")];
-      const commanderRows = a.commanders.map((card) => ({
-        card,
-        quantity: 1,
-        deckCard: null as DeckCardDTO | null,
-      }));
+      const commanderRows = a.commanders
+        .filter((card) => keep(card, null))
+        .map((card) => ({
+          card,
+          quantity: 1,
+          deckCard: null as DeckCardDTO | null,
+        }));
       return [
-        {
-          title:
-            a.commanders.length > 1 ? t("Comandantes", "Commanders") : t("Comandante", "Commander"),
-          data: commanderRows,
-        },
+        ...(commanderRows.length > 0
+          ? [
+              {
+                title:
+                  a.commanders.length > 1
+                    ? t("Comandantes", "Commanders")
+                    : t("Comandante", "Commander"),
+                data: commanderRows,
+              },
+            ]
+          : []),
         ...order
           .filter((g) => groups.has(g))
           .map((g) => {
@@ -501,7 +525,11 @@ function DeckBody({
       ];
     }
     return [];
-  }, [a, tab, groupBy]);
+  }, [a, tab, groupBy, find, typeF, roleF]);
+  const shownCards =
+    tab === "list"
+      ? sections.reduce((n, s) => n + s.data.reduce((m, r) => m + r.quantity, 0), 0)
+      : 0;
 
   const header = (
     <View style={{ gap: 12, paddingBottom: 12 }}>
@@ -569,6 +597,69 @@ function DeckBody({
                 kind="secondary"
                 onPress={() => setPanel("add")}
               />
+            )}
+          </View>
+        )}
+        {tab === "list" && a && (
+          <View style={{ gap: 8 }}>
+            <SearchField
+              value={find}
+              onChangeText={setFind}
+              onClear={() => setFind("")}
+              placeholder={t(
+                "Buscar en el mazo: nombre, tipo o etiqueta",
+                "Search the deck: name, type or tag",
+              )}
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ gap: 6 }}
+            >
+              {TYPE_ORDER.filter(([k]) =>
+                a.cards.some((c) => (c.card.typeLine.split("//")[0] ?? "").includes(k)),
+              ).map(([k, label]) => (
+                <Chip
+                  key={k}
+                  label={label}
+                  active={typeF === k}
+                  onPress={() => setTypeF(typeF === k ? null : k)}
+                />
+              ))}
+              {ROLES.filter((r) => r !== "land" && a.cards.some((c) => c.roles.includes(r))).map(
+                (r) => (
+                  <Chip
+                    key={r}
+                    label={`${roleName(r).charAt(0).toUpperCase()}${roleName(r).slice(1)}`}
+                    active={roleF === r}
+                    onPress={() => setRoleF(roleF === r ? null : r)}
+                  />
+                ),
+              )}
+            </ScrollView>
+            {filtering && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <T variant="small" style={{ flex: 1 }}>
+                  {shownCards === 0
+                    ? t("Ninguna carta del mazo con esos filtros.", "No cards in the deck match.")
+                    : t(
+                        `${shownCards} de ${a.totalCards} cartas`,
+                        `${shownCards} of ${a.totalCards} cards`,
+                      )}
+                </T>
+                <T
+                  variant="small"
+                  style={{ color: colors.accent }}
+                  onPress={() => {
+                    setFind("");
+                    setTypeF(null);
+                    setRoleF(null);
+                  }}
+                >
+                  {t("Quitar filtros", "Clear filters")}
+                </T>
+              </View>
             )}
           </View>
         )}

@@ -300,7 +300,11 @@ export default function ShareScreen() {
         }}
       >
         {stage.step === "error" && source && !preview && (
-          <Button label="Reintentar" icon="refresh" onPress={() => void check(source)} />
+          <Button
+            label={t("Reintentar", "Retry")}
+            icon="refresh"
+            onPress={() => void check(source)}
+          />
         )}
         {preview && preview.looksLikeDeck && (
           <Button

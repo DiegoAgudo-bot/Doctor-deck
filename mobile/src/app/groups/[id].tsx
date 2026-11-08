@@ -158,7 +158,11 @@ export default function GroupScreen() {
             />
           }
         >
-          <Button label="Registrar partida" icon="trophy-outline" onPress={() => setRecord(true)} />
+          <Button
+            label={t("Registrar partida", "Record game")}
+            icon="trophy-outline"
+            onPress={() => setRecord(true)}
+          />
           <Card>
             <T variant="h2">{t("Clasificación", "Standings")}</T>
             <StandingsBlock

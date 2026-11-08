@@ -43,6 +43,7 @@ import {
 import { colors, radius } from "~/lib/theme";
 import { alert } from "~/components/dialog";
 import { locale, t } from "~/lib/i18n";
+import { ResultsSkeleton } from "~/components/skeleton";
 
 const PAGE = 60;
 // Se ordena por lo que vale una copia (lo que se enseña), no por lo que valen todas juntas.
@@ -210,8 +211,9 @@ export default function Collection() {
         )}
       </View>
 
-      {list.isPending ? (
-        <Loading />
+      {list.isPending || (list.isPlaceholderData && list.isFetching) ? (
+        // Mientras llega una búsqueda nueva (texto, filtros u orden), sus resultados «sombreados».
+        <ResultsSkeleton columns={columns} tile={tile} rows={grid ? 3 : 10} footer={2} />
       ) : list.isError && items.length === 0 ? (
         <ErrorView error={list.error} onRetry={() => list.refetch()} />
       ) : items.length === 0 ? (
@@ -288,9 +290,9 @@ export default function Collection() {
         />
       )}
 
-      <Fab icon="add" label="Añadir cartas" onPress={() => setSheet("add")} />
+      <Fab icon="add" label={t("Añadir cartas", "Add cards")} onPress={() => setSheet("add")} />
 
-      <Sheet open={sheet === "sort"} onClose={() => setSheet(null)} title="Ordenar">
+      <Sheet open={sheet === "sort"} onClose={() => setSheet(null)} title={t("Ordenar", "Sort")}>
         <View style={{ gap: 2 }}>
           {SORTS.map((s) => (
             <OptionRow
@@ -366,7 +368,11 @@ export default function Collection() {
         />
       </Sheet>
 
-      <Sheet open={sheet === "add"} onClose={() => setSheet(null)} title="Añadir cartas">
+      <Sheet
+        open={sheet === "add"}
+        onClose={() => setSheet(null)}
+        title={t("Añadir cartas", "Add cards")}
+      >
         <OptionRow
           label={t("Escanear cartas", "Scan cards")}
           detail={t(

@@ -313,7 +313,12 @@ export function FilterSheetBody({
             : t("Precio (€)", "Price (€)")
         }
       >
-        <RangeRow decimal label="Precio" value={f.price} onChange={(price) => set({ price })} />
+        <RangeRow
+          decimal
+          label={t("Precio", "Price")}
+          value={f.price}
+          onChange={(price) => set({ price })}
+        />
       </Section>
 
       {collection && (

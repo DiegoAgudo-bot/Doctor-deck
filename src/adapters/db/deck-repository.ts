@@ -183,9 +183,12 @@ export class PrismaDeckRepository implements DeckRepository {
     private readonly userId: string,
   ) {}
 
-  async list(): Promise<SavedDeckSummary[]> {
+  async list(opts: { withCard?: string } = {}): Promise<SavedDeckSummary[]> {
     const decks = await this.db.deck.findMany({
-      where: { userId: this.userId },
+      where: {
+        userId: this.userId,
+        ...(opts.withCard ? { cards: { some: { oracleId: opts.withCard } } } : {}),
+      },
       orderBy: { updatedAt: "desc" },
       include: { cards: { select: { quantity: true, isCommander: true, oracleId: true } } },
     });

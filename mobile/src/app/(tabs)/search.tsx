@@ -21,6 +21,7 @@ import { euros, thousands } from "~/lib/format";
 import { useDebounced } from "~/lib/hooks";
 import { colors, manaColors } from "~/lib/theme";
 import { t } from "~/lib/i18n";
+import { ResultsSkeleton } from "~/components/skeleton";
 
 const PAGE = 45;
 const COLORS = ["W", "U", "B", "R", "G", "C"] as const;
@@ -182,8 +183,9 @@ export default function Search() {
           </T>
         )}
       </View>
-      {list.isPending ? (
-        <Loading />
+      {list.isPending || (list.isPlaceholderData && list.isFetching) ? (
+        // Mientras llega una búsqueda nueva, sus resultados «sombreados».
+        <ResultsSkeleton columns={3} tile={tile} rows={4} />
       ) : list.isError && items.length === 0 ? (
         <ErrorView error={list.error} onRetry={() => list.refetch()} />
       ) : items.length === 0 ? (

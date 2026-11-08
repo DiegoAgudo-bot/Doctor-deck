@@ -336,7 +336,11 @@ export default function CardScreen() {
         )}
       </ScrollView>
 
-      <Sheet open={sheet === "add"} onClose={() => setSheet(null)} title="Añadir a la colección">
+      <Sheet
+        open={sheet === "add"}
+        onClose={() => setSheet(null)}
+        title={t("Añadir a la colección", "Add to collection")}
+      >
         <AddPanel
           detail={d}
           initial={quickPrinting}

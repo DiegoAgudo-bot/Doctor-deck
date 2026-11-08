@@ -88,7 +88,7 @@ export function LendSheet({
       )}
       <Field
         label={t("A quién", "To whom")}
-        placeholder="@usuario o un nombre"
+        placeholder={t("@usuario o un nombre", "@username or a name")}
         value={to}
         maxLength={80}
         autoCapitalize="none"
