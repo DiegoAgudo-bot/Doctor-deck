@@ -92,7 +92,11 @@ export default function Loans() {
             </T>
           ) : (
             <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
-              <Chip label="Devuelta" icon="checkmark" onPress={() => returned.mutate(l)} />
+              <Chip
+                label={t("Devuelta", "Returned")}
+                icon="checkmark"
+                onPress={() => returned.mutate(l)}
+              />
               {lent && (
                 <Chip
                   label={t("Borrar", "Delete")}

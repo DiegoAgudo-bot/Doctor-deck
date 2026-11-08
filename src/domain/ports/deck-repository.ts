@@ -50,7 +50,8 @@ export interface SaveDeckData {
 }
 
 export interface DeckRepository {
-  list(): Promise<SavedDeckSummary[]>;
+  /** Mis mazos; con `withCard`, solo los que llevan esa carta (oracleId). */
+  list(opts?: { withCard?: string }): Promise<SavedDeckSummary[]>;
   get(id: string): Promise<SavedDeck | null>;
   /** Devuelve el id (uuid) del mazo creado o actualizado. */
   save(data: SaveDeckData): Promise<string>;

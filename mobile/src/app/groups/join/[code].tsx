@@ -43,8 +43,8 @@ export default function JoinGroup() {
         action={
           <View style={{ gap: 12, alignSelf: "stretch", alignItems: "center" }}>
             <View style={{ flexDirection: "row", gap: 14 }}>
-              <Meta icon="people-outline" text={`${group.members} miembros`} />
-              <Meta icon="trophy-outline" text={`${group.games} partidas`} />
+              <Meta icon="people-outline" text={`${group.members} ${t("miembros", "members")}`} />
+              <Meta icon="trophy-outline" text={`${group.games} ${t("partidas", "games")}`} />
             </View>
             {join.isError && <Banner text={join.error.message} />}
             {member ? (

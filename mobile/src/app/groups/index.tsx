@@ -113,14 +113,16 @@ export default function Groups() {
               ) : null}
               <View style={{ flexDirection: "row", gap: 14, flexWrap: "wrap" }}>
                 <Meta icon="people-outline" text={`${item.members}`} />
-                <Meta icon="trophy-outline" text={`${item.games} partidas`} />
+                <Meta icon="trophy-outline" text={`${item.games} ${t("partidas", "games")}`} />
                 {item.lastGameAt && (
                   <Meta
                     icon="time-outline"
                     text={`${t("última", "last")} ${playedOn(item.lastGameAt)}`}
                   />
                 )}
-                {item.isOwner && <Meta icon="star-outline" text="Creador" color={colors.warn} />}
+                {item.isOwner && (
+                  <Meta icon="star-outline" text={t("Creador", "Creator")} color={colors.warn} />
+                )}
               </View>
             </Pressable>
           )}

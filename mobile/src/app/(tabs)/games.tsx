@@ -154,7 +154,7 @@ export default function Games() {
                 </T>
                 <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
                   <Meta icon="person-outline" text={`${g.members}`} />
-                  <Meta icon="trophy-outline" text={`${g.games} partidas`} />
+                  <Meta icon="trophy-outline" text={`${g.games} ${t("partidas", "games")}`} />
                   {g.lastGameAt && (
                     <Meta
                       icon="time-outline"
