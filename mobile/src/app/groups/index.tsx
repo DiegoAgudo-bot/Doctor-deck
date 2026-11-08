@@ -10,6 +10,7 @@ import { Banner, Button, Empty, ErrorView, Fab, Field, Loading, T } from "~/comp
 import { api } from "~/lib/api";
 import { inviteCodeFrom } from "~/lib/paths";
 import { colors, radius } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 /** Mis grupos de juego: crear uno o entrar con un enlace de invitación. */
 export default function Groups() {
@@ -48,13 +49,20 @@ export default function Groups() {
       ) : list.length === 0 ? (
         <Empty
           icon="people-outline"
-          title="Aún no tienes grupos"
-          text="Crea uno con tu mesa de juego para llevar las partidas, la clasificación y ver quién tiene cada carta. O entra en uno con su enlace de invitación."
+          title={t("Aún no tienes grupos", "You don't have any groups yet")}
+          text={t(
+            "Crea uno con tu mesa de juego para llevar las partidas, la clasificación y ver quién tiene cada carta. O entra en uno con su enlace de invitación.",
+            "Create one with your playgroup to track games and standings and see who owns each card. Or join one with its invite link.",
+          )}
           action={
             <View style={{ gap: 8, alignSelf: "stretch" }}>
-              <Button label="Crear grupo" icon="add" onPress={() => setSheet("new")} />
               <Button
-                label="Tengo un enlace de invitación"
+                label={t("Crear grupo", "Create group")}
+                icon="add"
+                onPress={() => setSheet("new")}
+              />
+              <Button
+                label={t("Tengo un enlace de invitación", "I have an invite link")}
                 kind="secondary"
                 icon="link-outline"
                 onPress={() => setSheet("join")}
@@ -77,7 +85,7 @@ export default function Groups() {
           }
           ListFooterComponent={
             <Button
-              label="Entrar con un enlace de invitación"
+              label={t("Entrar con un enlace de invitación", "Join with an invite link")}
               kind="ghost"
               icon="link-outline"
               onPress={() => setSheet("join")}
@@ -107,7 +115,10 @@ export default function Groups() {
                 <Meta icon="people-outline" text={`${item.members}`} />
                 <Meta icon="trophy-outline" text={`${item.games} partidas`} />
                 {item.lastGameAt && (
-                  <Meta icon="time-outline" text={`última ${playedOn(item.lastGameAt)}`} />
+                  <Meta
+                    icon="time-outline"
+                    text={`${t("última", "last")} ${playedOn(item.lastGameAt)}`}
+                  />
                 )}
                 {item.isOwner && <Meta icon="star-outline" text="Creador" color={colors.warn} />}
               </View>
@@ -115,15 +126,17 @@ export default function Groups() {
           )}
         />
       )}
-      {list.length > 0 && <Fab icon="add" label="Crear grupo" onPress={() => setSheet("new")} />}
+      {list.length > 0 && (
+        <Fab icon="add" label={t("Crear grupo", "Create group")} onPress={() => setSheet("new")} />
+      )}
 
       <Sheet
         open={sheet === "new"}
         onClose={() => setSheet(null)}
-        title="Nuevo grupo"
+        title={t("Nuevo grupo", "New group")}
         footer={
           <Button
-            label="Crear grupo"
+            label={t("Crear grupo", "Create group")}
             busy={create.isPending}
             disabled={!name.trim()}
             onPress={() => create.mutate()}
@@ -132,15 +145,15 @@ export default function Groups() {
       >
         {create.isError && <Banner text={create.error.message} />}
         <Field
-          label="Nombre"
-          placeholder="Los del jueves"
+          label={t("Nombre", "Name")}
+          placeholder={t("Los del jueves", "Thursday crew")}
           value={name}
           maxLength={80}
           onChangeText={setName}
         />
         <Field
-          label="Descripción (opcional)"
-          placeholder="Dónde y cuándo jugáis…"
+          label={t("Descripción (opcional)", "Description (optional)")}
+          placeholder={t("Dónde y cuándo jugáis…", "Where and when you play…")}
           value={description}
           maxLength={300}
           onChangeText={setDescription}
@@ -149,10 +162,10 @@ export default function Groups() {
       <Sheet
         open={sheet === "join"}
         onClose={() => setSheet(null)}
-        title="Entrar en un grupo"
+        title={t("Entrar en un grupo", "Join a group")}
         footer={
           <Button
-            label="Ver el grupo"
+            label={t("Ver el grupo", "See the group")}
             disabled={!code}
             onPress={() => {
               setSheet(null);
@@ -163,14 +176,19 @@ export default function Groups() {
         }
       >
         <Field
-          label="Enlace de invitación"
+          label={t("Enlace de invitación", "Invite link")}
           placeholder="https://doctordeck.app/groups/join/…"
           value={invite}
           autoCapitalize="none"
           autoCorrect={false}
           onChangeText={setInvite}
         />
-        <T variant="small">Pídeselo a quien creó el grupo (está en la pestaña Miembros).</T>
+        <T variant="small">
+          {t(
+            "Pídeselo a quien creó el grupo (está en la pestaña Miembros).",
+            "Ask whoever created the group (it's in the Members tab).",
+          )}
+        </T>
       </Sheet>
     </View>
   );

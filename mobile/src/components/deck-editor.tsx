@@ -24,14 +24,15 @@ import { tapFeedback } from "~/lib/feedback";
 import { euros } from "~/lib/format";
 import { useDebounced } from "~/lib/hooks";
 import { colors, radius } from "~/lib/theme";
+import { roleName, t } from "~/lib/i18n";
 
 type Analysis = Extract<AnalyzeResponse, { status: "ok" }>;
 
 const SOURCE_LABEL: Record<DeckCardDTO["roleSource"], string> = {
-  auto: "automáticos",
-  list: "de las etiquetas de la lista",
-  mine: "corregidos por ti (todos tus mazos)",
-  deck: "corregidos por ti (solo este mazo)",
+  auto: t("automáticos", "automatic"),
+  list: t("de las etiquetas de la lista", "from the list's tags"),
+  mine: t("corregidos por ti (todos tus mazos)", "corrected by you (all your decks)"),
+  deck: t("corregidos por ti (solo este mazo)", "corrected by you (this deck only)"),
 };
 
 /** Cambiar copias del mazo (−1 quita, +1 añade): una petición, y se vuelve a pedir el mazo. */
@@ -45,7 +46,11 @@ export function useChangeCards(deckId: string) {
       }),
     onSuccess: (_r, { card, delta }) => {
       tapFeedback();
-      toast(delta > 0 ? `Añadida ${card.name}` : `Quitada ${card.name}`);
+      toast(
+        delta > 0
+          ? t(`Añadida ${card.name}`, `Added ${card.name}`)
+          : t(`Quitada ${card.name}`, `Removed ${card.name}`),
+      );
       qc.invalidateQueries({ queryKey: ["deck", deckId] });
       qc.invalidateQueries({ queryKey: ["decks"] });
     },
@@ -97,11 +102,16 @@ export function AddCardsSheet({
         <View style={{ flex: 1 }}>
           <T numberOfLines={1}>{card.name}</T>
           <T variant="small" numberOfLines={1}>
-            {current ? `Ya en el mazo (${current.quantity})` : (detail ?? card.typeLine)}
+            {current
+              ? t(
+                  `Ya en el mazo (${current.quantity})`,
+                  `Already in the deck (${current.quantity})`,
+                )
+              : (detail ?? card.typeLine)}
           </T>
         </View>
         <Button
-          label="Añadir"
+          label={t("Añadir", "Add")}
           kind={current ? "ghost" : "secondary"}
           icon="add"
           disabled={full || change.isPending}
@@ -112,9 +122,9 @@ export function AddCardsSheet({
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title="Añadir cartas">
+    <Sheet open={open} onClose={onClose} title={t("Añadir cartas", "Add cards")}>
       <SearchField
-        placeholder="Busca una carta de sus colores"
+        placeholder={t("Busca una carta de sus colores", "Search for a card in its colors")}
         value={q}
         onChangeText={setQ}
         onClear={() => setQ("")}
@@ -124,7 +134,12 @@ export function AddCardsSheet({
           results.isPending ? (
             <Loading />
           ) : (results.data?.items.length ?? 0) === 0 ? (
-            <T variant="muted">Ninguna carta de sus colores se llama así.</T>
+            <T variant="muted">
+              {t(
+                "Ninguna carta de sus colores se llama así.",
+                "No card in its colors has that name.",
+              )}
+            </T>
           ) : (
             results.data!.items.map((c) =>
               row(c, c.price !== null ? `${c.typeLine} · ${euros(c.price)}` : c.typeLine),
@@ -132,17 +147,26 @@ export function AddCardsSheet({
           )
         ) : mine.length === 0 ? (
           <T variant="muted">
-            Escribe el nombre de una carta. Aquí saldrán también las recomendadas que tienes libres
-            en tu colección.
+            {t(
+              "Escribe el nombre de una carta. Aquí saldrán también las recomendadas que tienes libres en tu colección.",
+              "Type a card's name. The recommended cards you have spare in your collection will also show here.",
+            )}
           </T>
         ) : (
           <View style={{ gap: 2 }}>
-            <T variant="label">Recomendadas de tu colección</T>
+            <T variant="label">
+              {t("Recomendadas de tu colección", "Recommended from your collection")}
+            </T>
             {mine.map((s) =>
               row(
                 s.card,
-                `${ROLE_LABELS[s.primaryRole]}${
-                  s.inclusion !== null ? ` · en el ${Math.round(s.inclusion * 100)} % de mazos` : ""
+                `${roleName(s.primaryRole)}${
+                  s.inclusion !== null
+                    ? t(
+                        ` · en el ${Math.round(s.inclusion * 100)} % de mazos`,
+                        ` · in ${Math.round(s.inclusion * 100)}% of decks`,
+                      )
+                    : ""
                 }`,
               ),
             )}
@@ -193,13 +217,14 @@ export function CardActionsSheet({
               </T>
             )}
             <T variant="small">
-              {card.roles.map((r) => ROLE_LABELS[r]).join(", ")} · {SOURCE_LABEL[card.roleSource]}
+              {card.roles.map((r) => roleName(r)).join(", ")} · {SOURCE_LABEL[card.roleSource]}
             </T>
           </View>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <T style={{ flex: 1 }}>
-            Copias en el mazo{max !== null && max > 1 ? ` (máx. ${max})` : ""}
+            {t("Copias en el mazo", "Copies in the deck")}
+            {max !== null && max > 1 ? ` (${t("máx.", "max.")} ${max})` : ""}
           </T>
           <Button
             label="−"
@@ -224,21 +249,21 @@ export function CardActionsSheet({
         </View>
         <View style={{ gap: 2 }}>
           <OptionRow
-            label="Edición"
+            label={t("Edición", "Printing")}
             detail={
               card.card.printing
                 ? `${card.card.printing.setCode.toUpperCase()} #${card.card.printing.collectorNumber}`
-                : "La de por defecto"
+                : t("La de por defecto", "Default")
             }
             onPress={() => setSub("printing")}
           />
           <OptionRow
-            label="Roles y etiquetas"
+            label={t("Roles y etiquetas", "Roles and tags")}
             detail={card.tags.length ? card.tags.map((t) => `#${t}`).join(" ") : undefined}
             onPress={() => setSub("roles")}
           />
           <OptionRow
-            label="Ver la ficha"
+            label={t("Ver la ficha", "See the card page")}
             onPress={() => {
               close();
               router.push(`/card/${card.card.oracleId}`);
@@ -246,7 +271,11 @@ export function CardActionsSheet({
           />
         </View>
         <Button
-          label={card.quantity > 1 ? "Quitar todas las copias" : "Quitar del mazo"}
+          label={
+            card.quantity > 1
+              ? t("Quitar todas las copias", "Remove all copies")
+              : t("Quitar del mazo", "Remove from the deck")
+          }
           kind="danger"
           icon="trash-outline"
           disabled={change.isPending}
@@ -299,7 +328,9 @@ function PrintingSheet({
       {
         onSuccess: () => {
           toast(
-            p ? `Edición: ${p.setCode.toUpperCase()} #${p.collectorNumber}` : "Edición por defecto",
+            p
+              ? `${t("Edición", "Printing")}: ${p.setCode.toUpperCase()} #${p.collectorNumber}`
+              : t("Edición por defecto", "Default printing"),
           );
           onClose();
         },
@@ -308,13 +339,17 @@ function PrintingSheet({
   };
   const current = card.card.printing;
   return (
-    <Sheet open={open} onClose={onClose} title={`Edición de ${card.card.name}`}>
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={t(`Edición de ${card.card.name}`, `Printing of ${card.card.name}`)}
+    >
       {printings.isPending ? (
         <Loading />
       ) : (
         <ScrollView style={{ maxHeight: 460 }}>
           <OptionRow
-            label="La de por defecto"
+            label={t("La de por defecto", "Default")}
             selected={!current}
             disabled={manage.save.isPending}
             onPress={() => pick(null)}
@@ -367,7 +402,7 @@ function RolesSheet({
       ),
     onSuccess: () => {
       tapFeedback();
-      toast("Roles guardados");
+      toast(t("Roles guardados", "Roles saved"));
       qc.invalidateQueries({ queryKey: ["analysis", deck.id] });
       qc.invalidateQueries({ queryKey: ["collection"] });
       onClose();
@@ -388,18 +423,18 @@ function RolesSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={`Roles de ${card.card.name}`}
+      title={t(`Roles de ${card.card.name}`, `Roles of ${card.card.name}`)}
       footer={
         <View style={{ flexDirection: "row", gap: 10 }}>
           <Button
-            label="Automáticos"
+            label={t("Automáticos", "Automatic")}
             kind="secondary"
             disabled={save.isPending}
             onPress={() => save.mutate({ roles: [], primary: null, tags: [] })}
             style={{ flex: 1 }}
           />
           <Button
-            label="Guardar"
+            label={t("Guardar", "Save")}
             busy={save.isPending}
             disabled={roles.length === 0}
             onPress={() => save.mutate({ roles, primary, tags: tagList })}
@@ -410,32 +445,37 @@ function RolesSheet({
     >
       <View style={{ flexDirection: "row", gap: 6 }}>
         <Chip
-          label="En todos mis mazos"
+          label={t("En todos mis mazos", "In all my decks")}
           active={scope === "mine"}
           onPress={() => setScope("mine")}
         />
         <Chip
-          label="Solo en este mazo"
+          label={t("Solo en este mazo", "Only in this deck")}
           active={scope === "deck"}
           onPress={() => setScope("deck")}
         />
       </View>
-      <T variant="label">Roles (toca el principal dos veces)</T>
+      <T variant="label">
+        {t("Roles (toca el principal dos veces)", "Roles (tap the main one twice)")}
+      </T>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         {ROLES.map((r) => (
           <Chip
             key={r}
-            label={primary === r && roles.includes(r) ? `★ ${ROLE_LABELS[r]}` : ROLE_LABELS[r]}
+            label={primary === r && roles.includes(r) ? `★ ${roleName(r)}` : roleName(r)}
             active={roles.includes(r)}
             onPress={() => (roles.includes(r) && primary !== r ? setPrimary(r) : toggle(r))}
           />
         ))}
       </View>
       <T variant="small">
-        Marca los roles que cumple; la ★ es el principal (cuenta para los mínimos y los cambios).
+        {t(
+          "Marca los roles que cumple; la ★ es el principal (cuenta para los mínimos y los cambios).",
+          "Mark the roles it fills; the ★ is the main one (it counts for minimums and changes).",
+        )}
       </T>
       <Field
-        label="Etiquetas (separadas por comas)"
+        label={t("Etiquetas (separadas por comas)", "Tags (comma-separated)")}
         value={tags}
         onChangeText={setTags}
         placeholder="wincon, combo"
@@ -458,9 +498,12 @@ export function OtherDecksSheet({
 }) {
   const shared = items.filter((i) => i.fromOtherDecks > 0);
   return (
-    <Sheet open={open} onClose={onClose} title="En otros mazos">
+    <Sheet open={open} onClose={onClose} title={t("En otros mazos", "In other decks")}>
       <T variant="small">
-        Estas cartas las tienes, pero sus copias ya están en otros mazos tuyos (o prestadas).
+        {t(
+          "Estas cartas las tienes, pero sus copias ya están en otros mazos tuyos (o prestadas).",
+          "You own these cards, but their copies are already in other decks of yours (or lent).",
+        )}
       </T>
       <ScrollView style={{ maxHeight: 460 }}>
         {shared.map((i) => (

@@ -19,26 +19,34 @@ import { useDebounced } from "~/lib/hooks";
 import { takePendingImport } from "~/lib/shared";
 import { colors, radius } from "~/lib/theme";
 import { ThemePicker } from "~/components/deck-manage";
+import { t } from "~/lib/i18n";
 
 const VISIBILITY = [
-  { key: "public", label: "Público" },
-  { key: "unlisted", label: "Oculto" },
-  { key: "private", label: "Privado" },
+  { key: "public", label: t("Público", "Public") },
+  { key: "unlisted", label: t("Oculto", "Unlisted") },
+  { key: "private", label: t("Privado", "Private") },
 ] as const;
 type Visibility = (typeof VISIBILITY)[number]["key"];
 
 const MODES = [
   {
     key: "average",
-    label: "Mazo medio de la comunidad",
-    detail: "Lo que más se juega con este comandante",
+    label: t("Mazo medio de la comunidad", "Community average deck"),
+    detail: t("Lo que más se juega con este comandante", "What's played most with this commander"),
   },
   {
     key: "owned",
-    label: "Con mis cartas",
-    detail: "Las recomendadas que tienes libres en tu colección",
+    label: t("Con mis cartas", "With my cards"),
+    detail: t(
+      "Las recomendadas que tienes libres en tu colección",
+      "The recommended cards you have spare in your collection",
+    ),
   },
-  { key: "empty", label: "Vacío", detail: "Solo el comandante, para montarlo tú" },
+  {
+    key: "empty",
+    label: t("Vacío", "Empty"),
+    detail: t("Solo el comandante, para montarlo tú", "Just the commander, to build it yourself"),
+  },
 ] as const;
 type Mode = (typeof MODES)[number]["key"];
 
@@ -59,8 +67,8 @@ export default function DeckNew() {
     >
       <Segmented<"commander" | "list">
         options={[
-          { key: "commander", label: "Desde un comandante" },
-          { key: "list", label: "Pegar lista o enlace" },
+          { key: "commander", label: t("Desde un comandante", "From a commander") },
+          { key: "list", label: t("Pegar lista o enlace", "Paste a list or link") },
         ]}
         value={from}
         onChange={setFrom}
@@ -97,12 +105,12 @@ function NameAndVisibility({ name, setName, visibility, setVisibility }: Common)
   return (
     <>
       <Field
-        label="Nombre (opcional)"
+        label={t("Nombre (opcional)", "Name (optional)")}
         value={name}
         onChangeText={setName}
-        placeholder="Se propone solo"
+        placeholder={t("Se propone solo", "Suggested automatically")}
       />
-      <T variant="label">Quién lo ve</T>
+      <T variant="label">{t("Quién lo ve", "Who can see it")}</T>
       <View style={{ flexDirection: "row", gap: 6 }}>
         {VISIBILITY.map((v) => (
           <Chip
@@ -191,7 +199,7 @@ function FromCommander({ initialId, ...common }: Common & { initialId?: string |
     return (
       <View style={{ gap: 12 }}>
         <SearchField
-          placeholder="Busca el comandante"
+          placeholder={t("Busca el comandante", "Search for the commander")}
           value={q}
           onChangeText={setQ}
           onClear={() => setQ("")}
@@ -201,7 +209,9 @@ function FromCommander({ initialId, ...common }: Common & { initialId?: string |
           results.isPending ? (
             <Loading />
           ) : list.length === 0 ? (
-            <T variant="muted">Ningún comandante se llama así.</T>
+            <T variant="muted">
+              {t("Ningún comandante se llama así.", "No commander has that name.")}
+            </T>
           ) : (
             list.map((c) => (
               <CommanderRow key={c.oracleId} card={c} onPress={() => setCommander(c)} />
@@ -210,7 +220,7 @@ function FromCommander({ initialId, ...common }: Common & { initialId?: string |
         ) : (
           (mine.data?.items.length ?? 0) > 0 && (
             <View style={{ gap: 8 }}>
-              <T variant="label">De tu colección</T>
+              <T variant="label">{t("De tu colección", "From your collection")}</T>
               {mine.data!.items.map((c) => (
                 <CommanderRow key={c.key} card={c.card} onPress={() => setCommander(c.card)} />
               ))}
@@ -235,13 +245,13 @@ function FromCommander({ initialId, ...common }: Common & { initialId?: string |
       >
         <CardThumb uri={chosen.imageUrl} width={48} name={chosen.name} />
         <View style={{ flex: 1 }}>
-          <T variant="small">Comandante</T>
+          <T variant="small">{t("Comandante", "Commander")}</T>
           <T style={{ fontWeight: "700" }} numberOfLines={2}>
             {chosen.name}
           </T>
         </View>
         <Button
-          label="Cambiar"
+          label={t("Cambiar", "Change")}
           kind="ghost"
           onPress={() => {
             setCommander(null);
@@ -250,7 +260,7 @@ function FromCommander({ initialId, ...common }: Common & { initialId?: string |
           }}
         />
       </View>
-      <T variant="label">Cómo empezarlo</T>
+      <T variant="label">{t("Cómo empezarlo", "How to start it")}</T>
       <View style={{ gap: 2 }}>
         {MODES.filter((m) => m.key !== "owned" || hasCollection || mine.isPending).map((m) => (
           <OptionRow
@@ -268,14 +278,17 @@ function FromCommander({ initialId, ...common }: Common & { initialId?: string |
       <NameAndVisibility {...common} />
       {create.error && <Banner text={create.error.message} />}
       <Button
-        label="Crear mazo"
+        label={t("Crear mazo", "Create deck")}
         icon="add"
         onPress={() => create.mutate()}
         busy={create.isPending}
       />
       {create.isPending && mode !== "empty" && (
         <T variant="small" style={{ textAlign: "center" }}>
-          Buscando lo que se juega con {chosen.name}…
+          {t(
+            `Buscando lo que se juega con ${chosen.name}…`,
+            `Finding what's played with ${chosen.name}…`,
+          )}
         </T>
       )}
     </View>
@@ -327,11 +340,13 @@ function FromList({ fromShare, ...common }: Common & { fromShare: boolean }) {
   return (
     <View style={{ gap: 14 }}>
       <T variant="muted">
-        Pega la lista (una carta por línea, como la exportan casi todas las apps) o el enlace del
-        mazo. El comandante va en una sección «Commander» o marcado con *CMDR*.
+        {t(
+          "Pega la lista (una carta por línea, como la exportan casi todas las apps) o el enlace del mazo. El comandante va en una sección «Commander» o marcado con *CMDR*.",
+          "Paste the list (one card per line, as almost every app exports it) or the deck's link. The commander goes in a “Commander” section or marked with *CMDR*.",
+        )}
       </T>
       {save.error && <Banner text={save.error.message} />}
-      <T variant="label">Lista o enlace</T>
+      <T variant="label">{t("Lista o enlace", "List or link")}</T>
       <TextInput
         multiline
         value={input}
@@ -341,7 +356,7 @@ function FromList({ fromShare, ...common }: Common & { fromShare: boolean }) {
         autoCapitalize="none"
         autoCorrect={false}
         textAlignVertical="top"
-        accessibilityLabel="Lista o enlace"
+        accessibilityLabel={t("Lista o enlace", "List or link")}
         style={{
           minHeight: 200,
           backgroundColor: colors.raised,
@@ -354,7 +369,7 @@ function FromList({ fromShare, ...common }: Common & { fromShare: boolean }) {
       />
       <NameAndVisibility {...common} />
       <Button
-        label="Guardar mazo"
+        label={t("Guardar mazo", "Save deck")}
         onPress={() => save.mutate()}
         busy={save.isPending}
         disabled={!input.trim()}

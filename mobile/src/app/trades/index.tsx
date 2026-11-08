@@ -12,6 +12,7 @@ import { api } from "~/lib/api";
 import { tapFeedback } from "~/lib/feedback";
 import { ago, euros } from "~/lib/format";
 import { colors } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 type Tab = "matches" | "proposals" | "wanted" | "offered";
 const TABS: Tab[] = ["matches", "proposals", "wanted", "offered"];
@@ -105,19 +106,27 @@ export default function Trades() {
       <View style={{ padding: 16, gap: 10 }}>
         {m.public ? (
           <T variant="small">
-            Tus listas son públicas: salen en tu perfil y en los cruces de otros.{" "}
+            {t(
+              "Tus listas son públicas: salen en tu perfil y en los cruces de otros.",
+              "Your lists are public: they show on your profile and in other people's matches.",
+            )}{" "}
             <T variant="small" style={{ color: colors.accent }} onPress={() => setPublic(false)}>
-              Hacerlas privadas
+              {t("Hacerlas privadas", "Make them private")}
             </T>
           </T>
         ) : (
           <Card>
-            <T style={{ fontWeight: "700" }}>Tus listas son privadas</T>
+            <T style={{ fontWeight: "700" }}>
+              {t("Tus listas son privadas", "Your lists are private")}
+            </T>
             <T variant="small">
-              Hazlas públicas para cruzarlas con las de otros jugadores (y que ellos te encuentren).
+              {t(
+                "Hazlas públicas para cruzarlas con las de otros jugadores (y que ellos te encuentren).",
+                "Make them public to match them with other players' lists (and so they can find you).",
+              )}
             </T>
             <Button
-              label="Hacerlas públicas"
+              label={t("Hacerlas públicas", "Make them public")}
               busy={run.isPending}
               onPress={() => setPublic(true)}
             />
@@ -127,10 +136,18 @@ export default function Trades() {
           value={tab}
           onChange={setTab}
           options={[
-            { key: "matches", label: `Cruces ${partners.data.length || ""}`.trim() },
-            { key: "proposals", label: myTurn ? `Propuestas · ${myTurn}` : "Propuestas" },
-            { key: "wanted", label: "Busco" },
-            { key: "offered", label: "Cambio" },
+            {
+              key: "matches",
+              label: `${t("Cruces", "Matches")} ${partners.data.length || ""}`.trim(),
+            },
+            {
+              key: "proposals",
+              label: myTurn
+                ? `${t("Propuestas", "Proposals")} · ${myTurn}`
+                : t("Propuestas", "Proposals"),
+            },
+            { key: "wanted", label: t("Busco", "Wanted") },
+            { key: "offered", label: t("Cambio", "For trade") },
           ]}
         />
       </View>
@@ -140,8 +157,14 @@ export default function Trades() {
           {partners.data.length === 0 ? (
             <T variant="muted">
               {m.wishlist.length === 0
-                ? "Añade cartas a tu lista de deseos (o mete un mazo en ella) para ver quién las tiene."
-                : "Nadie con listas públicas tiene libre lo que buscas ni busca lo que te sobra. Prueba más adelante."}
+                ? t(
+                    "Añade cartas a tu lista de deseos (o mete un mazo en ella) para ver quién las tiene.",
+                    "Add cards to your wishlist (or put a deck on it) to see who has them.",
+                  )
+                : t(
+                    "Nadie con listas públicas tiene libre lo que buscas ni busca lo que te sobra. Prueba más adelante.",
+                    "Nobody with public lists has what you want spare or wants what you can spare. Try again later.",
+                  )}
             </T>
           ) : (
             partners.data.map((p) => <PartnerCard key={p.profile.username} p={p} />)
@@ -155,7 +178,7 @@ export default function Trades() {
         <View>
           <View style={{ paddingHorizontal: 16, gap: 8 }}>
             <CardPicker
-              label="Añadir a la lista de deseos"
+              label={t("Añadir a la lista de deseos", "Add to wishlist")}
               onPick={(card) =>
                 setWish(
                   card,
@@ -165,11 +188,13 @@ export default function Trades() {
             />
           </View>
           <SectionTitle right={wishValue > 0 ? <T variant="mono">≈ {euros(wishValue)}</T> : null}>
-            Lo que busco · {m.wishlist.length}
+            {t("Lo que busco", "What I want")} · {m.wishlist.length}
           </SectionTitle>
           <View style={{ paddingHorizontal: 16 }}>
             {m.wishlist.length === 0 ? (
-              <T variant="muted">Tu lista de deseos está vacía.</T>
+              <T variant="muted">
+                {t("Tu lista de deseos está vacía.", "Your wishlist is empty.")}
+              </T>
             ) : (
               m.wishlist.map((w) => (
                 <TradeCardRow
@@ -183,27 +208,32 @@ export default function Trades() {
                         color={colors.text3}
                         label={
                           w.forDecks > 0
-                            ? `Quitar lo añadido a mano de ${w.card.name} (sigue por tus mazos)`
-                            : `Quitar ${w.card.name}`
+                            ? t(
+                                `Quitar lo añadido a mano de ${w.card.name} (sigue por tus mazos)`,
+                                `Remove what you added by hand of ${w.card.name} (it stays because of your decks)`,
+                              )
+                            : t(`Quitar ${w.card.name}`, `Remove ${w.card.name}`)
                         }
                         onPress={() => setWish(w.card, 0)}
                       />
                     ) : (
-                      <T variant="small">mazo</T>
+                      <T variant="small">{t("mazo", "deck")}</T>
                     )
                   }
                 />
               ))
             )}
           </View>
-          <SectionTitle>Mazos en la lista</SectionTitle>
+          <SectionTitle>{t("Mazos en la lista", "Decks on the list")}</SectionTitle>
           <T variant="small" style={{ paddingHorizontal: 16 }}>
-            Lo que te falta para los mazos marcados entra solo en tu lista de deseos (contando lo
-            que ya usan tus otros mazos).
+            {t(
+              "Lo que te falta para los mazos marcados entra solo en tu lista de deseos (contando lo que ya usan tus otros mazos).",
+              "What you're missing for the marked decks goes onto your wishlist automatically (counting what your other decks already use).",
+            )}
           </T>
           {m.decks.length === 0 ? (
             <T variant="muted" style={{ padding: 16 }}>
-              No tienes mazos guardados.
+              {t("No tienes mazos guardados.", "You don't have any saved decks.")}
             </T>
           ) : (
             m.decks.map((d) => (
@@ -240,37 +270,46 @@ export default function Trades() {
         <View>
           <SectionTitle>
             {m.tradelistTotal > m.tradelist.length
-              ? `Las ${m.tradelist.length} de más valor de ${m.tradelistTotal}`
-              : `Para cambiar · ${m.tradelistTotal}`}
+              ? t(
+                  `Las ${m.tradelist.length} de más valor de ${m.tradelistTotal}`,
+                  `The ${m.tradelist.length} most valuable of ${m.tradelistTotal}`,
+                )
+              : `${t("Para cambiar", "For trade")} · ${m.tradelistTotal}`}
           </SectionTitle>
           <View style={{ paddingHorizontal: 16 }}>
             {m.tradelist.length === 0 ? (
               <T variant="muted">
-                No tienes copias libres: todo lo que tienes está en tus mazos (o aún no has añadido
-                tu colección).
+                {t(
+                  "No tienes copias libres: todo lo que tienes está en tus mazos (o aún no has añadido tu colección).",
+                  "You have no spare copies: everything you own is in your decks (or you haven't added your collection yet).",
+                )}
               </T>
             ) : (
-              m.tradelist.map((t) => (
+              m.tradelist.map((item) => (
                 <TradeCardRow
-                  key={t.card.oracleId}
-                  item={t}
+                  key={item.card.oracleId}
+                  item={item}
                   right={
                     <T
                       variant="small"
                       style={{ color: colors.accent }}
-                      onPress={() => setKeep(t.card, true)}
+                      onPress={() => setKeep(item.card, true)}
                     >
-                      No la cambio
+                      {t("No la cambio", "Keep it")}
                     </T>
                   }
                 />
               ))
             )}
           </View>
-          <SectionTitle>No las cambio · {m.keep.length}</SectionTitle>
+          <SectionTitle>
+            {t("No las cambio", "Not for trade")} · {m.keep.length}
+          </SectionTitle>
           <T variant="small" style={{ paddingHorizontal: 16 }}>
-            Para cambiar salen solas tus copias libres (las que no usa ningún mazo), sin tierras
-            básicas. Las que marques aquí no salen.
+            {t(
+              "Para cambiar salen solas tus copias libres (las que no usa ningún mazo), sin tierras básicas. Las que marques aquí no salen.",
+              "Your spare copies (not used by any deck), without basic lands, are listed for trade automatically. The ones you mark here aren't.",
+            )}
           </T>
           {m.keep.map((c) => (
             <View
@@ -290,7 +329,7 @@ export default function Trades() {
                 {c.name}
               </T>
               <T variant="small" style={{ color: colors.accent }} onPress={() => setKeep(c, false)}>
-                Sí la cambio
+                {t("Sí la cambio", "Trade it")}
               </T>
             </View>
           ))}
@@ -305,8 +344,10 @@ function ProposalList({ items }: { items: TradeProposalSummaryDTO[] }) {
   if (items.length === 0) {
     return (
       <T variant="muted" style={{ paddingHorizontal: 16 }}>
-        Ninguna propuesta. Desde un cruce o desde el perfil de alguien con listas públicas, pulsa
-        «Proponer»: la calculadora te propone qué cambiar, cuadrado por valor.
+        {t(
+          "Ninguna propuesta. Desde un cruce o desde el perfil de alguien con listas públicas, pulsa «Proponer»: la calculadora te propone qué cambiar, cuadrado por valor.",
+          "No proposals. From a match or the profile of someone with public lists, tap “Propose”: the calculator suggests what to trade, balanced by value.",
+        )}
       </T>
     );
   }
@@ -332,15 +373,16 @@ function ProposalList({ items }: { items: TradeProposalSummaryDTO[] }) {
               variant="small"
               style={{ color: p.myTurn ? colors.warn : STATUS_COLOR[p.status], fontWeight: "700" }}
             >
-              {p.myTurn ? "Te toca" : STATUS_LABEL[p.status]}
+              {p.myTurn ? t("Te toca", "Your turn") : STATUS_LABEL[p.status]}
             </T>
           </View>
           <T variant="small">
-            Das {p.giveCount} · recibes {p.getCount} · {euros(p.balance.giveValue)} ↔{" "}
-            {euros(p.balance.getValue)}
+            {t("Das", "You give")} {p.giveCount} · {t("recibes", "you get")} {p.getCount} ·{" "}
+            {euros(p.balance.giveValue)} ↔ {euros(p.balance.getValue)}
           </T>
           <T variant="small">
-            {p.isMine ? "Enviada por ti" : "Recibida"} · {ago(p.updatedAt)}
+            {p.isMine ? t("Enviada por ti", "Sent by you") : t("Recibida", "Received")} ·{" "}
+            {ago(p.updatedAt)}
           </T>
         </Pressable>
       ))}

@@ -6,6 +6,8 @@ import { Platform } from "react-native";
 import { api } from "./api";
 import { API_URL, APP_VERSION } from "./config";
 import { appRoute } from "./paths";
+import { locale } from "./i18n";
+import { t } from "~/lib/i18n";
 
 let registeredToken: string | null = null;
 
@@ -25,7 +27,7 @@ Notifications.setNotificationHandler({
 export async function registerForPush(): Promise<void> {
   if (!Device.isDevice || Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync("default", {
-    name: "Avisos",
+    name: t("Avisos", "Notifications"),
     importance: Notifications.AndroidImportance.DEFAULT,
   });
   const current = await Notifications.getPermissionsAsync();
@@ -37,7 +39,7 @@ export async function registerForPush(): Promise<void> {
   const { data: token } = await Notifications.getDevicePushTokenAsync();
   if (typeof token !== "string") return;
   await api("/api/me/devices", {
-    body: { token, platform: "android", appVersion: APP_VERSION },
+    body: { token, platform: "android", appVersion: APP_VERSION, locale },
   });
   registeredToken = token;
 }

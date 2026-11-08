@@ -221,7 +221,13 @@ locale)`) y los avisos de datos guardados (`localizeWarning`, `domain/i18n/warni
   los dos idiomas. Fase I3: colección, intercambios, grupos, partidas,
   préstamos, ajustes, contador, avisos y actividad también en inglés (etiquetas con `locale`:
   `languageLabel`, `sinceAddedTrend`, `deviceLabel`, `notificationGroupLabel`, `USERNAME_HELP_EN`).
-  Las páginas de administración siguen en español. **Pendiente** (fase I4): la app móvil.
+  Las páginas de administración siguen en español. Fase I4, la app (1.10.0): sigue el idioma del
+  móvil (español si está en español; si no, inglés): `mobile/src/lib/lang.ts` (sin imports: lo
+  cargan los tests de node, que corren con `LANG=es_ES.UTF-8`) da `t(es, en)`, `locale` e `intl`,
+  y `lib/i18n.ts` los reexporta con `roleName`; `api.ts` manda `x-locale` y traduce los errores
+  con `apiErrorMessage`. Las push van en el idioma de cada móvil (`PushDevice.locale`, que manda
+  `POST /api/me/devices`; `notificationMessage(…, locale)`) y `GET /api/notifications` en el de
+  la petición. Ficha de Play en inglés en `mobile/store/README.md`.
 - **Tema** «Pentacromo» (`globals.css`): base neutra, acento azul y la gema del logo (`--gem`,
   `--gem-v`) en la franja bajo la barra superior, el subrayado de pestañas y la fila activa del
   lateral. Propuestas descartadas y capturas en `branding/themes/`.

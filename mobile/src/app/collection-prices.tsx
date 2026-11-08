@@ -9,6 +9,7 @@ import { Chip, ErrorView, Loading, T } from "~/components/ui";
 import { api } from "~/lib/api";
 import { euros } from "~/lib/format";
 import { colors, radius } from "~/lib/theme";
+import { intl, t } from "~/lib/i18n";
 
 /** Precios de mi colección: su valor día a día y lo que más sube y más baja (como la web). */
 export default function CollectionPrices() {
@@ -43,7 +44,7 @@ export default function CollectionPrices() {
           <View
             style={{ gap: 8, backgroundColor: colors.panel, borderRadius: radius.md, padding: 12 }}
           >
-            <T variant="label">Valor de tu colección</T>
+            <T variant="label">{t("Valor de tu colección", "Your collection's value")}</T>
             {last && <T style={{ fontSize: 26, fontWeight: "700" }}>{euros(last.eur)}</T>}
             {delta !== null && first && first.eur > 0 && (
               <T
@@ -52,8 +53,9 @@ export default function CollectionPrices() {
                   color: delta > 0 ? colors.in : delta < 0 ? colors.out : colors.text2,
                 }}
               >
-                {formatChange(delta, Math.round((delta / first.eur) * 1000) / 10)} desde el{" "}
-                {new Date(`${first.date}T00:00:00Z`).toLocaleDateString("es-ES", {
+                {formatChange(delta, Math.round((delta / first.eur) * 1000) / 10)}{" "}
+                {t("desde el", "since")}{" "}
+                {new Date(`${first.date}T00:00:00Z`).toLocaleDateString(intl, {
                   day: "numeric",
                   month: "long",
                   timeZone: "UTC",
@@ -62,12 +64,14 @@ export default function CollectionPrices() {
             )}
             <PriceChart points={p.value} height={140} />
             <T variant="small">
-              Cada copia al precio de referencia de su edición (foil si es foil). El histórico se
-              guarda cada noche.
+              {t(
+                "Cada copia al precio de referencia de su edición (foil si es foil). El histórico se guarda cada noche.",
+                "Each copy at the reference price of its printing (foil if it's foil). The history is saved every night.",
+              )}
             </T>
           </View>
-          <Movers title="Lo que más sube" items={p.up} />
-          <Movers title="Lo que más baja" items={p.down} />
+          <Movers title={t("Lo que más sube", "Biggest risers")} items={p.up} />
+          <Movers title={t("Lo que más baja", "Biggest fallers")} items={p.down} />
         </>
       )}
     </ScrollView>
@@ -99,7 +103,7 @@ function Movers({ title, items }: { title: string; items: PriceMoverDTO[] }) {
               {m.foil ? " ★" : ""}
             </T>
             <T variant="small" numberOfLines={1}>
-              {m.copies > 1 ? `${m.copies} copias · ` : ""}
+              {m.copies > 1 ? `${m.copies} ${t("copias", "copies")} · ` : ""}
               {euros(m.before)} → {euros(m.now)}
             </T>
           </View>

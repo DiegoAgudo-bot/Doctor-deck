@@ -12,33 +12,37 @@ import { unregisterPush } from "~/lib/push";
 import { clearCache } from "~/lib/query";
 import { colors } from "~/lib/theme";
 import { alert } from "~/components/dialog";
+import { t } from "~/lib/i18n";
 
 const SECTIONS: {
   title: string;
   items: { icon: IconName; label: string; detail?: string; path: string }[];
 }[] = [
   {
-    title: "Cartas entre amigos",
+    title: t("Cartas entre amigos", "Cards among friends"),
     items: [
       {
         icon: "swap-horizontal-outline",
-        label: "Intercambios",
-        detail: "Cruces, lista de deseos y propuestas",
+        label: t("Intercambios", "Trades"),
+        detail: t("Cruces, lista de deseos y propuestas", "Matches, wishlist and proposals"),
         path: "/trades",
       },
-      { icon: "hand-left-outline", label: "Préstamos", path: "/loans" },
+      { icon: "hand-left-outline", label: t("Préstamos", "Loans"), path: "/loans" },
     ],
   },
   {
-    title: "Comunidad",
+    title: t("Comunidad", "Community"),
     items: [
       {
         icon: "globe-outline",
-        label: "Mazos de la comunidad",
-        detail: "Los que puedes montar con tu colección",
+        label: t("Mazos de la comunidad", "Community decks"),
+        detail: t(
+          "Los que puedes montar con tu colección",
+          "The ones you can build with your collection",
+        ),
         path: "/community",
       },
-      { icon: "newspaper-outline", label: "Actividad", path: "/feed" },
+      { icon: "newspaper-outline", label: t("Actividad", "Activity"), path: "/feed" },
     ],
   },
 ];
@@ -56,10 +60,10 @@ export default function AccountMenu() {
   });
 
   const signOut = () =>
-    alert("¿Cerrar sesión?", "", [
-      { text: "Cancelar", style: "cancel" },
+    alert(t("¿Cerrar sesión?", "Sign out?"), "", [
+      { text: t("Cancelar", "Cancel"), style: "cancel" },
       {
-        text: "Cerrar sesión",
+        text: t("Cerrar sesión", "Sign out"),
         style: "destructive",
         onPress: async () => {
           await unregisterPush();
@@ -80,14 +84,18 @@ export default function AccountMenu() {
       </View>
       <MenuRow
         icon="notifications-outline"
-        label="Avisos"
-        detail={unread ? `${unread} sin leer` : "Bajadas de precio, intercambios, partidas…"}
+        label={t("Avisos", "Notifications")}
+        detail={
+          unread
+            ? t(`${unread} sin leer`, `${unread} unread`)
+            : t("Bajadas de precio, intercambios, partidas…", "Price drops, trades, games…")
+        }
         onPress={() => router.push("/notifications")}
       />
       {profile.data?.username && (
         <MenuRow
           icon="person-circle-outline"
-          label="Mi perfil público"
+          label={t("Mi perfil público", "My public profile")}
           onPress={() => router.push(`/u/${profile.data.username}`)}
         />
       )}
@@ -108,23 +116,34 @@ export default function AccountMenu() {
         </View>
       ))}
       <T variant="label" style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 6 }}>
-        Cuenta
+        {t("Cuenta", "Account")}
       </T>
       <MenuRow
         icon="settings-outline"
-        label="Ajustes"
-        detail="Perfil, avisos de precio, privacidad, bloqueados y tus datos"
+        label={t("Ajustes", "Settings")}
+        detail={t(
+          "Perfil, avisos de precio, privacidad, bloqueados y tus datos",
+          "Profile, price alerts, privacy, blocked people and your data",
+        )}
         onPress={() => router.push("/settings")}
       />
       <MenuRow
         icon="document-text-outline"
-        label="Privacidad"
+        label={t("Privacidad", "Privacy")}
         onPress={() => WebBrowser.openBrowserAsync(`${API_URL}/privacy`)}
       />
-      <MenuRow icon="log-out-outline" label="Cerrar sesión" onPress={signOut} danger />
+      <MenuRow
+        icon="log-out-outline"
+        label={t("Cerrar sesión", "Sign out")}
+        onPress={signOut}
+        danger
+      />
       <T variant="small" style={{ textAlign: "center", marginTop: 24, color: colors.text3 }}>
-        Doctor Deck {APP_VERSION} · Contenido no oficial permitido por la Fan Content Policy de
-        Wizards of the Coast.
+        Doctor Deck {APP_VERSION} ·{" "}
+        {t(
+          "Contenido no oficial permitido por la Fan Content Policy de Wizards of the Coast.",
+          "Unofficial Fan Content permitted under the Fan Content Policy of Wizards of the Coast.",
+        )}
       </T>
     </ScrollView>
   );

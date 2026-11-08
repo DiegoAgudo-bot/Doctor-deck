@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Modal, Pressable, View } from "react-native";
 import { colors, radius } from "~/lib/theme";
 import { Button, T } from "./ui";
+import { t } from "~/lib/i18n";
 
 export interface DialogButton {
   text: string;
@@ -29,7 +30,7 @@ export function alert(title: string, message?: string, buttons?: DialogButton[])
     id: next++,
     title,
     message: message || undefined,
-    buttons: buttons?.length ? buttons : [{ text: "Aceptar" }],
+    buttons: buttons?.length ? buttons : [{ text: t("Aceptar", "OK") }],
   });
 }
 
@@ -66,7 +67,7 @@ export function DialogHost() {
     >
       <View style={{ flex: 1, justifyContent: "center", padding: 24 }}>
         <Pressable
-          accessibilityLabel="Cerrar"
+          accessibilityLabel={t("Cerrar", "Close")}
           onPress={() => (cancel ? close(cancel) : undefined)}
           style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.6)" }}
         />

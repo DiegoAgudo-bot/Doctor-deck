@@ -12,6 +12,7 @@ import { authClient } from "~/lib/auth";
 import { API_URL } from "~/lib/config";
 import { clearCache } from "~/lib/query";
 import { colors } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -28,8 +29,8 @@ export default function Login() {
     if (e)
       setError(
         e.status === 401
-          ? "Email o contraseña incorrectos."
-          : (e.message ?? "No se ha podido entrar."),
+          ? t("Email o contraseña incorrectos.", "Wrong email or password.")
+          : (e.message ?? t("No se ha podido entrar.", "Couldn't sign in.")),
       );
     setBusy(null);
   };
@@ -45,8 +46,11 @@ export default function Login() {
     if (e) {
       setError(
         e.code === "ACCOUNT_NOT_LINKED" || e.message?.includes("account_not_linked")
-          ? "Ya tienes cuenta con ese email: entra con tu contraseña y vincula Google desde Más › Ajustes."
-          : (e.message ?? "No se ha podido entrar con Google."),
+          ? t(
+              "Ya tienes cuenta con ese email: entra con tu contraseña y vincula Google desde Más › Ajustes.",
+              "You already have an account with that email: sign in with your password and link Google from More › Settings.",
+            )
+          : (e.message ?? t("No se ha podido entrar con Google.", "Couldn't sign in with Google.")),
       );
     }
     setBusy(null);
@@ -69,7 +73,10 @@ export default function Login() {
             />
             <T variant="title">Doctor Deck</T>
             <T variant="muted" style={{ textAlign: "center" }}>
-              Tu colección y tus mazos de Commander, con sugerencias de la comunidad.
+              {t(
+                "Tu colección y tus mazos de Commander, con sugerencias de la comunidad.",
+                "Your Commander collection and decks, with suggestions from the community.",
+              )}
             </T>
           </View>
           {error && <Banner text={error} />}
@@ -83,7 +90,7 @@ export default function Login() {
             textContentType="emailAddress"
           />
           <Field
-            label="Contraseña"
+            label={t("Contraseña", "Password")}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -92,14 +99,14 @@ export default function Login() {
             onSubmitEditing={signIn}
           />
           <Button
-            label="Entrar"
+            label={t("Entrar", "Sign in")}
             onPress={signIn}
             busy={busy === "email"}
             disabled={!email || password.length < 8}
           />
           {info.data?.google !== false && (
             <Button
-              label="Continuar con Google"
+              label={t("Continuar con Google", "Continue with Google")}
               icon="logo-google"
               kind="secondary"
               onPress={google}
@@ -108,14 +115,14 @@ export default function Login() {
           )}
           <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8 }}>
             <Link href="/signup">
-              <T style={{ color: colors.accent }}>Crear cuenta</T>
+              <T style={{ color: colors.accent }}>{t("Crear cuenta", "Create account")}</T>
             </Link>
             {info.data?.passwordReset && (
               <T
                 style={{ color: colors.accent }}
                 onPress={() => WebBrowser.openBrowserAsync(`${API_URL}/forgot-password`)}
               >
-                He olvidado la contraseña
+                {t("He olvidado la contraseña", "I forgot my password")}
               </T>
             )}
           </View>

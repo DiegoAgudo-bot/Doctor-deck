@@ -8,6 +8,7 @@ import { Banner, Chip, Loading, T } from "~/components/ui";
 import { api } from "~/lib/api";
 import { euros, thousands } from "~/lib/format";
 import { colors, radius } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 type Show = "all" | "owned" | "missing";
 
@@ -52,9 +53,14 @@ export function CommanderStaples({ oracleId, name }: { oracleId: string; name: s
   return (
     <View style={{ gap: 10 }}>
       <View style={{ gap: 2 }}>
-        <T variant="label">Lo que se juega con {short}</T>
+        <T variant="label">{t(`Lo que se juega con ${short}`, `What's played with ${short}`)}</T>
         {data?.totalDecks ? (
-          <T variant="small">En {thousands(data.totalDecks)} mazos de la comunidad</T>
+          <T variant="small">
+            {t(
+              `En ${thousands(data.totalDecks)} mazos de la comunidad`,
+              `In ${thousands(data.totalDecks)} community decks`,
+            )}
+          </T>
         ) : null}
       </View>
 
@@ -64,7 +70,11 @@ export function CommanderStaples({ oracleId, name }: { oracleId: string; name: s
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 6 }}
         >
-          <Chip label="General" active={theme === ""} onPress={() => setTheme("")} />
+          <Chip
+            label={t("General", "General")}
+            active={theme === ""}
+            onPress={() => setTheme("")}
+          />
           {data.themes.slice(0, 10).map((t) => (
             <Chip
               key={t.slug}
@@ -78,22 +88,43 @@ export function CommanderStaples({ oracleId, name }: { oracleId: string; name: s
 
       {hasMine && (
         <View style={{ flexDirection: "row", gap: 6 }}>
-          <Chip label="Todas" active={show === "all"} onPress={() => setShow("all")} />
-          <Chip label="Las tengo" active={show === "owned"} onPress={() => setShow("owned")} />
-          <Chip label="Me faltan" active={show === "missing"} onPress={() => setShow("missing")} />
+          <Chip label={t("Todas", "All")} active={show === "all"} onPress={() => setShow("all")} />
+          <Chip
+            label={t("Las tengo", "I own them")}
+            active={show === "owned"}
+            onPress={() => setShow("owned")}
+          />
+          <Chip
+            label={t("Me faltan", "I'm missing")}
+            active={show === "missing"}
+            onPress={() => setShow("missing")}
+          />
         </View>
       )}
 
       {q.isError && (
-        <Banner text={q.error.message || "No se pudo cargar lo que se juega con este comandante"} />
+        <Banner
+          text={
+            q.error.message ||
+            t(
+              "No se pudo cargar lo que se juega con este comandante",
+              "Couldn't load what's played with this commander",
+            )
+          }
+        />
       )}
       {data?.warning && <Banner text={data.warning} />}
-      {q.isPending && <Loading label="Buscando lo que se juega…" />}
+      {q.isPending && <Loading label={t("Buscando lo que se juega…", "Finding what's played…")} />}
 
       {data && (
         <View style={{ gap: 14, opacity: q.isFetching && q.isPlaceholderData ? 0.5 : 1 }}>
           {sections.length === 0 && (
-            <T variant="small">No hay cartas que enseñar con este filtro.</T>
+            <T variant="small">
+              {t(
+                "No hay cartas que enseñar con este filtro.",
+                "No cards to show with this filter.",
+              )}
+            </T>
           )}
           {sections.map((s) => (
             <View key={s.key} style={{ gap: 6 }}>
@@ -142,7 +173,7 @@ function StapleTile({ s }: { s: StapleDTO }) {
             }}
           >
             <T variant="small" style={{ color: colors.bg, fontWeight: "700", fontSize: 11 }}>
-              {s.mine.free > 0 ? "La tienes" : "En tus mazos"}
+              {s.mine.free > 0 ? t("La tienes", "You own it") : t("En tus mazos", "In your decks")}
             </T>
           </View>
         )}

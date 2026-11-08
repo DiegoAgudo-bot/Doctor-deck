@@ -3,6 +3,7 @@ import { notificationMessage } from "@/domain/social/notification-text";
 import { getContainer } from "@/server/container";
 import type { NotificationsResponse } from "@/server/dto";
 import { errorResponse } from "@/server/http";
+import { requestLocale } from "@/server/i18n";
 import { requireUser } from "@/server/session";
 
 /** Mis notificaciones (las 50 últimas) y cuántas hay sin leer. */
@@ -10,6 +11,7 @@ export async function GET(request: Request) {
   await connection();
   try {
     const user = await requireUser(request);
+    const locale = requestLocale(request);
     const social = getContainer().social;
     const [items, unread] = await Promise.all([
       social.list(user.id, 50),
@@ -31,7 +33,11 @@ export async function GET(request: Request) {
         createdAt: n.createdAt.toISOString(),
         read: n.read,
         // Para la app: el texto ya montado y a qué pantalla lleva.
-        message: notificationMessage(n, n.actor.username ? `@${n.actor.username}` : n.actor.name),
+        message: notificationMessage(
+          n,
+          n.actor.username ? `@${n.actor.username}` : n.actor.name,
+          locale,
+        ),
       })),
     };
     return Response.json(body);

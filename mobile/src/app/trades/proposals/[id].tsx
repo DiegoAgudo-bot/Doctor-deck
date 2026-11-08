@@ -12,6 +12,7 @@ import { tapFeedback } from "~/lib/feedback";
 import { ago } from "~/lib/format";
 import { linesForApi, toLines, type TradeLine } from "~/lib/trade-lines";
 import { alert } from "~/components/dialog";
+import { t } from "~/lib/i18n";
 
 type Action =
   | { action: "save" | "send" | "counter"; lines: ReturnType<typeof linesForApi> }
@@ -69,33 +70,51 @@ export default function Proposal() {
   const empty = !lines.some((l) => l.quantity > 0);
   const busy = act.isPending;
   const who =
-    p.status === "pending" ? (p.myTurn ? "Te toca responder" : `Le toca a @${partner}`) : null;
+    p.status === "pending"
+      ? p.myTurn
+        ? t("Te toca responder", "Your turn to answer")
+        : t(`Le toca a @${partner}`, `@${partner}'s turn`)
+      : null;
 
   const accept = () =>
     alert(
-      "¿Aceptar el intercambio?",
-      `Las cartas que das saldrán de tu colección y las que recibes entrarán en ella (y al revés en la de @${partner}). No se puede deshacer.\n\nSi después vuelves a importar un CSV antiguo de tu colección, las cartas que has dado volverían a aparecer.`,
+      t("¿Aceptar el intercambio?", "Accept the trade?"),
+      t(
+        `Las cartas que das saldrán de tu colección y las que recibes entrarán en ella (y al revés en la de @${partner}). No se puede deshacer.\n\nSi después vuelves a importar un CSV antiguo de tu colección, las cartas que has dado volverían a aparecer.`,
+        `The cards you give will leave your collection and the ones you get will enter it (and the other way round for @${partner}). This can't be undone.\n\nIf you later re-import an old CSV of your collection, the cards you gave would reappear.`,
+      ),
       [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Aceptar y mover las cartas", onPress: () => act.mutate({ action: "accept" }) },
+        { text: t("Cancelar", "Cancel"), style: "cancel" },
+        {
+          text: t("Aceptar y mover las cartas", "Accept and move the cards"),
+          onPress: () => act.mutate({ action: "accept" }),
+        },
       ],
     );
 
   return (
     <>
-      <Stack.Screen options={{ title: `Con @${partner}` }} />
+      <Stack.Screen options={{ title: t(`Con @${partner}`, `With @${partner}`) }} />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 48 }}>
         <View style={{ gap: 4 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <T variant="h2" style={{ color: STATUS_COLOR[p.status] }}>
               {STATUS_LABEL[p.status]}
             </T>
-            {p.version > 1 && <T variant="small">· versión {p.version}</T>}
+            {p.version > 1 && (
+              <T variant="small">
+                · {t("versión", "version")} {p.version}
+              </T>
+            )}
           </View>
           <T variant="small">
-            {p.isMine ? "La propusiste tú" : `Te la propuso @${partner}`}
+            {p.isMine
+              ? t("La propusiste tú", "You proposed it")
+              : t(`Te la propuso @${partner}`, `Proposed by @${partner}`)}
             {p.version > 1 &&
-              (p.lastByMe ? " · la última versión es tuya" : ` · última versión de @${partner}`)}
+              (p.lastByMe
+                ? t(" · la última versión es tuya", " · the latest version is yours")
+                : t(` · última versión de @${partner}`, ` · latest version by @${partner}`))}
             {" · "}
             {ago(p.updatedAt)}
           </T>
@@ -104,13 +123,19 @@ export default function Proposal() {
         {act.isError && <Banner text={act.error.message} />}
         {p.unavailable.length > 0 && (p.status === "pending" || p.status === "draft") && (
           <Banner
-            text={`Algunas cartas ya no están en la lista para cambiar de quien las da.${p.myTurn ? " Contrapropón sin ellas o recházala." : ""}`}
+            text={t(
+              `Algunas cartas ya no están en la lista para cambiar de quien las da.${p.myTurn ? " Contrapropón sin ellas o recházala." : ""}`,
+              `Some cards are no longer on the giver's trade list.${p.myTurn ? " Counter without them or reject it." : ""}`,
+            )}
           />
         )}
         {p.status === "accepted" && (
           <Banner
             tone="ok"
-            text="Intercambio hecho: las cartas ya se han movido entre vuestras colecciones de Doctor Deck."
+            text={t(
+              "Intercambio hecho: las cartas ya se han movido entre vuestras colecciones de Doctor Deck.",
+              "Trade done: the cards have moved between your Doctor Deck collections.",
+            )}
           />
         )}
         <TradeEditor
@@ -125,20 +150,20 @@ export default function Proposal() {
         {p.actions.edit && (
           <>
             <Button
-              label={`Enviar a @${partner}`}
+              label={t(`Enviar a @${partner}`, `Send to @${partner}`)}
               icon="paper-plane-outline"
               busy={busy}
               disabled={empty}
               onPress={() => act.mutate({ action: "send", lines: linesForApi(lines) })}
             />
             <Button
-              label="Guardar"
+              label={t("Guardar", "Save")}
               kind="secondary"
               disabled={busy || empty}
               onPress={() => act.mutate({ action: "save", lines: linesForApi(lines) })}
             />
             <Button
-              label="Borrar borrador"
+              label={t("Borrar borrador", "Delete draft")}
               kind="ghost"
               disabled={busy}
               onPress={() => act.mutate({ action: "delete" })}
@@ -148,20 +173,20 @@ export default function Proposal() {
         {p.actions.respond && !countering && (
           <>
             <Button
-              label="Aceptar"
+              label={t("Aceptar", "Accept")}
               icon="checkmark"
               busy={busy}
               disabled={p.unavailable.length > 0}
               onPress={accept}
             />
             <Button
-              label="Contraproponer"
+              label={t("Contraproponer", "Counter")}
               kind="secondary"
               disabled={busy}
               onPress={() => setCountering(true)}
             />
             <Button
-              label="Rechazar"
+              label={t("Rechazar", "Reject")}
               kind="danger"
               disabled={busy}
               onPress={() => act.mutate({ action: "reject" })}
@@ -171,14 +196,14 @@ export default function Proposal() {
         {countering && (
           <>
             <Button
-              label="Enviar contrapropuesta"
+              label={t("Enviar contrapropuesta", "Send counter-offer")}
               icon="paper-plane-outline"
               busy={busy}
               disabled={empty}
               onPress={() => act.mutate({ action: "counter", lines: linesForApi(lines) })}
             />
             <Button
-              label="Cancelar cambios"
+              label={t("Cancelar cambios", "Discard changes")}
               kind="secondary"
               disabled={busy}
               onPress={() => {
@@ -190,7 +215,7 @@ export default function Proposal() {
         )}
         {p.actions.cancel && !countering && (
           <Button
-            label="Retirar"
+            label={t("Retirar", "Withdraw")}
             kind="ghost"
             disabled={busy}
             onPress={() => act.mutate({ action: "cancel" })}

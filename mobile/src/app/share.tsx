@@ -17,6 +17,7 @@ import { peekShare, takeShare } from "~/lib/share-inbox";
 import { removeSharedCopy, useShareInbox } from "~/lib/share-intake";
 import { colors, radius } from "~/lib/theme";
 import { alert } from "~/components/dialog";
+import { t } from "~/lib/i18n";
 
 type Item = SharedImportResponse["added"][number];
 
@@ -77,7 +78,10 @@ export default function ShareScreen() {
       done();
       setStage({
         step: "error",
-        message: `No se ha podido recibir lo compartido (${inbox.message}).`,
+        message: t(
+          `No se ha podido recibir lo compartido (${inbox.message}).`,
+          `Couldn't receive what was shared (${inbox.message}).`,
+        ),
       });
       return;
     }
@@ -85,7 +89,13 @@ export default function ShareScreen() {
     const file = inbox.files?.[0];
     if (file && !file.path) {
       done();
-      setStage({ step: "error", message: "No llega la ruta del fichero compartido." });
+      setStage({
+        step: "error",
+        message: t(
+          "No llega la ruta del fichero compartido.",
+          "The shared file's path didn't arrive.",
+        ),
+      });
       return;
     }
     (file?.path ? readSharedFile(file.path) : Promise.resolve(inbox.text ?? ""))
@@ -93,10 +103,13 @@ export default function ShareScreen() {
         done();
         if (file?.path) removeSharedCopy(file.path);
         if (!text.trim()) {
-          setStage({ step: "error", message: "Lo compartido está vacío." });
+          setStage({
+            step: "error",
+            message: t("Lo compartido está vacío.", "What was shared is empty."),
+          });
           return;
         }
-        setSource({ text, name: file?.fileName ?? "Lista compartida" });
+        setSource({ text, name: file?.fileName ?? t("Lista compartida", "Shared list") });
       })
       .catch((e: unknown) => {
         done();
@@ -151,7 +164,12 @@ export default function ShareScreen() {
         copies += r.totalCopies;
         setStage({ step: "saving", done: i + 1, total: parts.length });
       }
-      finish(`Añadidas ${thousands(copies)} copias a tu colección.`);
+      finish(
+        t(
+          `Añadidas ${thousands(copies)} copias a tu colección.`,
+          `Added ${thousands(copies)} copies to your collection.`,
+        ),
+      );
     } catch (e) {
       // Las tandas ya guardadas se quedan: se dice cuántas para no duplicar al reintentar.
       setStage({
@@ -171,9 +189,12 @@ export default function ShareScreen() {
         raw: true,
       });
       finish(
-        `Colección reemplazada: ${thousands(r.totalCards)} copias reconocidas` +
+        t(
+          `Colección reemplazada: ${thousands(r.totalCards)} copias reconocidas`,
+          `Collection replaced: ${thousands(r.totalCards)} copies recognised`,
+        ) +
           (r.unmatched.length > 0
-            ? ` y ${thousands(r.unmatched.length)} filas sin reconocer (${r.unmatched
+            ? ` ${t("y", "and")} ${thousands(r.unmatched.length)} ${t("filas sin reconocer", "unrecognised rows")} (${r.unmatched
                 .slice(0, 3)
                 .map((u) => u.name)
                 .join(", ")}${r.unmatched.length > 3 ? "…" : ""}).`
@@ -186,11 +207,18 @@ export default function ShareScreen() {
 
   const confirmReplace = () =>
     alert(
-      "¿Reemplazar tu colección?",
-      "Las cartas que vinieron de un CSV anterior se sustituyen por las de este. Las que añadiste a mano se quedan.",
+      t("¿Reemplazar tu colección?", "Replace your collection?"),
+      t(
+        "Las cartas que vinieron de un CSV anterior se sustituyen por las de este. Las que añadiste a mano se quedan.",
+        "Cards that came from a previous CSV are replaced by this one's. The ones you added by hand stay.",
+      ),
       [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Reemplazar", style: "destructive", onPress: () => void replaceAll() },
+        { text: t("Cancelar", "Cancel"), style: "cancel" },
+        {
+          text: t("Reemplazar", "Replace"),
+          style: "destructive",
+          onPress: () => void replaceAll(),
+        },
       ],
     );
 
@@ -202,7 +230,7 @@ export default function ShareScreen() {
     );
   };
 
-  const header = <Stack.Screen options={{ title: "Importar", headerShown: true }} />;
+  const header = <Stack.Screen options={{ title: t("Importar", "Import"), headerShown: true }} />;
 
   if (stage.step === "waiting") {
     return (
@@ -210,10 +238,16 @@ export default function ShareScreen() {
         {header}
         <Empty
           icon="share-outline"
-          title="Nada que importar"
-          text="Comparte una lista o el CSV de tu colección con Doctor Deck desde otra app."
+          title={t("Nada que importar", "Nothing to import")}
+          text={t(
+            "Comparte una lista o el CSV de tu colección con Doctor Deck desde otra app.",
+            "Share a list or your collection's CSV with Doctor Deck from another app.",
+          )}
           action={
-            <Button label="Ir a mi colección" onPress={() => router.replace("/collection")} />
+            <Button
+              label={t("Ir a mi colección", "Go to my collection")}
+              onPress={() => router.replace("/collection")}
+            />
           }
         />
       </>
@@ -234,19 +268,22 @@ export default function ShareScreen() {
         ListHeaderComponent={
           <View style={{ gap: 10, marginBottom: 10 }}>
             <T variant="h2" numberOfLines={2}>
-              {preview?.name ?? source?.name ?? "Lo compartido"}
+              {preview?.name ?? source?.name ?? t("Lo compartido", "Shared")}
             </T>
             <Progress stage={stage} />
             {preview && (
               <T variant="small">
-                {preview.kind === "csv" ? "CSV de colección" : "Lista"} ·{" "}
-                {thousands(preview.added.length)} cartas · {thousands(preview.totalCopies)} copias
+                {preview.kind === "csv"
+                  ? t("CSV de colección", "Collection CSV")
+                  : t("Lista", "List")}{" "}
+                · {thousands(preview.added.length)} {t("cartas", "cards")} ·{" "}
+                {thousands(preview.totalCopies)} {t("copias", "copies")}
               </T>
             )}
             {stage.step === "error" && <Banner text={stage.message} />}
             {preview && preview.notFound.length > 0 && (
               <Banner
-                text={`No se han encontrado ${thousands(preview.notFound.length)}: ${preview.notFound.slice(0, 5).join(", ")}${preview.notFound.length > 5 ? "…" : ""}`}
+                text={`${t("No se han encontrado", "Not found")} ${thousands(preview.notFound.length)}: ${preview.notFound.slice(0, 5).join(", ")}${preview.notFound.length > 5 ? "…" : ""}`}
               />
             )}
           </View>
@@ -267,7 +304,7 @@ export default function ShareScreen() {
         )}
         {preview && preview.looksLikeDeck && (
           <Button
-            label="Crear un mazo con esta lista"
+            label={t("Crear un mazo con esta lista", "Create a deck with this list")}
             icon="layers-outline"
             onPress={newDeck}
             disabled={busy}
@@ -276,8 +313,11 @@ export default function ShareScreen() {
         <Button
           label={
             preview
-              ? `Añadir ${thousands(preview.totalCopies)} copias a mi colección`
-              : "Añadir a mi colección"
+              ? t(
+                  `Añadir ${thousands(preview.totalCopies)} copias a mi colección`,
+                  `Add ${thousands(preview.totalCopies)} copies to my collection`,
+                )
+              : t("Añadir a mi colección", "Add to my collection")
           }
           icon="add-circle-outline"
           kind={preview?.looksLikeDeck ? "secondary" : "primary"}
@@ -287,7 +327,7 @@ export default function ShareScreen() {
         />
         {preview?.kind === "csv" && (
           <Button
-            label="Reemplazar mi colección con este CSV"
+            label={t("Reemplazar mi colección con este CSV", "Replace my collection with this CSV")}
             kind="secondary"
             onPress={confirmReplace}
             disabled={stage.step !== "ready"}
@@ -295,7 +335,7 @@ export default function ShareScreen() {
         )}
         {preview?.kind === "list" && !preview.looksLikeDeck && (
           <Button
-            label="Crear un mazo con esta lista"
+            label={t("Crear un mazo con esta lista", "Create a deck with this list")}
             kind="secondary"
             onPress={newDeck}
             disabled={stage.step !== "ready"}
@@ -310,15 +350,21 @@ export default function ShareScreen() {
 function Progress({ stage }: { stage: Stage }) {
   const { label, value } =
     stage.step === "reading"
-      ? { label: "Leyendo el fichero…", value: 0.05 }
+      ? { label: t("Leyendo el fichero…", "Reading the file…"), value: 0.05 }
       : stage.step === "checking"
         ? {
-            label: `Reconociendo cartas… ${stage.done}/${stage.total}`,
+            label: t(
+              `Reconociendo cartas… ${stage.done}/${stage.total}`,
+              `Recognising cards… ${stage.done}/${stage.total}`,
+            ),
             value: 0.1 + 0.9 * (stage.done / stage.total),
           }
         : stage.step === "saving"
           ? {
-              label: `Añadiendo a tu colección… ${stage.done}/${stage.total}`,
+              label: t(
+                `Añadiendo a tu colección… ${stage.done}/${stage.total}`,
+                `Adding to your collection… ${stage.done}/${stage.total}`,
+              ),
               value: 0.1 + 0.9 * (stage.done / stage.total),
             }
           : { label: null, value: null };

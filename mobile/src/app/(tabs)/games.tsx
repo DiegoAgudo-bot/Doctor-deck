@@ -13,6 +13,7 @@ import { Button, T } from "~/components/ui";
 import { api } from "~/lib/api";
 import { openLifeGame } from "~/lib/life-store";
 import { colors, radius } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 /**
  * Pestaña «Jugar»: el contador de vidas (o seguir la partida abierta), mis grupos y las últimas
@@ -76,21 +77,29 @@ export default function Games() {
               <Ionicons name="heart" size={22} color={colors.out} />
             </View>
             <View style={{ flex: 1, gap: 2 }}>
-              <T variant="h2">Contador de vidas</T>
+              <T variant="h2">{t("Contador de vidas", "Life counter")}</T>
               <T variant="small">
                 {open
-                  ? `Partida abierta · ${open.players.length} jugadores · turno ${open.turn} · ${minutes} min`
-                  : "Vidas, daño de comandante y veneno a pantalla completa, de 2 a 6 jugadores."}
+                  ? t(
+                      `Partida abierta · ${open.players.length} jugadores · turno ${open.turn} · ${minutes} min`,
+                      `Game in progress · ${open.players.length} players · turn ${open.turn} · ${minutes} min`,
+                    )
+                  : t(
+                      "Vidas, daño de comandante y veneno a pantalla completa, de 2 a 6 jugadores.",
+                      "Life, commander damage and poison in full screen, for 2 to 6 players.",
+                    )}
               </T>
             </View>
           </View>
           <Button
-            label={open ? "Seguir la partida" : "Empezar partida"}
+            label={
+              open ? t("Seguir la partida", "Resume the game") : t("Empezar partida", "Start game")
+            }
             icon={open ? "play" : "add"}
             onPress={() => router.push("/play")}
           />
           <Button
-            label="Registrar una partida jugada"
+            label={t("Registrar una partida jugada", "Record a game you played")}
             kind="ghost"
             icon="trophy-outline"
             onPress={() => setRecord(true)}
@@ -106,12 +115,12 @@ export default function Games() {
               style={{ color: colors.accent }}
               onPress={() => router.push("/groups")}
             >
-              Ver todos
+              {t("Ver todos", "See all")}
             </T>
           ) : undefined
         }
       >
-        Tus grupos
+        {t("Tus grupos", "Your groups")}
       </SectionTitle>
       <View style={{ paddingHorizontal: 16, gap: 10 }}>
         {myGroups.length === 0 ? (
@@ -121,8 +130,13 @@ export default function Games() {
           >
             <Ionicons name="people-outline" size={20} color={colors.accent} />
             <View style={{ flex: 1 }}>
-              <T>Crea un grupo o únete a uno</T>
-              <T variant="small">Partidas, clasificación y quién tiene cada carta en tu mesa.</T>
+              <T>{t("Crea un grupo o únete a uno", "Create a group or join one")}</T>
+              <T variant="small">
+                {t(
+                  "Partidas, clasificación y quién tiene cada carta en tu mesa.",
+                  "Games, standings and who owns each card at your table.",
+                )}
+              </T>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.text3} />
           </Pressable>
@@ -142,7 +156,10 @@ export default function Games() {
                   <Meta icon="person-outline" text={`${g.members}`} />
                   <Meta icon="trophy-outline" text={`${g.games} partidas`} />
                   {g.lastGameAt && (
-                    <Meta icon="time-outline" text={`última ${playedOn(g.lastGameAt)}`} />
+                    <Meta
+                      icon="time-outline"
+                      text={`${t("última", "last")} ${playedOn(g.lastGameAt)}`}
+                    />
                   )}
                 </View>
               </View>
@@ -152,13 +169,16 @@ export default function Games() {
         )}
       </View>
 
-      <SectionTitle>Últimas partidas</SectionTitle>
+      <SectionTitle>{t("Últimas partidas", "Latest games")}</SectionTitle>
       <View style={{ paddingHorizontal: 16, gap: 10 }}>
         {recent.length === 0 ? (
           <T variant="muted">
             {games.isPending
-              ? "Cargando…"
-              : "Aún no hay partidas. Al acabar una en el contador, regístrala para la clasificación."}
+              ? t("Cargando…", "Loading…")
+              : t(
+                  "Aún no hay partidas. Al acabar una en el contador, regístrala para la clasificación.",
+                  "No games yet. When you finish one on the counter, record it for the standings.",
+                )}
           </T>
         ) : (
           recent.map((g) => <GameCard key={g.id} game={g} />)

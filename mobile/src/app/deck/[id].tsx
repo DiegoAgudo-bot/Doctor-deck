@@ -44,23 +44,24 @@ import { euros } from "~/lib/format";
 import { colors, radius } from "~/lib/theme";
 import { ROLE_LABELS, ROLES } from "@/domain/roles/types";
 import { alert } from "~/components/dialog";
+import { roleName, t } from "~/lib/i18n";
 
 type Tab = "list" | "missing" | "changes" | "combos" | "stats";
 type Analysis = Extract<AnalyzeResponse, { status: "ok" }>;
 
 const TYPE_ORDER: [string, string][] = [
-  ["Creature", "Criaturas"],
+  ["Creature", t("Criaturas", "Creatures")],
   ["Planeswalker", "Planeswalkers"],
-  ["Battle", "Batallas"],
-  ["Instant", "Instantáneos"],
-  ["Sorcery", "Conjuros"],
-  ["Artifact", "Artefactos"],
-  ["Enchantment", "Encantamientos"],
-  ["Land", "Tierras"],
+  ["Battle", t("Batallas", "Battles")],
+  ["Instant", t("Instantáneos", "Instants")],
+  ["Sorcery", t("Conjuros", "Sorceries")],
+  ["Artifact", t("Artefactos", "Artifacts")],
+  ["Enchantment", t("Encantamientos", "Enchantments")],
+  ["Land", t("Tierras", "Lands")],
 ];
 const typeGroup = (typeLine: string) => {
   const front = typeLine.split("//")[0] ?? typeLine;
-  return TYPE_ORDER.find(([t]) => front.includes(t))?.[1] ?? "Otras";
+  return TYPE_ORDER.find(([k]) => front.includes(k))?.[1] ?? t("Otras", "Other");
 };
 
 const STATUS_COLOR: Record<OwnershipItemDTO["status"], string> = {
@@ -148,20 +149,24 @@ export default function DeckScreen() {
                 <IconButton
                   icon={d.liked ? "heart" : "heart-outline"}
                   color={d.liked ? colors.out : colors.text}
-                  label={d.liked ? `Quitar me gusta (${d.likes})` : `Me gusta (${d.likes})`}
+                  label={
+                    d.liked
+                      ? t(`Quitar me gusta (${d.likes})`, `Unlike (${d.likes})`)
+                      : t(`Me gusta (${d.likes})`, `Like (${d.likes})`)
+                  }
                   onPress={() => actions.like.mutate(!d.liked)}
                 />
               )}
               {!d.isMine && (
                 <IconButton
                   icon="copy-outline"
-                  label="Guardar una copia"
+                  label={t("Guardar una copia", "Save a copy")}
                   onPress={() => !actions.copy.isPending && actions.copy.mutate()}
                 />
               )}
               <IconButton
                 icon="share-social-outline"
-                label="Compartir"
+                label={t("Compartir", "Share")}
                 onPress={() =>
                   Share.share({ message: `${d.name} · https://doctordeck.app/decks/${d.id}` })
                 }
@@ -169,19 +174,19 @@ export default function DeckScreen() {
               {d.visibility !== "private" && (
                 <IconButton
                   icon="chatbubble-outline"
-                  label="Comentarios"
+                  label={t("Comentarios", "Comments")}
                   onPress={() => router.push(`/deck-comments/${d.id}`)}
                 />
               )}
               <IconButton
                 icon="download-outline"
-                label="Exportar"
+                label={t("Exportar", "Export")}
                 onPress={() => setSheet("export")}
               />
               {d.isMine && (
                 <IconButton
                   icon="settings-outline"
-                  label="Ajustes del mazo"
+                  label={t("Ajustes del mazo", "Deck settings")}
                   onPress={() => setSheet("settings")}
                 />
               )}
@@ -276,8 +281,11 @@ function useDeckActions(d: DeckViewDTO | undefined) {
       tapFeedback();
       toast(
         swaps.length === 1
-          ? `Hecho: sale ${swaps[0]!.out.card.name}, entra ${swaps[0]!.in.card.name}`
-          : `${swaps.length} cambios aplicados`,
+          ? t(
+              `Hecho: sale ${swaps[0]!.out.card.name}, entra ${swaps[0]!.in.card.name}`,
+              `Done: ${swaps[0]!.out.card.name} out, ${swaps[0]!.in.card.name} in`,
+            )
+          : t(`${swaps.length} cambios aplicados`, `${swaps.length} changes applied`),
       );
       reload();
     },
@@ -289,7 +297,12 @@ function useDeckActions(d: DeckViewDTO | undefined) {
     mutationFn: (swap: SwapDTO) =>
       api(`/api/decks/${d!.id}`, { method: "PATCH", body: { exclude: swap.in.card.oracleId } }),
     onSuccess: (_r, swap) => {
-      toast(`No se volverá a proponer ${swap.in.card.name}`);
+      toast(
+        t(
+          `No se volverá a proponer ${swap.in.card.name}`,
+          `${swap.in.card.name} won't be suggested again`,
+        ),
+      );
       reload();
     },
     onError: (e) => toast(e.message),
@@ -298,7 +311,7 @@ function useDeckActions(d: DeckViewDTO | undefined) {
     mutationFn: (card: CardDTO) => changeCards([{ oracleId: card.oracleId, delta: -1 }]),
     onSuccess: (_r, card) => {
       tapFeedback();
-      toast(`Quitada ${card.name}`);
+      toast(t(`Quitada ${card.name}`, `Removed ${card.name}`));
       reload();
     },
     onError: (e) => toast(e.message),
@@ -307,7 +320,11 @@ function useDeckActions(d: DeckViewDTO | undefined) {
     mutationFn: (inWishlist: boolean) =>
       api(`/api/decks/${d!.id}`, { method: "PATCH", body: { inWishlist } }),
     onSuccess: (_r, on) => {
-      toast(on ? "Lo que falta va a tu lista de deseos" : "Fuera de tu lista de deseos");
+      toast(
+        on
+          ? t("Lo que falta va a tu lista de deseos", "What's missing goes to your wishlist")
+          : t("Fuera de tu lista de deseos", "Off your wishlist"),
+      );
       reload();
     },
     onError: (e) => toast(e.message),
@@ -324,7 +341,7 @@ function useDeckActions(d: DeckViewDTO | undefined) {
         },
       }),
     onSuccess: (r) => {
-      toast("Copia guardada en tus mazos (privada)");
+      toast(t("Copia guardada en tus mazos (privada)", "Copy saved to your decks (private)"));
       qc.invalidateQueries({ queryKey: ["decks"] });
       router.replace(`/deck/${r.id}`);
     },
@@ -357,7 +374,7 @@ function useDeckActions(d: DeckViewDTO | undefined) {
         },
       }),
     onSuccess: () => {
-      toast("Comandante guardado");
+      toast(t("Comandante guardado", "Commander saved"));
       reload();
     },
     onError: (e) => toast(e.message),
@@ -426,8 +443,8 @@ function DeckBody({
       const roleStat = new Map(a.roles.map((r) => [r.role, r]));
       const roleTitle = (role: (typeof ROLES)[number]) => {
         const s = roleStat.get(role);
-        const label = ROLE_LABELS[role];
-        return `${label.charAt(0).toUpperCase()}${label.slice(1)}${s && s.min > 0 ? ` · mínimo ${s.min}` : ""}`;
+        const label = roleName(role);
+        return `${label.charAt(0).toUpperCase()}${label.slice(1)}${s && s.min > 0 ? ` · ${t("mínimo", "minimum")} ${s.min}` : ""}`;
       };
       for (const c of a.cards) {
         const g = groupBy === "role" ? roleTitle(c.primaryRole) : typeGroup(c.card.typeLine);
@@ -436,14 +453,18 @@ function DeckBody({
       const order =
         groupBy === "role"
           ? ROLES.map(roleTitle)
-          : ["Comandante", ...TYPE_ORDER.map(([, l]) => l), "Otras"];
+          : [t("Comandante", "Commander"), ...TYPE_ORDER.map(([, l]) => l), t("Otras", "Other")];
       const commanderRows = a.commanders.map((card) => ({
         card,
         quantity: 1,
         deckCard: null as DeckCardDTO | null,
       }));
       return [
-        { title: a.commanders.length > 1 ? "Comandantes" : "Comandante", data: commanderRows },
+        {
+          title:
+            a.commanders.length > 1 ? t("Comandantes", "Commanders") : t("Comandante", "Commander"),
+          data: commanderRows,
+        },
         ...order
           .filter((g) => groups.has(g))
           .map((g) => {
@@ -462,13 +483,13 @@ function DeckBody({
       const other = a.ownership.items.filter((i) => i.fromOtherDecks > 0 && i.toBuy === 0);
       return [
         {
-          title: `Te faltan (${toBuy.reduce((s, i) => s + i.toBuy, 0)})`,
+          title: `${t("Te faltan", "Missing")} (${toBuy.reduce((s, i) => s + i.toBuy, 0)})`,
           data: toBuy.map((i) => ({ card: i.card, quantity: i.toBuy, price: i.price })),
         },
         ...(other.length > 0
           ? [
               {
-                title: `En otros mazos (${other.length})`,
+                title: `${t("En otros mazos", "In other decks")} (${other.length})`,
                 data: other.map((i) => ({
                   card: i.card,
                   quantity: i.fromOtherDecks,
@@ -493,15 +514,20 @@ function DeckBody({
       <View style={{ paddingHorizontal: 16, gap: 12 }}>
         <Segmented<Tab>
           options={[
-            { key: "list", label: "Lista" },
+            { key: "list", label: t("Lista", "List") },
             {
               key: "missing",
               label:
-                a && a.ownership.totals.toBuy > 0 ? `Falta ${a.ownership.totals.toBuy}` : "Falta",
+                a && a.ownership.totals.toBuy > 0
+                  ? `${t("Falta", "Missing")} ${a.ownership.totals.toBuy}`
+                  : t("Falta", "Missing"),
             },
             {
               key: "changes",
-              label: a && a.swaps.length > 0 ? `Cambios ${a.swaps.length}` : "Cambios",
+              label:
+                a && a.swaps.length > 0
+                  ? `${t("Cambios", "Changes")} ${a.swaps.length}`
+                  : t("Cambios", "Changes"),
             },
             {
               key: "combos",
@@ -510,7 +536,7 @@ function DeckBody({
                   ? `Combos ${combos.included.length}`
                   : "Combos",
             },
-            { key: "stats", label: "Datos" },
+            { key: "stats", label: t("Datos", "Stats") },
           ]}
           value={tab}
           onChange={setTab}
@@ -519,7 +545,9 @@ function DeckBody({
         {(refreshing || busy) && a && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <ActivityIndicator size="small" color={colors.accent} />
-            <T variant="small">{busy ? "Guardando…" : "Recalculando…"}</T>
+            <T variant="small">
+              {busy ? t("Guardando…", "Saving…") : t("Recalculando…", "Recalculating…")}
+            </T>
           </View>
         )}
         {tab === "list" && a && (
@@ -527,36 +555,52 @@ function DeckBody({
             <View style={{ flex: 1 }}>
               <Segmented<"type" | "role">
                 options={[
-                  { key: "type", label: "Por tipo" },
-                  { key: "role", label: "Por rol" },
+                  { key: "type", label: t("Por tipo", "By type") },
+                  { key: "role", label: t("Por rol", "By role") },
                 ]}
                 value={groupBy}
                 onChange={setGroupBy}
               />
             </View>
             {mine && (
-              <Button label="Añadir" icon="add" kind="secondary" onPress={() => setPanel("add")} />
+              <Button
+                label={t("Añadir", "Add")}
+                icon="add"
+                kind="secondary"
+                onPress={() => setPanel("add")}
+              />
             )}
           </View>
         )}
         {tab === "list" && mine && a && (
           <T variant="small">
-            Toca una carta para cambiar sus copias, su edición o sus roles. El candado hace que
-            nunca se proponga sacarla.
+            {t(
+              "Toca una carta para cambiar sus copias, su edición o sus roles. El candado hace que nunca se proponga sacarla.",
+              "Tap a card to change its copies, printing or roles. The lock means it's never suggested to cut.",
+            )}
           </T>
         )}
         {tab === "changes" && mine && a && a.swaps.length > 1 && (
           <Button
-            label={`Aplicar los ${a.swaps.length} cambios`}
+            label={t(
+              `Aplicar los ${a.swaps.length} cambios`,
+              `Apply the ${a.swaps.length} changes`,
+            )}
             icon="checkmark-done"
             disabled={waiting}
             onPress={() =>
               alert(
-                `¿Aplicar los ${a.swaps.length} cambios?`,
-                "Se guardan en el mazo. Puedes deshacerlos editando la lista.",
+                t(
+                  `¿Aplicar los ${a.swaps.length} cambios?`,
+                  `Apply the ${a.swaps.length} changes?`,
+                ),
+                t(
+                  "Se guardan en el mazo. Puedes deshacerlos editando la lista.",
+                  "They're saved to the deck. You can undo them by editing the list.",
+                ),
                 [
-                  { text: "Cancelar", style: "cancel" },
-                  { text: "Aplicar", onPress: () => actions.apply.mutate(a.swaps) },
+                  { text: t("Cancelar", "Cancel"), style: "cancel" },
+                  { text: t("Aplicar", "Apply"), onPress: () => actions.apply.mutate(a.swaps) },
                 ],
               )
             }
@@ -567,24 +611,30 @@ function DeckBody({
         {tab === "missing" && a && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <T style={{ flex: 1 }}>
-              Comprar lo que falta:{" "}
+              {t("Comprar lo que falta:", "Buy what's missing:")}{" "}
               <T style={{ fontWeight: "700" }}>{euros(a.ownership.totals.cost)}</T>
             </T>
             {mine && (
               <Chip
-                label="En deseos"
+                label={t("En deseos", "On wishlist")}
                 icon={deck.inWishlist ? "heart" : "heart-outline"}
                 active={deck.inWishlist}
                 accessibilityLabel={
                   deck.inWishlist
-                    ? "Quitar lo que falta de tu lista de deseos"
-                    : "Añadir lo que falta a tu lista de deseos"
+                    ? t(
+                        "Quitar lo que falta de tu lista de deseos",
+                        "Remove what's missing from your wishlist",
+                      )
+                    : t(
+                        "Añadir lo que falta a tu lista de deseos",
+                        "Add what's missing to your wishlist",
+                      )
                 }
                 onPress={() => actions.wishlist.mutate(!deck.inWishlist)}
               />
             )}
             <Button
-              label="Compartir"
+              label={t("Compartir", "Share")}
               kind="secondary"
               icon="share-outline"
               onPress={() =>
@@ -606,7 +656,7 @@ function DeckBody({
     return (
       <View style={{ flex: 1 }}>
         {header}
-        <Loading label="Analizando el mazo…" />
+        <Loading label={t("Analizando el mazo…", "Analyzing the deck…")} />
       </View>
     );
   }
@@ -663,8 +713,10 @@ function DeckBody({
               )}
               {tab === "changes" && a && a.swaps.length === 0 && (
                 <T variant="muted" style={{ paddingHorizontal: 16 }}>
-                  Con tu colección no hay cambios que lo mejoren ahora mismo. Añade cartas a tu
-                  colección o mira «Me falta» para ver qué comprar.
+                  {t(
+                    "Con tu colección no hay cambios que lo mejoren ahora mismo. Añade cartas a tu colección o mira «Falta» para ver qué comprar.",
+                    "No changes from your collection improve it right now. Add cards to your collection or check “Missing” to see what to buy.",
+                  )}
                 </T>
               )}
             </>
@@ -740,14 +792,18 @@ function DeckBody({
               tab === "list" &&
               !a?.commanders.some((c) => c.oracleId === item.card.oracleId)
                 ? () =>
-                    alert(`¿Quitar ${item.card.name}?`, "Se quita una copia del mazo.", [
-                      { text: "Cancelar", style: "cancel" },
-                      {
-                        text: "Quitar",
-                        style: "destructive",
-                        onPress: () => actions.remove.mutate(item.card),
-                      },
-                    ])
+                    alert(
+                      t(`¿Quitar ${item.card.name}?`, `Remove ${item.card.name}?`),
+                      t("Se quita una copia del mazo.", "One copy is removed from the deck."),
+                      [
+                        { text: t("Cancelar", "Cancel"), style: "cancel" },
+                        {
+                          text: t("Quitar", "Remove"),
+                          style: "destructive",
+                          onPress: () => actions.remove.mutate(item.card),
+                        },
+                      ],
+                    )
                 : undefined
             }
           />
@@ -771,7 +827,12 @@ function CommanderPicker({
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id].slice(-2)));
   return (
     <View style={{ gap: 8 }}>
-      <Banner text="Esta lista no dice cuál es el comandante. Elígelo (dos si son pareja)." />
+      <Banner
+        text={t(
+          "Esta lista no dice cuál es el comandante. Elígelo (dos si son pareja).",
+          "This list doesn't say who the commander is. Choose it (two if they're partners).",
+        )}
+      />
       {candidates.map((c) => (
         <Pressable
           key={c.oracleId}
@@ -799,7 +860,11 @@ function CommanderPicker({
         </Pressable>
       ))}
       <Button
-        label={picked.length > 1 ? "Usar estos comandantes" : "Usar este comandante"}
+        label={
+          picked.length > 1
+            ? t("Usar estos comandantes", "Use these commanders")
+            : t("Usar este comandante", "Use this commander")
+        }
         disabled={picked.length === 0}
         onPress={() => onChoose(picked)}
       />
@@ -821,8 +886,8 @@ function Cover({
 }) {
   const commander = a?.commanders[0];
   const art = artUri(commander?.imageUrl);
-  const t = a?.ownership.totals;
-  const pct = t && t.cards > 0 ? Math.round((t.have / t.cards) * 100) : null;
+  const tot = a?.ownership.totals;
+  const pct = tot && tot.cards > 0 ? Math.round((tot.have / tot.cards) * 100) : null;
   return (
     <View>
       {art ? (
@@ -850,19 +915,36 @@ function Cover({
               size={12}
             />
           )}
-          <Pill text={`${a?.totalCards ?? deck.cardCount} cartas`} />
+          <Pill text={`${a?.totalCards ?? deck.cardCount} ${t("cartas", "cards")}`} />
           {bracket !== null && <Pill text={`Bracket ${bracket}`} />}
-          {pct !== null && <Pill text={`Tienes ${pct} %`} color={colors.owned} />}
-          {t && t.toBuy > 0 && (
-            <Pill text={`Faltan ${t.toBuy} · ${euros(t.cost)}`} color={colors.warn} />
+          {pct !== null && (
+            <Pill text={t(`Tienes ${pct} %`, `You own ${pct}%`)} color={colors.owned} />
           )}
-          {t && t.fromOtherDecks > 0 && (
+          {tot && tot.toBuy > 0 && (
+            <Pill
+              text={t(
+                `Faltan ${tot.toBuy} · ${euros(tot.cost)}`,
+                `Missing ${tot.toBuy} · ${euros(tot.cost)}`,
+              )}
+              color={colors.warn}
+            />
+          )}
+          {tot && tot.fromOtherDecks > 0 && (
             <Pressable
               onPress={onOtherDecks}
               accessibilityRole="button"
-              accessibilityLabel={`${t.fromOtherDecks} en otros mazos: ver cuáles`}
+              accessibilityLabel={t(
+                `${tot.fromOtherDecks} en otros mazos: ver cuáles`,
+                `${tot.fromOtherDecks} in other decks: see which`,
+              )}
             >
-              <Pill text={`${t.fromOtherDecks} en otros mazos ›`} color={colors.inuse} />
+              <Pill
+                text={t(
+                  `${tot.fromOtherDecks} en otros mazos ›`,
+                  `${tot.fromOtherDecks} in other decks ›`,
+                )}
+                color={colors.inuse}
+              />
             </Pressable>
           )}
         </View>
@@ -947,7 +1029,12 @@ function CardLine({
           accessibilityRole="button"
           accessibilityState={{ selected: lock.on }}
           accessibilityLabel={
-            lock.on ? `Desbloquear ${card.name}` : `Bloquear ${card.name} (no se propondrá sacarla)`
+            lock.on
+              ? t(`Desbloquear ${card.name}`, `Unlock ${card.name}`)
+              : t(
+                  `Bloquear ${card.name} (no se propondrá sacarla)`,
+                  `Lock ${card.name} (it won't be suggested to cut)`,
+                )
           }
         >
           <Ionicons
@@ -987,7 +1074,7 @@ function SwapRow({
           <CardThumb uri={swap.out.card.imageUrl} width={40} />
           <View style={{ flex: 1 }}>
             <T variant="small" style={{ color: colors.out }}>
-              Quita
+              {t("Quita", "Out")}
             </T>
             <T numberOfLines={2}>{swap.out.card.name}</T>
           </View>
@@ -1000,7 +1087,7 @@ function SwapRow({
           <CardThumb uri={swap.in.card.imageUrl} width={40} />
           <View style={{ flex: 1 }}>
             <T variant="small" style={{ color: colors.in }}>
-              Mete
+              {t("Mete", "In")}
             </T>
             <T numberOfLines={2}>{swap.in.card.name}</T>
           </View>
@@ -1010,14 +1097,14 @@ function SwapRow({
       {actions && (
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Button
-            label="Descartar"
+            label={t("Descartar", "Dismiss")}
             kind="ghost"
             onPress={actions.discard}
             disabled={actions.disabled}
             style={{ flex: 1, minHeight: 40 }}
           />
           <Button
-            label="Aplicar"
+            label={t("Aplicar", "Apply")}
             icon="checkmark"
             onPress={actions.apply}
             disabled={actions.disabled}
@@ -1036,7 +1123,7 @@ function Stats({ analysis: a, bracket }: { analysis: Analysis; bracket: Analysis
   const max = Math.max(1, ...curve.map(([, v]) => v));
   return (
     <View style={{ paddingHorizontal: 16, gap: 16 }}>
-      <T variant="label">Curva de maná</T>
+      <T variant="label">{t("Curva de maná", "Mana curve")}</T>
       <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 6, height: 120 }}>
         {curve.map(([cmc, n]) => (
           <View key={cmc} style={{ flex: 1, alignItems: "center", gap: 4 }}>
@@ -1053,7 +1140,7 @@ function Stats({ analysis: a, bracket }: { analysis: Analysis; bracket: Analysis
           </View>
         ))}
       </View>
-      <T variant="label">Roles (mínimos recomendados)</T>
+      <T variant="label">{t("Roles (mínimos recomendados)", "Roles (recommended minimums)")}</T>
       {a.roles.map((r) => {
         const ok = r.count >= r.min;
         return (
@@ -1086,7 +1173,11 @@ function Stats({ analysis: a, bracket }: { analysis: Analysis; bracket: Analysis
           · {r}
         </T>
       ))}
-      {!bracket.combosChecked && <T variant="small">Buscando combos para afinarlo…</T>}
+      {!bracket.combosChecked && (
+        <T variant="small">
+          {t("Buscando combos para afinarlo…", "Looking for combos to refine it…")}
+        </T>
+      )}
       <OpeningHandPanel cards={a.cards} />
     </View>
   );

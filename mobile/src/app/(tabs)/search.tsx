@@ -20,6 +20,7 @@ import {
 import { euros, thousands } from "~/lib/format";
 import { useDebounced } from "~/lib/hooks";
 import { colors, manaColors } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 const PAGE = 45;
 const COLORS = ["W", "U", "B", "R", "G", "C"] as const;
@@ -39,7 +40,10 @@ const CatalogTile = memo(function CatalogTile({
       onPress={() => router.push(`/card/${item.oracleId}`)}
       onLongPress={() => onAdd(item)}
       accessibilityLabel={item.name}
-      accessibilityHint="Mantén pulsada para añadir 1 copia a tu colección"
+      accessibilityHint={t(
+        "Mantén pulsada para añadir 1 copia a tu colección",
+        "Press and hold to add 1 copy to your collection",
+      )}
       style={({ pressed }) => ({ width, gap: 3, opacity: pressed ? 0.8 : 1 })}
     >
       <CardThumb uri={item.imageUrl} width={width} name={item.name} />
@@ -105,7 +109,7 @@ export default function Search() {
     <View style={{ flex: 1 }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 10, gap: 10 }}>
         <SearchField
-          placeholder="Cartas, tus mazos o gente"
+          placeholder={t("Cartas, tus mazos o gente", "Cards, your decks or people")}
           value={q}
           onChangeText={setQ}
           onClear={() => setQ("")}
@@ -118,7 +122,11 @@ export default function Search() {
           contentContainerStyle={{ gap: 6, alignItems: "center" }}
         >
           <Chip
-            label={chips.length > 0 ? `Filtros · ${chips.length}` : "Filtros"}
+            label={
+              chips.length > 0
+                ? t(`Filtros · ${chips.length}`, `Filters · ${chips.length}`)
+                : t("Filtros", "Filters")
+            }
             icon="options-outline"
             active={chips.length > 0}
             onPress={() => setSheet(true)}
@@ -152,7 +160,7 @@ export default function Search() {
               key={c.key}
               label={c.label}
               trailingIcon="close"
-              accessibilityLabel={`Quitar el filtro ${c.label}`}
+              accessibilityLabel={t(`Quitar el filtro ${c.label}`, `Remove the ${c.label} filter`)}
               onPress={() => setF(c.clear)}
             />
           ))}
@@ -162,7 +170,13 @@ export default function Search() {
             ))}
         </ScrollView>
         {total !== undefined && (
-          <T variant="small">{thousands(total)} cartas · mantén pulsada una para añadir 1 copia</T>
+          <T variant="small">
+            {thousands(total)}{" "}
+            {t(
+              "cartas · mantén pulsada una para añadir 1 copia",
+              "cards · press and hold one to add 1 copy",
+            )}
+          </T>
         )}
       </View>
       {list.isPending ? (
@@ -178,12 +192,15 @@ export default function Search() {
           )}
           <Empty
             icon="search"
-            title="Ninguna carta"
-            text="Prueba con otro nombre (en inglés) o quita filtros."
+            title={t("Ninguna carta", "No cards")}
+            text={t(
+              "Prueba con otro nombre (en inglés) o quita filtros.",
+              "Try another name or remove filters.",
+            )}
             action={
               chips.length > 0 || filters.colors.length > 0 ? (
                 <Button
-                  label="Quitar filtros"
+                  label={t("Quitar filtros", "Clear filters")}
                   kind="secondary"
                   onPress={() => setFilters(EMPTY_FILTERS)}
                 />
@@ -216,18 +233,22 @@ export default function Search() {
       <Sheet
         open={sheet}
         onClose={() => setSheet(false)}
-        title="Filtrar cartas"
+        title={t("Filtrar cartas", "Filter cards")}
         footer={
           <View style={{ flexDirection: "row", gap: 10 }}>
             <Button
-              label="Quitar filtros"
+              label={t("Quitar filtros", "Clear filters")}
               kind="secondary"
               disabled={chips.length === 0 && filters.colors.length === 0}
               onPress={() => setFilters(EMPTY_FILTERS)}
               style={{ flex: 1 }}
             />
             <Button
-              label={total !== undefined ? `Ver ${thousands(total)}` : "Ver"}
+              label={
+                total !== undefined
+                  ? t(`Ver ${thousands(total)}`, `Show ${thousands(total)}`)
+                  : t("Ver", "Show")
+              }
               onPress={() => setSheet(false)}
               style={{ flex: 1 }}
             />

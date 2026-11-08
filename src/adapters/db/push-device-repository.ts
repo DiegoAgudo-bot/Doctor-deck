@@ -1,3 +1,4 @@
+import { isLocale, type Locale } from "@/domain/i18n/locale";
 import type { PushDeviceRepository, PushPlatform } from "@/domain/ports/push";
 import type { Db } from "./prisma";
 
@@ -6,7 +7,7 @@ export class PrismaPushDeviceRepository implements PushDeviceRepository {
 
   async register(
     userId: string,
-    device: { token: string; platform: PushPlatform; appVersion: string | null },
+    device: { token: string; platform: PushPlatform; appVersion: string | null; locale: Locale },
   ) {
     await this.db.pushDevice.upsert({
       where: { token: device.token },
@@ -15,6 +16,7 @@ export class PrismaPushDeviceRepository implements PushDeviceRepository {
         userId,
         platform: device.platform,
         appVersion: device.appVersion,
+        locale: device.locale,
         lastSeenAt: new Date(),
       },
     });
@@ -26,10 +28,11 @@ export class PrismaPushDeviceRepository implements PushDeviceRepository {
 
   async tokensFor(userIds: readonly string[]) {
     if (userIds.length === 0) return [];
-    return this.db.pushDevice.findMany({
+    const rows = await this.db.pushDevice.findMany({
       where: { userId: { in: [...userIds] } },
-      select: { userId: true, token: true },
+      select: { userId: true, token: true, locale: true },
     });
+    return rows.map((r) => ({ ...r, locale: isLocale(r.locale) ? r.locale : ("es" as const) }));
   }
 
   async remove(tokens: readonly string[]) {

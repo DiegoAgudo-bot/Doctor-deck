@@ -42,15 +42,16 @@ import {
 } from "~/lib/collection-filters";
 import { colors, radius } from "~/lib/theme";
 import { alert } from "~/components/dialog";
+import { locale, t } from "~/lib/i18n";
 
 const PAGE = 60;
 // Se ordena por lo que vale una copia (lo que se enseña), no por lo que valen todas juntas.
 const SORTS = [
-  { key: "precio", label: "Precio" },
-  { key: "nombre", label: "Nombre" },
-  { key: "recientes", label: "Recientes" },
-  { key: "copias", label: "Copias" },
-  { key: "coste", label: "Coste" },
+  { key: "precio", label: t("Precio", "Price") },
+  { key: "nombre", label: t("Nombre", "Name") },
+  { key: "recientes", label: t("Recientes", "Recent") },
+  { key: "copias", label: t("Copias", "Copies") },
+  { key: "coste", label: t("Coste", "Mana value") },
 ] as const;
 type Sort = (typeof SORTS)[number]["key"];
 const SORT_KEYS = SORTS.map((s) => s.key);
@@ -124,12 +125,12 @@ export default function Collection() {
         <View style={{ marginRight: 10, flexDirection: "row", alignItems: "center", gap: 4 }}>
           <IconButton
             icon="trending-up"
-            label="Precios de tu colección"
+            label={t("Precios de tu colección", "Your collection's prices")}
             onPress={() => router.push("/collection-prices")}
           />
           <IconButton
             icon={grid ? "list" : "grid-outline"}
-            label={grid ? "Ver en lista" : "Ver en rejilla"}
+            label={grid ? t("Ver en lista", "List view") : t("Ver en rejilla", "Grid view")}
             onPress={() => setGrid(!grid)}
           />
           <Bell />
@@ -146,7 +147,7 @@ export default function Collection() {
     }
   };
   const clearFilters = () => setFilters(EMPTY_FILTERS);
-  const sortLabel = SORTS.find((s) => s.key === sort)?.label ?? "Orden";
+  const sortLabel = SORTS.find((s) => s.key === sort)?.label ?? t("Orden", "Sort");
 
   const columns = grid ? 2 : 1;
   const tile = (width - 16 * 2 - 8 * (columns - 1)) / columns;
@@ -155,7 +156,10 @@ export default function Collection() {
     <View style={{ flex: 1 }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 10, gap: 10 }}>
         <SearchField
-          placeholder="Buscar en tu colección (cualquier idioma)"
+          placeholder={t(
+            "Buscar en tu colección (cualquier idioma)",
+            "Search your collection (any language)",
+          )}
           value={q}
           onChangeText={setQ}
           onClear={() => setQ("")}
@@ -171,11 +175,15 @@ export default function Collection() {
             label={sortLabel}
             icon={desc ? "arrow-down" : "arrow-up"}
             trailingIcon="chevron-down"
-            accessibilityLabel={`Ordenar: ${sortLabel}`}
+            accessibilityLabel={t(`Ordenar: ${sortLabel}`, `Sort: ${sortLabel}`)}
             onPress={() => setSheet("sort")}
           />
           <Chip
-            label={chips.length > 0 ? `Filtros · ${chips.length}` : "Filtros"}
+            label={
+              chips.length > 0
+                ? t(`Filtros · ${chips.length}`, `Filters · ${chips.length}`)
+                : t("Filtros", "Filters")
+            }
             icon="options-outline"
             active={chips.length > 0}
             onPress={() => setSheet("filters")}
@@ -185,15 +193,16 @@ export default function Collection() {
               key={c.key}
               label={c.label}
               trailingIcon="close"
-              accessibilityLabel={`Quitar el filtro ${c.label}`}
+              accessibilityLabel={t(`Quitar el filtro ${c.label}`, `Remove the ${c.label} filter`)}
               onPress={() => setF(c.clear)}
             />
           ))}
         </ScrollView>
         {first && (
           <T variant="small">
-            {thousands(first.total.cards)} {by === "copy" ? "filas" : "cartas"} ·{" "}
-            {thousands(first.total.copies)} copias ·{" "}
+            {thousands(first.total.cards)}{" "}
+            {by === "copy" ? t("filas", "rows") : t("cartas", "cards")} ·{" "}
+            {thousands(first.total.copies)} {t("copias", "copies")} ·{" "}
             <T variant="small" style={{ color: colors.text, fontWeight: "600" }}>
               {euros(first.total.value)}
             </T>
@@ -209,17 +218,20 @@ export default function Collection() {
         first && first.overall.cards === 0 ? (
           <Empty
             icon="albums-outline"
-            title="Tu colección está vacía"
-            text="Busca tus cartas y añádelas, importa el CSV de tu colección o compártelo con Doctor Deck desde otra app."
+            title={t("Tu colección está vacía", "Your collection is empty")}
+            text={t(
+              "Busca tus cartas y añádelas, importa el CSV de tu colección o compártelo con Doctor Deck desde otra app.",
+              "Search for your cards and add them, import your collection's CSV or share it with Doctor Deck from another app.",
+            )}
             action={
               <View style={{ gap: 8, alignSelf: "stretch" }}>
                 <Button
-                  label="Buscar una carta"
+                  label={t("Buscar una carta", "Search for a card")}
                   icon="search"
                   onPress={() => router.push("/search")}
                 />
                 <Button
-                  label="Importar fichero (CSV o lista)"
+                  label={t("Importar fichero (CSV o lista)", "Import a file (CSV or list)")}
                   icon="document-outline"
                   kind="secondary"
                   onPress={importFile}
@@ -230,11 +242,11 @@ export default function Collection() {
         ) : (
           <Empty
             icon="search"
-            title="Nada con esos filtros"
+            title={t("Nada con esos filtros", "Nothing with those filters")}
             action={
               chips.length > 0 || q ? (
                 <Button
-                  label="Quitar filtros"
+                  label={t("Quitar filtros", "Clear filters")}
                   kind="secondary"
                   onPress={() => {
                     clearFilters();
@@ -289,7 +301,11 @@ export default function Collection() {
               right={
                 sort === s.key ? (
                   <Chip
-                    label={desc ? "Mayor primero" : "Menor primero"}
+                    label={
+                      desc
+                        ? t("Mayor primero", "Highest first")
+                        : t("Menor primero", "Lowest first")
+                    }
                     icon={desc ? "arrow-down" : "arrow-up"}
                     onPress={() => setDesc(!desc)}
                   />
@@ -298,37 +314,44 @@ export default function Collection() {
             />
           ))}
         </View>
-        <T variant="label">Ver</T>
+        <T variant="label">{t("Ver", "View")}</T>
         <Segmented<"copy" | "card">
           options={[
-            { key: "copy", label: "Cada copia" },
-            { key: "card", label: "Por carta" },
+            { key: "copy", label: t("Cada copia", "Each copy") },
+            { key: "card", label: t("Por carta", "By card") },
           ]}
           value={by}
           onChange={setBy}
         />
         <T variant="small">
           {by === "copy"
-            ? "Una fila por edición, foil, idioma y estado."
-            : "Todas las copias de una carta juntas."}
+            ? t(
+                "Una fila por edición, foil, idioma y estado.",
+                "One row per printing, foil, language and condition.",
+              )
+            : t("Todas las copias de una carta juntas.", "All copies of a card together.")}
         </T>
       </Sheet>
 
       <Sheet
         open={sheet === "filters"}
         onClose={() => setSheet(null)}
-        title="Filtrar"
+        title={t("Filtrar", "Filter")}
         footer={
           <View style={{ flexDirection: "row", gap: 10 }}>
             <Button
-              label="Quitar filtros"
+              label={t("Quitar filtros", "Clear filters")}
               kind="secondary"
               disabled={chips.length === 0}
               onPress={clearFilters}
               style={{ flex: 1 }}
             />
             <Button
-              label={first ? `Ver ${thousands(first.total.cards)}` : "Ver"}
+              label={
+                first
+                  ? t(`Ver ${thousands(first.total.cards)}`, `Show ${thousands(first.total.cards)}`)
+                  : t("Ver", "Show")
+              }
               onPress={() => setSheet(null)}
               style={{ flex: 1 }}
             />
@@ -345,32 +368,43 @@ export default function Collection() {
 
       <Sheet open={sheet === "add"} onClose={() => setSheet(null)} title="Añadir cartas">
         <OptionRow
-          label="Escanear cartas"
-          detail="Con la cámara, una tras otra (también en otros idiomas)"
+          label={t("Escanear cartas", "Scan cards")}
+          detail={t(
+            "Con la cámara, una tras otra (también en otros idiomas)",
+            "With the camera, one after another (other languages too)",
+          )}
           onPress={() => {
             setSheet(null);
             router.push("/scan");
           }}
         />
         <OptionRow
-          label="Buscar una carta"
-          detail="Elige edición, foil, idioma y estado"
+          label={t("Buscar una carta", "Search for a card")}
+          detail={t(
+            "Elige edición, foil, idioma y estado",
+            "Choose printing, foil, language and condition",
+          )}
           onPress={() => {
             setSheet(null);
             router.push("/search");
           }}
         />
         <OptionRow
-          label="Importar fichero"
-          detail="El CSV de tu colección o una lista de texto"
+          label={t("Importar fichero", "Import a file")}
+          detail={t(
+            "El CSV de tu colección o una lista de texto",
+            "Your collection's CSV or a text list",
+          )}
           onPress={() => {
             setSheet(null);
             importFile();
           }}
         />
         <T variant="small">
-          Desde otra app también puedes compartir la colección o una lista con Doctor Deck (menú
-          compartir de Android).
+          {t(
+            "Desde otra app también puedes compartir la colección o una lista con Doctor Deck (menú compartir de Android).",
+            "From another app you can also share your collection or a list with Doctor Deck (Android's share menu).",
+          )}
         </T>
       </Sheet>
     </View>
@@ -394,7 +428,9 @@ const cardLine = (c: CollectionCardDTO) =>
 const variantLine = (c: CollectionCardDTO) => {
   const p = c.card.printing;
   return [
-    p ? `${p.setCode.toUpperCase()} #${p.collectorNumber}` : (c.sets[0] ?? "Edición sin indicar"),
+    p
+      ? `${p.setCode.toUpperCase()} #${p.collectorNumber}`
+      : (c.sets[0] ?? t("Edición sin indicar", "Printing not specified")),
     c.variant?.language && c.variant.language !== "en" ? c.variant.language.toUpperCase() : null,
     conditionShort(c.variant?.condition ?? null),
   ]
@@ -456,7 +492,7 @@ function SetLine({ item }: { item: CollectionCardDTO }) {
   if (!set) {
     return (
       <T variant="small" style={tileStyles.muted} numberOfLines={1}>
-        Edición desconocida
+        {t("Edición desconocida", "Unknown printing")}
       </T>
     );
   }
@@ -484,23 +520,23 @@ const TONE = { up: colors.in, down: colors.out, flat: colors.text3 } as const;
 
 /** Cuánto ha cambiado lo que valen mis copias desde que las añadí: «▲ +12 % desde nov 2025». */
 function SinceAddedLine({ item }: { item: CollectionCardDTO }) {
-  const t = sinceAddedTrend(item.sinceAdded);
-  if (!t) {
+  const trend = sinceAddedTrend(item.sinceAdded, locale);
+  if (!trend) {
     return (
       <T variant="small" style={tileStyles.muted} numberOfLines={1}>
-        Sin precio de entrada
+        {t("Sin precio de entrada", "No purchase price")}
       </T>
     );
   }
   return (
-    <T variant="small" numberOfLines={1} style={{ color: TONE[t.tone] }}>
-      {t.arrow}{" "}
-      <T variant="small" style={{ color: TONE[t.tone], fontWeight: "700" }}>
-        {t.percent}
+    <T variant="small" numberOfLines={1} style={{ color: TONE[trend.tone] }}>
+      {trend.arrow}{" "}
+      <T variant="small" style={{ color: TONE[trend.tone], fontWeight: "700" }}>
+        {trend.percent}
       </T>
       <T variant="small" style={tileStyles.muted}>
         {" "}
-        desde {t.month}
+        {t("desde", "since")} {trend.month}
       </T>
     </T>
   );
@@ -540,7 +576,9 @@ const GridTile = memo(function GridTile({
             {item.foilQuantity > 0 && <FoilMark size={10} />}
             {item.inUse > 0 && (
               <T variant="small" style={{ color: colors.inuse, fontSize: 11 }} numberOfLines={1}>
-                {item.inUse >= item.quantity ? "en mazos" : `${item.inUse} en mazos`}
+                {item.inUse >= item.quantity
+                  ? t("en mazos", "in decks")
+                  : t(`${item.inUse} en mazos`, `${item.inUse} in decks`)}
               </T>
             )}
           </View>

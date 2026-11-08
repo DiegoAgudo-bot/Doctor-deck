@@ -12,11 +12,12 @@ import { tapFeedback } from "~/lib/feedback";
 import { ago } from "~/lib/format";
 import { colors } from "~/lib/theme";
 import { alert } from "~/components/dialog";
+import { t } from "~/lib/i18n";
 
 const REASONS = [
   { reason: "spam", label: "Spam" },
-  { reason: "abuse", label: "Insultos o acoso" },
-  { reason: "other", label: "Otro motivo" },
+  { reason: "abuse", label: t("Insultos o acoso", "Insults or harassment") },
+  { reason: "other", label: t("Otro motivo", "Other reason") },
 ] as const;
 
 /** Comentarios de un mazo público u oculto: leer, escribir, borrar, denunciar y cerrarlos. */
@@ -59,8 +60,11 @@ export default function DeckComments() {
     onSuccess: (r) => {
       toast(
         r.hidden
-          ? "Denunciado: el comentario queda oculto hasta revisarlo"
-          : "Gracias, lo revisaremos",
+          ? t(
+              "Denunciado: el comentario queda oculto hasta revisarlo",
+              "Reported: the comment stays hidden until reviewed",
+            )
+          : t("Gracias, lo revisaremos", "Thanks, we'll review it"),
       );
       comments.refetch();
     },
@@ -75,28 +79,41 @@ export default function DeckComments() {
   const menu = (c: CommentDTO) =>
     alert("Comentario", undefined, [
       ...(c.canDelete
-        ? [{ text: "Borrar", style: "destructive" as const, onPress: () => remove.mutate(c) }]
+        ? [
+            {
+              text: t("Borrar", "Delete"),
+              style: "destructive" as const,
+              onPress: () => remove.mutate(c),
+            },
+          ]
         : []),
       ...(!c.mine
         ? REASONS.map((r) => ({
-            text: `Denunciar: ${r.label}`,
+            text: t(`Denunciar: ${r.label}`, `Report: ${r.label}`),
             onPress: () => report.mutate({ c, reason: r.reason }),
           }))
         : []),
-      { text: "Cancelar", style: "cancel" as const },
+      { text: t("Cancelar", "Cancel"), style: "cancel" as const },
     ]);
 
   return (
     <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }} keyboardVerticalOffset={90}>
-      <Stack.Screen options={{ title: `Comentarios · ${v.comments.length}` }} />
+      <Stack.Screen
+        options={{
+          title: t(`Comentarios · ${v.comments.length}`, `Comments · ${v.comments.length}`),
+        }}
+      />
       <FlatList
         data={v.comments}
         keyExtractor={(c) => c.id}
         ListHeaderComponent={
           v.isOwner ? (
             <SwitchRow
-              label="Comentarios abiertos"
-              detail="Si los cierras, nadie más puede comentar (los de antes se quedan)."
+              label={t("Comentarios abiertos", "Comments open")}
+              detail={t(
+                "Si los cierras, nadie más puede comentar (los de antes se quedan).",
+                "If you close them, nobody else can comment (existing ones stay).",
+              )}
               value={v.open}
               disabled={toggleOpen.isPending}
               onChange={(o) => toggleOpen.mutate(o)}
@@ -106,8 +123,8 @@ export default function DeckComments() {
         ListEmptyComponent={
           <Empty
             icon="chatbubbles-outline"
-            title="Sin comentarios"
-            text="Sé el primero en opinar."
+            title={t("Sin comentarios", "No comments")}
+            text={t("Sé el primero en opinar.", "Be the first to comment.")}
           />
         }
         contentContainerStyle={{ flexGrow: 1 }}
@@ -129,7 +146,7 @@ export default function DeckComments() {
                   {c.author.username ? `@${c.author.username}` : c.author.name}
                 </T>{" "}
                 · {ago(c.createdAt)}
-                {c.hidden ? " · oculto por denuncias" : ""}
+                {c.hidden ? t(" · oculto por denuncias", " · hidden after reports") : ""}
               </T>
               <T>{c.body}</T>
             </View>
@@ -138,7 +155,7 @@ export default function DeckComments() {
                 icon="ellipsis-vertical"
                 size={18}
                 color={colors.text3}
-                label="Opciones del comentario"
+                label={t("Opciones del comentario", "Comment options")}
                 onPress={() => menu(c)}
               />
             )}
@@ -168,7 +185,7 @@ export default function DeckComments() {
               styles.field,
               { flex: 1, height: undefined, minHeight: 44, maxHeight: 120, paddingVertical: 10 },
             ]}
-            placeholder="Escribe un comentario…"
+            placeholder={t("Escribe un comentario…", "Write a comment…")}
             placeholderTextColor={colors.text3}
             value={text}
             onChangeText={setText}
@@ -177,7 +194,7 @@ export default function DeckComments() {
           />
           <IconButton
             icon="send"
-            label="Enviar"
+            label={t("Enviar", "Send")}
             color={text.trim() ? colors.accent : colors.text3}
             onPress={() => text.trim() && !post.isPending && post.mutate()}
           />
@@ -187,7 +204,9 @@ export default function DeckComments() {
           variant="small"
           style={{ padding: 16, paddingBottom: insets.bottom + 16, textAlign: "center" }}
         >
-          {v.open ? "No puedes comentar en este mazo." : "Los comentarios están cerrados."}
+          {v.open
+            ? t("No puedes comentar en este mazo.", "You can't comment on this deck.")
+            : t("Los comentarios están cerrados.", "Comments are closed.")}
         </T>
       )}
     </KeyboardAvoidingView>

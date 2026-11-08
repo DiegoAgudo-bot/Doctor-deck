@@ -9,6 +9,7 @@ import { api } from "~/lib/api";
 import { ago } from "~/lib/format";
 import { openWebPath } from "~/lib/push";
 import { colors } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 const ICONS: Partial<Record<NotificationDTO["type"], keyof typeof Ionicons.glyphMap>> = {
   price_drop: "trending-down-outline",
@@ -57,8 +58,11 @@ export default function Notifications() {
     return (
       <Empty
         icon="notifications-outline"
-        title="Sin avisos"
-        text="Aquí verás bajadas de precio, propuestas de intercambio, comentarios y lo que publica la gente a la que sigues."
+        title={t("Sin avisos", "No notifications")}
+        text={t(
+          "Aquí verás bajadas de precio, propuestas de intercambio, comentarios y lo que publica la gente a la que sigues.",
+          "Here you'll see price drops, trade proposals, comments and what the people you follow publish.",
+        )}
       />
     );
   }

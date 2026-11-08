@@ -1,65 +1,66 @@
 import type { CollectionFilters } from "@/domain/collection/browse";
+import { t } from "./lang.ts";
 
 /** Filtros de la colección y del buscador, como los de ManaBox (mismos valores que la API). */
 
 export const COLOR_KEYS = ["W", "U", "B", "R", "G", "C"] as const;
 export const COLOR_NAMES: Record<string, string> = {
-  W: "Blanco",
-  U: "Azul",
-  B: "Negro",
-  R: "Rojo",
-  G: "Verde",
-  C: "Incoloro",
+  W: t("Blanco", "White"),
+  U: t("Azul", "Blue"),
+  B: t("Negro", "Black"),
+  R: t("Rojo", "Red"),
+  G: t("Verde", "Green"),
+  C: t("Incoloro", "Colorless"),
 };
 
 /** Tipos: valor de la colección (en inglés, como la línea de tipo), del buscador y etiqueta. */
 export const TYPE_OPTIONS = [
-  { key: "Creature", catalog: "creature", label: "Criatura" },
-  { key: "Instant", catalog: "instant", label: "Instantáneo" },
-  { key: "Sorcery", catalog: "sorcery", label: "Conjuro" },
-  { key: "Artifact", catalog: "artifact", label: "Artefacto" },
-  { key: "Enchantment", catalog: "enchantment", label: "Encantamiento" },
+  { key: "Creature", catalog: "creature", label: t("Criatura", "Creature") },
+  { key: "Instant", catalog: "instant", label: t("Instantáneo", "Instant") },
+  { key: "Sorcery", catalog: "sorcery", label: t("Conjuro", "Sorcery") },
+  { key: "Artifact", catalog: "artifact", label: t("Artefacto", "Artifact") },
+  { key: "Enchantment", catalog: "enchantment", label: t("Encantamiento", "Enchantment") },
   { key: "Planeswalker", catalog: "planeswalker", label: "Planeswalker" },
-  { key: "Land", catalog: "land", label: "Tierra" },
-  { key: "Battle", catalog: "battle", label: "Batalla" },
+  { key: "Land", catalog: "land", label: t("Tierra", "Land") },
+  { key: "Battle", catalog: "battle", label: t("Batalla", "Battle") },
 ] as const;
 export type TypeKey = (typeof TYPE_OPTIONS)[number]["key"];
 
 export const SUPERTYPE_OPTIONS = [
-  { key: "Legendary", label: "Legendaria" },
-  { key: "Basic", label: "Básica" },
-  { key: "Snow", label: "Nevada" },
+  { key: "Legendary", label: t("Legendaria", "Legendary") },
+  { key: "Basic", label: t("Básica", "Basic") },
+  { key: "Snow", label: t("Nevada", "Snow") },
 ] as const;
 export type SupertypeKey = (typeof SUPERTYPE_OPTIONS)[number]["key"];
 
 export const RARITY_OPTIONS = [
-  { key: "common", label: "Común" },
-  { key: "uncommon", label: "Infrecuente" },
-  { key: "rare", label: "Rara" },
-  { key: "mythic", label: "Mítica" },
-  { key: "special", label: "Especial" },
+  { key: "common", label: t("Común", "Common") },
+  { key: "uncommon", label: t("Infrecuente", "Uncommon") },
+  { key: "rare", label: t("Rara", "Rare") },
+  { key: "mythic", label: t("Mítica", "Mythic") },
+  { key: "special", label: t("Especial", "Special") },
   { key: "bonus", label: "Bonus" },
 ] as const;
 export type RarityKey = (typeof RARITY_OPTIONS)[number]["key"];
 
 export const ROLE_OPTIONS = [
   { key: "ramp", label: "Ramp" },
-  { key: "draw", label: "Robo" },
+  { key: "draw", label: t("Robo", "Draw") },
   { key: "removal", label: "Removal" },
-  { key: "wipe", label: "Barrido" },
-  { key: "counterspell", label: "Contrahechizo" },
+  { key: "wipe", label: t("Barrido", "Wipe") },
+  { key: "counterspell", label: t("Contrahechizo", "Counterspell") },
   { key: "tutor", label: "Tutor" },
-  { key: "protection", label: "Protección" },
-  { key: "land", label: "Tierra" },
-  { key: "synergy", label: "Sinergia" },
+  { key: "protection", label: t("Protección", "Protection") },
+  { key: "land", label: t("Tierra", "Land") },
+  { key: "synergy", label: t("Sinergia", "Synergy") },
 ] as const;
 
 export const ADDED_OPTIONS = [
-  { days: 1, label: "Hoy" },
-  { days: 7, label: "7 días" },
-  { days: 30, label: "30 días" },
-  { days: 90, label: "3 meses" },
-  { days: 365, label: "1 año" },
+  { days: 1, label: t("Hoy", "Today") },
+  { days: 7, label: t("7 días", "7 days") },
+  { days: 30, label: t("30 días", "30 days") },
+  { days: 90, label: t("3 meses", "3 months") },
+  { days: 365, label: t("1 año", "1 year") },
 ] as const;
 
 /** Un rango escrito a mano: texto tal cual (se convierte al pedir). */
@@ -244,31 +245,37 @@ export function activeFilters(
   add("role", f.role !== null, ROLE_OPTIONS.find((r) => r.key === f.role)?.label ?? "", {
     role: null,
   });
-  add("cmc", rangeSet(f.cmc), `Maná ${range(f.cmc)}`, { cmc: EMPTY_RANGE });
-  add("power", rangeSet(f.power), `Fue. ${range(f.power)}`, { power: EMPTY_RANGE });
-  add("toughness", rangeSet(f.toughness), `Res. ${range(f.toughness)}`, {
+  add("cmc", rangeSet(f.cmc), `${t("Maná", "MV")} ${range(f.cmc)}`, { cmc: EMPTY_RANGE });
+  add("power", rangeSet(f.power), `${t("Fue.", "Pow.")} ${range(f.power)}`, { power: EMPTY_RANGE });
+  add("toughness", rangeSet(f.toughness), `${t("Res.", "Tou.")} ${range(f.toughness)}`, {
     toughness: EMPTY_RANGE,
   });
   add("price", rangeSet(f.price), range(f.price, " €"), { price: EMPTY_RANGE });
   add("rarities", f.rarities.length > 0, labels(f.rarities, RARITY_OPTIONS), { rarities: [] });
   add("sets", f.sets.length > 0, f.sets.join(", "), { sets: [] });
-  add("conditions", f.conditions.length > 0, f.conditions.length + " estados", {
+  add("conditions", f.conditions.length > 0, f.conditions.length + t(" estados", " conditions"), {
     conditions: [],
   });
   add("languages", f.languages.length > 0, f.languages.join(", ").toUpperCase(), {
     languages: [],
   });
   add("artist", f.artist.trim() !== "", f.artist.trim(), { artist: "" });
-  add("finish", f.finish !== "", f.finish === "foil" ? "★ Foil" : "No foil", { finish: "" });
-  add("quantity", f.quantityMin !== null, `${f.quantityMin}+ copias`, { quantityMin: null });
+  add("finish", f.finish !== "", f.finish === "foil" ? "★ Foil" : t("No foil", "Non-foil"), {
+    finish: "",
+  });
+  add("quantity", f.quantityMin !== null, `${f.quantityMin}+ ${t("copias", "copies")}`, {
+    quantityMin: null,
+  });
   add(
     "added",
     f.addedWithin !== null,
-    `Añadidas: ${ADDED_OPTIONS.find((a) => a.days === f.addedWithin)?.label ?? ""}`,
+    `${t("Añadidas", "Added")}: ${ADDED_OPTIONS.find((a) => a.days === f.addedWithin)?.label ?? ""}`,
     { addedWithin: null },
   );
-  add("use", f.use !== "", f.use === "libres" ? "Libres" : "En mazos", { use: "" });
-  add("commander", f.commander, "Comandante", { commander: false });
+  add("use", f.use !== "", f.use === "libres" ? t("Libres", "Spare") : t("En mazos", "In decks"), {
+    use: "",
+  });
+  add("commander", f.commander, t("Comandante", "Commander"), { commander: false });
   add("gameChanger", f.gameChanger, "Game changers", { gameChanger: false });
   return out;
 }

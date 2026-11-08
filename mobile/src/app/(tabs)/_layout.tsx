@@ -8,6 +8,7 @@ import { Bell } from "~/components/bell";
 import { GemHeaderBackground } from "~/components/gem-stripe";
 import type { IconName } from "~/components/ui";
 import { colors } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 const icon =
   (name: IconName, active: IconName) =>
@@ -42,27 +43,30 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="home"
-        options={{ title: "Inicio", tabBarIcon: icon("home-outline", "home") }}
+        options={{ title: t("Inicio", "Home"), tabBarIcon: icon("home-outline", "home") }}
       />
       <Tabs.Screen
         name="collection"
-        options={{ title: "Colección", tabBarIcon: icon("albums-outline", "albums") }}
+        options={{
+          title: t("Colección", "Collection"),
+          tabBarIcon: icon("albums-outline", "albums"),
+        }}
       />
       <Tabs.Screen
         name="decks"
-        options={{ title: "Mazos", tabBarIcon: icon("layers-outline", "layers") }}
+        options={{ title: t("Mazos", "Decks"), tabBarIcon: icon("layers-outline", "layers") }}
       />
       <Tabs.Screen
         name="search"
-        options={{ title: "Buscar", tabBarIcon: icon("search-outline", "search") }}
+        options={{ title: t("Buscar", "Search"), tabBarIcon: icon("search-outline", "search") }}
       />
       <Tabs.Screen
         name="games"
-        options={{ title: "Jugar", tabBarIcon: icon("dice-outline", "dice") }}
+        options={{ title: t("Jugar", "Play"), tabBarIcon: icon("dice-outline", "dice") }}
       />
       <Tabs.Screen
         name="scanner"
-        options={{ title: "Escanear", tabBarIcon: icon("scan-outline", "scan") }}
+        options={{ title: t("Escanear", "Scan"), tabBarIcon: icon("scan-outline", "scan") }}
         listeners={{
           tabPress: (e) => {
             e.preventDefault();

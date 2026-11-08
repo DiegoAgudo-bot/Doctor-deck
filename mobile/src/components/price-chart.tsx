@@ -7,15 +7,16 @@ import { Chip, Loading, T } from "~/components/ui";
 import { api } from "~/lib/api";
 import { euros } from "~/lib/format";
 import { colors } from "~/lib/theme";
+import { intl, t } from "~/lib/i18n";
 
 export const PERIODS = [
-  { days: 30, label: "30 días" },
-  { days: 90, label: "90 días" },
-  { days: 365, label: "1 año" },
+  { days: 30, label: t("30 días", "30 days") },
+  { days: 90, label: t("90 días", "90 days") },
+  { days: 365, label: t("1 año", "1 year") },
 ] as const;
 
 const shortDate = (iso: string) =>
-  new Date(`${iso}T00:00:00Z`).toLocaleDateString("es-ES", {
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString(intl, {
     day: "numeric",
     month: "short",
     timeZone: "UTC",
@@ -24,7 +25,7 @@ const shortDate = (iso: string) =>
 /** "+2,50 € (+25 %)" / "−1,00 € (−10 %)". */
 export function formatChange(delta: number, percent: number | null) {
   const sign = delta > 0 ? "+" : delta < 0 ? "−" : "";
-  const pct = percent === null ? "" : ` (${sign}${Math.abs(percent).toLocaleString("es-ES")} %)`;
+  const pct = percent === null ? "" : ` (${sign}${Math.abs(percent).toLocaleString(intl)} %)`;
   return `${sign}${euros(Math.abs(delta))}${pct}`;
 }
 
@@ -46,8 +47,11 @@ export function PriceChart({
     return (
       <T variant="small">
         {points.length === 0
-          ? "Todavía no hay histórico de precios."
-          : `Solo hay precio de un día (${shortDate(points[0]!.date)}): ${euros(points[0]!.eur)}. El histórico se va guardando cada noche.`}
+          ? t("Todavía no hay histórico de precios.", "No price history yet.")
+          : t(
+              `Solo hay precio de un día (${shortDate(points[0]!.date)}): ${euros(points[0]!.eur)}. El histórico se va guardando cada noche.`,
+              `There's only one day of prices (${shortDate(points[0]!.date)}): ${euros(points[0]!.eur)}. The history is saved every night.`,
+            )}
       </T>
     );
   }
@@ -62,8 +66,12 @@ export function PriceChart({
   return (
     <View style={{ gap: 4 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        <T variant="small">máx. {euros(max)}</T>
-        <T variant="small">mín. {euros(min)}</T>
+        <T variant="small">
+          {t("máx.", "max.")} {euros(max)}
+        </T>
+        <T variant="small">
+          {t("mín.", "min.")} {euros(min)}
+        </T>
       </View>
       <View
         accessible
@@ -113,7 +121,7 @@ export function CardPriceHistory({ oracleId }: { oracleId: string }) {
     <View style={{ gap: 8 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <T variant="label" style={{ flex: 1 }}>
-          Precio
+          {t("Precio", "Price")}
         </T>
         {PERIODS.map((p) => (
           <Chip
@@ -133,8 +141,10 @@ export function CardPriceHistory({ oracleId }: { oracleId: string }) {
         <Loading />
       )}
       <T variant="small">
-        Precio de referencia del mercado europeo de la edición más barata. Se guarda cada noche para
-        las cartas que hay en alguna colección o mazo.
+        {t(
+          "Precio de referencia del mercado europeo de la edición más barata. Se guarda cada noche para las cartas que hay en alguna colección o mazo.",
+          "European market reference price of the cheapest printing. It's saved every night for cards that are in some collection or deck.",
+        )}
       </T>
     </View>
   );

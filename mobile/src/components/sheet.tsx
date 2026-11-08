@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Modal, Pressable, ScrollView, View } from "react-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, radius } from "~/lib/theme";
 import { IconButton, T } from "./ui";
+import { t } from "~/lib/i18n";
 
 /**
  * Hoja que sube desde abajo (ordenar, filtros, añadir a un mazo…), como las de ManaBox. Se
@@ -33,7 +34,7 @@ export function Sheet({
     >
       <KeyboardAvoidingView behavior="padding" style={{ flex: 1, justifyContent: "flex-end" }}>
         <Pressable
-          accessibilityLabel="Cerrar"
+          accessibilityLabel={t("Cerrar", "Close")}
           onPress={onClose}
           style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.55)" }}
         />
@@ -63,7 +64,7 @@ export function Sheet({
             <T variant="h2" style={{ flex: 1 }} numberOfLines={1}>
               {title}
             </T>
-            <IconButton icon="close" label="Cerrar" onPress={onClose} />
+            <IconButton icon="close" label={t("Cerrar", "Close")} onPress={onClose} />
           </View>
           <ScrollView
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 12, gap: 12 }}

@@ -1,7 +1,12 @@
 import { authClient } from "./auth";
+import { apiErrorMessage } from "@/domain/i18n/errors";
 import { API_URL } from "./config";
+import { isEn, locale } from "./i18n";
 
-/** Error de la API con el mensaje en español que manda el servidor (`{error: {code, message}}`). */
+/**
+ * Error de la API (`{error: {code, message}}`). El servidor manda el mensaje en español; en
+ * inglés se enseña el de `apiErrorMessage` por su código.
+ */
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -28,6 +33,8 @@ export async function api<T>(
       credentials: "omit",
       headers: {
         ...(cookie ? { cookie } : {}),
+        // Textos del servidor (motivos, avisos…) en el idioma del móvil.
+        "x-locale": locale,
         ...(options.body === undefined
           ? {}
           : { "content-type": isText ? "text/plain; charset=utf-8" : "application/json" }),
@@ -37,16 +44,23 @@ export async function api<T>(
         : { body: isText ? (options.body as string) : JSON.stringify(options.body) }),
     });
   } catch {
-    throw new ApiError("Sin conexión con Doctor Deck. Comprueba internet.", 0, "network");
+    throw new ApiError(
+      isEn
+        ? "Couldn't reach Doctor Deck. Check your internet connection."
+        : "Sin conexión con Doctor Deck. Comprueba internet.",
+      0,
+      "network",
+    );
   }
   if (res.status === 204) return undefined as T;
   const data = (await res.json().catch(() => null)) as
     (T & { error?: { code: string; message: string } }) | null;
   if (!res.ok) {
+    const code = data?.error?.code ?? "error";
     throw new ApiError(
-      data?.error?.message ?? `Error ${res.status}`,
+      apiErrorMessage(code, data?.error?.message ?? `Error ${res.status}`, locale),
       res.status,
-      data?.error?.code ?? "error",
+      code,
     );
   }
   return data as T;

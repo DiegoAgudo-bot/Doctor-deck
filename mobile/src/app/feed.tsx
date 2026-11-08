@@ -7,14 +7,15 @@ import { FeedEntry } from "~/components/feed-entry";
 import { Button, Chip, Empty, ErrorView, Loading } from "~/components/ui";
 import { api } from "~/lib/api";
 import { colors } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 const FILTERS: [string, string][] = [
-  ["", "Todo"],
-  ["deck", "Mazos"],
-  ["game", "Partidas"],
-  ["comment", "Comentarios"],
-  ["like", "Me gusta"],
-  ["trade", "Intercambios"],
+  ["", t("Todo", "All")],
+  ["deck", t("Mazos", "Decks")],
+  ["game", t("Partidas", "Games")],
+  ["comment", t("Comentarios", "Comments")],
+  ["like", t("Me gusta", "Likes")],
+  ["trade", t("Intercambios", "Trades")],
 ];
 
 /** Lo que hace la gente a la que sigo y mis compañeros de grupo. */
@@ -53,11 +54,18 @@ export default function Feed() {
       ) : items.length === 0 ? (
         <Empty
           icon="newspaper-outline"
-          title={following === 0 ? "Aún no sigues a nadie" : "Nada nuevo por aquí"}
-          text="Aquí salen los mazos, partidas, comentarios e intercambios de la gente que sigues y de tus grupos."
+          title={
+            following === 0
+              ? t("Aún no sigues a nadie", "You don't follow anyone yet")
+              : t("Nada nuevo por aquí", "Nothing new here")
+          }
+          text={t(
+            "Aquí salen los mazos, partidas, comentarios e intercambios de la gente que sigues y de tus grupos.",
+            "Here you'll see the decks, games, comments and trades of people you follow and your groups.",
+          )}
           action={
             <Button
-              label="Buscar gente y mazos"
+              label={t("Buscar gente y mazos", "Find people and decks")}
               kind="secondary"
               icon="globe-outline"
               onPress={() => router.push("/community")}

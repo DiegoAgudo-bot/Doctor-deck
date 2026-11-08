@@ -8,6 +8,7 @@ import { ColorPips } from "./card-bits";
 import { OptionRow, Sheet } from "./sheet";
 import { toast } from "./toast";
 import { Button, ErrorView, Loading, T } from "./ui";
+import { t } from "~/lib/i18n";
 
 /**
  * «Añadir a un mazo» desde la ficha de una carta: mis mazos (primero en los que cabe por colores)
@@ -38,8 +39,8 @@ export function AddToDeckSheet({
     onSuccess: (r) => {
       tapFeedback();
       onClose();
-      toast(`Añadida a «${r.deckName}»`, {
-        label: "Ver",
+      toast(t(`Añadida a «${r.deckName}»`, `Added to “${r.deckName}”`), {
+        label: t("Ver", "View"),
         onPress: () => router.push(`/deck/${r.deckId}`),
       });
       qc.invalidateQueries({ queryKey: ["decks"] });
@@ -63,11 +64,11 @@ export function AddToDeckSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={`Añadir «${card.name}» a un mazo`}
+      title={t(`Añadir «${card.name}» a un mazo`, `Add “${card.name}” to a deck`)}
       footer={
         canBeCommander ? (
           <Button
-            label="Crear un mazo con ella de comandante"
+            label={t("Crear un mazo con ella de comandante", "Create a deck with it as commander")}
             icon="add"
             kind="secondary"
             onPress={createDeck}
@@ -81,10 +82,10 @@ export function AddToDeckSheet({
         <ErrorView error={decks.error} onRetry={() => decks.refetch()} />
       ) : sorted.length === 0 ? (
         <T variant="muted">
-          Aún no tienes mazos.{" "}
+          {t("Aún no tienes mazos.", "You don't have any decks yet.")}{" "}
           {canBeCommander
-            ? "Crea uno con esta carta de comandante."
-            : "Crea uno en la pestaña Mazos."}
+            ? t("Crea uno con esta carta de comandante.", "Create one with this card as commander.")
+            : t("Crea uno en la pestaña Mazos.", "Create one in the Decks tab.")}
         </T>
       ) : (
         <View style={{ gap: 2 }}>
@@ -96,10 +97,10 @@ export function AddToDeckSheet({
                 label={d.name}
                 detail={
                   add.isPending && add.variables?.id === d.id
-                    ? "Añadiendo…"
+                    ? t("Añadiendo…", "Adding…")
                     : ok
                       ? d.commanderNames.join(" + ")
-                      : "Fuera de los colores del comandante"
+                      : t("Fuera de los colores del comandante", "Outside the commander's colors")
                 }
                 disabled={!ok || add.isPending}
                 onPress={() => add.mutate(d)}

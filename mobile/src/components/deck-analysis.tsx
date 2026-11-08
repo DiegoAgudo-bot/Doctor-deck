@@ -18,15 +18,16 @@ import { Banner, Button, Field, Loading, T } from "~/components/ui";
 import { api } from "~/lib/api";
 import { euros } from "~/lib/format";
 import { colors, radius } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 type Analysis = Extract<AnalyzeResponse, { status: "ok" }>;
 
 const pct = (p: number) => `${Math.round(p * 100)} %`;
 
 const STATUS: Record<"owned" | "in_other_decks" | "buy", { label: string; color: string }> = {
-  owned: { label: "La tienes", color: colors.owned },
-  in_other_decks: { label: "En otro mazo", color: colors.inuse },
-  buy: { label: "Hay que comprarla", color: colors.missing },
+  owned: { label: t("La tienes", "You own it"), color: colors.owned },
+  in_other_decks: { label: t("En otro mazo", "In another deck"), color: colors.inuse },
+  buy: { label: t("Hay que comprarla", "Needs buying"), color: colors.missing },
 };
 
 const Panel = ({ title, children }: { title: string; children: React.ReactNode }) => (
@@ -65,7 +66,7 @@ function ComboRow({ combo, missing }: { combo: ComboDTO; missing?: string }) {
       {combo.produces.length > 0 && (
         <T variant="small">
           {combo.produces.slice(0, 4).join(" · ")}
-          {combo.bracketTag === "R" ? " · sube a bracket 4" : ""}
+          {combo.bracketTag === "R" ? t(" · sube a bracket 4", " · raises to bracket 4") : ""}
         </T>
       )}
     </View>
@@ -85,22 +86,27 @@ export function CombosPanel({
   loading: boolean;
   error: Error | null;
 }) {
-  if (loading && !data) return <Loading label="Buscando combos…" />;
+  if (loading && !data) return <Loading label={t("Buscando combos…", "Looking for combos…")} />;
   if (error && !data) return <Banner text={error.message} />;
   if (!data) return null;
   return (
     <View style={{ gap: 12, paddingHorizontal: 16 }}>
       {data.warning && <Banner text={data.warning} />}
-      <Panel title={`En el mazo (${data.included.length})`}>
+      <Panel title={`${t("En el mazo", "In the deck")} (${data.included.length})`}>
         {data.included.length === 0 ? (
-          <T variant="small">Ningún combo completo.</T>
+          <T variant="small">{t("Ningún combo completo.", "No complete combos.")}</T>
         ) : (
           data.included.map((c) => <ComboRow key={c.id} combo={c} />)
         )}
       </Panel>
       {data.keyCards.length > 0 && (
-        <Panel title="Cartas clave">
-          <T variant="small">Las que más combos completarían si las metes.</T>
+        <Panel title={t("Cartas clave", "Key cards")}>
+          <T variant="small">
+            {t(
+              "Las que más combos completarían si las metes.",
+              "The ones that would complete the most combos if you add them.",
+            )}
+          </T>
           {data.keyCards.slice(0, 8).map((k) => (
             <Pressable
               key={k.card.name}
@@ -119,14 +125,14 @@ export function CombosPanel({
           ))}
         </Panel>
       )}
-      <Panel title={`A una carta (${data.oneAwayTotal})`}>
+      <Panel title={`${t("A una carta", "One card away")} (${data.oneAwayTotal})`}>
         {data.oneAway.length === 0 ? (
-          <T variant="small">Ninguno.</T>
+          <T variant="small">{t("Ninguno.", "None.")}</T>
         ) : (
           data.oneAway.slice(0, 30).map((o) => (
             <View key={o.combo.id} style={{ gap: 2 }}>
               <T variant="small" style={{ color: STATUS[o.status].color }}>
-                Falta {o.missing.name} · {STATUS[o.status].label}
+                {t("Falta", "Missing")} {o.missing.name} · {STATUS[o.status].label}
                 {o.status === "buy" && o.price !== null ? ` (${euros(o.price)})` : ""}
               </T>
               <ComboRow combo={o.combo} missing={o.missing.name} />
@@ -175,14 +181,27 @@ export function OpeningHandPanel({ cards }: { cards: DeckCardDTO[] }) {
     </View>
   );
   return (
-    <Panel title={`Mano inicial · ${odds.lands} tierras en ${odds.library} cartas`}>
-      {row("Mano de 2 a 4 tierras", pct(odds.keepable))}
-      {row("3 tierras en el turno 3", pct(odds.landDropT3))}
-      {row("4 tierras en el turno 4", pct(odds.landDropT4))}
-      {row("Ramp en la mano / en el turno 2", `${pct(odds.rampInHand)} / ${pct(odds.rampByT2)}`)}
-      {row("Robo en el turno 3", pct(odds.drawByT3))}
+    <Panel
+      title={t(
+        `Mano inicial · ${odds.lands} tierras en ${odds.library} cartas`,
+        `Opening hand · ${odds.lands} lands in ${odds.library} cards`,
+      )}
+    >
+      {row(t("Mano de 2 a 4 tierras", "Hand with 2 to 4 lands"), pct(odds.keepable))}
+      {row(t("3 tierras en el turno 3", "3 lands by turn 3"), pct(odds.landDropT3))}
+      {row(t("4 tierras en el turno 4", "4 lands by turn 4"), pct(odds.landDropT4))}
+      {row(
+        t("Ramp en la mano / en el turno 2", "Ramp in hand / by turn 2"),
+        `${pct(odds.rampInHand)} / ${pct(odds.rampByT2)}`,
+      )}
+      {row(t("Robo en el turno 3", "Draw by turn 3"), pct(odds.drawByT3))}
       <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
-        <Button label="Robar 7" icon="shuffle" onPress={() => draw(false)} style={{ flex: 1 }} />
+        <Button
+          label={t("Robar 7", "Draw 7")}
+          icon="shuffle"
+          onPress={() => draw(false)}
+          style={{ flex: 1 }}
+        />
         {library && (
           <Button
             label="Mulligan"
@@ -195,9 +214,9 @@ export function OpeningHandPanel({ cards }: { cards: DeckCardDTO[] }) {
       {library && (
         <>
           <T variant="small">
-            {lands} {lands === 1 ? "tierra" : "tierras"}
+            {lands} {lands === 1 ? t("tierra", "land") : t("tierras", "lands")}
             {mulligans > 0
-              ? ` · mulligan ${mulligans}${toBottom > 0 ? `: pon ${toBottom} abajo` : " (gratis)"}`
+              ? ` · mulligan ${mulligans}${toBottom > 0 ? t(`: pon ${toBottom} abajo`, `: put ${toBottom} on the bottom`) : t(" (gratis)", " (free)")}`
               : ""}
           </T>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
@@ -221,7 +240,7 @@ export function AlternativesPanel({
 }) {
   if (alternatives.length === 0) return null;
   return (
-    <Panel title="Alternativas más baratas">
+    <Panel title={t("Alternativas más baratas", "Cheaper alternatives")}>
       {alternatives.map((a) => (
         <View
           key={a.card.oracleId}
@@ -247,7 +266,7 @@ export function AlternativesPanel({
                 variant="small"
                 style={{ color: alt.owned ? colors.owned : colors.text2, fontWeight: "700" }}
               >
-                {alt.owned ? "La tienes" : euros(alt.price)}
+                {alt.owned ? t("La tienes", "You own it") : euros(alt.price)}
               </T>
             </Pressable>
           ))}
@@ -287,15 +306,17 @@ export function BuyPanel({ deck, analysis: a }: { deck: DeckViewDTO; analysis: A
   });
   const p = run.data?.status === "ok" ? run.data.purchases : null;
   return (
-    <Panel title="Si compro unas pocas cartas baratas…">
+    <Panel title={t("Si compro unas pocas cartas baratas…", "If I buy a few cheap cards…")}>
       <T variant="small">
-        ¿Qué cartas que no tienes mejoran más el mazo, con un precio máximo por carta y un
-        presupuesto?
+        {t(
+          "¿Qué cartas que no tienes mejoran más el mazo, con un precio máximo por carta y un presupuesto?",
+          "Which cards you don't own improve the deck the most, with a max price per card and a budget?",
+        )}
       </T>
       <View style={{ flexDirection: "row", gap: 8 }}>
         <View style={{ flex: 1 }}>
           <Field
-            label="Cartas"
+            label={t("Cartas", "Cards")}
             value={maxCards}
             onChangeText={setMaxCards}
             keyboardType="number-pad"
@@ -303,7 +324,7 @@ export function BuyPanel({ deck, analysis: a }: { deck: DeckViewDTO; analysis: A
         </View>
         <View style={{ flex: 1 }}>
           <Field
-            label="Máx. por carta (€)"
+            label={t("Máx. por carta (€)", "Max per card (€)")}
             value={maxPrice}
             onChangeText={setMaxPrice}
             keyboardType="decimal-pad"
@@ -311,16 +332,16 @@ export function BuyPanel({ deck, analysis: a }: { deck: DeckViewDTO; analysis: A
         </View>
         <View style={{ flex: 1 }}>
           <Field
-            label="Presupuesto (€)"
+            label={t("Presupuesto (€)", "Budget (€)")}
             value={budget}
             onChangeText={setBudget}
             keyboardType="decimal-pad"
-            placeholder="sin límite"
+            placeholder={t("sin límite", "no limit")}
           />
         </View>
       </View>
       <Button
-        label="Buscar"
+        label={t("Buscar", "Search")}
         icon="cart-outline"
         busy={run.isPending}
         onPress={() => run.mutate()}
@@ -328,11 +349,17 @@ export function BuyPanel({ deck, analysis: a }: { deck: DeckViewDTO; analysis: A
       {run.error && <Banner text={run.error.message} />}
       {p &&
         (p.items.length === 0 ? (
-          <T variant="small">Ninguna carta así lo mejora: prueba a subir el precio máximo.</T>
+          <T variant="small">
+            {t(
+              "Ninguna carta así lo mejora: prueba a subir el precio máximo.",
+              "No such card improves it: try a higher max price.",
+            )}
+          </T>
         ) : (
           <>
             <T style={{ fontWeight: "700" }}>
-              {p.items.length} {p.items.length === 1 ? "carta" : "cartas"} · {euros(p.totalCost)}
+              {p.items.length} {p.items.length === 1 ? t("carta", "card") : t("cartas", "cards")} ·{" "}
+              {euros(p.totalCost)}
             </T>
             {p.items.map((s) => (
               <View key={s.id} style={{ gap: 2, paddingVertical: 4 }}>
@@ -341,7 +368,7 @@ export function BuyPanel({ deck, analysis: a }: { deck: DeckViewDTO; analysis: A
                   <Pressable style={{ flex: 1 }} onPress={() => openCard(s.in.card)}>
                     <T numberOfLines={1}>{s.in.card.name}</T>
                     <T variant="small" numberOfLines={1}>
-                      por {s.out.card.name}
+                      {t("por", "for")} {s.out.card.name}
                     </T>
                   </Pressable>
                   <T variant="mono">{euros(s.in.price ?? null)}</T>

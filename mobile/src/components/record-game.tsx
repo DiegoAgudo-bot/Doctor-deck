@@ -9,6 +9,7 @@ import { colors, radius } from "~/lib/theme";
 import { Sheet } from "./sheet";
 import { toast } from "./toast";
 import { Banner, Button, Chip, Field, IconButton, T, styles } from "./ui";
+import { t } from "~/lib/i18n";
 
 /** Un jugador tal y como llega del contador de vidas: solo un nombre (y si ganó). */
 export interface SeatInput {
@@ -148,10 +149,10 @@ export function RecordGameSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Registrar partida"
+      title={t("Registrar partida", "Record game")}
       footer={
         <Button
-          label="Guardar partida"
+          label={t("Guardar partida", "Save game")}
           icon="trophy-outline"
           busy={save.isPending}
           disabled={rows.length < 2 || !validDate}
@@ -162,10 +163,14 @@ export function RecordGameSheet({
       {save.isError && <Banner text={save.error.message} />}
       {fixedGroup === null && (groups.data?.length ?? 0) > 0 && (
         <View style={{ gap: 6 }}>
-          <T variant="label">Grupo</T>
+          <T variant="label">{t("Grupo", "Group")}</T>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={{ flexDirection: "row", gap: 6 }}>
-              <Chip label="Sin grupo" active={groupId === ""} onPress={() => setGroupId("")} />
+              <Chip
+                label={t("Sin grupo", "No group")}
+                active={groupId === ""}
+                onPress={() => setGroupId("")}
+              />
               {groups.data?.map((x) => (
                 <Chip
                   key={x.id}
@@ -180,14 +185,16 @@ export function RecordGameSheet({
       )}
       {!groupId && (
         <T variant="small">
-          Sin grupo, los demás van como invitados. En un grupo puedes elegir a sus miembros y sus
-          mazos, y la partida cuenta para la clasificación.
+          {t(
+            "Sin grupo, los demás van como invitados. En un grupo puedes elegir a sus miembros y sus mazos, y la partida cuenta para la clasificación.",
+            "Without a group, the others are guests. In a group you can pick its members and their decks, and the game counts for the standings.",
+          )}
         </T>
       )}
       <View style={{ flexDirection: "row", gap: 10 }}>
         <View style={{ flex: 2 }}>
           <Field
-            label="Fecha (AAAA-MM-DD)"
+            label={t("Fecha (AAAA-MM-DD)", "Date (YYYY-MM-DD)")}
             value={date}
             onChangeText={(v) => setDate(v.replace(/[^\d-]/g, "").slice(0, 10))}
             keyboardType="numbers-and-punctuation"
@@ -195,7 +202,7 @@ export function RecordGameSheet({
         </View>
         <View style={{ flex: 1 }}>
           <Field
-            label="Turnos"
+            label={t("Turnos", "Turns")}
             value={turns}
             placeholder="—"
             onChangeText={(v) => setTurns(v.replace(/\D/g, "").slice(0, 2))}
@@ -204,7 +211,9 @@ export function RecordGameSheet({
         </View>
       </View>
 
-      <T variant="label">Jugadores · toca la corona del que ganó</T>
+      <T variant="label">
+        {t("Jugadores · toca la corona del que ganó", "Players · tap the winner's crown")}
+      </T>
       {rows.map((r, i) => {
         const options = deckOptions(r.who);
         return (
@@ -222,7 +231,9 @@ export function RecordGameSheet({
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={r.winner ? "Ganador" : "Marcar como ganador"}
+                accessibilityLabel={
+                  r.winner ? t("Ganador", "Winner") : t("Marcar como ganador", "Mark as winner")
+                }
                 accessibilityState={{ selected: r.winner }}
                 hitSlop={8}
                 onPress={() =>
@@ -234,7 +245,7 @@ export function RecordGameSheet({
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
                 <View style={{ flexDirection: "row", gap: 6 }}>
                   <Chip
-                    label="Invitado"
+                    label={t("Invitado", "Guest")}
                     active={r.who === ""}
                     onPress={() => set(i, { who: "", deckId: "" })}
                   />
@@ -250,7 +261,7 @@ export function RecordGameSheet({
               </ScrollView>
               <IconButton
                 icon="trash-outline"
-                label="Quitar jugador"
+                label={t("Quitar jugador", "Remove player")}
                 size={18}
                 color={rows.length <= 2 ? colors.lineStrong : colors.text3}
                 onPress={() => rows.length > 2 && setRows((rs) => rs.filter((_, j) => j !== i))}
@@ -259,7 +270,7 @@ export function RecordGameSheet({
             {!r.who && (
               <TextInput
                 style={[styles.field, { height: 42, fontSize: 15 }]}
-                placeholder="Nombre"
+                placeholder={t("Nombre", "Name")}
                 placeholderTextColor={colors.text3}
                 value={r.guestName}
                 maxLength={40}
@@ -270,7 +281,7 @@ export function RecordGameSheet({
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={{ flexDirection: "row", gap: 6 }}>
                   <Chip
-                    label="Sin mazo"
+                    label={t("Sin mazo", "No deck")}
                     active={!r.deckId}
                     onPress={() => set(i, { deckId: "" })}
                   />
@@ -287,7 +298,7 @@ export function RecordGameSheet({
             ) : (
               <TextInput
                 style={[styles.field, { height: 42, fontSize: 15 }]}
-                placeholder="Mazo o comandante"
+                placeholder={t("Mazo o comandante", "Deck or commander")}
                 placeholderTextColor={colors.text3}
                 value={r.deckName}
                 maxLength={80}
@@ -299,15 +310,18 @@ export function RecordGameSheet({
       })}
       {rows.length < 8 && (
         <Button
-          label="Añadir jugador"
+          label={t("Añadir jugador", "Add player")}
           icon="add"
           kind="ghost"
           onPress={() => setRows((rs) => [...rs, emptyRow()])}
         />
       )}
       <Field
-        label="Notas"
-        placeholder="Combo en el turno 6, mesa muy política…"
+        label={t("Notas", "Notes")}
+        placeholder={t(
+          "Combo en el turno 6, mesa muy política…",
+          "Combo on turn 6, very political table…",
+        )}
         value={notes}
         maxLength={300}
         onChangeText={setNotes}

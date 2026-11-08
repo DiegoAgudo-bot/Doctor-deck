@@ -9,6 +9,7 @@ import { Chip, Empty, ErrorView, Loading, SearchField, Segmented, T } from "~/co
 import { api } from "~/lib/api";
 import { useDebounced } from "~/lib/hooks";
 import { colors, manaColors } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 const PAGE = 20;
 type Sort = "recent" | "likes" | "owned";
@@ -62,12 +63,16 @@ export default function Community() {
         value={mode}
         onChange={setMode}
         options={[
-          { key: "decks", label: "Mazos" },
-          { key: "people", label: "Gente" },
+          { key: "decks", label: t("Mazos", "Decks") },
+          { key: "people", label: t("Gente", "People") },
         ]}
       />
       <SearchField
-        placeholder={mode === "decks" ? "Nombre o comandante" : "Nombre o @usuario"}
+        placeholder={
+          mode === "decks"
+            ? t("Nombre o comandante", "Name or commander")
+            : t("Nombre o @usuario", "Name or @username")
+        }
         value={q}
         onChangeText={setQ}
         onClear={() => setQ("")}
@@ -77,22 +82,22 @@ export default function Community() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={{ flexDirection: "row", gap: 6 }}>
               <Chip
-                label="Recientes"
+                label={t("Recientes", "Recent")}
                 active={sort === "recent"}
                 onPress={() => setSort("recent")}
               />
               <Chip
-                label="Los que puedo montar"
+                label={t("Los que puedo montar", "Ones I can build")}
                 active={sort === "owned"}
                 onPress={() => setSort("owned")}
               />
               <Chip
-                label="Más gustados"
+                label={t("Más gustados", "Most liked")}
                 active={sort === "likes"}
                 onPress={() => setSort("likes")}
               />
               <Chip
-                label="De quien sigo"
+                label={t("De quien sigo", "From people I follow")}
                 icon="people-outline"
                 active={following}
                 onPress={() => setFollowing((f) => !f)}
@@ -145,7 +150,7 @@ export default function Community() {
         ) : people.isError ? (
           <ErrorView error={people.error} onRetry={() => people.refetch()} />
         ) : people.data.length === 0 ? (
-          <Empty icon="person-outline" title="Nadie con ese nombre" />
+          <Empty icon="person-outline" title={t("Nadie con ese nombre", "Nobody with that name")} />
         ) : (
           <FlatList
             data={people.data}
@@ -154,7 +159,10 @@ export default function Community() {
             renderItem={({ item }) => (
               <PersonRow
                 person={item}
-                detail={`${item.publicDecks} mazos · ${item.followers} seguidores`}
+                detail={t(
+                  `${item.publicDecks} mazos · ${item.followers} seguidores`,
+                  `${item.publicDecks} decks · ${item.followers} followers`,
+                )}
               />
             )}
           />
@@ -185,8 +193,11 @@ export default function Community() {
         ) : (
           <Empty
             icon="layers-outline"
-            title="Ningún mazo con esos filtros"
-            text="Prueba con otros colores o quita algún filtro."
+            title={t("Ningún mazo con esos filtros", "No decks with those filters")}
+            text={t(
+              "Prueba con otros colores o quita algún filtro.",
+              "Try other colors or remove a filter.",
+            )}
           />
         )
       }

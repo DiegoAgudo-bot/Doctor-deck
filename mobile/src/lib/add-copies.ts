@@ -5,6 +5,7 @@ import { api } from "./api";
 import { conditionShort } from "./copies";
 import { tapFeedback } from "./feedback";
 import { useStoredState } from "./hooks";
+import { t } from "~/lib/i18n";
 
 export interface CopySpec {
   oracleId: string;
@@ -52,7 +53,7 @@ export function useAddCopies() {
         .filter(Boolean)
         .join(" · ");
       toast(
-        `${c.quantity === 1 ? "Añadida 1 copia" : `Añadidas ${c.quantity} copias`} (${detail})`,
+        `${c.quantity === 1 ? t("Añadida 1 copia", "Added 1 copy") : t(`Añadidas ${c.quantity} copias`, `Added ${c.quantity} copies`)} (${detail})`,
       );
       qc.invalidateQueries({ queryKey: ["lines", c.oracleId] });
       qc.invalidateQueries({ queryKey: ["card", c.oracleId] });

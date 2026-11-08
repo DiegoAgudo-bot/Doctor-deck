@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TRADE_TEXT } from "@/domain/social/notification-text";
+import { TRADE_TEXT, TRADE_TEXT_EN } from "@/domain/social/notification-text";
 import { formatEuros } from "@/domain/suggestions/format";
 import type { NotificationsResponse } from "@/server/dto";
 import { api, ApiError } from "./api-client";
@@ -9,14 +9,6 @@ import { IconBell } from "./icons";
 import { notifyNotificationsChanged } from "./local-collection";
 import { Banner, EmptyState, Loading, ago } from "./ui";
 import { Link, useLocale, useT } from "@/components/i18n";
-
-const TRADE_TEXT_EN: Partial<Record<string, string>> = {
-  trade_proposal: "proposed a trade to you",
-  trade_counter: "sent you a counteroffer",
-  trade_accepted: "accepted your trade: the cards are already in your collections",
-  trade_rejected: "rejected your trade proposal",
-  trade_cancelled: "withdrew the trade proposal",
-};
 
 /** /notifications: lo que han hecho las personas a las que sigues. Al abrirla, se marcan leídas. */
 export function NotificationsPage() {

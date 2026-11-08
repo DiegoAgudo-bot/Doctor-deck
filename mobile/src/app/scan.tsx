@@ -46,6 +46,7 @@ import {
   type ScannedCopy,
 } from "~/lib/scan";
 import { colors, radius } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 const STORE_KEY = "doctordeck:scan";
 
@@ -89,22 +90,25 @@ export default function ScanScreen() {
   if (!permission.hasPermission) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
-        <Stack.Screen options={{ title: "Escanear cartas" }} />
+        <Stack.Screen options={{ title: t("Escanear cartas", "Scan cards") }} />
         <Empty
           icon="camera-outline"
-          title="Hace falta la cámara"
-          text="Para reconocer tus cartas. Las imágenes no salen del móvil: solo se manda el texto que se lee."
+          title={t("Hace falta la cámara", "The camera is needed")}
+          text={t(
+            "Para reconocer tus cartas. Las imágenes no salen del móvil: solo se manda el texto que se lee.",
+            "To recognise your cards. Images never leave your phone: only the text that's read is sent.",
+          )}
         />
         <View style={{ paddingHorizontal: 24 }}>
           {permission.canRequestPermission ? (
             <Button
-              label="Permitir la cámara"
+              label={t("Permitir la cámara", "Allow the camera")}
               icon="camera"
               onPress={() => void permission.requestPermission()}
             />
           ) : (
             <Button
-              label="Abrir los ajustes del móvil"
+              label={t("Abrir los ajustes del móvil", "Open phone settings")}
               icon="settings-outline"
               onPress={() => void Linking.openSettings()}
             />
@@ -329,8 +333,11 @@ function Scanner() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       toast(
         totals.copies === 1
-          ? "Añadida 1 copia a tu colección"
-          : `Añadidas ${totals.copies} copias a tu colección`,
+          ? t("Añadida 1 copia a tu colección", "Added 1 copy to your collection")
+          : t(
+              `Añadidas ${totals.copies} copias a tu colección`,
+              `Added ${totals.copies} copies to your collection`,
+            ),
       );
       setList([]);
       tracker.reset();
@@ -355,11 +362,11 @@ function Scanner() {
       ? status.name
       : status.kind === "reading"
         ? status.detail
-          ? `Leyendo… ${status.detail}`
-          : "Leyendo…"
+          ? t(`Leyendo… ${status.detail}`, `Reading… ${status.detail}`)
+          : t("Leyendo…", "Reading…")
         : dark && !torch
-          ? "¿Poca luz? Enciende la linterna"
-          : "Pon una carta dentro del marco";
+          ? t("¿Poca luz? Enciende la linterna", "Low light? Turn on the torch")
+          : t("Pon una carta dentro del marco", "Put a card inside the frame");
 
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
@@ -375,7 +382,10 @@ function Scanner() {
           lastFrameAt={lastFrameAt}
         />
       ) : (
-        <Empty icon="camera-outline" title="No se encuentra la cámara trasera" />
+        <Empty
+          icon="camera-outline"
+          title={t("No se encuentra la cámara trasera", "The rear camera can't be found")}
+        />
       )}
 
       {/* Marco de la carta */}
@@ -409,13 +419,13 @@ function Scanner() {
 
       {/* Barra de arriba */}
       <View style={[s.topbar, { top: insets.top + 6 }]}>
-        <Round icon="close" label="Cerrar" onPress={() => router.back()} />
+        <Round icon="close" label={t("Cerrar", "Close")} onPress={() => router.back()} />
         <View style={{ flexDirection: "row", gap: 10 }}>
           <Pressable
             onPress={() => setFoil(!foil)}
             accessibilityRole="switch"
             accessibilityState={{ checked: foil }}
-            accessibilityLabel="Las siguientes son foil"
+            accessibilityLabel={t("Las siguientes son foil", "The next ones are foil")}
             style={[s.pill, foil && { backgroundColor: colors.foil }]}
           >
             <FoilMark size={12} />
@@ -424,7 +434,11 @@ function Scanner() {
           {device?.hasTorch && (
             <Round
               icon={torch ? "flashlight" : "flashlight-outline"}
-              label={torch ? "Apagar la linterna" : "Encender la linterna"}
+              label={
+                torch
+                  ? t("Apagar la linterna", "Turn off the torch")
+                  : t("Encender la linterna", "Turn on the torch")
+              }
               onPress={() => setTorch(!torch)}
               active={torch}
               highlight={dark && !torch}
@@ -440,8 +454,8 @@ function Scanner() {
         <View style={s.panelHead}>
           <T variant="h2">
             {totals.copies === 0
-              ? "Nada escaneado todavía"
-              : `${totals.copies} ${totals.copies === 1 ? "carta" : "cartas"} · ${euros(totals.value)}`}
+              ? t("Nada escaneado todavía", "Nothing scanned yet")
+              : `${totals.copies} ${totals.copies === 1 ? t("carta", "card") : t("cartas", "cards")} · ${euros(totals.value)}`}
           </T>
           {list.length > 0 && (
             <Pressable
@@ -452,7 +466,7 @@ function Scanner() {
               hitSlop={8}
             >
               <T variant="small" style={{ color: colors.text3 }}>
-                Vaciar
+                {t("Vaciar", "Clear")}
               </T>
             </Pressable>
           )}
@@ -463,8 +477,10 @@ function Scanner() {
           style={{ flex: 1 }}
           ListEmptyComponent={
             <T variant="small" style={{ color: colors.text3, paddingVertical: 8 }}>
-              Pasa las cartas una a una por el marco: cada una vibra al reconocerse. Para contar
-              otra copia de la misma, quítala y vuelve a ponerla.
+              {t(
+                "Pasa las cartas una a una por el marco: cada una vibra al reconocerse. Para contar otra copia de la misma, quítala y vuelve a ponerla.",
+                "Pass the cards through the frame one by one: each one vibrates when recognised. To count another copy of the same card, take it out and put it back.",
+              )}
             </T>
           }
           renderItem={({ item, index }) => (
@@ -490,7 +506,9 @@ function Scanner() {
         />
         <Button
           label={
-            totals.copies === 0 ? "Añadir a la colección" : `Añadir ${totals.copies} a la colección`
+            totals.copies === 0
+              ? t("Añadir a la colección", "Add to collection")
+              : t(`Añadir ${totals.copies} a la colección`, `Add ${totals.copies} to collection`)
           }
           icon="add"
           onPress={() => void addAll()}
@@ -594,7 +612,7 @@ function ScannedRow({
         </Text>
         <Text style={s.rowMeta} numberOfLines={1}>
           {[
-            item.printingLabel ?? "edición sin leer",
+            item.printingLabel ?? t("edición sin leer", "printing not read"),
             item.language.toUpperCase(),
             euros(item.price),
           ]
@@ -612,7 +630,11 @@ function ScannedRow({
       >
         <FoilMark size={11} />
       </Pressable>
-      <IconButton icon="remove-circle-outline" label={`Quitar ${item.name}`} onPress={onRemove} />
+      <IconButton
+        icon="remove-circle-outline"
+        label={t(`Quitar ${item.name}`, `Remove ${item.name}`)}
+        onPress={onRemove}
+      />
     </View>
   );
 }

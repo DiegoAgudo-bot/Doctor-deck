@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Pressable, View } from "react-native";
 import { colors } from "~/lib/theme";
 import { T } from "./ui";
+import { t } from "~/lib/i18n";
 
 /** − 3 + (copias). */
 export function Stepper({
@@ -19,7 +20,7 @@ export function Stepper({
 }) {
   const btn = (icon: "remove" | "add", next: number) => (
     <Pressable
-      accessibilityLabel={icon === "add" ? "Una más" : "Una menos"}
+      accessibilityLabel={icon === "add" ? t("Una más", "One more") : t("Una menos", "One fewer")}
       disabled={disabled || next < min || next > max}
       onPress={() => onChange(next)}
       hitSlop={6}

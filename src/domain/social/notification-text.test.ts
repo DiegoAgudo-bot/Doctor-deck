@@ -38,4 +38,27 @@ describe("notificationMessage", () => {
       "@b ha publicado un mazo: Jund",
     );
   });
+
+  it("en inglés: título, frase y precio", () => {
+    expect(
+      notificationMessage(
+        { ...base, type: "trade_proposal", title: "", tradeId: "t1" },
+        "@ana",
+        "en",
+      ),
+    ).toEqual({
+      title: "Trade proposal",
+      body: "@ana proposed a trade to you",
+      path: "/trades/proposals/t1",
+    });
+    const m = notificationMessage(
+      { ...base, type: "price_drop", title: "Sol Ring", deckId: "d1", price: 1, prevPrice: 2 },
+      "",
+      "en",
+    );
+    expect(m.title).toBe("Price drop");
+    expect(m.body).toBe(
+      "Sol Ring dropped in price, and you're missing it for one of your decks · €2.00 → €1.00",
+    );
+  });
 });
