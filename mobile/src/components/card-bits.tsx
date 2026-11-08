@@ -26,7 +26,11 @@ export const CardThumb = memo(function CardThumb({
   large?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
-  const src = large ? imageUri(uri) : smallImageUri(uri);
+  // En las rejillas (≥ 100 dp, ~300 px o más en pantalla) la pequeña (146 px) se ve borrosa: se
+  // pide la normal (488 px) y, mientras llega, se enseña la pequeña (ya en caché por `prefetchThumbs`).
+  const hd = large || width >= 100;
+  const src = hd ? imageUri(uri) : smallImageUri(uri);
+  const placeholder = hd && !large ? smallImageUri(uri) : null;
   const height = width / CARD_RATIO;
   const r = Math.max(4, width * 0.045);
   return (
@@ -54,6 +58,9 @@ export const CardThumb = memo(function CardThumb({
       {src && (
         <Image
           source={{ uri: src }}
+          {...(placeholder
+            ? { placeholder: { uri: placeholder }, placeholderContentFit: "cover" }
+            : {})}
           style={{ position: "absolute", top: 0, left: 0, width, height }}
           contentFit="cover"
           transition={120}
