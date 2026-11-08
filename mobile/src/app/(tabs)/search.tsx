@@ -71,7 +71,10 @@ export default function Search() {
   const [defaults] = useCopyDefaults();
   const addCopies = useAddCopies();
 
-  const key = catalogParams(applied, query).toString();
+  // Las más caras primero (las que no tienen precio, al final).
+  const params = catalogParams(applied, query);
+  params.set("sort", "price");
+  const key = params.toString();
 
   const list = useInfiniteQuery({
     queryKey: ["catalog", key],

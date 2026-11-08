@@ -812,7 +812,8 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     (`GET /api/users?q=`) encima de las cartas. `FeedEntry` (`components/feed-entry.tsx`) se
     comparte con «Actividad».
   - Rejillas (Buscar y Colección): `CardThumb` enseña el nombre al momento y la imagen encima en
-    cuanto llega (como ManaBox); tarjetas memorizadas, la página siguiente se pide con antelación
+    cuanto llega (como ManaBox); a partir de 100 dp pide la imagen normal (488 px) con la pequeña
+    de `placeholder` mientras llega (1.10.1); Buscar ordena por precio, la más cara primero; tarjetas memorizadas, la página siguiente se pide con antelación
     (`onEndReachedThreshold` 1,5) y las miniaturas de cada página se descargan al llegar
     (`prefetchThumbs`). El JSON de la API va comprimido por Traefik (`deckdoctor-compress` en
     `docker-compose.yml`): Next solo comprime las páginas.
