@@ -7,6 +7,7 @@ import { Avatar } from "~/components/social";
 import { T } from "~/components/ui";
 import { ago } from "~/lib/format";
 import { colors, radius } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 const ICON = {
   deck: "layers-outline",
@@ -45,27 +46,49 @@ export function FeedEntry({ item: i }: { item: FeedItemDTO }) {
       </Pressable>
       <View style={{ flex: 1, gap: 8 }}>
         <T>
-          {i.type === "deck" && <>{who} ha publicado un mazo</>}
+          {i.type === "deck" && (
+            <>
+              {who} {t("ha publicado un mazo", "published a deck")}
+            </>
+          )}
           {i.type === "like" && (
             <>
-              A {who} le gusta un mazo de{" "}
+              {t("A ", "")}
+              {who} {t("le gusta un mazo de", "liked a deck by")}{" "}
               {link(`@${i.owner.username}`, () => openUser(i.owner.username))}
             </>
           )}
-          {i.type === "comment" && <>{who} ha comentado</>}
+          {i.type === "comment" && (
+            <>
+              {who} {t("ha comentado", "commented")}
+            </>
+          )}
           {i.type === "game" && (
             <>
-              {who} {i.game.won ? "ha ganado" : "ha jugado"} una partida de {i.game.players}
-              {i.game.won && i.game.deckName ? ` con ${i.game.deckName}` : ""}
-              {!i.game.won && i.game.winner ? ` (ganó ${i.game.winner})` : ""}
-              {i.game.group ? " en " : ""}
+              {who}{" "}
+              {i.game.won
+                ? t(
+                    `ha ganado una partida de ${i.game.players}`,
+                    `won a ${i.game.players}-player game`,
+                  )
+                : t(
+                    `ha jugado una partida de ${i.game.players}`,
+                    `played a ${i.game.players}-player game`,
+                  )}
+              {i.game.won && i.game.deckName ? ` ${t("con", "with")} ${i.game.deckName}` : ""}
+              {!i.game.won && i.game.winner ? ` (${t("ganó", "won by")} ${i.game.winner})` : ""}
+              {i.game.group ? ` ${t("en", "in")} ` : ""}
               {i.game.group &&
                 link(i.game.group.name, () => router.push(`/groups/${i.game.group!.id}`))}
             </>
           )}
           {i.type === "trade" && (
             <>
-              {who} ha cerrado un intercambio de {i.cards} {i.cards === 1 ? "carta" : "cartas"} con{" "}
+              {who}{" "}
+              {t(
+                `ha cerrado un intercambio de ${i.cards} ${i.cards === 1 ? "carta" : "cartas"} con`,
+                `closed a trade of ${i.cards} ${i.cards === 1 ? "card" : "cards"} with`,
+              )}{" "}
               {link(`@${i.partner.username}`, () => openUser(i.partner.username))}
             </>
           )}
@@ -100,7 +123,8 @@ export function FeedEntry({ item: i }: { item: FeedItemDTO }) {
             </View>
           </Pressable>
         )}
-        {i.type === "game" && link("Ver la partida", () => router.push(`/games/${i.game.id}`))}
+        {i.type === "game" &&
+          link(t("Ver la partida", "See the game"), () => router.push(`/games/${i.game.id}`))}
       </View>
       <Ionicons name={ICON[i.type]} size={16} color={colors.text3} />
     </View>

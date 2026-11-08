@@ -14,18 +14,16 @@ export async function pushNotifications(
   const tokens = await deps.devices.tokensFor([...new Set(items.map((n) => n.userId))]);
   if (tokens.length === 0) return { sent: 0 };
   const labels = await deps.devices.labels([...new Set(items.map((n) => n.actorId))]);
-  const byUser = new Map<string, string[]>();
-  for (const t of tokens) byUser.set(t.userId, [...(byUser.get(t.userId) ?? []), t.token]);
+  const byUser = new Map<string, typeof tokens>();
+  for (const t of tokens) byUser.set(t.userId, [...(byUser.get(t.userId) ?? []), t]);
 
-  const messages = items.flatMap((n) => {
-    const m = notificationMessage(n, labels.get(n.actorId) ?? "Alguien");
-    return (byUser.get(n.userId) ?? []).map((token) => ({
-      token,
-      title: m.title,
-      body: m.body,
-      data: { path: m.path, type: n.type },
-    }));
-  });
+  const messages = items.flatMap((n) =>
+    (byUser.get(n.userId) ?? []).map(({ token, locale }) => {
+      const who = labels.get(n.actorId) ?? (locale === "en" ? "Someone" : "Alguien");
+      const m = notificationMessage(n, who, locale);
+      return { token, title: m.title, body: m.body, data: { path: m.path, type: n.type } };
+    }),
+  );
   const { invalidTokens } = await deps.sender.send(messages);
   if (invalidTokens.length > 0) await deps.devices.remove(invalidTokens);
   return { sent: messages.length - invalidTokens.length };

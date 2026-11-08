@@ -34,6 +34,7 @@ import { tapFeedback } from "~/lib/feedback";
 import { LIFE_KEY } from "~/lib/life-store";
 import { type Facing, seatLayout } from "~/lib/seats";
 import { colors, radius } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 interface Stored {
   game: LifeGame | null;
@@ -190,17 +191,21 @@ function Setup({
 
   return (
     <>
-      <Stack.Screen options={{ title: "Contador de vidas", headerShown: true }} />
+      <Stack.Screen
+        options={{ title: t("Contador de vidas", "Life counter"), headerShown: true }}
+      />
       <ScrollView
         contentContainerStyle={{ padding: 16, gap: 18, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
       >
         <T variant="muted">
-          Vidas, daño de comandante y veneno, a pantalla completa. Al acabar, registra la partida
-          para la clasificación de tu grupo.
+          {t(
+            "Vidas, daño de comandante y veneno, a pantalla completa. Al acabar, registra la partida para la clasificación de tu grupo.",
+            "Life, commander damage and poison, in full screen. When you finish, record the game for your group's standings.",
+          )}
         </T>
         <View style={{ gap: 8 }}>
-          <T variant="label">Jugadores</T>
+          <T variant="label">{t("Jugadores", "Players")}</T>
           <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
             {Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => i + MIN_PLAYERS).map(
               (n) => (
@@ -215,7 +220,7 @@ function Setup({
           </View>
         </View>
         <View style={{ gap: 8 }}>
-          <T variant="label">Vidas</T>
+          <T variant="label">{t("Vidas", "Life")}</T>
           <View style={{ flexDirection: "row", gap: 6 }}>
             {[20, 30, 40].map((n) => (
               <Chip
@@ -229,10 +234,14 @@ function Setup({
         </View>
         {(groups.data?.length ?? 0) > 0 && (
           <View style={{ gap: 8 }}>
-            <T variant="label">Grupo</T>
+            <T variant="label">{t("Grupo", "Group")}</T>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={{ flexDirection: "row", gap: 6 }}>
-                <Chip label="Sin grupo" active={!s.groupId} onPress={() => void pickGroup("")} />
+                <Chip
+                  label={t("Sin grupo", "No group")}
+                  active={!s.groupId}
+                  onPress={() => void pickGroup("")}
+                />
                 {groups.data?.map((g) => (
                   <Chip
                     key={g.id}
@@ -246,7 +255,7 @@ function Setup({
           </View>
         )}
         <View style={{ gap: 8 }}>
-          <T variant="label">Nombres</T>
+          <T variant="label">{t("Nombres", "Names")}</T>
           {names.map((n, i) => (
             <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <View
@@ -259,7 +268,7 @@ function Setup({
               />
               <TextInput
                 style={[styles.field, { flex: 1 }]}
-                placeholder={`Jugador ${i + 1}`}
+                placeholder={t(`Jugador ${i + 1}`, `Player ${i + 1}`)}
                 placeholderTextColor={colors.text3}
                 value={n}
                 maxLength={40}
@@ -270,9 +279,17 @@ function Setup({
           ))}
         </View>
         <Button
-          label="Empezar partida"
+          label={t("Empezar partida", "Start game")}
           icon="play"
-          onPress={() => setS((x) => ({ ...x, game: newLifeGame(names, x.life) }))}
+          onPress={() =>
+            setS((x) => ({
+              ...x,
+              game: newLifeGame(
+                names.map((n, i) => n.trim() || t(`Jugador ${i + 1}`, `Player ${i + 1}`)),
+                x.life,
+              ),
+            }))
+          }
         />
       </ScrollView>
     </>
@@ -346,7 +363,7 @@ function Table({
         <View style={{ justifyContent: "center", alignItems: "center", gap: 12 }}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Menú"
+            accessibilityLabel={t("Menú", "Menu")}
             onPress={() => setMenu(true)}
             style={({ pressed }) => [hub, pressed && { opacity: 0.7 }]}
           >
@@ -354,7 +371,10 @@ function Table({
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Turno ${game.turn}: pasar turno`}
+            accessibilityLabel={t(
+              `Turno ${game.turn}: pasar turno`,
+              `Turn ${game.turn}: pass the turn`,
+            )}
             onPress={() => {
               tapFeedback();
               change(nextTurn);
@@ -377,10 +397,10 @@ function Table({
       <Sheet
         open={menu}
         onClose={() => setMenu(false)}
-        title={`Turno ${game.turn} · ${minutes} min`}
+        title={t(`Turno ${game.turn} · ${minutes} min`, `Turn ${game.turn} · ${minutes} min`)}
       >
         <Button
-          label="Registrar partida"
+          label={t("Registrar partida", "Record game")}
           icon="trophy-outline"
           onPress={() => {
             setMenu(false);
@@ -388,7 +408,7 @@ function Table({
           }}
         />
         <Button
-          label="Revancha (mismos jugadores)"
+          label={t("Revancha (mismos jugadores)", "Rematch (same players)")}
           icon="refresh"
           kind="secondary"
           onPress={() => {
@@ -398,7 +418,7 @@ function Table({
           }}
         />
         <Button
-          label="Salir de la mesa"
+          label={t("Salir de la mesa", "Leave the table")}
           icon="exit-outline"
           kind="ghost"
           onPress={() => {
@@ -426,19 +446,19 @@ function Table({
         >
           <Text style={{ fontSize: 48, color: colors.warn }}>♛</Text>
           <T variant="title" style={{ textAlign: "center" }}>
-            Gana {game.players[winner]!.name}
+            {t("Gana", "Winner:")} {game.players[winner]!.name}
           </T>
           <T variant="muted">
             {game.turn} {game.turn === 1 ? "turno" : "turnos"} · {minutes} min
           </T>
           <View style={{ gap: 8, alignSelf: "stretch", marginTop: 8 }}>
             <Button
-              label="Registrar partida"
+              label={t("Registrar partida", "Record game")}
               icon="trophy-outline"
               onPress={() => setRecord(true)}
             />
             <Button
-              label="Revancha"
+              label={t("Revancha", "Rematch")}
               icon="refresh"
               kind="secondary"
               onPress={() => {
@@ -446,7 +466,11 @@ function Table({
                 setGame(rematch(game));
               }}
             />
-            <Button label="Seguir" kind="ghost" onPress={() => setDismissed(game.startedAt)} />
+            <Button
+              label={t("Seguir", "Continue")}
+              kind="ghost"
+              onPress={() => setDismissed(game.startedAt)}
+            />
           </View>
         </View>
       )}
@@ -547,7 +571,7 @@ function PlayerTile({
 
   return (
     <View
-      accessibilityLabel={`${p.name}: ${p.life} vidas`}
+      accessibilityLabel={t(`${p.name}: ${p.life} vidas`, `${p.name}: ${p.life} life`)}
       style={{
         flex: 1,
         borderRadius: 18,
@@ -563,7 +587,7 @@ function PlayerTile({
         <View style={{ position: "absolute", inset: 0, flexDirection: "row" }}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Quitar una vida"
+            accessibilityLabel={t("Quitar una vida", "Lose one life")}
             style={({ pressed }) => ({
               flex: 1,
               justifyContent: "center",
@@ -576,7 +600,7 @@ function PlayerTile({
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Sumar una vida"
+            accessibilityLabel={t("Sumar una vida", "Gain one life")}
             style={({ pressed }) => ({
               flex: 1,
               justifyContent: "center",
@@ -606,7 +630,7 @@ function PlayerTile({
                 overflow: "hidden",
               }}
             >
-              Su turno
+              {t("Su turno", "Their turn")}
             </Text>
           )}
         </View>
@@ -636,7 +660,7 @@ function PlayerTile({
           >
             {p.life}
           </Text>
-          {out && <Text style={{ color: "#fff", fontWeight: "700" }}>Eliminado</Text>}
+          {out && <Text style={{ color: "#fff", fontWeight: "700" }}>{t("Eliminado", "Out")}</Text>}
         </View>
 
         <View
@@ -654,7 +678,10 @@ function PlayerTile({
           )}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Daño de comandante y veneno de ${p.name}`}
+            accessibilityLabel={t(
+              `Daño de comandante y veneno de ${p.name}`,
+              `Commander damage and poison for ${p.name}`,
+            )}
             hitSlop={8}
             onPress={openPanel}
             style={({ pressed }) => ({
@@ -719,13 +746,13 @@ function CountersSheet({
         ),
       )}
       <Counter
-        label="☠ Veneno"
+        label={t("☠ Veneno", "☠ Poison")}
         value={p.poison}
         danger={p.poison >= LETHAL_POISON - 3}
         onDelta={(d) => change((g) => changePoison(g, index, d))}
       />
       <Button
-        label={p.conceded ? "Vuelve a la partida" : "Concede"}
+        label={p.conceded ? t("Vuelve a la partida", "Back in the game") : t("Concede", "Concede")}
         kind="secondary"
         onPress={() => change((g) => setConceded(g, index, !p.conceded))}
       />
@@ -771,11 +798,11 @@ function Counter({
       <T style={{ flex: 1 }} numberOfLines={1}>
         {label}
       </T>
-      <Pressable accessibilityLabel="Menos" style={btn} {...minus}>
+      <Pressable accessibilityLabel={t("Menos", "Minus")} style={btn} {...minus}>
         <T style={{ fontSize: 20 }}>−</T>
       </Pressable>
       <T style={{ minWidth: 28, textAlign: "center", fontWeight: "700", fontSize: 18 }}>{value}</T>
-      <Pressable accessibilityLabel="Más" style={btn} {...plus}>
+      <Pressable accessibilityLabel={t("Más", "Plus")} style={btn} {...plus}>
         <T style={{ fontSize: 20 }}>+</T>
       </Pressable>
     </View>

@@ -32,6 +32,7 @@ import { euros, thousands } from "~/lib/format";
 import { useDebounced } from "~/lib/hooks";
 import { colors } from "~/lib/theme";
 import { alert } from "~/components/dialog";
+import { t } from "~/lib/i18n";
 
 /** Perfil público: seguir, bloquear, sus mazos (con cuánto tengo), su colección y el cruce. */
 export default function Profile() {
@@ -93,11 +94,14 @@ export default function Profile() {
 
   const confirmBlock = () =>
     alert(
-      `¿Bloquear a @${p.username}?`,
-      "Dejaréis de seguiros, no podrá comentar tus mazos ni proponerte intercambios ni préstamos, y no verás sus comentarios ni su actividad. No se le avisa.",
+      t(`¿Bloquear a @${p.username}?`, `Block @${p.username}?`),
+      t(
+        "Dejaréis de seguiros, no podrá comentar tus mazos ni proponerte intercambios ni préstamos, y no verás sus comentarios ni su actividad. No se le avisa.",
+        "You'll stop following each other, they won't be able to comment on your decks or propose trades or loans, and you won't see their comments or activity. They aren't notified.",
+      ),
       [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Bloquear", style: "destructive", onPress: () => block.mutate(true) },
+        { text: t("Cancelar", "Cancel"), style: "cancel" },
+        { text: t("Bloquear", "Block"), style: "destructive", onPress: () => block.mutate(true) },
       ],
     );
 
@@ -113,16 +117,19 @@ export default function Profile() {
         </View>
       </View>
       <View style={{ flexDirection: "row" }}>
-        <Stat label="mazos" value={thousands(v.decks.length)} />
-        <Stat label="seguidores" value={thousands(v.followers)} />
-        <Stat label="siguiendo" value={thousands(v.following)} />
-        <Stat label="partidas ganadas" value={`${v.record.wins}/${v.record.games}`} />
+        <Stat label={t("mazos", "decks")} value={thousands(v.decks.length)} />
+        <Stat label={t("seguidores", "followers")} value={thousands(v.followers)} />
+        <Stat label={t("siguiendo", "following")} value={thousands(v.following)} />
+        <Stat
+          label={t("partidas ganadas", "games won")}
+          value={`${v.record.wins}/${v.record.games}`}
+        />
       </View>
       {!v.isMe && (
         <View style={{ flexDirection: "row", gap: 8 }}>
           {!v.blocked && (
             <Button
-              label={v.isFollowing ? "Siguiendo" : "Seguir"}
+              label={v.isFollowing ? t("Siguiendo", "Following") : t("Seguir", "Follow")}
               icon={v.isFollowing ? "checkmark" : "person-add-outline"}
               kind={v.isFollowing ? "secondary" : "primary"}
               style={{ flex: 1 }}
@@ -132,7 +139,7 @@ export default function Profile() {
           )}
           {!v.blocked && p.tradesPublic && (
             <Button
-              label="Intercambio"
+              label={t("Intercambio", "Trade")}
               icon="swap-horizontal-outline"
               kind="secondary"
               style={{ flex: 1 }}
@@ -143,7 +150,7 @@ export default function Profile() {
       )}
       {v.isMe && (
         <Button
-          label="Editar perfil"
+          label={t("Editar perfil", "Edit profile")}
           kind="secondary"
           icon="settings-outline"
           onPress={() => router.push("/settings")}
@@ -151,15 +158,23 @@ export default function Profile() {
       )}
       {v.blocked && (
         <Banner
-          text={`Has bloqueado a @${p.username}: no puede seguirte, comentar tus mazos ni proponerte intercambios, y no ves su actividad.`}
+          text={t(
+            `Has bloqueado a @${p.username}: no puede seguirte, comentar tus mazos ni proponerte intercambios, y no ves su actividad.`,
+            `You've blocked @${p.username}: they can't follow you, comment on your decks or propose trades, and you don't see their activity.`,
+          )}
         />
       )}
       <Segmented
         value={tab}
         onChange={setTab}
         options={[
-          { key: "decks", label: `Mazos · ${v.decks.length}` },
-          { key: "collection", label: p.collectionPublic ? "Colección" : "Colección (privada)" },
+          { key: "decks", label: t(`Mazos · ${v.decks.length}`, `Decks · ${v.decks.length}`) },
+          {
+            key: "collection",
+            label: p.collectionPublic
+              ? t("Colección", "Collection")
+              : t("Colección (privada)", "Collection (private)"),
+          },
         ]}
       />
     </View>
@@ -174,7 +189,7 @@ export default function Profile() {
             <View style={{ flexDirection: "row" }}>
               <IconButton
                 icon="share-social-outline"
-                label="Compartir perfil"
+                label={t("Compartir perfil", "Share profile")}
                 onPress={() =>
                   Share.share({
                     message: `@${p.username} en Doctor Deck: ${API_URL}/u/${p.username}`,
@@ -184,7 +199,7 @@ export default function Profile() {
               {!v.isMe && (
                 <IconButton
                   icon={v.blocked ? "lock-open-outline" : "ban-outline"}
-                  label={v.blocked ? "Desbloquear" : "Bloquear"}
+                  label={v.blocked ? t("Desbloquear", "Unblock") : t("Bloquear", "Block")}
                   onPress={() => (v.blocked ? block.mutate(false) : confirmBlock())}
                 />
               )}
@@ -198,7 +213,9 @@ export default function Profile() {
           <View style={{ paddingHorizontal: 16, gap: 12 }}>
             {v.decks.length === 0 ? (
               <T variant="muted">
-                {v.isMe ? "Aún no has guardado ningún mazo." : "Todavía no tiene mazos públicos."}
+                {v.isMe
+                  ? t("Aún no has guardado ningún mazo.", "You haven't saved any decks yet.")
+                  : t("Todavía no tiene mazos públicos.", "No public decks yet.")}
               </T>
             ) : (
               v.decks.map((d) => {
@@ -208,13 +225,17 @@ export default function Profile() {
             )}
             {trade.data && (
               <View style={{ gap: 8, marginTop: 8 }}>
-                <T variant="h2">Intercambio con @{p.username}</T>
+                <T variant="h2">
+                  {t("Intercambio con", "Trade with")} @{p.username}
+                </T>
                 {trade.data[0] ? (
                   <PartnerCard p={trade.data[0]} />
                 ) : (
                   <T variant="muted">
-                    No tiene libre nada de tu lista de deseos ni busca nada de lo que te sobra.
-                    Puedes proponerle un intercambio a mano.
+                    {t(
+                      "No tiene libre nada de tu lista de deseos ni busca nada de lo que te sobra. Puedes proponerle un intercambio a mano.",
+                      "They have nothing spare from your wishlist and want nothing you can spare. You can propose a trade by hand.",
+                    )}
                   </T>
                 )}
               </View>
@@ -233,7 +254,7 @@ export default function Profile() {
           {head}
           <Empty
             icon="eye-off-outline"
-            title="Colección privada"
+            title={t("Colección privada", "Private collection")}
             text={`@${p.username} no enseña su colección.`}
           />
         </ScrollView>
@@ -292,17 +313,20 @@ function PublicCollection({
             {isMe && !isPublic && (
               <Banner
                 tone="info"
-                text="Tu colección es privada: solo la ves tú. Cámbialo en Ajustes."
+                text={t(
+                  "Tu colección es privada: solo la ves tú. Cámbialo en Ajustes.",
+                  "Your collection is private: only you can see it. Change it in Settings.",
+                )}
               />
             )}
             {overall && (
               <T variant="small">
-                {thousands(overall.cards)} cartas · {thousands(overall.copies)} copias ·{" "}
-                {euros(overall.value)}
+                {thousands(overall.cards)} {t("cartas", "cards")} · {thousands(overall.copies)}{" "}
+                {t("copias", "copies")} · {euros(overall.value)}
               </T>
             )}
             <SearchField
-              placeholder="Buscar en su colección"
+              placeholder={t("Buscar en su colección", "Search their collection")}
               value={q}
               onChangeText={setQ}
               onClear={() => setQ("")}
@@ -342,7 +366,9 @@ function PublicCollection({
           <ErrorView error={list.error} onRetry={() => list.refetch()} />
         ) : (
           <T variant="muted" style={{ padding: 16 }}>
-            {query ? "Nada con ese nombre." : "Su colección está vacía."}
+            {query
+              ? t("Nada con ese nombre.", "Nothing with that name.")
+              : t("Su colección está vacía.", "Their collection is empty.")}
           </T>
         )
       }

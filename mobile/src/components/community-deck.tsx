@@ -10,6 +10,7 @@ import { colors } from "~/lib/theme";
 import { DeckTile } from "./deck-tile";
 import { toast } from "./toast";
 import { T } from "./ui";
+import { t } from "~/lib/i18n";
 
 /** Un mazo de la comunidad: portada, cuánto tengo, lo que cuesta lo que falta y «me gusta». */
 export function CommunityDeck({ deck }: { deck: CommunityDeckDTO }) {
@@ -42,18 +43,18 @@ export function CommunityDeck({ deck }: { deck: CommunityDeckDTO }) {
       <DeckTile deck={deck} owner={deck.owner.username ?? deck.owner.name} />
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 4 }}>
         <T variant="small" style={{ color: o.percent >= 80 ? colors.in : colors.text2 }}>
-          Tienes el {Math.round(o.percent)} %
+          {t(`Tienes el ${Math.round(o.percent)} %`, `You own ${Math.round(o.percent)}%`)}
         </T>
         {o.toBuy > 0 && (
           <T variant="small">
-            · faltan {o.toBuy} ({euros(o.cost)})
+            · {t("faltan", "missing")} {o.toBuy} ({euros(o.cost)})
           </T>
         )}
         {deck.bracket ? <T variant="small">· B{deck.bracket}</T> : null}
         <View style={{ flex: 1 }} />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={liked ? "Quitar me gusta" : "Me gusta"}
+          accessibilityLabel={liked ? t("Quitar me gusta", "Unlike") : t("Me gusta", "Like")}
           hitSlop={10}
           onPress={() => like.mutate(!liked)}
           style={{ flexDirection: "row", alignItems: "center", gap: 4 }}

@@ -23,6 +23,7 @@ import { openWebPath, registerForPush, useNotificationTaps } from "~/lib/push";
 import { persister, queryClient } from "~/lib/query";
 import { pollNativeShare, useShareInbox } from "~/lib/share-intake";
 import { colors } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 const navTheme = {
   ...DarkTheme,
@@ -76,8 +77,8 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Empty
         icon="warning-outline"
-        title="Algo ha fallado"
-        text={error.message || "Error inesperado."}
+        title={t("Algo ha fallado", "Something went wrong")}
+        text={error.message || t("Error inesperado.", "Unexpected error.")}
         action={<Button label="Reintentar" icon="refresh" onPress={() => void retry()} />}
       />
     </View>
@@ -115,11 +116,14 @@ function Root() {
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <Empty
           icon="arrow-up-circle-outline"
-          title="Actualiza Doctor Deck"
-          text="Esta versión de la app ya no funciona con el servidor. Instala la última desde Google Play."
+          title={t("Actualiza Doctor Deck", "Update Doctor Deck")}
+          text={t(
+            "Esta versión de la app ya no funciona con el servidor. Instala la última desde Google Play.",
+            "This version of the app no longer works with the server. Install the latest one from Google Play.",
+          )}
           action={
             <Button
-              label="Abrir Google Play"
+              label={t("Abrir Google Play", "Open Google Play")}
               onPress={() => Linking.openURL("market://details?id=app.doctordeck")}
             />
           }
@@ -143,26 +147,32 @@ function Root() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="card/[oracleId]" options={{ title: "" }} />
         <Stack.Screen name="deck/[id]" options={{ title: "" }} />
-        <Stack.Screen name="deck-new" options={{ title: "Nuevo mazo" }} />
-        <Stack.Screen name="share" options={{ title: "Importar" }} />
+        <Stack.Screen name="deck-new" options={{ title: t("Nuevo mazo", "New deck") }} />
+        <Stack.Screen name="share" options={{ title: t("Importar", "Import") }} />
         <Stack.Screen name="scan" options={{ headerShown: false }} />
-        <Stack.Screen name="menu" options={{ title: "Tu cuenta" }} />
-        <Stack.Screen name="play" options={{ title: "Contador de vidas" }} />
-        <Stack.Screen name="notifications" options={{ title: "Avisos" }} />
-        <Stack.Screen name="groups/index" options={{ title: "Grupos de juego" }} />
+        <Stack.Screen name="menu" options={{ title: t("Tu cuenta", "Your account") }} />
+        <Stack.Screen name="play" options={{ title: t("Contador de vidas", "Life counter") }} />
+        <Stack.Screen name="notifications" options={{ title: t("Avisos", "Notifications") }} />
+        <Stack.Screen name="groups/index" options={{ title: t("Grupos de juego", "Playgroups") }} />
         <Stack.Screen name="groups/[id]" options={{ title: "" }} />
-        <Stack.Screen name="groups/join/[code]" options={{ title: "Invitación" }} />
-        <Stack.Screen name="games/[id]" options={{ title: "Partida" }} />
-        <Stack.Screen name="trades/index" options={{ title: "Intercambios" }} />
+        <Stack.Screen
+          name="groups/join/[code]"
+          options={{ title: t("Invitación", "Invitation") }}
+        />
+        <Stack.Screen name="games/[id]" options={{ title: t("Partida", "Game") }} />
+        <Stack.Screen name="trades/index" options={{ title: t("Intercambios", "Trades") }} />
         <Stack.Screen name="trades/with/[username]" options={{ title: "" }} />
         <Stack.Screen name="trades/proposals/[id]" options={{ title: "" }} />
-        <Stack.Screen name="loans" options={{ title: "Préstamos" }} />
-        <Stack.Screen name="collection-prices" options={{ title: "Precios de tu colección" }} />
-        <Stack.Screen name="community" options={{ title: "Comunidad" }} />
-        <Stack.Screen name="feed" options={{ title: "Actividad" }} />
+        <Stack.Screen name="loans" options={{ title: t("Préstamos", "Loans") }} />
+        <Stack.Screen
+          name="collection-prices"
+          options={{ title: t("Precios de tu colección", "Your collection's prices") }}
+        />
+        <Stack.Screen name="community" options={{ title: t("Comunidad", "Community") }} />
+        <Stack.Screen name="feed" options={{ title: t("Actividad", "Activity") }} />
         <Stack.Screen name="u/[username]" options={{ title: "" }} />
-        <Stack.Screen name="settings" options={{ title: "Ajustes" }} />
-        <Stack.Screen name="deck-comments/[id]" options={{ title: "Comentarios" }} />
+        <Stack.Screen name="settings" options={{ title: t("Ajustes", "Settings") }} />
+        <Stack.Screen name="deck-comments/[id]" options={{ title: t("Comentarios", "Comments") }} />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />

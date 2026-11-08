@@ -5,6 +5,7 @@ import { Pressable, Text, View } from "react-native";
 import type { NotificationsResponse } from "@/server/dto";
 import { api } from "~/lib/api";
 import { colors } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 /** Avisos sin leer (se comparte con la pantalla de avisos; se refresca cada minuto). */
 export function useUnread() {
@@ -22,7 +23,11 @@ export function Bell() {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={unread ? `Avisos, ${unread} sin leer` : "Avisos"}
+      accessibilityLabel={
+        unread
+          ? t(`Avisos, ${unread} sin leer`, `Notifications, ${unread} unread`)
+          : t("Avisos", "Notifications")
+      }
       hitSlop={10}
       onPress={() => router.push("/notifications")}
       style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.6 : 1 })}

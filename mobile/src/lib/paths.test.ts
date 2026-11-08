@@ -43,6 +43,7 @@ test("isOlder compara versiones", () => {
 
 test("ago", () => {
   const now = Date.parse("2026-10-13T12:00:00Z");
-  assert.equal(ago("2026-10-13T11:59:30Z", now), "ahora");
-  assert.equal(ago("2026-10-13T09:00:00Z", now), "hace 3 h");
+  assert.equal(ago("2026-10-13T11:59:30Z", now, false), "ahora");
+  assert.equal(ago("2026-10-13T09:00:00Z", now, false), "hace 3 h");
+  assert.equal(ago("2026-10-13T09:00:00Z", now, true), "3 h ago");
 });

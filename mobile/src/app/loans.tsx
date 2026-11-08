@@ -13,6 +13,7 @@ import { api } from "~/lib/api";
 import { tapFeedback } from "~/lib/feedback";
 import { colors, radius } from "~/lib/theme";
 import { alert } from "~/components/dialog";
+import { t } from "~/lib/i18n";
 
 /** Lo que he prestado y lo que me han prestado (con los devueltos si se piden). */
 export default function Loans() {
@@ -77,7 +78,7 @@ export default function Loans() {
             {l.name}
           </T>
           <T variant="small">
-            {lent ? "A " : "De "}
+            {lent ? t("A ", "To ") : t("De ", "From ")}
             {who} · {playedOn(l.createdAt)}
           </T>
           {l.note ? (
@@ -87,19 +88,23 @@ export default function Loans() {
           ) : null}
           {l.returnedAt ? (
             <T variant="small" style={{ color: colors.in }}>
-              Devuelta el {playedOn(l.returnedAt)}
+              {t("Devuelta el", "Returned on")} {playedOn(l.returnedAt)}
             </T>
           ) : (
             <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
               <Chip label="Devuelta" icon="checkmark" onPress={() => returned.mutate(l)} />
               {lent && (
                 <Chip
-                  label="Borrar"
+                  label={t("Borrar", "Delete")}
                   icon="trash-outline"
                   onPress={() =>
                     alert("¿Borrar el préstamo?", "Para los apuntados por error.", [
-                      { text: "Cancelar", style: "cancel" },
-                      { text: "Borrar", style: "destructive", onPress: () => remove.mutate(l) },
+                      { text: t("Cancelar", "Cancel"), style: "cancel" },
+                      {
+                        text: t("Borrar", "Delete"),
+                        style: "destructive",
+                        onPress: () => remove.mutate(l),
+                      },
                     ])
                   }
                 />
@@ -130,37 +135,51 @@ export default function Loans() {
           }
         >
           <View style={{ flexDirection: "row", gap: 6, padding: 16, paddingBottom: 0 }}>
-            <Chip label="Sin devolver" active={!all} onPress={() => setAll(false)} />
-            <Chip label="Todos" active={all} onPress={() => setAll(true)} />
+            <Chip
+              label={t("Sin devolver", "Not returned")}
+              active={!all}
+              onPress={() => setAll(false)}
+            />
+            <Chip label={t("Todos", "All")} active={all} onPress={() => setAll(true)} />
           </View>
-          <SectionTitle>He prestado · {loans.data?.lent.length ?? 0}</SectionTitle>
+          <SectionTitle>
+            {t("He prestado", "Lent out")} · {loans.data?.lent.length ?? 0}
+          </SectionTitle>
           {loans.data?.lent.length ? (
             loans.data.lent.map((l) => row(l, true))
           ) : (
             <View style={{ paddingHorizontal: 16, gap: 8 }}>
               <T variant="muted">
-                No tienes nada prestado. Lo que prestes cuenta como ocupado en tu colección hasta
-                que te lo devuelvan.
+                {t(
+                  "No tienes nada prestado. Lo que prestes cuenta como ocupado en tu colección hasta que te lo devuelvan.",
+                  "You haven't lent anything. What you lend counts as in use in your collection until it's returned.",
+                )}
               </T>
               <Button
-                label="Prestar una carta"
+                label={t("Prestar una carta", "Lend a card")}
                 kind="secondary"
                 icon="hand-left-outline"
                 onPress={() => setLending(true)}
               />
             </View>
           )}
-          <SectionTitle>Me han prestado · {loans.data?.borrowed.length ?? 0}</SectionTitle>
+          <SectionTitle>
+            {t("Me han prestado", "Borrowed")} · {loans.data?.borrowed.length ?? 0}
+          </SectionTitle>
           {loans.data?.borrowed.length ? (
             loans.data.borrowed.map((l) => row(l, false))
           ) : (
             <T variant="muted" style={{ paddingHorizontal: 16 }}>
-              Nadie te ha prestado nada.
+              {t("Nadie te ha prestado nada.", "Nobody has lent you anything.")}
             </T>
           )}
         </ScrollView>
       )}
-      <Fab icon="add" label="Prestar una carta" onPress={() => setLending(true)} />
+      <Fab
+        icon="add"
+        label={t("Prestar una carta", "Lend a card")}
+        onPress={() => setLending(true)}
+      />
       <LendSheet card={null} open={lending} onClose={() => setLending(false)} />
     </View>
   );

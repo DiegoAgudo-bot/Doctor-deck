@@ -8,6 +8,7 @@ import { Sheet } from "./sheet";
 import { Card } from "./social";
 import { BalanceBar, CopyRow } from "./trades";
 import { Button, SearchField, T } from "./ui";
+import { t } from "~/lib/i18n";
 
 /**
  * Las dos partes de un intercambio (lo que doy y lo que recibo) con el balance arriba. Si es
@@ -50,7 +51,7 @@ export function TradeEditor({
           <T variant="mono">{euros(value)}</T>
         </View>
         {mine.length === 0 ? (
-          <T variant="muted">Ninguna carta.</T>
+          <T variant="muted">{t("Ninguna carta.", "No cards.")}</T>
         ) : (
           mine.map((l) => (
             <View key={l.copy.key}>
@@ -62,14 +63,19 @@ export function TradeEditor({
               />
               {unavailable.includes(l.copy.card.oracleId) && (
                 <T variant="small" style={{ color: colors.out }}>
-                  Ya no está en su lista para cambiar
+                  {t("Ya no está en su lista para cambiar", "No longer on their trade list")}
                 </T>
               )}
             </View>
           ))
         )}
         {editable && copies && (
-          <Button label="Añadir más" icon="add" kind="ghost" onPress={() => setAdding(side)} />
+          <Button
+            label={t("Añadir más", "Add more")}
+            icon="add"
+            kind="ghost"
+            onPress={() => setAdding(side)}
+          />
         )}
       </Card>
     );
@@ -78,11 +84,15 @@ export function TradeEditor({
   return (
     <View style={{ gap: 12 }}>
       <BalanceBar balance={balance} partner={partner} editable={editable} />
-      {column("give", `Das a @${partner}`, myCopies)}
-      {column("get", `Recibes de @${partner}`, theirCopies)}
+      {column("give", t(`Das a @${partner}`, `You give @${partner}`), myCopies)}
+      {column("get", t(`Recibes de @${partner}`, `You get from @${partner}`), theirCopies)}
       {adding && available && (
         <AddCopiesSheet
-          title={adding === "give" ? `Dar a @${partner}` : `Pedir a @${partner}`}
+          title={
+            adding === "give"
+              ? t(`Dar a @${partner}`, `Give @${partner}`)
+              : t(`Pedir a @${partner}`, `Ask @${partner}`)
+          }
           available={available}
           used={
             new Map(lines.filter((l) => l.side === adding).map((l) => [l.copy.key, l.quantity]))
@@ -116,13 +126,13 @@ function AddCopiesSheet({
   return (
     <Sheet open onClose={onClose} title={title}>
       <SearchField
-        placeholder="Filtrar por nombre…"
+        placeholder={t("Filtrar por nombre…", "Filter by name…")}
         value={filter}
         onChangeText={setFilter}
         onClear={() => setFilter("")}
       />
       {addable.length === 0 ? (
-        <T variant="muted">Nada más que añadir.</T>
+        <T variant="muted">{t("Nada más que añadir.", "Nothing more to add.")}</T>
       ) : (
         addable
           .slice(0, 100)

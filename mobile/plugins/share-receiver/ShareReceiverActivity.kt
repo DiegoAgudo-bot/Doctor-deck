@@ -93,7 +93,10 @@ class ShareReceiverActivity : Activity() {
           if (n < 0) break
           total += n
           if (total > MAX_BYTES) {
-            throw IllegalStateException("el fichero es demasiado grande (más de 30 MB)")
+            throw IllegalStateException(
+                if (java.util.Locale.getDefault().language == "es") "el fichero es demasiado grande (más de 30 MB)"
+                else "the file is too big (over 30 MB)"
+            )
           }
           out.write(buffer, 0, n)
         }

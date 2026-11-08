@@ -1,4 +1,5 @@
 import type { ShareItem } from "./share-inbox";
+import { t } from "./lang.ts";
 
 /**
  * Lee `pending.json`, lo que deja la actividad nativa que recibe lo compartido:
@@ -10,10 +11,16 @@ export function itemFromPending(raw: string): ShareItem {
   try {
     data = JSON.parse(raw);
   } catch {
-    return { kind: "error", message: "lo compartido llegó incompleto" };
+    return {
+      kind: "error",
+      message: t("lo compartido llegó incompleto", "what was shared arrived incomplete"),
+    };
   }
   if (typeof data !== "object" || data === null) {
-    return { kind: "error", message: "lo compartido llegó incompleto" };
+    return {
+      kind: "error",
+      message: t("lo compartido llegó incompleto", "what was shared arrived incomplete"),
+    };
   }
   const d = data as Record<string, unknown>;
   const str = (k: string) => (typeof d[k] === "string" ? (d[k] as string) : null);
@@ -25,5 +32,8 @@ export function itemFromPending(raw: string): ShareItem {
   }
   const text = str("text");
   if (text) return { kind: "content", id, text, files: null };
-  return { kind: "error", message: "no llega ni texto ni fichero" };
+  return {
+    kind: "error",
+    message: t("no llega ni texto ni fichero", "neither text nor a file arrived"),
+  };
 }

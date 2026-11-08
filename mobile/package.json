@@ -52,7 +52,7 @@
     "android": "expo run:android",
     "prebuild": "expo prebuild --platform android --clean",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/lib/*.test.ts",
+    "test": "LANG=es_ES.UTF-8 node --experimental-strip-types --test src/lib/*.test.ts",
     "postinstall": "patch-package"
   },
   "private": true,

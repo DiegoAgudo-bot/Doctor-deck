@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 import {
   NOTIFICATION_GROUP_KEYS,
-  NOTIFICATION_GROUP_LABELS,
+  notificationGroupLabel,
 } from "@/domain/social/notification-prefs";
 import type { AppInfoDTO, MyProfileDTO } from "@/server/dto";
 import type { MemberDTO } from "@/server/social-dto";
@@ -21,6 +21,7 @@ import { downloadAndShare } from "~/lib/download";
 import { unregisterPush } from "~/lib/push";
 import { clearCache } from "~/lib/query";
 import { colors } from "~/lib/theme";
+import { locale, t } from "~/lib/i18n";
 
 const ALERT_OPTIONS: (number | null)[] = [null, 10, 15, 25, 40];
 
@@ -47,7 +48,7 @@ export default function Settings() {
     onSuccess: (p) => {
       qc.setQueryData(["me"], p);
       setUsername(p.username);
-      toast("Guardado");
+      toast(t("Guardado", "Saved"));
     },
     onError: (e) => toast(e.message),
   });
@@ -59,7 +60,7 @@ export default function Settings() {
       if (kind === "data") {
         await downloadAndShare(
           "/api/me/export",
-          `doctor-deck-mis-datos-${date}.json`,
+          t(`doctor-deck-mis-datos-${date}.json`, `doctor-deck-my-data-${date}.json`),
           "application/json",
         );
       } else {
@@ -70,7 +71,12 @@ export default function Settings() {
         );
       }
     } catch {
-      toast("No se ha podido descargar. Comprueba la conexión.");
+      toast(
+        t(
+          "No se ha podido descargar. Comprueba la conexión.",
+          "Couldn't download it. Check your connection.",
+        ),
+      );
     } finally {
       setBusy(null);
     }
@@ -91,15 +97,15 @@ export default function Settings() {
             style={{ color: colors.accent }}
             onPress={() => router.push(`/u/${me.username}`)}
           >
-            Ver mi perfil
+            {t("Ver mi perfil", "See my profile")}
           </T>
         }
       >
-        Perfil público
+        {t("Perfil público", "Public profile")}
       </SectionTitle>
       <View style={{ paddingHorizontal: 16, gap: 8 }}>
         <Field
-          label="Nombre de usuario"
+          label={t("Nombre de usuario", "Username")}
           value={username}
           autoCapitalize="none"
           autoCorrect={false}
@@ -107,12 +113,14 @@ export default function Settings() {
           onChangeText={(v) => setUsername(v.toLowerCase())}
         />
         <T variant="small">
-          Tu perfil es doctordeck.app/u/{username || "…"}. De 3 a 20 letras, números o guion bajo,
-          empezando por una letra.
+          {t(
+            `Tu perfil es doctordeck.app/u/${username || "…"}. De 3 a 20 letras, números o guion bajo, empezando por una letra.`,
+            `Your profile is doctordeck.app/u/${username || "…"}. 3 to 20 letters, numbers or underscores, starting with a letter.`,
+          )}
         </T>
         {username !== me.username && (
           <Button
-            label="Guardar nombre de usuario"
+            label={t("Guardar nombre de usuario", "Save username")}
             busy={save.isPending}
             disabled={username.trim().length < 3}
             onPress={() => save.mutate({ username: username.trim() })}
@@ -120,30 +128,39 @@ export default function Settings() {
         )}
       </View>
       <SwitchRow
-        label="Colección pública"
-        detail="Cualquiera puede verla en tu perfil (nunca a quién prestas ni en qué mazos está)."
+        label={t("Colección pública", "Public collection")}
+        detail={t(
+          "Cualquiera puede verla en tu perfil (nunca a quién prestas ni en qué mazos está).",
+          "Anyone can see it on your profile (never who you lend to or which decks it's in).",
+        )}
         value={me.collectionPublic}
         disabled={save.isPending}
         onChange={(v) => save.mutate({ collectionPublic: v })}
       />
       <SwitchRow
-        label="Listas de intercambio públicas"
-        detail="Tu lista de deseos y lo que tienes para cambiar salen en tu perfil y en los cruces de otros."
+        label={t("Listas de intercambio públicas", "Public trade lists")}
+        detail={t(
+          "Tu lista de deseos y lo que tienes para cambiar salen en tu perfil y en los cruces de otros.",
+          "Your wishlist and what you have for trade show on your profile and in other people's matches.",
+        )}
         value={me.tradesPublic}
         disabled={save.isPending}
         onChange={(v) => save.mutate({ tradesPublic: v })}
       />
 
-      <SectionTitle>Avisos</SectionTitle>
+      <SectionTitle>{t("Avisos", "Notifications")}</SectionTitle>
       <T variant="small" style={{ paddingHorizontal: 16 }}>
-        Los que desactives no te llegarán ni al móvil ni a la web.
+        {t(
+          "Los que desactives no te llegarán ni al móvil ni a la web.",
+          "The ones you turn off won't reach you on your phone or on the web.",
+        )}
       </T>
       {NOTIFICATION_GROUP_KEYS.map((g) => (
         <SwitchRow
           key={g}
-          label={NOTIFICATION_GROUP_LABELS[g].label}
-          {...(NOTIFICATION_GROUP_LABELS[g].hint
-            ? { detail: NOTIFICATION_GROUP_LABELS[g].hint }
+          label={notificationGroupLabel(g, locale).label}
+          {...(notificationGroupLabel(g, locale).hint
+            ? { detail: notificationGroupLabel(g, locale).hint }
             : {})}
           value={!me.mutedNotifications.includes(g)}
           disabled={save.isPending}
@@ -157,17 +174,19 @@ export default function Settings() {
         />
       ))}
 
-      <SectionTitle>Avisos de precio</SectionTitle>
+      <SectionTitle>{t("Avisos de precio", "Price alerts")}</SectionTitle>
       <View style={{ paddingHorizontal: 16, gap: 8 }}>
         <T variant="small">
-          Te avisamos si una carta que te falta para tus mazos baja este porcentaje respecto a su
-          precio más alto de los 30 días anteriores (como mucho un aviso por carta a la semana).
+          {t(
+            "Te avisamos si una carta que te falta para tus mazos baja este porcentaje respecto a su precio más alto de los 30 días anteriores (como mucho un aviso por carta a la semana).",
+            "We notify you if a card you're missing for your decks drops this percentage from its highest price in the previous 30 days (at most one alert per card per week).",
+          )}
         </T>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
           {ALERT_OPTIONS.map((p) => (
             <Chip
               key={String(p)}
-              label={p === null ? "No avisar" : `${p} %`}
+              label={p === null ? t("No avisar", "Off") : `${p} %`}
               active={me.priceAlertPercent === p}
               onPress={() => save.mutate({ priceAlertPercent: p })}
             />
@@ -177,46 +196,50 @@ export default function Settings() {
 
       <BlockedUsers />
 
-      <SectionTitle>Tus datos</SectionTitle>
+      <SectionTitle>{t("Tus datos", "Your data")}</SectionTitle>
       <View style={{ paddingHorizontal: 16, gap: 8 }}>
         <Button
-          label="Descargar todos mis datos (JSON)"
+          label={t("Descargar todos mis datos (JSON)", "Download all my data (JSON)")}
           kind="secondary"
           icon="download-outline"
           busy={busy === "data"}
           onPress={() => void download("data")}
         />
         <Button
-          label="Exportar mi colección (CSV)"
+          label={t("Exportar mi colección (CSV)", "Export my collection (CSV)")}
           kind="secondary"
           icon="document-text-outline"
           busy={busy === "csv"}
           onPress={() => void download("csv")}
         />
         <T variant="small">
-          Tu perfil, colección, mazos, listas de intercambio, propuestas, correcciones de roles,
-          grupos, partidas, préstamos y comentarios.
+          {t(
+            "Tu perfil, colección, mazos, listas de intercambio, propuestas, correcciones de roles, grupos, partidas, préstamos y comentarios.",
+            "Your profile, collection, decks, trade lists, proposals, role corrections, groups, games, loans and comments.",
+          )}
         </T>
       </View>
       <MenuRow
         icon="document-text-outline"
-        label="Política de privacidad"
+        label={t("Política de privacidad", "Privacy policy")}
         onPress={() => WebBrowser.openBrowserAsync(`${API_URL}/privacy`)}
       />
       <MenuRow
         icon="information-circle-outline"
-        label="Aviso legal"
+        label={t("Aviso legal", "Legal notice")}
         onPress={() => WebBrowser.openBrowserAsync(`${API_URL}/legal`)}
       />
       <View style={{ padding: 16 }}>
         <Card style={{ borderColor: colors.out }}>
-          <T style={{ fontWeight: "700" }}>Borrar mi cuenta</T>
+          <T style={{ fontWeight: "700" }}>{t("Borrar mi cuenta", "Delete my account")}</T>
           <T variant="small">
-            Se borran para siempre tu colección, tus mazos, tus listas y tus propuestas. No se puede
-            deshacer.
+            {t(
+              "Se borran para siempre tu colección, tus mazos, tus listas y tus propuestas. No se puede deshacer.",
+              "Your collection, decks, lists and proposals are deleted forever. This can't be undone.",
+            )}
           </T>
           <Button
-            label="Borrar mi cuenta"
+            label={t("Borrar mi cuenta", "Delete my account")}
             kind="danger"
             icon="trash-outline"
             onPress={() => setDeleting(true)}
@@ -249,18 +272,18 @@ function AccountSection() {
 
   return (
     <>
-      <SectionTitle>Cuenta</SectionTitle>
+      <SectionTitle>{t("Cuenta", "Account")}</SectionTitle>
       <View style={{ paddingHorizontal: 16, gap: 8 }}>
         {note && <Banner tone={note.tone} text={note.text} />}
         <T>
           {session.user.email}{" "}
           <T variant="small" style={{ color: verified ? colors.in : colors.warn }}>
-            · {verified ? "verificado" : "sin verificar"}
+            · {verified ? t("verificado", "verified") : t("sin verificar", "not verified")}
           </T>
         </T>
         {!verified && info.data?.passwordReset && (
           <Button
-            label="Enviar enlace de verificación"
+            label={t("Enviar enlace de verificación", "Send verification link")}
             kind="secondary"
             busy={busy}
             onPress={async () => {
@@ -272,8 +295,20 @@ function AccountSection() {
               setBusy(false);
               setNote(
                 error
-                  ? { tone: "warn", text: "No se ha podido enviar el correo. Prueba más tarde." }
-                  : { tone: "ok", text: "Te hemos enviado un enlace para verificar el email." },
+                  ? {
+                      tone: "warn",
+                      text: t(
+                        "No se ha podido enviar el correo. Prueba más tarde.",
+                        "Couldn't send the email. Try again later.",
+                      ),
+                    }
+                  : {
+                      tone: "ok",
+                      text: t(
+                        "Te hemos enviado un enlace para verificar el email.",
+                        "We've sent you a link to verify your email.",
+                      ),
+                    },
               );
               void refetch();
             }}
@@ -283,11 +318,14 @@ function AccountSection() {
           accounts.data &&
           (hasGoogle ? (
             <T variant="small" style={{ color: colors.in }}>
-              Google vinculado: puedes entrar con Google.
+              {t(
+                "Google vinculado: puedes entrar con Google.",
+                "Google linked: you can sign in with Google.",
+              )}
             </T>
           ) : (
             <Button
-              label="Vincular Google"
+              label={t("Vincular Google", "Link Google")}
               kind="secondary"
               icon="logo-google"
               busy={busy}
@@ -301,7 +339,10 @@ function AccountSection() {
                 if (error) {
                   setNote({
                     tone: "warn",
-                    text: "No se ha podido vincular Google. Usa la cuenta de Google con el mismo email (y que no esté ya vinculada a otro usuario).",
+                    text: t(
+                      "No se ha podido vincular Google. Usa la cuenta de Google con el mismo email (y que no esté ya vinculada a otro usuario).",
+                      "Couldn't link Google. Use the Google account with the same email (and not already linked to another user).",
+                    ),
                   });
                 } else {
                   void accounts.refetch();
@@ -312,7 +353,7 @@ function AccountSection() {
       </View>
       {hasPassword && (
         <>
-          <SectionTitle>Cambiar la contraseña</SectionTitle>
+          <SectionTitle>{t("Cambiar la contraseña", "Change password")}</SectionTitle>
           <ChangePassword />
         </>
       )}
@@ -329,7 +370,7 @@ function BlockedUsers() {
   const unblock = useMutation({
     mutationFn: (username: string) => api(`/api/users/${username}/block`, { method: "DELETE" }),
     onSuccess: (_r, u) => {
-      toast(`Has desbloqueado a @${u}`);
+      toast(t(`Has desbloqueado a @${u}`, `You unblocked @${u}`));
       blocks.refetch();
     },
     onError: (e) => toast(e.message),
@@ -337,7 +378,7 @@ function BlockedUsers() {
   if (!blocks.data || blocks.data.length === 0) return null;
   return (
     <>
-      <SectionTitle>Bloqueados</SectionTitle>
+      <SectionTitle>{t("Bloqueados", "Blocked")}</SectionTitle>
       {blocks.data.map((m) => (
         <PersonRow
           key={m.username ?? m.name}
@@ -345,7 +386,7 @@ function BlockedUsers() {
           right={
             m.username ? (
               <Button
-                label="Desbloquear"
+                label={t("Desbloquear", "Unblock")}
                 kind="ghost"
                 onPress={() => unblock.mutate(m.username!)}
               />
@@ -384,10 +425,10 @@ function DeleteAccountSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Borrar mi cuenta"
+      title={t("Borrar mi cuenta", "Delete my account")}
       footer={
         <Button
-          label="Borrar para siempre"
+          label={t("Borrar para siempre", "Delete forever")}
           kind="danger"
           busy={remove.isPending}
           disabled={confirm.trim().toLowerCase() !== email.toLowerCase()}
@@ -397,11 +438,13 @@ function DeleteAccountSheet({
     >
       {remove.isError && <Banner text={remove.error.message} />}
       <T variant="small">
-        Se borran tu colección, tus mazos, tus listas, tus propuestas, tus grupos y todo lo demás.
-        No se puede deshacer. Escribe tu email para confirmarlo.
+        {t(
+          "Se borran tu colección, tus mazos, tus listas, tus propuestas, tus grupos y todo lo demás. No se puede deshacer. Escribe tu email para confirmarlo.",
+          "Your collection, decks, lists, proposals, groups and everything else are deleted. This can't be undone. Type your email to confirm.",
+        )}
       </T>
       <Field
-        label="Tu email"
+        label={t("Tu email", "Your email")}
         placeholder={email}
         value={confirm}
         autoCapitalize="none"
@@ -410,7 +453,10 @@ function DeleteAccountSheet({
         onChangeText={setConfirm}
       />
       <Field
-        label="Contraseña (si entras con Google, déjala vacía)"
+        label={t(
+          "Contraseña (si entras con Google, déjala vacía)",
+          "Password (leave it empty if you sign in with Google)",
+        )}
         value={password}
         secureTextEntry
         onChangeText={setPassword}

@@ -8,6 +8,7 @@ import { DeckTile } from "~/components/deck-tile";
 import { Button, Empty, ErrorView, Fab, Loading, T } from "~/components/ui";
 import { api } from "~/lib/api";
 import { colors } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 /**
  * Mis mazos, con el arte del comandante de portada (como la lista de mazos de ManaBox).
@@ -28,9 +29,18 @@ export default function Decks() {
     return (
       <Empty
         icon="layers-outline"
-        title="Aún no tienes mazos"
-        text="Empieza desde un comandante (con el mazo medio de la comunidad o con tus cartas), pega una lista o compártela desde otra app."
-        action={<Button label="Nuevo mazo" icon="add" onPress={() => router.push("/deck-new")} />}
+        title={t("Aún no tienes mazos", "You don't have any decks yet")}
+        text={t(
+          "Empieza desde un comandante (con el mazo medio de la comunidad o con tus cartas), pega una lista o compártela desde otra app.",
+          "Start from a commander (with the community's average deck or with your cards), paste a list or share it from another app.",
+        )}
+        action={
+          <Button
+            label={t("Nuevo mazo", "New deck")}
+            icon="add"
+            onPress={() => router.push("/deck-new")}
+          />
+        }
       />
     );
   }
@@ -41,7 +51,10 @@ export default function Decks() {
         keyExtractor={(d) => d.id}
         ListHeaderComponent={
           <T variant="small">
-            Mantén pulsado un mazo para cambiarle el nombre, duplicarlo o borrarlo.
+            {t(
+              "Mantén pulsado un mazo para cambiarle el nombre, duplicarlo o borrarlo.",
+              "Press and hold a deck to rename, duplicate or delete it.",
+            )}
           </T>
         }
         contentContainerStyle={{ padding: 16, paddingBottom: 96, gap: 12 }}
@@ -55,7 +68,11 @@ export default function Decks() {
         }
         renderItem={({ item }) => <DeckTile deck={item} onLongPress={() => setSettings(item.id)} />}
       />
-      <Fab icon="add" label="Nuevo mazo" onPress={() => router.push("/deck-new")} />
+      <Fab
+        icon="add"
+        label={t("Nuevo mazo", "New deck")}
+        onPress={() => router.push("/deck-new")}
+      />
       {settings && <DeckSettingsSheet deckId={settings} open onClose={() => setSettings(null)} />}
     </View>
   );

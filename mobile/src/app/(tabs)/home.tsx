@@ -16,6 +16,7 @@ import { api } from "~/lib/api";
 import { useSession } from "~/lib/auth";
 import { euros, thousands } from "~/lib/format";
 import { colors, radius } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 /**
  * Inicio (como el panel de la web): mi colección y lo que vale, mis mazos recientes, las propuestas
@@ -72,20 +73,24 @@ export default function Home() {
       }
     >
       <View style={{ padding: 16, gap: 12 }}>
-        <T variant="title">{firstName ? `Hola, ${firstName}` : "Hola"}</T>
+        <T variant="title">
+          {firstName ? t(`Hola, ${firstName}`, `Hi, ${firstName}`) : t("Hola", "Hi")}
+        </T>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <StatTile
             icon="albums-outline"
-            label="Tu colección"
-            value={overall ? `${thousands(overall.copies)} copias` : "…"}
-            detail={overall ? `Vale ${euros(overall.value)}` : " "}
+            label={t("Tu colección", "Your collection")}
+            value={overall ? `${thousands(overall.copies)} ${t("copias", "copies")}` : "…"}
+            detail={
+              overall ? t(`Vale ${euros(overall.value)}`, `Worth ${euros(overall.value)}`) : " "
+            }
             onPress={() => router.push("/collection-prices")}
           />
           <StatTile
             icon="swap-horizontal-outline"
-            label="Intercambios"
+            label={t("Intercambios", "Trades")}
             value={proposals.data ? thousands(myTurn) : "…"}
-            detail={myTurn > 0 ? "Por responder" : "Ver cruces"}
+            detail={myTurn > 0 ? t("Por responder", "To answer") : t("Ver cruces", "See matches")}
             tone={myTurn > 0 ? colors.warn : undefined}
             onPress={() => router.push(myTurn > 0 ? "/trades?tab=proposals" : "/trades")}
           />
@@ -93,18 +98,21 @@ export default function Home() {
         {overall && overall.copies === 0 && (
           <Banner
             tone="info"
-            text="Aún no tienes cartas. Escanéalas, búscalas o comparte el CSV de tu colección con la app para que los mazos usen lo que tienes."
+            text={t(
+              "Aún no tienes cartas. Escanéalas, búscalas o comparte el CSV de tu colección con la app para que los mazos usen lo que tienes.",
+              "You don't have any cards yet. Scan them, search for them or share your collection's CSV with the app so your decks use what you own.",
+            )}
           />
         )}
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Button
-            label="Nuevo mazo"
+            label={t("Nuevo mazo", "New deck")}
             icon="add"
             onPress={() => router.push("/deck-new")}
             style={{ flex: 1 }}
           />
           <Button
-            label="Escanear"
+            label={t("Escanear", "Scan")}
             kind="secondary"
             icon="scan-outline"
             onPress={() => router.push("/scan")}
@@ -121,17 +129,20 @@ export default function Home() {
               style={{ color: colors.accent }}
               onPress={() => router.push("/decks")}
             >
-              Ver todos ({decks.data.length})
+              {t("Ver todos", "See all")} ({decks.data.length})
             </T>
           ) : undefined
         }
       >
-        Tus mazos
+        {t("Tus mazos", "Your decks")}
       </SectionTitle>
       <View style={{ paddingHorizontal: 16, gap: 10 }}>
         {decks.data && decks.data.length === 0 ? (
           <T variant="small">
-            Aún no tienes ningún mazo. Crea uno desde un comandante o pega una lista.
+            {t(
+              "Aún no tienes ningún mazo. Crea uno desde un comandante o pega una lista.",
+              "You don't have any decks yet. Create one from a commander or paste a list.",
+            )}
           </T>
         ) : (
           recent.map((d) => <DeckTile key={d.id} deck={d} />)
@@ -141,21 +152,24 @@ export default function Home() {
       <SectionTitle
         right={
           <T variant="small" style={{ color: colors.accent }} onPress={() => router.push("/feed")}>
-            Ver toda
+            {t("Ver toda", "See all")}
           </T>
         }
       >
-        Actividad
+        {t("Actividad", "Activity")}
       </SectionTitle>
       {feed.data && activity.length === 0 ? (
         <View style={{ paddingHorizontal: 16, gap: 8 }}>
           <T variant="small">
             {feed.data.following === 0
-              ? "Sigue a gente o únete a un grupo y aquí verás sus mazos, partidas e intercambios."
-              : "Nada nuevo de la gente que sigues."}
+              ? t(
+                  "Sigue a gente o únete a un grupo y aquí verás sus mazos, partidas e intercambios.",
+                  "Follow people or join a group and you'll see their decks, games and trades here.",
+                )
+              : t("Nada nuevo de la gente que sigues.", "Nothing new from the people you follow.")}
           </T>
           <Button
-            label="Buscar gente y mazos"
+            label={t("Buscar gente y mazos", "Find people and decks")}
             kind="secondary"
             icon="globe-outline"
             onPress={() => router.push("/community")}

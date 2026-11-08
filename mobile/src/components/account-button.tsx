@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { Pressable, Text } from "react-native";
 import { useSession } from "~/lib/auth";
 import { colors } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 /** Inicial del nombre de la cuenta (o del email). */
 export function initialOf(name: string | null | undefined, email: string | null | undefined) {
@@ -16,7 +17,7 @@ export function AccountButton() {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Tu cuenta"
+      accessibilityLabel={t("Tu cuenta", "Your account")}
       hitSlop={8}
       onPress={() => router.push("/menu")}
       style={({ pressed }) => ({

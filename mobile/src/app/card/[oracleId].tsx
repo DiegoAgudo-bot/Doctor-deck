@@ -22,6 +22,7 @@ import { CONDITION_OPTIONS, conditionShort, LANGUAGE_OPTIONS } from "~/lib/copie
 import { euros } from "~/lib/format";
 import { colors, radius } from "~/lib/theme";
 import { alert } from "~/components/dialog";
+import { t } from "~/lib/i18n";
 
 /**
  * Ficha de una carta, como en ManaBox: imagen, precio, mis copias con «Añadir 1» (con la edición,
@@ -105,13 +106,15 @@ export default function CardScreen() {
             <ManaCost cost={d.card.manaCost} size={18} />
           </View>
           <T variant="small">{d.card.typeLine}</T>
-          {!d.legalCommander && <Banner text="No es legal en Commander" />}
+          {!d.legalCommander && (
+            <Banner text={t("No es legal en Commander", "Not legal in Commander")} />
+          )}
         </View>
 
         {/* Precio, como en la cabecera de la carta en ManaBox. */}
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <PriceBox label="Desde" value={euros(d.minPrice)} />
-          <PriceBox label="Foil desde" value={euros(d.minFoilPrice)} />
+          <PriceBox label={t("Desde", "From")} value={euros(d.minPrice)} />
+          <PriceBox label={t("Foil desde", "Foil from")} value={euros(d.minFoilPrice)} />
           <Pressable
             accessibilityRole="link"
             onPress={() =>
@@ -130,7 +133,7 @@ export default function CardScreen() {
           >
             <Ionicons name="cart-outline" size={20} color={colors.accent} />
             <T variant="small" style={{ color: colors.accent }}>
-              Comprar
+              {t("Comprar", "Buy")}
             </T>
           </Pressable>
         </View>
@@ -138,12 +141,14 @@ export default function CardScreen() {
         {/* En mi colección: copias editables y añadir. */}
         <View style={{ gap: 8 }}>
           <T variant="label">
-            En tu colección
-            {d.mine && d.mine.owned > 0 ? ` · ${d.mine.owned} (${d.mine.free} libres)` : ""}
+            {t("En tu colección", "In your collection")}
+            {d.mine && d.mine.owned > 0
+              ? ` · ${d.mine.owned} (${d.mine.free} ${t("libres", "spare")})`
+              : ""}
           </T>
           {d.mine && d.mine.usedIn.length > 0 && (
             <T variant="small" style={{ color: colors.inuse }}>
-              En: {d.mine.usedIn.join(", ")}
+              {t("En", "In")}: {d.mine.usedIn.join(", ")}
             </T>
           )}
           {lines.isPending ? (
@@ -153,14 +158,14 @@ export default function CardScreen() {
           )}
           <View style={{ flexDirection: "row", gap: 10 }}>
             <Button
-              label={myLines.length > 0 ? "Añadir 1 más" : "Añadir 1"}
+              label={myLines.length > 0 ? t("Añadir 1 más", "Add 1 more") : t("Añadir 1", "Add 1")}
               icon="add"
               onPress={quickAdd}
               busy={addCopies.isPending}
               style={{ flex: 1 }}
             />
             <Button
-              label="Edición, foil…"
+              label={t("Edición, foil…", "Printing, foil…")}
               icon="options-outline"
               kind="secondary"
               onPress={() => setSheet("add")}
@@ -169,7 +174,8 @@ export default function CardScreen() {
           </View>
           {quickPrinting && (
             <T variant="small">
-              «Añadir» usa {quickPrinting.setCode.toUpperCase()} #{quickPrinting.collectorNumber}
+              {t("«Añadir» usa", "“Add” uses")} {quickPrinting.setCode.toUpperCase()} #
+              {quickPrinting.collectorNumber}
               {defaults.language !== "en" ? ` · ${defaults.language.toUpperCase()}` : ""} ·{" "}
               {conditionShort(defaults.condition)}
             </T>
@@ -178,13 +184,17 @@ export default function CardScreen() {
 
         <View style={{ gap: 10 }}>
           <Button
-            label="Añadir a un mazo"
+            label={t("Añadir a un mazo", "Add to a deck")}
             icon="layers-outline"
             kind="secondary"
             onPress={() => setSheet("deck")}
           />
           <Button
-            label={d.mine?.wished ? "En tu lista de deseos" : "Añadir a la lista de deseos"}
+            label={
+              d.mine?.wished
+                ? t("En tu lista de deseos", "On your wishlist")
+                : t("Añadir a la lista de deseos", "Add to wishlist")
+            }
             icon={d.mine?.wished ? "heart" : "heart-outline"}
             kind="secondary"
             busy={wish.isPending}
@@ -192,7 +202,7 @@ export default function CardScreen() {
           />
           {d.mine && d.mine.free > 0 && (
             <Button
-              label="Prestar"
+              label={t("Prestar", "Lend")}
               icon="hand-left-outline"
               kind="secondary"
               onPress={() => setSheet("lend")}
@@ -200,7 +210,10 @@ export default function CardScreen() {
           )}
           {d.commander && (
             <Button
-              label="Crear un mazo con ella de comandante"
+              label={t(
+                "Crear un mazo con ella de comandante",
+                "Create a deck with it as commander",
+              )}
               icon="add-circle-outline"
               kind="ghost"
               onPress={() => router.push(`/deck-new?commander=${oracleId}`)}
@@ -239,10 +252,12 @@ export default function CardScreen() {
 
         {d.printings.length > 0 && (
           <View style={{ gap: 4 }}>
-            <T variant="label">Ediciones ({d.printings.length})</T>
+            <T variant="label">
+              {t("Ediciones", "Printings")} ({d.printings.length})
+            </T>
             <View style={{ flexDirection: "row", paddingVertical: 4 }}>
               <T variant="small" style={{ flex: 1 }}>
-                Edición
+                {t("Edición", "Printing")}
               </T>
               <T variant="small" style={{ width: 70, textAlign: "right" }}>
                 Normal
@@ -255,7 +270,10 @@ export default function CardScreen() {
               <Pressable
                 key={p.scryfallId}
                 onPress={() => setShown(p)}
-                accessibilityLabel={`Ver la edición ${p.setName ?? p.setCode}`}
+                accessibilityLabel={t(
+                  `Ver la edición ${p.setName ?? p.setCode}`,
+                  `See the ${p.setName ?? p.setCode} printing`,
+                )}
                 style={({ pressed }) => ({
                   flexDirection: "row",
                   alignItems: "center",
@@ -285,7 +303,7 @@ export default function CardScreen() {
             ))}
             {!showAll && d.printings.length > 12 && (
               <Button
-                label={`Ver las ${d.printings.length}`}
+                label={t(`Ver las ${d.printings.length}`, `See all ${d.printings.length}`)}
                 kind="ghost"
                 onPress={() => setShowAll(true)}
               />
@@ -297,7 +315,9 @@ export default function CardScreen() {
 
         {d.commanderDecks.length > 0 && (
           <View style={{ gap: 8 }}>
-            <T variant="label">Mazos públicos con ella de comandante</T>
+            <T variant="label">
+              {t("Mazos públicos con ella de comandante", "Public decks with it as commander")}
+            </T>
             {d.commanderDecks.map((deck) => (
               <Pressable
                 key={deck.id}
@@ -359,8 +379,8 @@ function LineRow({ line, onChanged }: { line: CollectionLineDTO; onChanged: () =
   const change = (q: number) => {
     if (q === 0) {
       alert("¿Quitar estas copias?", "Se borran de tu colección.", [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Quitar", style: "destructive", onPress: () => edit.mutate(0) },
+        { text: t("Cancelar", "Cancel"), style: "cancel" },
+        { text: t("Quitar", "Remove"), style: "destructive", onPress: () => edit.mutate(0) },
       ]);
     } else edit.mutate(q);
   };
@@ -380,7 +400,9 @@ function LineRow({ line, onChanged }: { line: CollectionLineDTO; onChanged: () =
       <View style={{ flex: 1, gap: 2 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <T style={{ fontWeight: "600" }}>
-            {p ? `${p.setCode.toUpperCase()} #${p.collectorNumber}` : "Edición sin indicar"}
+            {p
+              ? `${p.setCode.toUpperCase()} #${p.collectorNumber}`
+              : t("Edición sin indicar", "Printing not specified")}
           </T>
           {line.foil && <FoilMark />}
         </View>
@@ -446,7 +468,7 @@ function AddPanel({
 
   return (
     <View style={{ gap: 12 }}>
-      <T variant="label">Edición</T>
+      <T variant="label">{t("Edición", "Printing")}</T>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -486,7 +508,7 @@ function AddPanel({
       {printing?.setName && <T variant="small">{printing.setName}</T>}
 
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <T variant="label">Copias</T>
+        <T variant="label">{t("Copias", "Copies")}</T>
         <Stepper value={quantity} onChange={setQuantity} min={1} />
       </View>
       <View style={{ flexDirection: "row", gap: 8 }}>
@@ -497,7 +519,7 @@ function AddPanel({
           {euros(price)}
         </T>
       </View>
-      <T variant="label">Idioma</T>
+      <T variant="label">{t("Idioma", "Language")}</T>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         {LANGUAGE_OPTIONS.map((l) => (
           <Chip
@@ -508,7 +530,7 @@ function AddPanel({
           />
         ))}
       </View>
-      <T variant="label">Estado</T>
+      <T variant="label">{t("Estado", "Condition")}</T>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
         {CONDITION_OPTIONS.map((c) => (
           <Chip
@@ -520,7 +542,11 @@ function AddPanel({
         ))}
       </View>
       <Button
-        label={quantity === 1 ? "Añadir 1 copia" : `Añadir ${quantity} copias`}
+        label={
+          quantity === 1
+            ? t("Añadir 1 copia", "Add 1 copy")
+            : t(`Añadir ${quantity} copias`, `Add ${quantity} copies`)
+        }
         icon="add"
         onPress={submit}
         busy={add.isPending}

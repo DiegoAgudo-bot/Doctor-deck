@@ -9,6 +9,7 @@ import { Button, ErrorView, Loading, T } from "~/components/ui";
 import { api } from "~/lib/api";
 import { colors } from "~/lib/theme";
 import { alert } from "~/components/dialog";
+import { t } from "~/lib/i18n";
 
 /** Una partida: quién ganó, jugadores con sus mazos y notas. */
 export default function GameScreen() {
@@ -35,19 +36,21 @@ export default function GameScreen() {
   const winner = g.players.find((p) => p.winner);
   return (
     <>
-      <Stack.Screen options={{ title: g.group?.name ?? "Partida" }} />
+      <Stack.Screen options={{ title: g.group?.name ?? t("Partida", "Game") }} />
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 }}>
         <View style={{ alignItems: "center", gap: 4, paddingVertical: 8 }}>
           <T style={{ fontSize: 40, color: colors.warn }}>♛</T>
           <T variant="title" style={{ textAlign: "center" }}>
             {winner
-              ? `Ganó ${winner.user ? memberLabel(winner.user) : winner.guestName}`
-              : "Sin ganador"}
+              ? `${t("Ganó", "Won by")} ${winner.user ? memberLabel(winner.user) : winner.guestName}`
+              : t("Sin ganador", "No winner")}
           </T>
           <T variant="muted" style={{ textAlign: "center" }}>
-            {winner?.deckName ? `con ${winner.deckName} · ` : ""}
+            {winner?.deckName ? `${t("con", "with")} ${winner.deckName} · ` : ""}
             {playedOn(g.playedAt)}
-            {g.turns ? ` · ${g.turns} ${g.turns === 1 ? "turno" : "turnos"}` : ""}
+            {g.turns
+              ? ` · ${g.turns} ${g.turns === 1 ? t("turno", "turn") : t("turnos", "turns")}`
+              : ""}
           </T>
         </View>
         {g.group && (
@@ -82,7 +85,7 @@ export default function GameScreen() {
                     p.user?.username ? () => router.push(`/u/${p.user!.username}`) : undefined
                   }
                 >
-                  {p.user ? memberLabel(p.user) : `${p.guestName} (invitado)`}
+                  {p.user ? memberLabel(p.user) : `${p.guestName} (${t("invitado", "guest")})`}
                 </T>
                 <T
                   variant="small"
@@ -90,11 +93,13 @@ export default function GameScreen() {
                   style={p.deckId ? { color: colors.accent } : undefined}
                   onPress={p.deckId ? () => router.push(`/deck/${p.deckId}`) : undefined}
                 >
-                  {p.deckName || "Mazo sin indicar"}
+                  {p.deckName || t("Mazo sin indicar", "Deck not specified")}
                   {p.commanderNames.length > 0 ? ` · ${p.commanderNames.join(" + ")}` : ""}
                 </T>
               </View>
-              {p.winner && <T style={{ color: colors.warn, fontWeight: "700" }}>♛ Ganador</T>}
+              {p.winner && (
+                <T style={{ color: colors.warn, fontWeight: "700" }}>♛ {t("Ganador", "Winner")}</T>
+              )}
             </View>
           ))}
         </Card>
@@ -105,14 +110,18 @@ export default function GameScreen() {
         ) : null}
         {g.canDelete && (
           <Button
-            label="Borrar la partida"
+            label={t("Borrar la partida", "Delete the game")}
             kind="ghost"
             icon="trash-outline"
             busy={remove.isPending}
             onPress={() =>
               alert("¿Borrar la partida?", "Deja de contar en la clasificación.", [
-                { text: "Cancelar", style: "cancel" },
-                { text: "Borrar", style: "destructive", onPress: () => remove.mutate() },
+                { text: t("Cancelar", "Cancel"), style: "cancel" },
+                {
+                  text: t("Borrar", "Delete"),
+                  style: "destructive",
+                  onPress: () => remove.mutate(),
+                },
               ])
             }
           />

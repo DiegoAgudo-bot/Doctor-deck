@@ -13,13 +13,14 @@ import { colors, radius } from "~/lib/theme";
 import { CardThumb, FoilMark } from "./card-bits";
 import { Card } from "./social";
 import { Button, T } from "./ui";
+import { t } from "~/lib/i18n";
 
 export const STATUS_LABEL: Record<ProposalStatusDTO, string> = {
-  draft: "Borrador",
-  pending: "Pendiente",
-  accepted: "Aceptada",
-  rejected: "Rechazada",
-  cancelled: "Retirada",
+  draft: t("Borrador", "Draft"),
+  pending: t("Pendiente", "Pending"),
+  accepted: t("Aceptada", "Accepted"),
+  rejected: t("Rechazada", "Rejected"),
+  cancelled: t("Retirada", "Withdrawn"),
 };
 
 export const STATUS_COLOR: Record<ProposalStatusDTO, string> = {
@@ -71,33 +72,45 @@ export function PartnerCard({ p }: { p: TradePartnerDTO }) {
           </T>
           <T variant="small">
             {p.profile.name}
-            {p.following ? " · le sigues" : ""}
+            {p.following ? t(" · le sigues", " · you follow them") : ""}
           </T>
         </View>
         <Button
-          label="Proponer"
+          label={t("Proponer", "Propose")}
           icon="swap-horizontal-outline"
           onPress={() => router.push(`/trades/with/${p.profile.username}`)}
         />
       </View>
       <T variant="label">
-        Tiene lo que buscas{p.haveValue > 0 ? ` · ≈ ${euros(p.haveValue)}` : ""}
+        {t("Tiene lo que buscas", "Has what you want")}
+        {p.haveValue > 0 ? ` · ≈ ${euros(p.haveValue)}` : ""}
       </T>
       {p.theyHave.length === 0 ? (
-        <T variant="muted">Nada de tu lista de deseos.</T>
+        <T variant="muted">{t("Nada de tu lista de deseos.", "Nothing from your wishlist.")}</T>
       ) : (
         p.theyHave.slice(0, 8).map((c) => <TradeCardRow key={c.card.oracleId} item={c} />)
       )}
-      {p.theyHave.length > 8 && <T variant="small">y {p.theyHave.length - 8} más</T>}
+      {p.theyHave.length > 8 && (
+        <T variant="small">
+          {t(`y ${p.theyHave.length - 8} más`, `and ${p.theyHave.length - 8} more`)}
+        </T>
+      )}
       <T variant="label">
-        Busca lo que te sobra{p.wantValue > 0 ? ` · ≈ ${euros(p.wantValue)}` : ""}
+        {t("Busca lo que te sobra", "Wants what you can spare")}
+        {p.wantValue > 0 ? ` · ≈ ${euros(p.wantValue)}` : ""}
       </T>
       {p.theyWant.length === 0 ? (
-        <T variant="muted">Nada de lo que tienes para cambiar.</T>
+        <T variant="muted">
+          {t("Nada de lo que tienes para cambiar.", "Nothing you have for trade.")}
+        </T>
       ) : (
         p.theyWant.slice(0, 8).map((c) => <TradeCardRow key={c.card.oracleId} item={c} />)
       )}
-      {p.theyWant.length > 8 && <T variant="small">y {p.theyWant.length - 8} más</T>}
+      {p.theyWant.length > 8 && (
+        <T variant="small">
+          {t(`y ${p.theyWant.length - 8} más`, `and ${p.theyWant.length - 8} more`)}
+        </T>
+      )}
     </Card>
   );
 }
@@ -126,11 +139,11 @@ export function BalanceBar({
     >
       <View style={{ flexDirection: "row" }}>
         <View style={{ flex: 1 }}>
-          <T variant="small">Das</T>
+          <T variant="small">{t("Das", "You give")}</T>
           <T variant="h2">{euros(balance.giveValue)}</T>
         </View>
         <View style={{ flex: 1, alignItems: "flex-end" }}>
-          <T variant="small">Recibes</T>
+          <T variant="small">{t("Recibes", "You get")}</T>
           <T variant="h2">{euros(balance.getValue)}</T>
         </View>
       </View>
@@ -139,10 +152,16 @@ export function BalanceBar({
         style={{ color: balance.balanced ? colors.in : colors.warn, fontWeight: "700" }}
       >
         {balance.balanced
-          ? `Cuadrado${off > 0 ? ` (±${euros(off)})` : ""}`
+          ? `${t("Cuadrado", "Balanced")}${off > 0 ? ` (±${euros(off)})` : ""}`
           : balance.diff > 0
-            ? `Sales ganando ${euros(off)}${editable ? `: añade algo para @${partner}` : ""}`
-            : `Das ${euros(off)} de más${editable ? `: pide algo más a @${partner}` : ""}`}
+            ? t(
+                `Sales ganando ${euros(off)}${editable ? `: añade algo para @${partner}` : ""}`,
+                `You come out ${euros(off)} ahead${editable ? `: add something for @${partner}` : ""}`,
+              )
+            : t(
+                `Das ${euros(off)} de más${editable ? `: pide algo más a @${partner}` : ""}`,
+                `You give ${euros(off)} too much${editable ? `: ask @${partner} for something more` : ""}`,
+              )}
       </T>
     </View>
   );
@@ -212,7 +231,7 @@ function MiniButton({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label === "+" ? "Una más" : "Una menos"}
+      accessibilityLabel={label === "+" ? t("Una más", "One more") : t("Una menos", "One fewer")}
       disabled={disabled}
       onPress={onPress}
       hitSlop={6}

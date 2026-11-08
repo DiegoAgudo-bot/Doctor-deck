@@ -13,6 +13,7 @@ import {
   type Range,
 } from "~/lib/collection-filters";
 import { colors, manaColors } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 /** Quita o pone `v` en la lista. */
 const toggle = <K,>(list: readonly K[], v: K): K[] =>
@@ -72,8 +73,8 @@ function RangeRow({
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
       <TextInput
-        accessibilityLabel={`${label}: desde`}
-        placeholder="Desde"
+        accessibilityLabel={`${label}: ${t("desde", "from")}`}
+        placeholder={t("Desde", "From")}
         placeholderTextColor={colors.text3}
         keyboardType={kb}
         value={value.min}
@@ -82,8 +83,8 @@ function RangeRow({
       />
       <T variant="small">–</T>
       <TextInput
-        accessibilityLabel={`${label}: hasta`}
-        placeholder="Hasta"
+        accessibilityLabel={`${label}: ${t("hasta", "to")}`}
+        placeholder={t("Hasta", "To")}
         placeholderTextColor={colors.text3}
         keyboardType={kb}
         value={value.max}
@@ -119,7 +120,7 @@ export function FilterSheetBody({
   ].slice(0, 60);
   return (
     <>
-      <Section label="Colores">
+      <Section label={t("Colores", "Colors")}>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
           {COLOR_KEYS.map((c) => {
             const on = f.colors.includes(c);
@@ -147,17 +148,20 @@ export function FilterSheetBody({
           <>
             <Segmented<Filters["colorMode"]>
               options={[
-                { key: "alguno", label: collection ? "Alguno" : "Con estos" },
-                { key: "dentro", label: "Caben en" },
-                { key: "exacto", label: "Exactos" },
+                {
+                  key: "alguno",
+                  label: collection ? t("Alguno", "Any") : t("Con estos", "Including"),
+                },
+                { key: "dentro", label: t("Caben en", "Within") },
+                { key: "exacto", label: t("Exactos", "Exact") },
               ]}
               value={f.colorMode}
               onChange={(colorMode) => set({ colorMode })}
             />
             <Segmented<Filters["colorBy"]>
               options={[
-                { key: "identity", label: "Identidad" },
-                { key: "color", label: "Color de la carta" },
+                { key: "identity", label: t("Identidad", "Identity") },
+                { key: "color", label: t("Color de la carta", "Card color") },
               ]}
               value={f.colorBy}
               onChange={(colorBy) => set({ colorBy })}
@@ -166,7 +170,7 @@ export function FilterSheetBody({
         )}
       </Section>
 
-      <Section label={collection ? "Tipo (alguno de)" : "Tipo"}>
+      <Section label={collection ? t("Tipo (alguno de)", "Type (any of)") : t("Tipo", "Type")}>
         <Chips>
           {TYPE_OPTIONS.map((t) => (
             <Chip
@@ -197,46 +201,54 @@ export function FilterSheetBody({
         </Chips>
       </Section>
 
-      <Section label="Texto de reglas">
+      <Section label={t("Texto de reglas", "Rules text")}>
         <TextBox
-          label="Texto de reglas"
-          placeholder="roba una carta, draw a card…"
+          label={t("Texto de reglas", "Rules text")}
+          placeholder={t("roba una carta, draw a card…", "draw a card, roba una carta…")}
           value={f.text}
           onChange={(text) => set({ text })}
         />
       </Section>
-      <Section label="Subtipo y habilidad clave">
+      <Section label={t("Subtipo y habilidad clave", "Subtype and keyword")}>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TextBox
-            label="Subtipo"
-            placeholder="Elfo, Elf, Equipo…"
+            label={t("Subtipo", "Subtype")}
+            placeholder={t("Elfo, Elf, Equipo…", "Elf, Equipment…")}
             value={f.subtype}
             onChange={(subtype) => set({ subtype })}
           />
           <TextBox
-            label="Habilidad clave"
-            placeholder="Vuela, Flying, Arrolla…"
+            label={t("Habilidad clave", "Keyword")}
+            placeholder={t("Vuela, Flying, Arrolla…", "Flying, Trample…")}
             value={f.keyword}
             onChange={(keyword) => set({ keyword })}
           />
         </View>
       </Section>
 
-      <Section label="Valor de maná">
-        <RangeRow label="Valor de maná" value={f.cmc} onChange={(cmc) => set({ cmc })} />
-      </Section>
-      <Section label="Fuerza">
-        <RangeRow label="Fuerza" value={f.power} onChange={(power) => set({ power })} />
-      </Section>
-      <Section label="Resistencia">
+      <Section label={t("Valor de maná", "Mana value")}>
         <RangeRow
-          label="Resistencia"
+          label={t("Valor de maná", "Mana value")}
+          value={f.cmc}
+          onChange={(cmc) => set({ cmc })}
+        />
+      </Section>
+      <Section label={t("Fuerza", "Power")}>
+        <RangeRow
+          label={t("Fuerza", "Power")}
+          value={f.power}
+          onChange={(power) => set({ power })}
+        />
+      </Section>
+      <Section label={t("Resistencia", "Toughness")}>
+        <RangeRow
+          label={t("Resistencia", "Toughness")}
           value={f.toughness}
           onChange={(toughness) => set({ toughness })}
         />
       </Section>
 
-      <Section label="Rareza">
+      <Section label={t("Rareza", "Rarity")}>
         <Chips>
           {RARITY_OPTIONS.map((r) => (
             <Chip
@@ -249,10 +261,15 @@ export function FilterSheetBody({
         </Chips>
       </Section>
 
-      <Section label="Edición">
+      <Section label={t("Edición", "Printing")}>
         {collection ? (
           setChips.length === 0 ? (
-            <T variant="small">Aún no se sabe la edición de ninguna copia.</T>
+            <T variant="small">
+              {t(
+                "Aún no se sabe la edición de ninguna copia.",
+                "No copy has a known printing yet.",
+              )}
+            </T>
           ) : (
             <ScrollView
               horizontal
@@ -273,32 +290,38 @@ export function FilterSheetBody({
           )
         ) : (
           <TextBox
-            label="Código de edición"
-            placeholder="Código: MH3, CMM…"
+            label={t("Código de edición", "Set code")}
+            placeholder={t("Código: MH3, CMM…", "Code: MH3, CMM…")}
             value={f.sets[0] ?? ""}
             onChange={(v) => set({ sets: v.trim() ? [v.trim().toUpperCase()] : [] })}
           />
         )}
       </Section>
-      <Section label="Artista">
+      <Section label={t("Artista", "Artist")}>
         <TextBox
-          label="Artista"
-          placeholder="Nombre del artista"
+          label={t("Artista", "Artist")}
+          placeholder={t("Nombre del artista", "Artist name")}
           value={f.artist}
           onChange={(artist) => set({ artist })}
         />
       </Section>
 
-      <Section label={collection ? "Precio por copia (€)" : "Precio (€)"}>
+      <Section
+        label={
+          collection
+            ? t("Precio por copia (€)", "Price per copy (€)")
+            : t("Precio (€)", "Price (€)")
+        }
+      >
         <RangeRow decimal label="Precio" value={f.price} onChange={(price) => set({ price })} />
       </Section>
 
       {collection && (
         <>
-          <Section label="Acabado">
+          <Section label={t("Acabado", "Finish")}>
             <Segmented<Filters["finish"]>
               options={[
-                { key: "", label: "Todas" },
+                { key: "", label: t("Todas", "All") },
                 { key: "foil", label: "★ Foil" },
                 { key: "nonfoil", label: "Normal" },
               ]}
@@ -306,7 +329,7 @@ export function FilterSheetBody({
               onChange={(finish) => set({ finish })}
             />
           </Section>
-          <Section label="Estado">
+          <Section label={t("Estado", "Condition")}>
             <Chips>
               {CONDITION_OPTIONS.map((c) => (
                 <Chip
@@ -318,7 +341,7 @@ export function FilterSheetBody({
               ))}
             </Chips>
           </Section>
-          <Section label="Idioma">
+          <Section label={t("Idioma", "Language")}>
             <Chips>
               {LANGUAGE_OPTIONS.map((l) => (
                 <Chip
@@ -330,31 +353,31 @@ export function FilterSheetBody({
               ))}
             </Chips>
           </Section>
-          <Section label="Copias">
+          <Section label={t("Copias", "Copies")}>
             <Chips>
               <Chip
-                label="Repetidas (2+)"
+                label={t("Repetidas (2+)", "Duplicates (2+)")}
                 active={f.quantityMin === 2}
                 onPress={() => set({ quantityMin: f.quantityMin === 2 ? null : 2 })}
               />
               <Chip
-                label="4 o más"
+                label={t("4 o más", "4 or more")}
                 active={f.quantityMin === 4}
                 onPress={() => set({ quantityMin: f.quantityMin === 4 ? null : 4 })}
               />
               <Chip
-                label="Libres (no están en mazos)"
+                label={t("Libres (no están en mazos)", "Spare (not in decks)")}
                 active={f.use === "libres"}
                 onPress={() => set({ use: f.use === "libres" ? "" : "libres" })}
               />
               <Chip
-                label="En algún mazo"
+                label={t("En algún mazo", "In a deck")}
                 active={f.use === "en-mazos"}
                 onPress={() => set({ use: f.use === "en-mazos" ? "" : "en-mazos" })}
               />
             </Chips>
           </Section>
-          <Section label="Añadidas en">
+          <Section label={t("Añadidas en", "Added in")}>
             <Chips>
               {ADDED_OPTIONS.map((a) => (
                 <Chip
@@ -366,7 +389,7 @@ export function FilterSheetBody({
               ))}
             </Chips>
           </Section>
-          <Section label="Rol">
+          <Section label={t("Rol", "Role")}>
             <Chips>
               {ROLE_OPTIONS.map((r) => (
                 <Chip
@@ -381,10 +404,10 @@ export function FilterSheetBody({
         </>
       )}
 
-      <Section label="Otros">
+      <Section label={t("Otros", "Other")}>
         <Chips>
           <Chip
-            label="Puede ser comandante"
+            label={t("Puede ser comandante", "Can be commander")}
             active={f.commander}
             onPress={() => set({ commander: !f.commander })}
           />

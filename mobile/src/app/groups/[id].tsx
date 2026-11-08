@@ -26,6 +26,7 @@ import { api } from "~/lib/api";
 import { API_URL } from "~/lib/config";
 import { colors, radius } from "~/lib/theme";
 import { alert } from "~/components/dialog";
+import { t } from "~/lib/i18n";
 
 type Tab = "games" | "members" | "decks" | "cards";
 
@@ -62,12 +63,19 @@ export default function GroupScreen() {
 
   const removeMember = (username: string, isMe: boolean) =>
     alert(
-      isMe ? "¿Salir del grupo?" : `¿Quitar a @${username}?`,
-      isMe ? "Para volver necesitarás otra vez el enlace de invitación." : "",
+      isMe
+        ? t("¿Salir del grupo?", "Leave the group?")
+        : t(`¿Quitar a @${username}?`, `Remove @${username}?`),
+      isMe
+        ? t(
+            "Para volver necesitarás otra vez el enlace de invitación.",
+            "To come back you'll need the invite link again.",
+          )
+        : "",
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: t("Cancelar", "Cancel"), style: "cancel" },
         {
-          text: isMe ? "Salir" : "Quitar",
+          text: isMe ? t("Salir", "Leave") : t("Quitar", "Remove"),
           style: "destructive",
           onPress: () =>
             api(`/api/groups/${id}/members/${username}`, { method: "DELETE" })
@@ -82,12 +90,15 @@ export default function GroupScreen() {
     );
   const deleteGroup = () =>
     alert(
-      "¿Borrar el grupo?",
-      `Se borran el grupo y sus ${g.stats.games} partidas. Los mazos y colecciones de cada uno no se tocan.`,
+      t("¿Borrar el grupo?", "Delete the group?"),
+      t(
+        `Se borran el grupo y sus ${g.stats.games} partidas. Los mazos y colecciones de cada uno no se tocan.`,
+        `The group and its ${g.stats.games} games are deleted. Everyone's decks and collections aren't touched.`,
+      ),
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: t("Cancelar", "Cancel"), style: "cancel" },
         {
-          text: "Borrar con sus partidas",
+          text: t("Borrar con sus partidas", "Delete with its games"),
           style: "destructive",
           onPress: () =>
             api(`/api/groups/${id}`, { method: "DELETE" })
@@ -108,9 +119,14 @@ export default function GroupScreen() {
           headerRight: () => (
             <IconButton
               icon="person-add-outline"
-              label="Invitar"
+              label={t("Invitar", "Invite")}
               onPress={() =>
-                Share.share({ message: `Únete a «${g.name}» en Doctor Deck: ${invite}` })
+                Share.share({
+                  message: t(
+                    `Únete a «${g.name}» en Doctor Deck: ${invite}`,
+                    `Join “${g.name}” on Doctor Deck: ${invite}`,
+                  ),
+                })
               }
             />
           ),
@@ -122,10 +138,10 @@ export default function GroupScreen() {
           value={tab}
           onChange={setTab}
           options={[
-            { key: "games", label: "Partidas" },
-            { key: "cards", label: "Cartas" },
-            { key: "decks", label: "Mazos" },
-            { key: "members", label: `Miembros · ${g.members.length}` },
+            { key: "games", label: t("Partidas", "Games") },
+            { key: "cards", label: t("Cartas", "Cards") },
+            { key: "decks", label: t("Mazos", "Decks") },
+            { key: "members", label: `${t("Miembros", "Members")} · ${g.members.length}` },
           ]}
         />
       </View>
@@ -144,16 +160,19 @@ export default function GroupScreen() {
         >
           <Button label="Registrar partida" icon="trophy-outline" onPress={() => setRecord(true)} />
           <Card>
-            <T variant="h2">Clasificación</T>
+            <T variant="h2">{t("Clasificación", "Standings")}</T>
             <StandingsBlock
               players={g.stats.players}
               decks={g.stats.decks}
-              empty="Aún no hay partidas. Registra la primera desde aquí o desde el contador de vidas."
+              empty={t(
+                "Aún no hay partidas. Registra la primera desde aquí o desde el contador de vidas.",
+                "No games yet. Record the first one from here or from the life counter.",
+              )}
             />
           </Card>
-          <T variant="label">Últimas partidas</T>
+          <T variant="label">{t("Últimas partidas", "Latest games")}</T>
           {g.stats.recent.length === 0 ? (
-            <T variant="muted">Sin partidas.</T>
+            <T variant="muted">{t("Sin partidas.", "No games.")}</T>
           ) : (
             g.stats.recent.map((game) => <GameCard key={game.id} game={game} showGroup={false} />)
           )}
@@ -167,27 +186,38 @@ export default function GroupScreen() {
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
           <View style={{ padding: 16, gap: 8 }}>
             <Card>
-              <T variant="label">Enlace de invitación</T>
+              <T variant="label">{t("Enlace de invitación", "Invite link")}</T>
               <T variant="mono" selectable>
                 {invite}
               </T>
               <T variant="small">
-                Quien lo abra puede entrar en el grupo.
+                {t(
+                  "Quien lo abra puede entrar en el grupo.",
+                  "Anyone who opens it can join the group.",
+                )}
                 {g.isOwner &&
-                  " Si se ha compartido de más, genera uno nuevo y el anterior deja de valer."}
+                  t(
+                    " Si se ha compartido de más, genera uno nuevo y el anterior deja de valer.",
+                    " If it's been shared too widely, create a new one and the old one stops working.",
+                  )}
               </T>
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <Button
-                  label="Compartir"
+                  label={t("Compartir", "Share")}
                   icon="share-social-outline"
                   style={{ flex: 1 }}
                   onPress={() =>
-                    Share.share({ message: `Únete a «${g.name}» en Doctor Deck: ${invite}` })
+                    Share.share({
+                      message: t(
+                        `Únete a «${g.name}» en Doctor Deck: ${invite}`,
+                        `Join “${g.name}” on Doctor Deck: ${invite}`,
+                      ),
+                    })
                   }
                 />
                 {g.isOwner && (
                   <Button
-                    label="Nuevo enlace"
+                    label={t("Nuevo enlace", "New link")}
                     kind="secondary"
                     icon="refresh"
                     style={{ flex: 1 }}
@@ -202,15 +232,15 @@ export default function GroupScreen() {
             <PersonRow
               key={m.username ?? m.name}
               person={m}
-              detail={`desde ${playedOn(m.joinedAt)}`}
+              detail={`${t("desde", "since")} ${playedOn(m.joinedAt)}`}
               right={
                 m.isOwner ? (
                   <T variant="small" style={{ color: colors.warn }}>
-                    Creador
+                    {t("Creador", "Creator")}
                   </T>
                 ) : (m.isMe || g.isOwner) && m.username ? (
                   <Button
-                    label={m.isMe ? "Salir" : "Quitar"}
+                    label={m.isMe ? t("Salir", "Leave") : t("Quitar", "Remove")}
                     kind="ghost"
                     onPress={() => removeMember(m.username!, m.isMe)}
                   />
@@ -221,13 +251,13 @@ export default function GroupScreen() {
           {g.isOwner && (
             <View style={{ padding: 16, gap: 8 }}>
               <Button
-                label="Cambiar nombre"
+                label={t("Cambiar nombre", "Rename")}
                 kind="secondary"
                 icon="create-outline"
                 onPress={() => setEditing(true)}
               />
               <Button
-                label="Borrar el grupo"
+                label={t("Borrar el grupo", "Delete the group")}
                 kind="danger"
                 icon="trash-outline"
                 onPress={deleteGroup}
@@ -278,18 +308,18 @@ function EditGroupSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Cambiar nombre"
+      title={t("Cambiar nombre", "Rename")}
       footer={
         <Button
-          label="Guardar"
+          label={t("Guardar", "Save")}
           disabled={!name.trim()}
           onPress={() => onSave(name.trim(), description.trim())}
         />
       }
     >
-      <Field label="Nombre" value={name} maxLength={80} onChangeText={setName} />
+      <Field label={t("Nombre", "Name")} value={name} maxLength={80} onChangeText={setName} />
       <Field
-        label="Descripción"
+        label={t("Descripción", "Description")}
         value={description}
         maxLength={300}
         onChangeText={setDescription}
@@ -308,7 +338,12 @@ function GroupDecks({ groupId }: { groupId: string }) {
   if (decks.data.length === 0)
     return (
       <View style={{ padding: 16 }}>
-        <T variant="muted">Nadie del grupo tiene mazos públicos u ocultos todavía.</T>
+        <T variant="muted">
+          {t(
+            "Nadie del grupo tiene mazos públicos u ocultos todavía.",
+            "Nobody in the group has public or unlisted decks yet.",
+          )}
+        </T>
       </View>
     );
   return (
@@ -343,7 +378,10 @@ function GroupCards({ groupId, me }: { groupId: string; me: string | null }) {
       keyboardShouldPersistTaps="handled"
     >
       <Card>
-        <CardPicker label="¿Quién del grupo tiene…?" onPick={setPicked} />
+        <CardPicker
+          label={t("¿Quién del grupo tiene…?", "Who in the group has…?")}
+          onPick={setPicked}
+        />
         {picked &&
           (found.isPending ? (
             <Loading />
@@ -353,17 +391,28 @@ function GroupCards({ groupId, me }: { groupId: string; me: string | null }) {
             <HolderCard row={found.data} me={me} onLend={setLend} />
           ))}
       </Card>
-      <SectionTitle style={{ paddingHorizontal: 0 }}>Te lo pueden dejar</SectionTitle>
+      <SectionTitle style={{ paddingHorizontal: 0 }}>
+        {t("Te lo pueden dejar", "They can lend you")}
+      </SectionTitle>
       <T variant="small">
-        Lo que te falta para tus mazos (o está en tu lista de deseos) y alguien del grupo tiene
-        libre: pídeselo prestado.
+        {t(
+          "Lo que te falta para tus mazos (o está en tu lista de deseos) y alguien del grupo tiene libre: pídeselo prestado.",
+          "What you're missing for your decks (or is on your wishlist) and someone in the group has spare: ask to borrow it.",
+        )}
       </T>
       {canLend.isPending ? (
-        <Loading label="Cruzando las colecciones del grupo…" />
+        <Loading
+          label={t("Cruzando las colecciones del grupo…", "Matching the group's collections…")}
+        />
       ) : canLend.isError ? (
         <Banner text={canLend.error.message} />
       ) : canLend.data.length === 0 ? (
-        <T variant="muted">Nadie del grupo tiene libre lo que te falta.</T>
+        <T variant="muted">
+          {t(
+            "Nadie del grupo tiene libre lo que te falta.",
+            "Nobody in the group has what you're missing spare.",
+          )}
+        </T>
       ) : (
         canLend.data.map((r) => <HolderCard key={r.card.oracleId} row={r} me={me} />)
       )}
@@ -402,11 +451,13 @@ function HolderCard({
         </T>
         {row.wanted > 0 && (
           <T variant="small">
-            Te {row.wanted === 1 ? "falta 1 copia" : `faltan ${row.wanted} copias`}
+            {row.wanted === 1
+              ? t("Te falta 1 copia", "You're missing 1 copy")
+              : t(`Te faltan ${row.wanted} copias`, `You're missing ${row.wanted} copies`)}
           </T>
         )}
         {row.holders.length === 0 ? (
-          <T variant="muted">Nadie del grupo la tiene.</T>
+          <T variant="muted">{t("Nadie del grupo la tiene.", "Nobody in the group has it.")}</T>
         ) : (
           row.holders.map((h) => (
             <View
@@ -423,11 +474,11 @@ function HolderCard({
                 {h.member.username ? `@${h.member.username}` : h.member.name}
               </T>
               <T variant="mono">
-                {h.free}/{h.owned} libres
+                {h.free}/{h.owned} {t("libres", "spare")}
               </T>
               {h.usedIn.length > 0 && (
                 <T variant="small" numberOfLines={1} style={{ flex: 1 }}>
-                  en {h.usedIn.join(", ")}
+                  {t("en", "in")} {h.usedIn.join(", ")}
                 </T>
               )}
               {onLend && h.member.username === me && h.free > 0 && (
@@ -436,7 +487,7 @@ function HolderCard({
                   style={{ color: colors.accent, fontWeight: "700", marginLeft: "auto" }}
                   onPress={() => onLend(row.card)}
                 >
-                  Prestar
+                  {t("Prestar", "Lend")}
                 </T>
               )}
             </View>

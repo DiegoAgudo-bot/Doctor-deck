@@ -664,6 +664,8 @@ model PushDevice {
   /// "android" | "ios"
   platform   String
   appVersion String?
+  /// Idioma del móvil ("es" | "en"): el de las notificaciones push.
+  locale     String   @default("es")
   createdAt  DateTime @default(now())
   lastSeenAt DateTime @default(now())
 

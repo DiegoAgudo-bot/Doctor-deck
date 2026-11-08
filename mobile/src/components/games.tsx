@@ -10,6 +10,7 @@ import { colors, radius } from "~/lib/theme";
 import { CardThumb } from "./card-bits";
 import { Avatar } from "./social";
 import { Chip, SearchField, T } from "./ui";
+import { t } from "~/lib/i18n";
 
 export const memberLabel = (m: MemberDTO) => (m.username ? `@${m.username}` : m.name);
 
@@ -125,7 +126,11 @@ export function Standings({
                   color: s.streak > 1 ? colors.in : s.streak < -1 ? colors.out : colors.text3,
                 }}
               >
-                {s.streak > 0 ? `${s.streak}V` : s.streak < 0 ? `${-s.streak}D` : "—"}
+                {s.streak > 0
+                  ? `${s.streak}${t("V", "W")}`
+                  : s.streak < 0
+                    ? `${-s.streak}${t("D", "L")}`
+                    : "—"}
               </T>
             </View>
           </Pressable>
@@ -149,8 +154,16 @@ export function StandingsBlock({
   return (
     <View style={{ gap: 8 }}>
       <View style={{ flexDirection: "row", gap: 6 }}>
-        <Chip label="Jugadores" active={kind === "player"} onPress={() => setKind("player")} />
-        <Chip label="Mazos" active={kind === "deck"} onPress={() => setKind("deck")} />
+        <Chip
+          label={t("Jugadores", "Players")}
+          active={kind === "player"}
+          onPress={() => setKind("player")}
+        />
+        <Chip
+          label={t("Mazos", "Decks")}
+          active={kind === "deck"}
+          onPress={() => setKind("deck")}
+        />
       </View>
       <Standings rows={kind === "player" ? players : decks} kind={kind} empty={empty} />
     </View>
@@ -161,7 +174,7 @@ export function StandingsBlock({
 export function CardPicker({
   label,
   onPick,
-  placeholder = "Nombre de la carta",
+  placeholder = t("Nombre de la carta", "Card name"),
 }: {
   label?: string;
   onPick: (card: CardDTO) => void;

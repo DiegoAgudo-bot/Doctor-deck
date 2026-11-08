@@ -13,6 +13,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { colors, radius } from "~/lib/theme";
+import { t } from "~/lib/i18n";
 
 export type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -212,7 +213,7 @@ export function SearchField(props: TextInputProps & { onClear?: () => void }) {
       {onClear && rest.value ? (
         <IconButton
           icon="close-circle"
-          label="Borrar"
+          label={t("Borrar", "Clear")}
           size={18}
           color={colors.text3}
           onPress={onClear}
@@ -272,10 +273,12 @@ export function ErrorView({ error, onRetry }: { error: unknown; onRetry?: () => 
   return (
     <Empty
       icon="cloud-offline-outline"
-      title="No se ha podido cargar"
+      title={t("No se ha podido cargar", "Couldn't load it")}
       text={error instanceof Error ? error.message : String(error)}
       action={
-        onRetry ? <Button label="Reintentar" kind="secondary" onPress={onRetry} /> : undefined
+        onRetry ? (
+          <Button label={t("Reintentar", "Retry")} kind="secondary" onPress={onRetry} />
+        ) : undefined
       }
     />
   );

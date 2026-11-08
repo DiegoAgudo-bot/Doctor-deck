@@ -11,6 +11,7 @@ import { Sheet } from "./sheet";
 import { Stepper } from "./stepper";
 import { toast } from "./toast";
 import { Banner, Button, Field, T } from "./ui";
+import { t } from "~/lib/i18n";
 
 /**
  * Apuntar un préstamo: a alguien con cuenta (`@ana`, le llega un aviso) o a un nombre. Solo se
@@ -57,10 +58,10 @@ export function LendSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Prestar una carta"
+      title={t("Prestar una carta", "Lend a card")}
       footer={
         <Button
-          label="Apuntar préstamo"
+          label={t("Apuntar préstamo", "Record loan")}
           icon="hand-left-outline"
           busy={save.isPending}
           disabled={!card || !to.trim()}
@@ -76,17 +77,17 @@ export function LendSheet({
             <T style={{ fontWeight: "700" }}>{card.name}</T>
             {!initial && (
               <T variant="small" style={{ color: colors.accent }} onPress={() => setCard(null)}>
-                Otra carta
+                {t("Otra carta", "Another card")}
               </T>
             )}
           </View>
           <Stepper value={quantity} min={1} max={99} onChange={setQuantity} />
         </View>
       ) : (
-        <CardPicker label="Carta" onPick={setCard} />
+        <CardPicker label={t("Carta", "Card")} onPick={setCard} />
       )}
       <Field
-        label="A quién"
+        label={t("A quién", "To whom")}
         placeholder="@usuario o un nombre"
         value={to}
         maxLength={80}
@@ -95,12 +96,14 @@ export function LendSheet({
         onChangeText={setTo}
       />
       <T variant="small">
-        Con @usuario le llega un aviso y lo ve en sus préstamos. Mientras no la devuelva, cuenta
-        como ocupada en tu colección.
+        {t(
+          "Con @usuario le llega un aviso y lo ve en sus préstamos. Mientras no la devuelva, cuenta como ocupada en tu colección.",
+          "With @username they get a notification and see it in their loans. Until it's returned, it counts as in use in your collection.",
+        )}
       </T>
       <Field
-        label="Nota (opcional)"
-        placeholder="Para el torneo del sábado…"
+        label={t("Nota (opcional)", "Note (optional)")}
+        placeholder={t("Para el torneo del sábado…", "For Saturday's tournament…")}
         value={note}
         maxLength={500}
         onChangeText={setNote}

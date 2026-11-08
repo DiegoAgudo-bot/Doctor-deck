@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import type { PushDeviceRepository, PushMessage } from "@/domain/ports/push";
 import { pushNotifications } from "./push";
 
-const devices = (tokens: { userId: string; token: string }[]) => {
+const devices = (tokens: { userId: string; token: string; locale?: "es" | "en" }[]) => {
   const removed: string[] = [];
   const repo: PushDeviceRepository = {
     register: async () => {},
     unregister: async () => {},
-    tokensFor: async (ids) => tokens.filter((t) => ids.includes(t.userId)),
+    tokensFor: async (ids) =>
+      tokens.filter((t) => ids.includes(t.userId)).map((t) => ({ locale: "es" as const, ...t })),
     remove: async (t) => void removed.push(...t),
     labels: async () => new Map([["ana", "@ana"]]),
   };
@@ -18,7 +19,7 @@ describe("pushNotifications", () => {
   it("un mensaje por dispositivo con el texto del aviso; borra los tokens que ya no valen", async () => {
     const { repo, removed } = devices([
       { userId: "u1", token: "a" },
-      { userId: "u1", token: "b" },
+      { userId: "u1", token: "b", locale: "en" },
       { userId: "u2", token: "c" },
     ]);
     const sent: PushMessage[] = [];
@@ -40,6 +41,8 @@ describe("pushNotifications", () => {
       body: "@ana te ha prestado Sol Ring",
       data: { path: "/loans", type: "loan_new" },
     });
+    // Cada móvil, en su idioma.
+    expect(sent[1]).toMatchObject({ title: "Loan", body: "@ana lent you Sol Ring" });
     expect(removed).toEqual(["b"]);
     expect(r.sent).toBe(1);
   });

@@ -3,6 +3,7 @@ import { ScrollView } from "react-native";
 import { Banner, Button, Field, T } from "~/components/ui";
 import { authClient } from "~/lib/auth";
 import { clearCache } from "~/lib/query";
+import { t } from "~/lib/i18n";
 
 export default function Signup() {
   const [name, setName] = useState("");
@@ -20,7 +21,8 @@ export default function Signup() {
       email: email.trim(),
       password,
     });
-    if (e) setError(e.message ?? "No se ha podido crear la cuenta.");
+    if (e)
+      setError(e.message ?? t("No se ha podido crear la cuenta.", "Couldn't create the account."));
     setBusy(false);
   };
 
@@ -30,10 +32,13 @@ export default function Signup() {
       keyboardShouldPersistTaps="handled"
     >
       <T variant="muted">
-        Con cuenta, tu colección y tus mazos se guardan y los ves también en la web.
+        {t(
+          "Con cuenta, tu colección y tus mazos se guardan y los ves también en la web.",
+          "With an account, your collection and decks are saved and you can also see them on the web.",
+        )}
       </T>
       {error && <Banner text={error} />}
-      <Field label="Nombre" value={name} onChangeText={setName} autoComplete="name" />
+      <Field label={t("Nombre", "Name")} value={name} onChangeText={setName} autoComplete="name" />
       <Field
         label="Email"
         value={email}
@@ -43,14 +48,14 @@ export default function Signup() {
         autoComplete="email"
       />
       <Field
-        label="Contraseña (mínimo 8)"
+        label={t("Contraseña (mínimo 8)", "Password (at least 8)")}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
         autoComplete="new-password"
       />
       <Button
-        label="Crear cuenta"
+        label={t("Crear cuenta", "Create account")}
         onPress={submit}
         busy={busy}
         disabled={!name.trim() || !email.includes("@") || password.length < 8}

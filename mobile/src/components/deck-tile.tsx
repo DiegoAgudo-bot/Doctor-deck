@@ -8,6 +8,7 @@ import { ago } from "~/lib/format";
 import { colors, radius } from "~/lib/theme";
 import { ColorPips } from "./card-bits";
 import { T } from "./ui";
+import { t } from "~/lib/i18n";
 
 const VISIBILITY_ICON = {
   public: "globe-outline",
@@ -31,7 +32,11 @@ export function DeckTile({
     <Pressable
       onPress={() => router.push(`/deck/${deck.id}`)}
       onLongPress={onLongPress}
-      accessibilityHint={onLongPress ? "Mantén pulsado para ver sus ajustes" : undefined}
+      accessibilityHint={
+        onLongPress
+          ? t("Mantén pulsado para ver sus ajustes", "Press and hold for its settings")
+          : undefined
+      }
       style={({ pressed }) => ({
         borderRadius: radius.lg,
         overflow: "hidden",
@@ -52,11 +57,13 @@ export function DeckTile({
           <Ionicons name={VISIBILITY_ICON[deck.visibility]} size={16} color={colors.text3} />
         </View>
         <T variant="small" numberOfLines={1}>
-          {deck.commanderNames.join(" + ") || "Sin comandante"}
+          {deck.commanderNames.join(" + ") || t("Sin comandante", "No commander")}
         </T>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 2 }}>
           <ColorPips colors={deck.colorIdentity} />
-          <T variant="small">{deck.cardCount} cartas</T>
+          <T variant="small">
+            {deck.cardCount} {t("cartas", "cards")}
+          </T>
           <View style={{ flex: 1 }} />
           <T variant="small">{owner ? `@${owner}` : ago(deck.updatedAt)}</T>
         </View>

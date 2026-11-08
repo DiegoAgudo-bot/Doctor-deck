@@ -12,6 +12,7 @@ import { Banner, Button, Chip, Field, Loading, styles, T } from "~/components/ui
 import { api } from "~/lib/api";
 import { tapFeedback } from "~/lib/feedback";
 import { colors } from "~/lib/theme";
+import { intl, t } from "~/lib/i18n";
 
 type Analysis = Extract<AnalyzeResponse, { status: "ok" }>;
 type Visibility = DeckViewDTO["visibility"];
@@ -19,22 +20,32 @@ type Visibility = DeckViewDTO["visibility"];
 export const VISIBILITY: { key: Visibility; label: string; detail: string }[] = [
   {
     key: "public",
-    label: "Público",
-    detail: "Sale en tu perfil y en Comunidad, y avisa a quien te sigue.",
+    label: t("Público", "Public"),
+    detail: t(
+      "Sale en tu perfil y en Comunidad, y avisa a quien te sigue.",
+      "Shows on your profile and in Community, and notifies your followers.",
+    ),
   },
   {
     key: "unlisted",
-    label: "Oculto",
-    detail: "Solo quien tenga el enlace. No sale en tu perfil ni en Comunidad.",
+    label: t("Oculto", "Unlisted"),
+    detail: t(
+      "Solo quien tenga el enlace. No sale en tu perfil ni en Comunidad.",
+      "Only people with the link. Not on your profile or in Community.",
+    ),
   },
-  { key: "private", label: "Privado", detail: "Solo lo ves tú." },
+  {
+    key: "private",
+    label: t("Privado", "Private"),
+    detail: t("Solo lo ves tú.", "Only you can see it."),
+  },
 ];
 
 const BRACKETS: { key: number | null; label: string }[] = [
-  { key: null, label: "Sin objetivo" },
-  { key: 2, label: "2 · Básico" },
-  { key: 3, label: "3 · Mejorado" },
-  { key: 4, label: "4 · Optimizado" },
+  { key: null, label: t("Sin objetivo", "No target") },
+  { key: 2, label: t("2 · Básico", "2 · Core") },
+  { key: 3, label: t("3 · Mejorado", "3 · Upgraded") },
+  { key: 4, label: t("4 · Optimizado", "4 · Optimized") },
 ];
 
 /** Lo que cambia un mazo mío: nombre, visibilidad, bracket, tema, candados, lista… */
@@ -77,7 +88,7 @@ export function useDeckManage(deck: DeckViewDTO | undefined) {
     mutationFn: () =>
       api<{ id: string }>("/api/decks", {
         body: {
-          name: `${deck!.name} (copia)`,
+          name: `${deck!.name} (${t("copia", "copy")})`,
           input: deck!.input,
           commanders: deck!.commanders,
           locked: deck!.locked,
@@ -87,7 +98,7 @@ export function useDeckManage(deck: DeckViewDTO | undefined) {
         },
       }),
     onSuccess: (r) => {
-      toast("Copia guardada (privada)");
+      toast(t("Copia guardada (privada)", "Copy saved (private)"));
       qc.invalidateQueries({ queryKey: ["decks"] });
       router.push(`/deck/${r.id}`);
     },
@@ -96,7 +107,7 @@ export function useDeckManage(deck: DeckViewDTO | undefined) {
   const remove = useMutation({
     mutationFn: () => api(`/api/decks/${deck!.id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast(`«${deck!.name}» borrado`);
+      toast(t(`«${deck!.name}» borrado`, `“${deck!.name}” deleted`));
       qc.invalidateQueries({ queryKey: ["decks"] });
       qc.removeQueries({ queryKey: ["deck", deck!.id] });
     },
@@ -138,13 +149,17 @@ export function DeckSettingsSheet({
   const typed = name ?? d?.name ?? "";
   return (
     <>
-      <Sheet open={open && sub === null} onClose={close} title="Ajustes del mazo">
+      <Sheet
+        open={open && sub === null}
+        onClose={close}
+        title={t("Ajustes del mazo", "Deck settings")}
+      >
         {!d ? (
           <Loading />
         ) : (
           <View style={{ gap: 14 }}>
             <Field
-              label="Nombre"
+              label={t("Nombre", "Name")}
               value={typed}
               onChangeText={setName}
               maxLength={120}
@@ -152,7 +167,7 @@ export function DeckSettingsSheet({
             />
             {typed.trim() && typed.trim() !== d.name && (
               <Button
-                label="Guardar el nombre"
+                label={t("Guardar el nombre", "Save name")}
                 busy={m.patch.isPending}
                 onPress={() =>
                   m.patch.mutate(
@@ -160,7 +175,7 @@ export function DeckSettingsSheet({
                     {
                       onSuccess: () => {
                         setName(null);
-                        toast("Nombre cambiado");
+                        toast(t("Nombre cambiado", "Name changed"));
                       },
                     },
                   )
@@ -168,7 +183,7 @@ export function DeckSettingsSheet({
               />
             )}
             <View style={{ gap: 2 }}>
-              <T variant="label">Visibilidad</T>
+              <T variant="label">{t("Visibilidad", "Visibility")}</T>
               {VISIBILITY.map((v) => (
                 <OptionRow
                   key={v.key}
@@ -181,9 +196,12 @@ export function DeckSettingsSheet({
               ))}
             </View>
             <View style={{ gap: 6 }}>
-              <T variant="label">Bracket objetivo</T>
+              <T variant="label">{t("Bracket objetivo", "Target bracket")}</T>
               <T variant="small">
-                Los cambios sugeridos no suben el mazo por encima de este bracket.
+                {t(
+                  "Los cambios sugeridos no suben el mazo por encima de este bracket.",
+                  "Suggested changes don't take the deck above this bracket.",
+                )}
               </T>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                 {BRACKETS.map((b) => (
@@ -198,19 +216,19 @@ export function DeckSettingsSheet({
             </View>
             <View style={{ gap: 8 }}>
               <Button
-                label="Historial de cambios"
+                label={t("Historial de cambios", "Change history")}
                 kind="secondary"
                 icon="time-outline"
                 onPress={() => setSub("history")}
               />
               <Button
-                label="Reemplazar la lista"
+                label={t("Reemplazar la lista", "Replace the list")}
                 kind="secondary"
                 icon="clipboard-outline"
                 onPress={() => setSub("replace")}
               />
               <Button
-                label="Duplicar"
+                label={t("Duplicar", "Duplicate")}
                 kind="secondary"
                 icon="copy-outline"
                 busy={m.duplicate.isPending}
@@ -220,24 +238,31 @@ export function DeckSettingsSheet({
                 }}
               />
               <Button
-                label="Borrar el mazo"
+                label={t("Borrar el mazo", "Delete the deck")}
                 kind="danger"
                 icon="trash-outline"
                 onPress={() =>
-                  alert(`¿Borrar «${d.name}»?`, "Se borra para siempre, con su historial.", [
-                    { text: "Cancelar", style: "cancel" },
-                    {
-                      text: "Borrar",
-                      style: "destructive",
-                      onPress: () =>
-                        m.remove.mutate(undefined, {
-                          onSuccess: () => {
-                            close();
-                            onDeleted?.();
-                          },
-                        }),
-                    },
-                  ])
+                  alert(
+                    t(`¿Borrar «${d.name}»?`, `Delete “${d.name}”?`),
+                    t(
+                      "Se borra para siempre, con su historial.",
+                      "It's deleted forever, with its history.",
+                    ),
+                    [
+                      { text: t("Cancelar", "Cancel"), style: "cancel" },
+                      {
+                        text: t("Borrar", "Delete"),
+                        style: "destructive",
+                        onPress: () =>
+                          m.remove.mutate(undefined, {
+                            onSuccess: () => {
+                              close();
+                              onDeleted?.();
+                            },
+                          }),
+                      },
+                    ],
+                  )
                 }
               />
             </View>
@@ -263,7 +288,7 @@ export function DeckSettingsSheet({
 }
 
 const when = (iso: string) =>
-  new Date(iso).toLocaleString("es-ES", {
+  new Date(iso).toLocaleString(intl, {
     day: "numeric",
     month: "short",
     hour: "2-digit",
@@ -291,7 +316,12 @@ function HistorySheet({
       api(`/api/decks/${deck.id}/versions/${v.id}`, { method: "POST" }),
     onSuccess: () => {
       tapFeedback();
-      toast("Versión restaurada (la de ahora queda en el historial)");
+      toast(
+        t(
+          "Versión restaurada (la de ahora queda en el historial)",
+          "Version restored (the current one stays in the history)",
+        ),
+      );
       qc.invalidateQueries({ queryKey: ["deck", deck.id] });
       qc.invalidateQueries({ queryKey: ["decks"] });
       onClose();
@@ -300,12 +330,15 @@ function HistorySheet({
   });
   const list = versions.data ?? [];
   return (
-    <Sheet open={open} onClose={onClose} title="Historial de cambios">
+    <Sheet open={open} onClose={onClose} title={t("Historial de cambios", "Change history")}>
       {versions.isPending ? (
         <Loading />
       ) : list.length === 0 ? (
         <T variant="muted">
-          Todavía no hay versiones anteriores: se guarda una cada vez que cambia la lista.
+          {t(
+            "Todavía no hay versiones anteriores: se guarda una cada vez que cambia la lista.",
+            "No previous versions yet: one is saved every time the list changes.",
+          )}
         </T>
       ) : (
         <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ gap: 10 }}>
@@ -315,32 +348,35 @@ function HistorySheet({
               style={{ gap: 4, padding: 10, borderRadius: 8, backgroundColor: colors.panel }}
             >
               <T style={{ fontWeight: "700" }}>
-                {when(v.createdAt)} · {v.cardCount} cartas
+                {when(v.createdAt)} · {v.cardCount} {t("cartas", "cards")}
               </T>
               {v.added.length > 0 && (
                 <T variant="small" style={{ color: colors.in }}>
-                  Después entró:{" "}
+                  {t("Después entró:", "Then added:")}{" "}
                   {v.added.map((c) => `${c.copies > 1 ? `${c.copies} ` : ""}${c.name}`).join(", ")}
                 </T>
               )}
               {v.removed.length > 0 && (
                 <T variant="small" style={{ color: colors.out }}>
-                  Después salió:{" "}
+                  {t("Después salió:", "Then removed:")}{" "}
                   {v.removed
                     .map((c) => `${c.copies > 1 ? `${c.copies} ` : ""}${c.name}`)
                     .join(", ")}
                 </T>
               )}
               <Button
-                label="Volver a esta versión"
+                label={t("Volver a esta versión", "Go back to this version")}
                 kind="ghost"
                 onPress={() =>
                   alert(
-                    "¿Volver a esta versión?",
-                    "La lista de ahora se guarda en el historial, por si quieres recuperarla.",
+                    t("¿Volver a esta versión?", "Go back to this version?"),
+                    t(
+                      "La lista de ahora se guarda en el historial, por si quieres recuperarla.",
+                      "The current list is kept in the history, in case you want it back.",
+                    ),
                     [
-                      { text: "Cancelar", style: "cancel" },
-                      { text: "Volver", onPress: () => restore.mutate(v) },
+                      { text: t("Cancelar", "Cancel"), style: "cancel" },
+                      { text: t("Volver", "Go back"), onPress: () => restore.mutate(v) },
                     ],
                   )
                 }
@@ -371,10 +407,10 @@ function ReplaceSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Reemplazar la lista"
+      title={t("Reemplazar la lista", "Replace the list")}
       footer={
         <Button
-          label="Reemplazar"
+          label={t("Reemplazar", "Replace")}
           disabled={!text.trim()}
           busy={m.save.isPending}
           onPress={() =>
@@ -383,7 +419,12 @@ function ReplaceSheet({
               {
                 onSuccess: () => {
                   setText("");
-                  toast("Lista reemplazada (la anterior queda en el historial)");
+                  toast(
+                    t(
+                      "Lista reemplazada (la anterior queda en el historial)",
+                      "List replaced (the previous one stays in the history)",
+                    ),
+                  );
                   onDone();
                 },
               },
@@ -393,8 +434,10 @@ function ReplaceSheet({
       }
     >
       <T variant="small">
-        Pega la lista nueva (una carta por línea, con el comandante) o el enlace de un mazo público.
-        La de ahora se guarda en el historial.
+        {t(
+          "Pega la lista nueva (una carta por línea, con el comandante) o el enlace de un mazo público. La de ahora se guarda en el historial.",
+          "Paste the new list (one card per line, with the commander) or the link to a public deck. The current one is kept in the history.",
+        )}
       </T>
       <TextInput
         multiline
@@ -413,19 +456,35 @@ function ReplaceSheet({
 const FORMATS: { key: ExportFormat; label: string; hint: string }[] = [
   {
     key: "text",
-    label: "Texto",
-    hint: "Una carta por línea; lo leen casi todas las webs y apps de mazos.",
+    label: t("Texto", "Text"),
+    hint: t(
+      "Una carta por línea; lo leen casi todas las webs y apps de mazos.",
+      "One card per line; almost every deck site and app reads it.",
+    ),
   },
   {
     key: "arena",
     label: "MTG Arena",
-    hint: "En Arena: Mazos › Importar. Solo entran las cartas que existen en Arena.",
+    hint: t(
+      "En Arena: Mazos › Importar. Solo entran las cartas que existen en Arena.",
+      "In Arena: Decks › Import. Only cards that exist in Arena are included.",
+    ),
   },
-  { key: "mtgo", label: "MTGO", hint: "Para Magic Online: el comandante va en el banquillo." },
+  {
+    key: "mtgo",
+    label: "MTGO",
+    hint: t(
+      "Para Magic Online: el comandante va en el banquillo.",
+      "For Magic Online: the commander goes in the sideboard.",
+    ),
+  },
   {
     key: "moxfield",
-    label: "Con etiquetas",
-    hint: "Con el rol de cada carta y tus etiquetas (#Ramp, #wincon); al importarlo aquí se leen igual.",
+    label: t("Con etiquetas", "With tags"),
+    hint: t(
+      "Con el rol de cada carta y tus etiquetas (#Ramp, #wincon); al importarlo aquí se leen igual.",
+      "With each card's role and your tags (#Ramp, #wincon); importing it here reads them back.",
+    ),
   },
 ];
 
@@ -480,10 +539,10 @@ export function ExportSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Exportar"
+      title={t("Exportar", "Export")}
       footer={
         <Button
-          label="Compartir o copiar"
+          label={t("Compartir o copiar", "Share or copy")}
           icon="share-outline"
           disabled={!text}
           onPress={() => Share.share({ title: name, message: text })}
@@ -511,7 +570,7 @@ export function ExportSheet({
           </T>
         </ScrollView>
       ) : (
-        <Loading label="Analizando el mazo…" />
+        <Loading label={t("Analizando el mazo…", "Analyzing the deck…")} />
       )}
     </Sheet>
   );
@@ -537,7 +596,7 @@ export function ThemePicker({
       : top;
   return (
     <View style={{ gap: 6 }}>
-      <T variant="label">Tema</T>
+      <T variant="label">{t("Tema", "Theme")}</T>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={{ flexDirection: "row", gap: 6 }}>
           <Chip

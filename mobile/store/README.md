@@ -54,6 +54,56 @@ Doctor Deck es contenido de fans no oficial permitido por la Política de conten
 Primera versión pública: colección con escáner, mazos con cambios sugeridos, contador de vidas, grupos e intercambios.
 ```
 
+## Ficha en inglés (en-US / en-GB)
+
+En Play Console › Presencia en la tienda › Fichas de la tienda › «Añadir traducciones» › Inglés
+(Estados Unidos) e Inglés (Reino Unido). La app ya sale en inglés si el móvil no está en español.
+
+**App name** (max 30): `Doctor Deck: Commander decks`
+
+**Short description** (max 80):
+
+```
+Improve your Commander decks with your collection: 1-for-1 swaps, scanner, prices.
+```
+
+**Full description** (max 4000):
+
+```
+Doctor Deck tells you what to change in your Commander decks using the cards you ALREADY own.
+
+Paste your list or the link to a public deck and Doctor Deck compares it with what the community plays with your commander: it suggests 1-for-1 swaps ("cut this → add this"), first with cards from your collection that aren't already in another of your decks, and explains why.
+
+YOUR COLLECTION, ALWAYS AT HAND
+• Scan your cards with the camera: it recognises the set and number, also in other languages.
+• Import the CSV from your collection app or add cards by hand, with printing, foil, language and condition.
+• Collection value with European market reference prices and each card's price history.
+• Filter however you like: colors, type, role, rarity, set, price…
+
+DECKS THAT IMPROVE THEMSELVES
+• Suggested swaps based on the community, your collection and the deck's roles (ramp, draw, removal…).
+• What you're missing and how much it costs, with cheaper alternatives.
+• The deck's combos and the ones one card away.
+• Estimated bracket, mana curve and opening-hand odds.
+• Build a deck from a commander: the community's average deck, only your cards, or empty.
+
+PLAY WITH YOUR GROUP
+• Life counter with commander damage, poison and turns.
+• Playgroups with standings and recorded games.
+• Who has that card? Borrow it and keep track of loans.
+• Trades: wishlists, automatic matches and proposals balanced by value.
+
+Free and ad-free. Your collection is on the web too: doctordeck.app
+
+Doctor Deck is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.
+```
+
+**Release notes** (max 500):
+
+```
+The app is now in English too: it follows your phone's language.
+```
+
 ## Datos de contacto y categoría
 
 - Categoría: **Entretenimiento** (etiquetas: cartas, colección).
