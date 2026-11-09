@@ -60,7 +60,32 @@ const delver = makeCard({
   typeLine: "Creature — Human Wizard // Creature — Human Insect",
 });
 
+const hearthhull = makeCard({
+  name: "Hearthhull, the Worldseed",
+  typeLine: "Legendary Artifact — Spacecraft",
+  oracleText: "Station (Tap another creature you control: Put charge counters...)",
+  power: "6",
+  toughness: "7",
+});
+const lastRide = makeCard({
+  name: "The Last Ride",
+  typeLine: "Legendary Artifact — Vehicle",
+  power: "*",
+  toughness: "*",
+});
+const stationNoPT = makeCard({
+  name: "Some Legendary Station",
+  typeLine: "Legendary Artifact — Spacecraft",
+});
+const vehicle = makeCard({ name: "Smuggler's Copter", typeLine: "Artifact — Vehicle", power: "3" });
+
 describe("canBeCommander", () => {
+  it("acepta vehículos y naves legendarios con fuerza y resistencia (regla 903.3)", () => {
+    expect(canBeCommander(hearthhull)).toBe(true);
+    expect(canBeCommander(lastRide)).toBe(true);
+    expect(canBeCommander(stationNoPT)).toBe(false);
+    expect(canBeCommander(vehicle)).toBe(false);
+  });
   it("acepta criaturas legendarias y cartas con 'can be your commander'", () => {
     expect(canBeCommander(atraxa)).toBe(true);
     expect(canBeCommander(teferi)).toBe(true);

@@ -11,13 +11,29 @@ function frontTypeLine(c: Typed): string {
   return c.typeLine.split("//")[0] ?? c.typeLine;
 }
 
-/** ¿Puede esta carta ser comandante (sola o como pareja)? Solo mira el tipo y el texto. */
+/**
+ * Vehículos y naves (Spacecraft) legendarios con fuerza y resistencia: pueden ser comandante desde
+ * Edge of Eternities (regla 903.3). Las naves sin recuadro de fuerza/resistencia, no.
+ */
+const isCrewedCommander = (c: Typed & { power?: string | null }) =>
+  /\b(Vehicle|Spacecraft)\b/.test(frontTypeLine(c)) &&
+  c.power !== undefined &&
+  c.power !== null &&
+  c.power !== "";
+
+/**
+ * ¿Puede esta carta ser comandante (sola o como pareja)? Solo mira el tipo, el texto y (para
+ * vehículos y naves) si tiene fuerza. Criaturas legendarias, «can be your commander»
+ * (planeswalkers como Teferi), trasfondos legendarios y vehículos o naves legendarios con fuerza y
+ * resistencia.
+ */
 export function canBeCommander(
-  card: Pick<Card, "typeLine"> & { oracleText?: string | null },
+  card: Pick<Card, "typeLine"> & { oracleText?: string | null; power?: string | null },
 ): boolean {
   if (/can be your commander/i.test(card.oracleText ?? "")) return true;
   if (isBackground(card) && isLegendary(card)) return true;
-  return isLegendary(card) && isCreature(card);
+  if (!isLegendary(card)) return false;
+  return isCreature(card) || isCrewedCommander(card);
 }
 
 type PairKind = "partner" | "friendsForever" | "doctorsCompanion" | "chooseBackground";

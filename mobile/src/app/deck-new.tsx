@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
+import { decklistWithCommanders } from "@/domain/deck/set-commander";
 import type { CatalogPageDTO } from "@/server/card-dto";
 import type {
   CardDTO,
@@ -324,12 +325,26 @@ function CommanderRow({ card, onPress }: { card: CardDTO; onPress: () => void })
 
 function FromList({ fromShare, ...common }: Common & { fromShare: boolean }) {
   const [input, setInput] = useState(() => (fromShare ? (takePendingImport()?.text ?? "") : ""));
+  /** Comandante elegido aparte (si la lista no lo dice o no lo trae); no vale con enlaces. */
+  const [commander, setCommander] = useState<CardDTO | null>(null);
+  const [q, setQ] = useState("");
+  const query = useDebounced(q.trim());
+  const isLink = /^\s*https?:\/\//i.test(input);
+  const results = useQuery({
+    queryKey: ["catalog", "commander", query],
+    enabled: !commander && !isLink && query.length > 1,
+    queryFn: () =>
+      api<CatalogPageDTO>(`/api/cards?commander=1&q=${encodeURIComponent(query)}&limit=8`),
+  });
   const open = useOpenNewDeck();
   const save = useMutation({
     mutationFn: () =>
       api<{ id: string }>("/api/decks", {
         body: {
-          input: input.trim(),
+          input:
+            commander && !isLink
+              ? decklistWithCommanders(input.trim(), [commander.name])
+              : input.trim(),
           visibility: common.visibility,
           ...(common.name.trim() ? { name: common.name.trim() } : {}),
         },
@@ -341,8 +356,8 @@ function FromList({ fromShare, ...common }: Common & { fromShare: boolean }) {
     <View style={{ gap: 14 }}>
       <T variant="muted">
         {t(
-          "Pega la lista (una carta por línea, como la exportan casi todas las apps) o el enlace del mazo. El comandante va en una sección «Commander» o marcado con *CMDR*.",
-          "Paste the list (one card per line, as almost every app exports it) or the deck's link. The commander goes in a “Commander” section or marked with *CMDR*.",
+          "Pega la lista (una carta por línea, como la exportan casi todas las apps) o el enlace del mazo. El comandante va en una sección «Commander», marcado con *CMDR* o eligiéndolo abajo.",
+          "Paste the list (one card per line, as almost every app exports it) or the deck's link. The commander goes in a “Commander” section, marked with *CMDR* or picked below.",
         )}
       </T>
       {save.error && <Banner text={save.error.message} />}
@@ -367,6 +382,47 @@ function FromList({ fromShare, ...common }: Common & { fromShare: boolean }) {
           fontFamily: "monospace",
         }}
       />
+      {!isLink && (
+        <View style={{ gap: 8 }}>
+          <T variant="label">{t("Comandante (opcional)", "Commander (optional)")}</T>
+          {commander ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <CardThumb uri={commander.imageUrl} width={40} name={commander.name} />
+              <T style={{ flex: 1, fontWeight: "600" }} numberOfLines={2}>
+                {commander.name}
+              </T>
+              <Button
+                label={t("Cambiar", "Change")}
+                kind="ghost"
+                onPress={() => setCommander(null)}
+              />
+            </View>
+          ) : (
+            <>
+              <SearchField
+                placeholder={t(
+                  "Si la lista no lo dice o no lo trae",
+                  "If the list doesn't say or doesn't include it",
+                )}
+                value={q}
+                onChangeText={setQ}
+                onClear={() => setQ("")}
+              />
+              {query.length > 1 &&
+                (results.data?.items ?? []).map((c) => (
+                  <CommanderRow
+                    key={c.oracleId}
+                    card={c}
+                    onPress={() => {
+                      setCommander(c);
+                      setQ("");
+                    }}
+                  />
+                ))}
+            </>
+          )}
+        </View>
+      )}
       <NameAndVisibility {...common} />
       <Button
         label={t("Guardar mazo", "Save deck")}

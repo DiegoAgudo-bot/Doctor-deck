@@ -6,6 +6,7 @@ import type { CardDTO, OwnershipDTO, OwnershipItemDTO } from "@/server/dto";
 import { CardHover } from "./card-image";
 import { CardPriceDialog } from "./card-price-dialog";
 import { ManaCost } from "./mana";
+import { api, ApiError } from "./api-client";
 import { Banner, Dialog, fmt } from "./ui";
 import { Link, useLocale, useT } from "@/components/i18n";
 import type { Locale } from "@/domain/i18n/locale";
@@ -19,6 +20,136 @@ export function shoppingList(items: readonly OwnershipItemDTO[]): string {
     .filter((i) => i.toBuy > 0)
     .map((i) => `${i.toBuy} ${i.card.name.split(" // ")[0] ?? i.card.name}`)
     .join("\n");
+}
+
+/** Una línea para `POST /api/collection/cards`: la edición del mazo si se sabe, si no la carta. */
+export interface CollectionCardInput {
+  oracleId?: string;
+  scryfallId?: string;
+  quantity: number;
+  foil?: boolean;
+}
+
+/** Lo que pide `POST /api/collection/cards` para una carta del mazo (con su edición y foil). */
+export function collectionInput(card: CardDTO, quantity: number): CollectionCardInput {
+  return {
+    quantity,
+    ...(card.printing ? { scryfallId: card.printing.scryfallId } : { oracleId: card.oracleId }),
+    ...(card.foil ? { foil: true } : {}),
+  };
+}
+
+/**
+ * «Tengo este mazo en físico» (p. ej. un precon): añade a la colección todas sus cartas o solo
+ * las que faltan, como cartas sueltas (reimportar el CSV no las borra).
+ */
+function DeckToCollection({ all, missing, onDone }: DeckToCollectionProps) {
+  const t = useT();
+  const locale = useLocale();
+  const [ask, setAsk] = useState<"all" | "missing" | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ tone: "in" | "out"; text: string } | null>(null);
+  const copies = (xs: readonly CollectionCardInput[]) => xs.reduce((n, x) => n + x.quantity, 0);
+  const n = { all: copies(all), missing: copies(missing) };
+
+  async function add(which: "all" | "missing") {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await api("/api/collection/cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cards: which === "all" ? all : missing }),
+      });
+      setMsg({
+        tone: "in",
+        text: t(
+          `Añadidas ${fmt(n[which], locale)} copias a tu colección.`,
+          `Added ${fmt(n[which], locale)} copies to your collection.`,
+        ),
+      });
+      setAsk(null);
+      onDone();
+    } catch (e) {
+      setMsg({
+        tone: "out",
+        text:
+          e instanceof ApiError
+            ? e.message
+            : t("No se pudieron añadir las cartas", "Couldn't add the cards"),
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="panel">
+      <div className="panel-h stack-sm py-2">
+        <span className="h2">{t("¿Tienes el mazo en físico?", "Own this deck in paper?")}</span>
+        <div className="flex flex-wrap gap-2">
+          {ask ? (
+            <>
+              <button type="button" className="btn btn-ghost" onClick={() => setAsk(null)}>
+                {t("Cancelar", "Cancel")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy}
+                onClick={() => void add(ask)}
+              >
+                {busy
+                  ? t("Añadiendo…", "Adding…")
+                  : t(`Añadir ${fmt(n[ask], locale)} copias`, `Add ${fmt(n[ask], locale)} copies`)}
+              </button>
+            </>
+          ) : (
+            <>
+              {n.missing > 0 && n.missing < n.all && (
+                <button type="button" className="btn" onClick={() => setAsk("missing")}>
+                  {t(
+                    `Añadir lo que me falta (${fmt(n.missing, locale)})`,
+                    `Add what I'm missing (${fmt(n.missing, locale)})`,
+                  )}
+                </button>
+              )}
+              <button type="button" className="btn" onClick={() => setAsk("all")}>
+                {t(
+                  `Añadir todo a mi colección (${fmt(n.all, locale)})`,
+                  `Add it all to my collection (${fmt(n.all, locale)})`,
+                )}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="px-4 pb-3.5">
+        {msg ? (
+          <Banner tone={msg.tone}>{msg.text}</Banner>
+        ) : (
+          <span className="hint">
+            {ask === "all"
+              ? t(
+                  "Se suman todas las cartas del mazo (con su edición), también las que ya tienes: es para cuando compras el mazo entero, como un precon.",
+                  "Every card in the deck is added (with its printing), even the ones you already have: it's for when you buy the whole deck, like a precon.",
+                )
+              : t(
+                  "Vuelca las cartas del mazo a tu colección con su edición. Luego puedes editarlas o borrarlas en la colección.",
+                  "Adds the deck's cards to your collection with their printing. You can edit or delete them later in the collection.",
+                )}
+          </span>
+        )}
+      </div>
+    </section>
+  );
+}
+
+interface DeckToCollectionProps {
+  all: readonly CollectionCardInput[];
+  missing: readonly CollectionCardInput[];
+  /** Tras añadirlas (p. ej. volver a analizar para que cambie lo que falta). */
+  onDone: () => void;
 }
 
 function Stat({
@@ -119,10 +250,13 @@ export function OwnershipPanel({
   hasCollection,
   loggedIn,
   wishlist,
+  toCollection,
 }: {
   ownership: OwnershipDTO;
   hasCollection: boolean;
   loggedIn: boolean;
+  /** Con sesión: añadir las cartas del mazo a mi colección. */
+  toCollection?: DeckToCollectionProps | undefined;
   /** En mis mazos guardados: si lo que falta entra en mi lista de deseos, y cambiarlo. */
   wishlist?: { on: boolean; busy: boolean; onToggle: () => void } | undefined;
 }) {
@@ -221,6 +355,8 @@ export function OwnershipPanel({
           </div>
         </div>
       </section>
+
+      {toCollection && toCollection.all.length > 0 && <DeckToCollection {...toCollection} />}
 
       {missing.length > 0 && (
         <section className="panel">

@@ -827,6 +827,15 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
 - **Mazo**: `DeckSource.load` → `parseDecklist` → `resolveDecklist` (agrupa por oracleId, detecta
   comandante: marcado → único candidato o pareja válida → si no, `commanderCandidates` para que
   elija el usuario con `chooseCommanders`) → `validateDeck`.
+  Comandante que no está en la lista (o la lista no lo dice): `decklistWithCommanders`
+  (`domain/deck/set-commander.ts`) reescribe el texto con una sección «Commander» (la línea de la
+  carta sube con su edición; lo que marcaba la lista pasa al mazo). Lo usan «Elige el comandante»
+  del analizador («¿No está en la lista? Búscalo») e «Importar una lista» (web y app); con un
+  enlace no se puede. Pueden ser comandante (`canBeCommander`): criaturas legendarias, «can be your
+  commander», trasfondos y, desde Edge of Eternities (regla 903.3), vehículos y naves legendarios
+  con fuerza (también en el SQL de `searchCatalog`). «¿Tienes el mazo en físico?» en «Qué me
+  falta» (con sesión) vuelca todo el mazo o lo que falta a la colección (`POST
+/api/collection/cards`, con la edición del mazo).
 
 ## Decisiones
 
