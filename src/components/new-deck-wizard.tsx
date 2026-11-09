@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { COLORS } from "@/domain/cards/types";
 import { suggestedDeckName } from "@/domain/deck/naming";
+import { decklistWithCommanders } from "@/domain/deck/set-commander";
 import type { DeckVisibility } from "@/domain/deck/visibility";
 import type { CardDetailDTO } from "@/server/card-dto";
 import type {
@@ -81,6 +82,8 @@ export function NewDeckWizard() {
   const [error, setError] = useState<string | null>(null);
   const [source, setSource] = useState<Source>("commander");
   const [list, setList] = useState("");
+  /** Comandante elegido fuera de la lista (opcional; solo con texto, no con enlaces). */
+  const [listCommander, setListCommander] = useState<CardDTO | null>(null);
   /** Cartas de mi colección que pueden ser comandante (atajos del paso 1). */
   const [mine, setMine] = useState<CardDTO[] | null>(null);
   /** Sin cuenta, si hay colección en este navegador (para «Con mis cartas»). */
@@ -181,8 +184,12 @@ export function NewDeckWizard() {
 
   /** Importar: con cuenta se guarda y se abre; sin ella (o sin comandante claro), al analizador. */
   async function createFromList() {
-    const input = list.trim();
-    if (!input) return;
+    const pasted = list.trim();
+    if (!pasted) return;
+    const input =
+      listCommander && !isLink(pasted)
+        ? decklistWithCommanders(pasted, [listCommander.name])
+        : pasted;
     if (!loggedIn) return openInAnalyzer(input, name.trim(), "changes");
     setBusy(true);
     setError(null);
@@ -197,6 +204,11 @@ export function NewDeckWizard() {
         }),
       });
       notifyDecksChanged();
+      // La página se queda viva oculta (Cache Components): al volver no debe seguir «Importando…»
+      // ni con la lista de antes (se importaría dos veces).
+      setList("");
+      setListCommander(null);
+      setBusy(false);
       router.push(`/decks/${res.id}`);
     } catch (e) {
       // La lista no dice cuál es el comandante: se elige en el analizador y luego se guarda.
@@ -250,6 +262,8 @@ export function NewDeckWizard() {
         });
         router.push(`/analyze?analyze=1&tab=${tab}`);
       }
+      // Igual que al importar: al volver a esta página, que no siga pensando.
+      setBusy(false);
     } catch (e) {
       setError(
         e instanceof ApiError
@@ -336,6 +350,36 @@ export function NewDeckWizard() {
                 {t("y enlaces de mazos públicos.", "and links to public decks.")}
               </span>
             </div>
+            {!isLink(list) && (
+              <div className="field" style={{ maxWidth: 480 }}>
+                {listCommander ? (
+                  <>
+                    <span className="label">{t("Comandante", "Commander")}</span>
+                    <span className="flex items-center gap-2">
+                      <span>{listCommander.name}</span>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => setListCommander(null)}
+                      >
+                        {t("Cambiar", "Change")}
+                      </button>
+                    </span>
+                  </>
+                ) : (
+                  <CardSearch
+                    id="import-commander"
+                    label={t("Comandante (opcional)", "Commander (optional)")}
+                    placeholder={t(
+                      "Si la lista no lo dice o no lo trae",
+                      "If the list doesn't say or doesn't include it",
+                    )}
+                    filters={{ commander: true }}
+                    onPick={setListCommander}
+                  />
+                )}
+              </div>
+            )}
             <div className="field" style={{ maxWidth: 480 }}>
               <label className="label" htmlFor="import-name">
                 {t("Nombre", "Name")}{" "}

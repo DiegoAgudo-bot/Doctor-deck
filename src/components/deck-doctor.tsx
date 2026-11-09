@@ -9,6 +9,7 @@ import {
   type ExportableDeck,
 } from "@/domain/deck/export";
 import type { Bracket, BracketEstimate } from "@/domain/deck/bracket";
+import { decklistWithCommanders } from "@/domain/deck/set-commander";
 import type { DeckVisibility } from "@/domain/deck/visibility";
 import type { ThemeLink } from "@/domain/recommendations/types";
 import { formatEuros } from "@/domain/suggestions/format";
@@ -34,7 +35,7 @@ import { OpeningHand } from "./deck-hand";
 import { localRoles } from "./local-roles";
 import { PrintingDialog } from "./printing-dialog";
 import { RoleEditDialog, type RoleEditScope } from "./role-edit-dialog";
-import { OtherDecksDialog, OwnershipPanel } from "./deck-ownership";
+import { OtherDecksDialog, OwnershipPanel, collectionInput } from "./deck-ownership";
 import { DeckSettingsDialog, ExportDialog, SaveDialog } from "./deck-dialogs";
 import { setDeckVisibility } from "./deck-visibility";
 import {
@@ -52,6 +53,7 @@ import { IconHeart, IconSettings, IconWarn } from "./icons";
 import {
   LOCAL_COLLECTION_EVENT,
   localCollection,
+  notifyCollectionChanged,
   notifyDecksChanged,
   ownedPairs,
 } from "./local-collection";
@@ -816,6 +818,20 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id].slice(-2)))
           }
           onConfirm={() => void analyze({}, chosen, buy, { persist: true })}
+          // Uno que no está en la lista (solo con texto: un enlace no se puede reescribir).
+          onPickOutside={
+            isLink(saved.input)
+              ? undefined
+              : (card) => {
+                  setChosen([]);
+                  void analyze(
+                    { input: decklistWithCommanders(saved.input, [card.name]) },
+                    [],
+                    buy,
+                    { persist: true },
+                  );
+                }
+          }
           busy={analyzing}
         />
       )}
@@ -1179,6 +1195,30 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
               ownership={ok.ownership}
               hasCollection={hasCollection}
               loggedIn={loggedIn}
+              toCollection={
+                loggedIn
+                  ? {
+                      all: [
+                        ...ok.commanders.map((c) => collectionInput(c, 1)),
+                        ...ok.cards.map((c) => collectionInput(c.card, c.quantity)),
+                      ],
+                      missing: ok.ownership.items
+                        .filter((i) => i.toBuy > 0)
+                        .map((i) =>
+                          collectionInput(
+                            [...ok.commanders, ...ok.cards.map((c) => c.card)].find(
+                              (c) => c.oracleId === i.card.oracleId,
+                            ) ?? i.card,
+                            i.toBuy,
+                          ),
+                        ),
+                      onDone: () => {
+                        notifyCollectionChanged();
+                        void analyze();
+                      },
+                    }
+                  : undefined
+              }
               wishlist={
                 loggedIn && !owner && saved.deckId
                   ? {
@@ -1501,15 +1541,47 @@ function CommanderPicker({
   chosen,
   onToggle,
   onConfirm,
+  onPickOutside,
   busy,
 }: {
   candidates: CardDTO[];
   chosen: string[];
   onToggle: (oracleId: string) => void;
   onConfirm: () => void;
+  /** Elegir un comandante que no está en la lista (se añade a ella). Sin él, solo las candidatas. */
+  onPickOutside?: ((card: CardDTO) => void) | undefined;
   busy: boolean;
 }) {
   const t = useT();
+  const outside = onPickOutside ? (
+    <div
+      className="flex flex-col gap-1.5 border-t border-line px-4 py-3.5"
+      style={{ maxWidth: 520 }}
+    >
+      <CardSearch
+        id="commander-outside"
+        label={t("¿No está en la lista? Búscalo", "Not in the list? Search for it")}
+        placeholder={t("Nombre del comandante", "Commander's name")}
+        filters={{ commander: true }}
+        onPick={onPickOutside}
+      />
+      <span className="hint">
+        {t(
+          "Se añade a la lista como comandante (si ya estaba en el mazo, pasa de allí al puesto de comandante).",
+          "It's added to the list as the commander (if it was already in the deck, it moves to the commander slot).",
+        )}
+      </span>
+    </div>
+  ) : (
+    <div className="px-4 pb-3.5">
+      <span className="hint">
+        {t(
+          "Con un enlace, el comandante tiene que estar en el mazo. Si no, pega la lista como texto.",
+          "With a link, the commander has to be in the deck. If it isn't, paste the list as text.",
+        )}
+      </span>
+    </div>
+  );
   const names = candidates.filter((c) => chosen.includes(c.oracleId)).map((c) => shortName(c.name));
   return (
     <section className="panel fade">
@@ -1527,13 +1599,14 @@ function CommanderPicker({
         <div className="p-4">
           <Banner tone="warn">
             {t(
-              "No hay ninguna carta que pueda ser comandante en la lista. Márcalo con una sección «Commander» o con",
-              "There's no card in the list that can be a commander. Mark it with a “Commander” section or with",
+              "No hay ninguna carta que pueda ser comandante en la lista. Búscalo abajo, o márcalo con una sección «Commander» o con",
+              "There's no card in the list that can be a commander. Search for it below, or mark it with a “Commander” section or with",
             )}{" "}
             <span className="mono">*CMDR*</span>.
           </Banner>
         </div>
-      ) : (
+      ) : null}
+      {candidates.length > 0 && (
         <>
           <div
             className="flex flex-wrap gap-4 p-4"
@@ -1604,6 +1677,7 @@ function CommanderPicker({
           </div>
         </>
       )}
+      {outside}
     </section>
   );
 }

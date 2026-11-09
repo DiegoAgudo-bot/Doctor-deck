@@ -210,3 +210,31 @@ describe("searchCatalog: filtros como los de ManaBox", () => {
     expect(await find({ colorless: true, colorBy: "color" })).toEqual(["Sigil Tracer"]);
   });
 });
+
+describe("searchCatalog: comandantes vehículo y nave", () => {
+  it("vehículos y naves legendarios con fuerza; sin fuerza o sin legendaria, no", async () => {
+    const own = createTestDb();
+    try {
+      const r = new PrismaCardRepository(own.db);
+      await r.insertCards([
+        makeCard({
+          name: "Hearthhull, the Worldseed",
+          typeLine: "Legendary Artifact — Spacecraft",
+          power: "6",
+          toughness: "7",
+        }),
+        makeCard({ name: "The Last Ride", typeLine: "Legendary Artifact — Vehicle", power: "*" }),
+        makeCard({ name: "Quiet Station", typeLine: "Legendary Artifact — Spacecraft" }),
+        makeCard({ name: "Smuggler's Copter", typeLine: "Artifact — Vehicle", power: "3" }),
+      ]);
+      const { cards } = await r.searchCatalog(
+        { ...EMPTY_CATALOG_QUERY, commander: true, sort: "name" },
+        0,
+        10,
+      );
+      expect(cards.map((c) => c.name)).toEqual(["Hearthhull, the Worldseed", "The Last Ride"]);
+    } finally {
+      await own.cleanup();
+    }
+  });
+});

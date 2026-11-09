@@ -314,6 +314,19 @@ export class PrismaCardRepository
               { typeLine: { contains: "Background" } },
             ],
           },
+          // Vehículos y naves legendarios con fuerza y resistencia (regla 903.3).
+          {
+            AND: [
+              { typeLine: { contains: "Legendary" } },
+              {
+                OR: [
+                  { typeLine: { contains: "Vehicle" } },
+                  { typeLine: { contains: "Spacecraft" } },
+                ],
+              },
+              { power: { not: null } },
+            ],
+          },
           { oracleText: { contains: "can be your commander" } },
         ],
       });
