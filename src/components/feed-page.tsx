@@ -250,7 +250,6 @@ export function FeedPage() {
   return (
     <main className="page">
       <div className="flex flex-col gap-1">
-        <span className="eyebrow">{t("Comunidad", "Community")}</span>
         <h1 className="h1">{t("Actividad", "Activity")}</h1>
         <p className="muted text-[13px]">
           {t(

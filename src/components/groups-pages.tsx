@@ -69,7 +69,6 @@ export function GroupsPage() {
     <main className="page">
       <div className="stack-sm flex items-end gap-3">
         <div className="flex flex-1 flex-col gap-1">
-          <span className="eyebrow">{t("Tu mesa", "Your table")}</span>
           <h1 className="h1">{t("Grupos de juego", "Playgroups")}</h1>
           <p className="muted text-[13px]">
             {t(
@@ -846,7 +845,9 @@ export function JoinGroupPage() {
           <span className="groupcard-icon" style={{ width: 56, height: 56 }}>
             <IconUsers size={26} />
           </span>
-          <span className="eyebrow">{t("Te han invitado a", "You've been invited to")}</span>
+          <span className="muted text-[13px]">
+            {t("Te han invitado a", "You've been invited to")}
+          </span>
           <h1 className="h1">{preview.group.name}</h1>
           {preview.group.description && <p className="muted">{preview.group.description}</p>}
           <span className="subtle text-[13px]">

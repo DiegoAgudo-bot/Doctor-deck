@@ -31,8 +31,11 @@ export function OpeningHand({ cards }: { cards: DeckCardDTO[] }) {
   const [library, setLibrary] = useState<DeckCardDTO[] | null>(null);
   const [seen, setSeen] = useState(HAND_SIZE);
   const [mulligans, setMulligans] = useState(0);
+  /** Cuenta los repartos: al robar una mano nueva, las cartas se vuelven a repartir. */
+  const [deal, setDeal] = useState(0);
 
   function draw(mulligan: boolean) {
+    setDeal((n) => n + 1);
     setLibrary(shuffleLibrary(cards, Math.random));
     setSeen(HAND_SIZE);
     setMulligans((m) => (mulligan ? m + 1 : 0));
@@ -151,6 +154,7 @@ export function OpeningHand({ cards }: { cards: DeckCardDTO[] }) {
         </div>
         {hand.length > 0 && (
           <div
+            key={deal}
             className="grid gap-2"
             style={{ gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))" }}
           >
@@ -158,7 +162,12 @@ export function OpeningHand({ cards }: { cards: DeckCardDTO[] }) {
               <CardImage
                 key={`${c.card.oracleId}-${i}`}
                 card={c.card}
-                style={i >= HAND_SIZE ? { outline: "2px solid var(--color-accent)" } : {}}
+                className="dealt"
+                style={{
+                  // Las siete se reparten una a una; la que se roba después llega sola.
+                  ["--d" as string]: `${i < HAND_SIZE ? i * 55 : 0}ms`,
+                  ...(i >= HAND_SIZE ? { outline: "2px solid var(--color-accent)" } : {}),
+                }}
               />
             ))}
           </div>

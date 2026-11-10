@@ -31,6 +31,7 @@ import type { CardPricesDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardImage } from "./card-image";
+import { Tilt } from "./tilt";
 import { CommanderStaples } from "./commander-staples";
 import { DeckTile } from "./deck-tile";
 import { IconPlus } from "./icons";
@@ -309,7 +310,6 @@ export function CardsSearchPage() {
   return (
     <main className="page">
       <div className="flex flex-col gap-1">
-        <span className="eyebrow">{t("Catálogo", "Catalog")}</span>
         <h1 className="h1">{t("Buscar cartas", "Search cards")}</h1>
         <p className="muted text-[13px]">
           {t(
@@ -599,9 +599,9 @@ export function CardDetailPage({ initial }: { initial?: CardDetailDTO }) {
         ← {t("Buscar cartas", "Search cards")}
       </Link>
       <section className="cardhero">
-        <div className="cardhero-art">
+        <Tilt className="cardhero-art">
           <CardImage card={image} />
-        </div>
+        </Tilt>
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <h1 className="h1">{d.card.name}</h1>

@@ -216,7 +216,10 @@ function PlayerTile({
               {delta.n > 0 ? `+${delta.n}` : delta.n}
             </span>
           )}
-          <b>{p.life}</b>
+          {/* Al cambiar, la cifra entra desde el lado hacia el que se mueve. */}
+          <b key={p.life} className={delta ? (delta.n >= 0 ? "tick-up" : "tick-down") : undefined}>
+            {p.life}
+          </b>
           {out && <span className="lifetile-out">{t("Eliminado", "Out")}</span>}
         </div>
 
@@ -441,7 +444,6 @@ export function LifeCounter() {
     return (
       <main className="page" style={{ gap: 18 }}>
         <div className="flex flex-col gap-1">
-          <span className="eyebrow">{t("Contador de vidas", "Life counter")}</span>
           <h1 className="h1">{t("A jugar", "Let's play")}</h1>
           <p className="muted text-[13px]">
             {t(

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { SavedDeckSummaryDTO, StatusResponse, TradeProposalSummaryDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
-import { CardImage } from "./card-image";
+import { DeckTile } from "./deck-tile";
 import { ActivityFeed } from "./feed-page";
 import { IconCheck, IconPlus, IconX } from "./icons";
 import { Landing } from "./landing";
@@ -15,8 +15,7 @@ import {
   ownedPairs,
   type LocalCollection,
 } from "./local-collection";
-import { ColorPips } from "./mana";
-import { Banner, Loading, ago, fmt } from "./ui";
+import { Banner, Loading, fmt } from "./ui";
 import { Link, useLocale, useT } from "@/components/i18n";
 
 /** «Primeros pasos» cerrados a mano en este navegador. */
@@ -285,49 +284,13 @@ export function Home() {
             {t("desde un comandante o importa una lista.", "from a commander or import a list.")}
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t("Mazo", "Deck")}</th>
-                  <th className="hide-sm">{t("Colores", "Colors")}</th>
-                  <th className="r hide-sm">{t("Cartas", "Cards")}</th>
-                  <th className="hide-sm">{t("Origen", "Source")}</th>
-                  <th className="r">{t("Actualizado", "Updated")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(decks ?? []).slice(0, 6).map((d, i) => (
-                  <tr key={d.id} className="fade" style={{ ["--d" as string]: `${i * 40}ms` }}>
-                    <td>
-                      <Link
-                        href={`/decks/${d.id}`}
-                        className="flex items-center gap-2.5"
-                        style={{ color: "var(--color-text)", textDecoration: "none" }}
-                      >
-                        {d.commanderCard ? (
-                          <CardImage card={d.commanderCard} style={{ width: 26 }} sizes="26px" />
-                        ) : (
-                          <span className="w-[26px]" />
-                        )}
-                        <span className="flex flex-col leading-tight">
-                          <span style={{ fontWeight: 500 }}>{d.name}</span>
-                          <span className="subtle text-xs">{d.commanderNames.join(" + ")}</span>
-                        </span>
-                      </Link>
-                    </td>
-                    <td className="hide-sm">
-                      <ColorPips colors={d.colorIdentity} />
-                    </td>
-                    <td className="r mono hide-sm">{d.cardCount}</td>
-                    <td className="muted hide-sm">
-                      {d.source === "text" ? t("texto", "text") : t("enlace", "link")}
-                    </td>
-                    <td className="r mono subtle">{ago(d.updatedAt, locale)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div
+            className="grid-1-sm grid gap-2.5 p-3"
+            style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
+          >
+            {(decks ?? []).slice(0, 6).map((d, i) => (
+              <DeckTile key={d.id} deck={d} delay={i * 40} />
+            ))}
           </div>
         )}
       </section>
@@ -359,7 +322,10 @@ function Stat({
   const body = (
     <>
       <span className="cap">{label}</span>
-      <span className="mono" style={{ fontSize: 22, fontWeight: 500 }}>
+      <span
+        className="num"
+        style={{ fontSize: 24, fontWeight: 600, fontFamily: "var(--font-sans)" }}
+      >
         {value}
       </span>
       <span className="subtle text-xs">{meta}</span>

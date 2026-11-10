@@ -231,6 +231,17 @@ locale)`) y los avisos de datos guardados (`localizeWarning`, `domain/i18n/warni
 - **Tema** «Pentacromo» (`globals.css`): base neutra, acento azul y la gema del logo (`--gem`,
   `--gem-v`) en la franja bajo la barra superior, el subrayado de pestañas y la fila activa del
   lateral. Propuestas descartadas y capturas en `branding/themes/`.
+  **Revisión R7** (estilo): los titulares (`.h1`, la portada, las secciones de la portada) van en
+  Spectral (`--font-card`, la letra de los nombres de carta); la monoespaciada queda para cifras
+  en columnas. Sin etiquetas en mayúsculas encima de los títulos (`.eyebrow` ya no existe), sin
+  degradados ni resplandores en la portada ni flechas en los botones. La portada (`landing.tsx`)
+  abre con el gesto del producto una sola vez al cargar (`dd-card-out` / `dd-card-in`: una carta
+  se aparta, la otra cae en su sitio) y «Qué hace por ti» es una lista con rayas (`.does`), sin
+  tarjetas ni iconos. En el Inicio, «Tus mazos» son portadas (`DeckTile`). **Movimiento solo como
+  respuesta** a lo que hace el usuario: aceptar un cambio (`dd-row-out` / `dd-row-in`), repartir
+  la mano inicial (`.dealt`), la cifra de vidas (`.tick-up` / `.tick-down`), la carta de su ficha
+  inclinándose hacia el puntero (`Tilt`, `components/tilt.tsx`) y la franja de la gema corriendo
+  mientras se analiza un mazo (`data-busy` en `<html>`). Todo respeta «reducir movimiento».
 - **PWA** (Fase 20): `app/manifest.ts`, iconos en `public/icons/` y `mobile/assets/` (logo: gema de cinco colores, `LOGO_FACETS` en `components/icons.tsx`; `npx tsx scripts/make-icons.tsx`
   los regenera), `themeColor` y márgenes `safe-area` en las barras.
   Sin conexión: `public/sw.js` (lo registra `ServiceWorker` en el layout, solo en producción)
@@ -983,7 +994,7 @@ Purchase price currency, Added`.
     ManaBox; servidor listo para la app (sesión, importar lo compartido, push, versión mínima) ✅
 23. Escáner de cartas en la app (OCR en el móvil, edición + número o nombre, poca luz) ✅
 
-Plan de la revisión de noviembre de 2026 (fases R1–R7, en `ROADMAP.md`): R1 (bugs) ✅, R2 (app: mazos) ✅, R3 (app: resto) ✅, R4 (web: compra, estadísticas, primeros pasos) ✅, R5 (web: comparar, notas, descripción) ✅, R6 (precios al alza, resumen semanal, atajos) ✅.
+Plan de la revisión de noviembre de 2026 (fases R1–R7, en `ROADMAP.md`): R1 (bugs) ✅, R2 (app: mazos) ✅, R3 (app: resto) ✅, R4 (web: compra, estadísticas, primeros pasos) ✅, R5 (web: comparar, notas, descripción) ✅, R6 (precios al alza, resumen semanal, atajos) ✅, R7 (estilo y animaciones) ✅.
 
 Lo siguiente se empieza solo cuando el usuario lo pida.
 

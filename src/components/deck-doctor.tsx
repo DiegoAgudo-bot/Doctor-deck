@@ -794,6 +794,11 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   // La lista solo se enseña para analizar uno nuevo, al pulsar "Cambiar lista" o si no se pudo abrir.
   const showForm = (!ok && !opening) || editing;
   const analyzing = busy === "analyze";
+  // Mientras se analiza, la franja de la gema de la cabecera se mueve (y se para al acabar).
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-busy", analyzing);
+    return () => document.documentElement.removeAttribute("data-busy");
+  }, [analyzing]);
 
   return (
     <main className="page">

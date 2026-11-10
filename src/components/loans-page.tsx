@@ -257,7 +257,6 @@ export function LoansPage() {
     <main className="page">
       <div className="stack-sm flex items-end gap-3">
         <div className="flex flex-1 flex-col gap-1">
-          <span className="eyebrow">{t("Entre amigos", "Among friends")}</span>
           <h1 className="h1">{t("Préstamos", "Loans")}</h1>
           <p className="muted text-[13px]">
             {t(
