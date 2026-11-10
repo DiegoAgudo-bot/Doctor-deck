@@ -234,7 +234,7 @@ locale)`) y los avisos de datos guardados (`localizeWarning`, `domain/i18n/warni
 - **PWA** (Fase 20): `app/manifest.ts`, iconos en `public/icons/` y `mobile/assets/` (logo: gema de cinco colores, `LOGO_FACETS` en `components/icons.tsx`; `npx tsx scripts/make-icons.tsx`
   los regenera), `themeColor` y márgenes `safe-area` en las barras.
   Sin conexión: `public/sw.js` (lo registra `ServiceWorker` en el layout, solo en producción)
-  guarda `/play` y sus archivos de `/_next/static` al instalarse y en cada visita (red primero), y
+  guarda `/play` y `/en/play` (una copia por idioma) y sus archivos de `/_next/static` al instalarse y en cada visita (red primero), y
   los símbolos de maná; no toca nada más. Se borra al entrar o salir (`clearCached`).
 - **Copias de seguridad** (Fase 20): `backupDatabase` (`adapters/db/backup.ts`, API `backup` de
   SQLite + `integrity_check` + gzip, rotación `BACKUP_KEEP`); cron diario que añade `deploy.sh`.
@@ -728,6 +728,9 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   - Sesión: plugin `expo` de Better Auth (`trustedOrigins: doctordeck://`, cookie en cabecera;
     Google vuelve a `doctordeck://` con la sesión). La app manda sus peticiones con
     `credentials: "omit"` (si no, el almacén de cookies de Android pisa la cabecera → 401).
+    Cada petición (`api`, `mobile/src/lib/api.ts`) se corta a los 45 s (180 s al subir un texto
+    o CSV; error `timeout`) y, con un 401, pide a Better Auth que compruebe la sesión
+    (`recheckSession`): si ha caducado, el layout lleva a «Entrar».
     **Heredado** (solo para la app 1.0.0, que abría partes en un WebView; la 1.1.0 ya no lo usa):
     `POST /api/app/web` (con sesión) da un código de un solo uso (60 s, en memoria,
     `server/app-handoff.ts`) y `GET /api/app/web?code=…&next=/ruta` le pone la cookie de sesión al
@@ -934,6 +937,8 @@ Purchase price currency, Added`.
 22. App móvil Android (Expo): colección, mazos, buscador, avisos con push y compartir desde
     ManaBox; servidor listo para la app (sesión, importar lo compartido, push, versión mínima) ✅
 23. Escáner de cartas en la app (OCR en el móvil, edición + número o nombre, poca luz) ✅
+
+Plan de la revisión de noviembre de 2026 (fases R1–R7, en `ROADMAP.md`): R1 (bugs) ✅.
 
 Lo siguiente se empieza solo cuando el usuario lo pida.
 

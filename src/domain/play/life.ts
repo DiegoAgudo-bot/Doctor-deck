@@ -84,8 +84,24 @@ export function changeCommander(
 }
 
 /** Marca que un jugador juega con dos comandantes (o deja de hacerlo). */
-export const setPartner = (g: LifeGame, i: number, partner: boolean) =>
-  update(g, i, (p) => ({ ...p, partner }));
+export function setPartner(g: LifeGame, i: number, partner: boolean): LifeGame {
+  const next = update(g, i, (p) => ({ ...p, partner }));
+  if (partner || next === g) return next;
+  // Sin segundo comandante, su daño deja de verse: se quita (y se devuelve la vida) para que no
+  // siga eliminando a nadie con un daño que ya no se puede corregir.
+  return {
+    ...next,
+    players: next.players.map((p) => {
+      const dealt = p.commander2?.[i] ?? 0;
+      if (dealt === 0) return p;
+      return {
+        ...p,
+        life: p.life + dealt,
+        commander2: p.commander2!.map((d, j) => (j === i ? 0 : d)),
+      };
+    }),
+  };
+}
 
 export const setConceded = (g: LifeGame, i: number, conceded: boolean) =>
   update(g, i, (p) => ({ ...p, conceded }));

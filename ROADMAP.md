@@ -339,6 +339,35 @@ un solo CTA primario en la portada, zonas táctiles y campos de 16 px, contraste
 
 ---
 
+## Plan de la revisión de noviembre de 2026 (fases R1–R7)
+
+Sale de revisar la web y la app el 10 de noviembre de 2026: bugs menores, lo que le falta a la app
+frente a la web y mejoras para la web. Como siempre, parar al terminar cada fase.
+
+| Fase | Contenido                                                                                                   | Estado |
+| ---- | ----------------------------------------------------------------------------------------------------------- | ------ |
+| R1   | Bugs: contador sin conexión en inglés, miniatura y precio que se pisan, app sin tope de tiempo ni 401…      | ✅     |
+| R2   | App, mazos: «¿Tienes el mazo en físico?», recuperar descartados y candados, «no descontar otros mazos»,     |        |
+|      | coste medio y curva por colores                                                                             |        |
+| R3   | App, resto: analizar una lista sin guardarla, recuperar la contraseña sin salir, tema claro e idioma a mano |        |
+| R4   | Web: lista de compra de todos mis mazos, mis estadísticas de partidas y primeros pasos en el Inicio vacío   |        |
+| R5   | Web: comparar versiones (o con el mazo medio), notas por carta y descripción pública del mazo               |        |
+| R6   | Web: avisos de subida de precio de lo que tengo, resumen semanal por correo y atajos de teclado             |        |
+| R7   | Estilo: tipografía, portada, textos y animaciones (que no parezca una plantilla)                            |        |
+
+Bugs de la R1:
+
+1. El contador de vidas no funcionaba sin conexión en inglés (`/en/play`): `sw.js` solo conocía `/play`.
+2. En «Tus mazos» del Inicio, si la imagen del comandante no carga, su nombre se pisaba con el del mazo.
+3. En las tarjetas de la colección, «todas en mazos» quedaba pegado a un precio largo.
+4. Las peticiones de la app no tenían tope de tiempo: con mala cobertura se quedaban cargando.
+5. Con la sesión caducada, la app no llevaba a «Entrar».
+6. Contador: el daño del segundo comandante seguía eliminando tras quitar «Juega con dos comandantes».
+7. El límite por minuto vaciaba los contadores de todos al pasar de 10 000 claves.
+8. En el Inicio del móvil, las cifras del resumen llevaban un borde izquierdo suelto.
+
+---
+
 ## Descartado o aplazado (y por qué)
 
 - **Playtester completo** (partida de prueba con zonas): Moxfield y Archidekt ya lo hacen muy bien

@@ -155,6 +155,9 @@
     font: 600 12px/1.2 var(--font-sans);
     color: var(--color-text-3);
   }
+  .home-stat + .home-stat {
+    border-left: 1px solid var(--color-line);
+  }
 
   /* ---------- Shell: barra superior + lateral + barra inferior (móvil) ---------- */
   .app {
@@ -519,6 +522,11 @@
     }
     .grid-1-sm {
       grid-template-columns: minmax(0, 1fr) !important;
+    }
+    /* Las cifras del Inicio, una debajo de otra: la raya va arriba, no a la izquierda. */
+    .home-stat + .home-stat {
+      border-left: 0 !important;
+      border-top: 1px solid var(--color-line);
     }
     /*
      * Tablas que en el móvil pasan a tarjetas (`.rtable`): primera línea copias (`rt-qty`), nombre
@@ -1093,11 +1101,26 @@
   .cardimg-missing {
     display: grid;
     place-items: center;
-    padding: 8%;
     text-align: center;
     font: 600 12px/1.25 var(--font-card);
     color: var(--color-text-2);
     border: 1px solid var(--color-line-strong);
+    /* En una fila flexible, el nombre no puede ensanchar la miniatura ni salirse de ella. */
+    container-type: inline-size;
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+  /* El margen va en el nombre y según el ancho de la carta: un `padding` en % en la propia caja
+     se calcula con el ancho de su contenedor y ensanchaba las miniaturas. */
+  .cardimg-missing > span {
+    padding: 8cqw;
+  }
+  /* En miniaturas no cabe el nombre: queda el hueco (el nombre sigue en aria-label). */
+  @container (max-width: 56px) {
+    .cardimg-missing > span {
+      display: none;
+    }
   }
 
   /* ---------- Vista "pilas" (columnas por rol, cartas solapadas) ---------- */
@@ -3307,9 +3330,10 @@
   }
   .ctile-foot {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 6px;
+    gap: 4px 8px;
     margin-top: 2px;
     padding-top: 8px;
     border-top: 1px solid var(--color-line);
@@ -3329,10 +3353,10 @@
     font: 600 13.5px/1.3 var(--font-mono);
     color: var(--color-text);
     text-decoration: none;
+    white-space: nowrap;
   }
   .ctile .ctile-price:hover {
     text-decoration: underline dotted;
-    white-space: nowrap;
   }
   @media (max-width: 760px) {
     .ctiles {

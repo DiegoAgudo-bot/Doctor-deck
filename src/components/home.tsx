@@ -147,7 +147,6 @@ export function Home() {
                 )
               : t(`${n(unique)} cartas distintas`, `${n(unique)} unique cards`)
           }
-          first
         />
         <Stat
           href="/decks"
@@ -248,13 +247,11 @@ function Stat({
   value,
   meta,
   href,
-  first = false,
 }: {
   label: string;
   value: string;
   meta: string;
   href?: string;
-  first?: boolean;
 }) {
   const body = (
     <>
@@ -270,15 +267,16 @@ function Stat({
     flexDirection: "column" as const,
     gap: 4,
     padding: "14px 16px",
-    borderLeft: first ? 0 : "1px solid var(--color-line)",
     color: "inherit",
     textDecoration: "none",
   };
   return href ? (
-    <Link href={href} style={style}>
+    <Link href={href} className="home-stat" style={style}>
       {body}
     </Link>
   ) : (
-    <div style={style}>{body}</div>
+    <div className="home-stat" style={style}>
+      {body}
+    </div>
   );
 }
