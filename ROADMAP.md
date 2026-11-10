@@ -344,16 +344,15 @@ un solo CTA primario en la portada, zonas táctiles y campos de 16 px, contraste
 Sale de revisar la web y la app el 10 de noviembre de 2026: bugs menores, lo que le falta a la app
 frente a la web y mejoras para la web. Como siempre, parar al terminar cada fase.
 
-| Fase | Contenido                                                                                                   | Estado |
-| ---- | ----------------------------------------------------------------------------------------------------------- | ------ |
-| R1   | Bugs: contador sin conexión en inglés, miniatura y precio que se pisan, app sin tope de tiempo ni 401…      | ✅     |
-| R2   | App, mazos: «¿Tienes el mazo en físico?», recuperar descartados y candados, «no descontar otros mazos»,     |        | ✅  |
-|      | coste medio y curva por colores                                                                             |        |
-| R3   | App, resto: analizar una lista sin guardarla, recuperar la contraseña sin salir, tema claro e idioma a mano | ✅     |
-| R4   | Web: lista de compra de todos mis mazos, mis estadísticas de partidas y primeros pasos en el Inicio vacío   |        |
-| R5   | Web: comparar versiones (o con el mazo medio), notas por carta y descripción pública del mazo               |        |
-| R6   | Web: avisos de subida de precio de lo que tengo, resumen semanal por correo y atajos de teclado             |        |
-| R7   | Estilo: tipografía, portada, textos y animaciones (que no parezca una plantilla)                            |        |
+| Fase | Contenido                                                                                                     | Estado |
+| ---- | ------------------------------------------------------------------------------------------------------------- | ------ |
+| R1   | Bugs: contador sin conexión en inglés, miniatura y precio que se pisan, app sin tope de tiempo ni 401…        | ✅     |
+| R2   | App, mazos: «¿Tienes el mazo en físico?», descartados y candados, «proponerlas igualmente», curva por colores | ✅     |
+| R3   | App, resto: analizar una lista sin guardarla, recuperar la contraseña sin salir, tema claro e idioma a mano   | ✅     |
+| R4   | Web: lista de compra de todos mis mazos, mis estadísticas de partidas y primeros pasos en el Inicio vacío     |        | ✅  |
+| R5   | Web: comparar versiones (o con el mazo medio), notas por carta y descripción pública del mazo                 |        |
+| R6   | Web: avisos de subida de precio de lo que tengo, resumen semanal por correo y atajos de teclado               |        |
+| R7   | Estilo: tipografía, portada, textos y animaciones (que no parezca una plantilla)                              |        |
 
 Bugs de la R1:
 

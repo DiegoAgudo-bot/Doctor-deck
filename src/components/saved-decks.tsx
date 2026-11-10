@@ -142,6 +142,11 @@ export function SavedDecks() {
           )}
         </h1>
         <div className="flex flex-wrap gap-2">
+          {decks && decks.length > 0 && (
+            <Link className="btn" href="/shopping">
+              {t("Lista de compra", "Shopping list")}
+            </Link>
+          )}
           <Link className="btn" href="/decks/new?from=list">
             {t("Importar lista", "Import list")}
           </Link>

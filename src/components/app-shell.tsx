@@ -14,6 +14,7 @@ import { authClient } from "./auth-client";
 import {
   IconActivity,
   IconBell,
+  IconCart,
   IconCrown,
   IconLoan,
   IconSettings,
@@ -395,6 +396,10 @@ function Sidebar({
               <IconSwap />
               {t("Intercambios", "Trades")}
             </Link>
+            <Link className={`nav ${pathname === "/shopping" ? "is-active" : ""}`} href="/shopping">
+              <IconCart />
+              {t("Lista de compra", "Shopping list")}
+            </Link>
             <Link className={`nav ${pathname === "/loans" ? "is-active" : ""}`} href="/loans">
               <IconLoan />
               {t("Préstamos", "Loans")}
@@ -440,6 +445,7 @@ const moreLinks = (t: T) => [
     icon: <IconCrown size={18} />,
   },
   { href: "/trades", label: t("Intercambios", "Trades"), icon: <IconSwap size={18} /> },
+  { href: "/shopping", label: t("Lista de compra", "Shopping list"), icon: <IconCart size={18} /> },
   { href: "/loans", label: t("Préstamos", "Loans"), icon: <IconLoan size={18} /> },
   { href: "/settings", label: t("Ajustes", "Settings"), icon: <IconSettings size={18} /> },
 ];

@@ -2,7 +2,7 @@ import type { DeckCommentsView } from "@/application/comments";
 import type { CardHolder, GroupDeck } from "@/application/groups";
 import type { Card } from "@/domain/cards/types";
 import type { FeedItem, FeedType } from "@/domain/feed/feed";
-import type { Standing } from "@/domain/play/stats";
+import type { PersonalStats, Standing } from "@/domain/play/stats";
 import type { Loan } from "@/domain/ports/loans";
 import type { DeckComment, ReportedComment } from "@/domain/ports/moderation";
 import type { Game, Group, GroupSummary, Member } from "@/domain/ports/play";
@@ -63,6 +63,22 @@ export interface GameStatsDTO {
   players: StandingDTO[];
   decks: StandingDTO[];
   recent: GameDTO[];
+  /** Solo en mis partidas (`GET /api/games` sin filtro): mis estadísticas. */
+  me?: PersonalStatsDTO;
+}
+
+/** Mis estadísticas de partidas: récord, mis mazos, mis rivales y la evolución por meses. */
+export interface PersonalStatsDTO {
+  record: StandingDTO | null;
+  decks: StandingDTO[];
+  rivals: {
+    name: string;
+    username: string | null;
+    games: number;
+    myWins: number;
+    theirWins: number;
+  }[];
+  months: { month: string; games: number; wins: number }[];
 }
 
 export interface GamePlayerDTO {
@@ -130,15 +146,42 @@ export function standingDTO(
 }
 
 export function gameStatsDTO(
-  stats: { games: number; players: Standing[]; decks: Standing[]; recent: Game[] },
+  stats: {
+    games: number;
+    players: Standing[];
+    decks: Standing[];
+    recent: Game[];
+    me?: PersonalStats;
+    /** Todas las partidas de las estadísticas (para dar el usuario de cada rival). */
+    all?: Game[];
+  },
   viewerId: string,
   groupOwnerId: string | null = null,
 ): GameStatsDTO {
+  const games = stats.all ?? stats.recent;
   return {
     games: stats.games,
-    players: stats.players.map((s) => standingDTO(s, "player", stats.recent)),
-    decks: stats.decks.map((s) => standingDTO(s, "deck", stats.recent)),
+    players: stats.players.map((s) => standingDTO(s, "player", games)),
+    decks: stats.decks.map((s) => standingDTO(s, "deck", games)),
     recent: stats.recent.map((g) => gameDTO(g, viewerId, groupOwnerId)),
+    ...(stats.me
+      ? {
+          me: {
+            record: stats.me.record ? standingDTO(stats.me.record, "player", games) : null,
+            decks: stats.me.decks.map((s) => standingDTO(s, "deck", games)),
+            rivals: stats.me.rivals.slice(0, 30).map((r) => ({
+              name: r.name,
+              username:
+                games.flatMap((g) => g.players).find((p) => p.userId === r.key)?.user?.username ??
+                null,
+              games: r.games,
+              myWins: r.myWins,
+              theirWins: r.theirWins,
+            })),
+            months: stats.me.months,
+          },
+        }
+      : {}),
   };
 }
 

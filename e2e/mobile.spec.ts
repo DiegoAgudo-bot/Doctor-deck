@@ -25,6 +25,7 @@ for (const path of [
   "/trades",
   "/settings",
   "/play",
+  "/shopping",
 ]) {
   test(`${path} no se sale de la pantalla`, async ({ page }) => {
     await page.goto(path);

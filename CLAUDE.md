@@ -408,6 +408,14 @@ newInvite?}`), `DELETE /api/groups/{id}/members/{username}`, `GET /api/groups/{i
     proponer intercambios (`trade_blocked`), prestar y salir en sus cruces y feed; sus comentarios
     no se ven. No se avisa al bloqueado.
   - `GET /api/me/export` incluye grupos, partidas, préstamos, comentarios y bloqueados.
+- **Revisión R4** (web): **lista de compra** de todos mis mazos (`/shopping`, `GET
+/api/me/shopping`; `shoppingList` en `domain/deck/shopping.ts`: lo que piden entre todos, y lo
+  prestado, menos lo que tengo, sin básicas; con qué mazos piden cada carta, filtro por mazo,
+  coste y lista en texto; enlace en el lateral, en «Más» y en «Mis mazos»), **mis estadísticas de
+  partidas** (`MyGameStats` en «Grupos y partidas»; `personalStats` en `domain/play/stats.ts`:
+  récord y racha, mis mazos, con quién juego y partidas por mes; van en `GET /api/games` sin
+  filtro como `me`) y **primeros pasos** en el Inicio (colección, primer mazo y grupo; se oculta
+  al completarlos o al cerrarlo, `deck-doctor:first-steps-hidden` en el navegador).
 - **Buscador de cartas y ficha** (`/cards`, `/cards/{oracleId}`; `application/card-catalog.ts`):
   `CatalogQuery` (`domain/cards/catalog-search.ts`, se lee y escribe en la URL: `q` en nombre, tipo
   o texto, `colors` + `mode` within|exact|includes o `C` incoloras, `type`, `commander=1`, `gc=1`,
@@ -953,7 +961,7 @@ Purchase price currency, Added`.
     ManaBox; servidor listo para la app (sesión, importar lo compartido, push, versión mínima) ✅
 23. Escáner de cartas en la app (OCR en el móvil, edición + número o nombre, poca luz) ✅
 
-Plan de la revisión de noviembre de 2026 (fases R1–R7, en `ROADMAP.md`): R1 (bugs) ✅, R2 (app: mazos) ✅, R3 (app: resto) ✅.
+Plan de la revisión de noviembre de 2026 (fases R1–R7, en `ROADMAP.md`): R1 (bugs) ✅, R2 (app: mazos) ✅, R3 (app: resto) ✅, R4 (web: compra, estadísticas, primeros pasos) ✅.
 
 Lo siguiente se empieza solo cuando el usuario lo pida.
 

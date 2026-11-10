@@ -6,7 +6,7 @@ import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
 import { CardImage } from "./card-image";
 import { ActivityFeed } from "./feed-page";
-import { IconPlus } from "./icons";
+import { IconCheck, IconPlus, IconX } from "./icons";
 import { Landing } from "./landing";
 import {
   LOCAL_COLLECTION_EVENT,
@@ -19,6 +19,9 @@ import { ColorPips } from "./mana";
 import { Banner, Loading, ago, fmt } from "./ui";
 import { Link, useLocale, useT } from "@/components/i18n";
 
+/** «Primeros pasos» cerrados a mano en este navegador. */
+const STEPS_HIDDEN_KEY = "deck-doctor:first-steps-hidden";
+
 export function Home() {
   const locale = useLocale();
   const t = useT();
@@ -28,6 +31,9 @@ export function Home() {
   const [decks, setDecks] = useState<SavedDeckSummaryDTO[] | null>(null);
   /** Propuestas de intercambio que me toca responder. */
   const [myTurn, setMyTurn] = useState<number | null>(null);
+  /** Para «Primeros pasos»: si estoy en algún grupo (null = aún no se sabe). */
+  const [inGroup, setInGroup] = useState<boolean | null>(null);
+  const [stepsHidden, setStepsHidden] = useState(true);
   const [local, setLocal] = useState<LocalCollection | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +55,18 @@ export function Home() {
       api<TradeProposalSummaryDTO[]>("/api/trades/proposals", undefined, { silent: true })
         .then((p) => setMyTurn(p.filter((x) => x.myTurn).length))
         .catch(() => setMyTurn(0));
+      api<unknown[]>("/api/groups", undefined, { silent: true })
+        .then((g) => setInGroup(g.length > 0))
+        .catch(() => setInGroup(null));
     }
+    let hidden = false;
+    try {
+      hidden = localStorage.getItem(STEPS_HIDDEN_KEY) === "1";
+    } catch {
+      /* sin almacenamiento: se enseñan */
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- se lee del navegador al montar
+    setStepsHidden(hidden);
     const readLocal = () => setLocal(localCollection.get());
     readLocal();
     window.addEventListener(LOCAL_COLLECTION_EVENT, readLocal);
@@ -86,6 +103,46 @@ export function Home() {
   const copies = user ? (collection?.totalCards ?? 0) : localCopies(local);
   const unique = user ? (collection?.uniqueCards ?? 0) : ownedPairs(local).length;
 
+  const steps = [
+    {
+      done: copies > 0,
+      title: t("Trae tu colección", "Bring your collection"),
+      text: t(
+        "Importa el CSV de la app donde la tengas o añade cartas a mano: así te proponemos primero las que ya tienes.",
+        "Import the CSV from the app you keep it in or add cards by hand: that way we suggest the ones you already own first.",
+      ),
+      action: t("Importar", "Import"),
+      href: "/collection",
+    },
+    {
+      done: (decks?.length ?? 0) > 0,
+      title: t("Guarda tu primer mazo", "Save your first deck"),
+      text: t(
+        "Créalo desde un comandante o pega tu lista, y verás qué cambiar y qué te falta.",
+        "Create it from a commander or paste your list, and you'll see what to change and what you're missing.",
+      ),
+      action: t("Nuevo mazo", "New deck"),
+      href: "/decks/new",
+    },
+    {
+      done: inGroup === true,
+      title: t("Junta a tu mesa", "Gather your table"),
+      text: t(
+        "Crea un grupo con tus amigos: veréis los mazos de todos, quién puede dejar cada carta y la clasificación.",
+        "Create a group with your friends: you'll see everyone's decks, who can lend each card and the standings.",
+      ),
+      action: t("Crear un grupo", "Create a group"),
+      href: "/groups",
+    },
+  ];
+  // Hasta saber cómo está todo no se enseña (no debe aparecer y desaparecer al cargar).
+  const showSteps =
+    Boolean(user) &&
+    !stepsHidden &&
+    decks !== null &&
+    inGroup !== null &&
+    steps.some((s) => !s.done);
+
   return (
     <main className="page" style={{ gap: 20 }}>
       <div className="stack-sm flex items-center justify-between gap-3">
@@ -112,7 +169,53 @@ export function Home() {
           </span>
         </Banner>
       )}
-      {copies === 0 && (
+      {showSteps && (
+        <section className="panel" aria-labelledby="first-steps">
+          <div className="panel-h">
+            <span className="h2" id="first-steps">
+              {t("Primeros pasos", "Getting started")}{" "}
+              <span className="mono subtle" style={{ fontWeight: 400 }}>
+                {steps.filter((s) => s.done).length}/{steps.length}
+              </span>
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon"
+              aria-label={t("Ocultar los primeros pasos", "Hide getting started")}
+              onClick={() => {
+                setStepsHidden(true);
+                try {
+                  localStorage.setItem(STEPS_HIDDEN_KEY, "1");
+                } catch {
+                  /* sin almacenamiento: se oculta hasta recargar */
+                }
+              }}
+            >
+              <IconX size={14} />
+            </button>
+          </div>
+          <ol className="firststeps">
+            {steps.map((s, i) => (
+              <li key={s.href} className={s.done ? "is-done" : ""}>
+                <span className="step-n" aria-hidden="true">
+                  {s.done ? <IconCheck size={13} /> : i + 1}
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <b className="step-t">{s.title}</b>
+                  {!s.done && <span className="muted text-[13px]">{s.text}</span>}
+                </span>
+                {!s.done && (
+                  <Link className="btn btn-sm" href={s.href}>
+                    {s.action}
+                  </Link>
+                )}
+                {s.done && <span className="sr-only">{t("Hecho", "Done")}</span>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      {copies === 0 && !showSteps && (
         <Banner
           tone="warn"
           action={

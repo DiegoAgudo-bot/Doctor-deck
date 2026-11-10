@@ -3043,6 +3043,99 @@
     box-shadow: inset 0 0 0 1px var(--color-line);
   }
 
+  /* ---------- Mis estadísticas de partidas ---------- */
+  .mystats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 16px 28px;
+    padding: 16px;
+  }
+  .mystats-record {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 150px;
+  }
+  .mystats-big {
+    font: 600 34px/1.1 var(--font-sans);
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .mystats-months {
+    flex: 1 1 280px;
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 96px;
+  }
+  .mystats-month {
+    flex: 1;
+    min-width: 0;
+    max-width: 48px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--color-text-3);
+  }
+  /* Barra = partidas del mes; la parte de abajo, en verde, las ganadas. */
+  .mystats-bar {
+    width: 100%;
+    max-width: 34px;
+    min-height: 2px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    border-radius: 3px 3px 0 0;
+    background: var(--color-hover);
+    overflow: hidden;
+  }
+  .mystats-bar > i {
+    display: block;
+    background: var(--color-in);
+  }
+
+  /* ---------- Primeros pasos (Inicio) ---------- */
+  .firststeps {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .firststeps > li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-top: 1px solid var(--color-line);
+  }
+  .firststeps .step-n {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--color-line-strong);
+    font: 600 12px/1 var(--font-mono);
+    color: var(--color-text-2);
+  }
+  .firststeps .is-done .step-n {
+    border-color: var(--color-in);
+    background: var(--color-in-bg);
+    color: var(--color-in);
+  }
+  .firststeps .is-done .step-t {
+    color: var(--color-text-3);
+    text-decoration: line-through;
+  }
+
   /* ---------- Préstamos ---------- */
   .loanlist {
     margin: 0;

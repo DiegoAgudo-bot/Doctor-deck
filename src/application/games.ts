@@ -1,4 +1,9 @@
-import { deckStandings, playerStandings, type GameResult } from "@/domain/play/stats";
+import {
+  deckStandings,
+  personalStats,
+  playerStandings,
+  type GameResult,
+} from "@/domain/play/stats";
 import type { DeckRepository } from "@/domain/ports/deck-repository";
 import type { Game, GameFilter, GameRepository, GroupRepository } from "@/domain/ports/play";
 import type { NotificationRepository, ProfileRepository, PublicDecks } from "@/domain/ports/social";
@@ -185,7 +190,8 @@ export function gameResults(games: readonly Game[]): GameResult[] {
 /** Las estadísticas se calculan sobre, como mucho, las últimas partidas. */
 export const STATS_GAMES = 500;
 
-export async function gameStats(filter: GameFilter, deps: Pick<GameDeps, "games">) {
+/** `me`: además, las estadísticas personales de ese usuario (mis mazos, mis rivales, por meses). */
+export async function gameStats(filter: GameFilter, deps: Pick<GameDeps, "games">, me?: string) {
   const games = await deps.games.list(filter, STATS_GAMES);
   const results = gameResults(games);
   return {
@@ -193,5 +199,6 @@ export async function gameStats(filter: GameFilter, deps: Pick<GameDeps, "games"
     players: playerStandings(results),
     decks: deckStandings(results),
     recent: games.slice(0, 20),
+    ...(me ? { me: personalStats(results, me), all: games } : {}),
   };
 }

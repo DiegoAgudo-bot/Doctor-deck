@@ -334,6 +334,23 @@ export interface TradeCardDTO {
   price: number | null;
 }
 
+/** Una carta que falta para montar todos mis mazos, con los mazos que la piden. */
+export interface ShoppingItemDTO extends TradeCardDTO {
+  decks: { id: string; name: string }[];
+}
+
+/** `GET /api/me/shopping`: lo que falta entre todos mis mazos. */
+export interface ShoppingListDTO {
+  items: ShoppingItemDTO[];
+  /** Todos mis mazos (para filtrar por uno). */
+  decks: { id: string; name: string }[];
+  copies: number;
+  /** Suma del precio de referencia de lo que tiene precio. */
+  cost: number;
+  /** Cartas sin precio conocido (no suman en `cost`). */
+  unpriced: number;
+}
+
 export interface WishlistCardDTO extends TradeCardDTO {
   /** Copias pedidas a mano y copias que faltan para los mazos marcados. */
   manual: number;

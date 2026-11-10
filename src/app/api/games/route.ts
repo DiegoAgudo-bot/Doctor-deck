@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     } else if (q.get("username")) {
       throw forbidden("Las partidas de otros se ven en su perfil y en los grupos.");
     }
-    const stats = await gameStats(filter, deps);
+    const stats = await gameStats(filter, deps, "userId" in filter ? user.id : undefined);
     // Las de grupos ajenos no se enseñan con detalle (sí cuentan en las estadísticas del mazo).
     const mine = await deps.groups.forUser(user.id);
     const myGroupIds = new Set(mine.map((g) => g.id));

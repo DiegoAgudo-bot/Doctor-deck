@@ -92,3 +92,86 @@ export const deckStandings = (games: readonly GameResult[]) =>
 export function recordOf(standings: readonly Standing[], key: string): Standing | null {
   return standings.find((s) => s.key === key) ?? null;
 }
+
+/** Mis números contra un rival: partidas juntos y quién ganó cuántas. */
+export interface RivalRecord {
+  key: string;
+  name: string;
+  games: number;
+  myWins: number;
+  theirWins: number;
+}
+
+export interface PersonalStats {
+  /** Mi resumen (null si no he jugado ninguna). */
+  record: Standing | null;
+  /** Mis mazos, del que más gana al que menos. */
+  decks: Standing[];
+  /** Con quién más juego (las partidas juntos primero). */
+  rivals: RivalRecord[];
+  /** Jugadas y ganadas por mes (`2026-11`), del más antiguo al más reciente, sin huecos. */
+  months: { month: string; games: number; wins: number }[];
+}
+
+const monthOf = (d: Date) => d.toISOString().slice(0, 7);
+
+/** Estadísticas de un jugador: su récord, sus mazos, sus rivales y su evolución por meses. */
+export function personalStats(
+  games: readonly GameResult[],
+  me: string,
+  maxMonths = 12,
+): PersonalStats {
+  const mine = games.filter((g) => g.players.some((p) => p.key === me));
+  const record = recordOf(playerStandings(mine), me);
+  const decks = standings(mine, (g) =>
+    g.players.flatMap((p) =>
+      p.key === me && p.deckKey !== null
+        ? [{ key: p.deckKey, name: p.deckName, winner: p.winner }]
+        : [],
+    ),
+  );
+  const rivals = new Map<string, RivalRecord>();
+  const byMonth = new Map<string, { games: number; wins: number }>();
+  for (const g of mine) {
+    const won = g.players.some((p) => p.key === me && p.winner);
+    const m = byMonth.get(monthOf(g.playedAt)) ?? { games: 0, wins: 0 };
+    m.games++;
+    if (won) m.wins++;
+    byMonth.set(monthOf(g.playedAt), m);
+    const seen = new Set<string>([me]);
+    for (const p of g.players) {
+      if (seen.has(p.key)) continue;
+      seen.add(p.key);
+      const r = rivals.get(p.key) ?? {
+        key: p.key,
+        name: p.name,
+        games: 0,
+        myWins: 0,
+        theirWins: 0,
+      };
+      r.games++;
+      if (won) r.myWins++;
+      if (g.players.some((x) => x.key === p.key && x.winner)) r.theirWins++;
+      rivals.set(p.key, r);
+    }
+  }
+  const months: PersonalStats["months"] = [];
+  const keys = [...byMonth.keys()].sort();
+  const last = keys[keys.length - 1];
+  if (last) {
+    const [y, mo] = last.split("-").map(Number) as [number, number];
+    for (let i = maxMonths - 1; i >= 0; i--) {
+      const month = monthOf(new Date(Date.UTC(y, mo - 1 - i, 1)));
+      if (months.length === 0 && !byMonth.has(month)) continue;
+      months.push({ month, ...(byMonth.get(month) ?? { games: 0, wins: 0 }) });
+    }
+  }
+  return {
+    record,
+    decks,
+    rivals: [...rivals.values()].sort(
+      (a, b) => b.games - a.games || b.myWins - a.myWins || a.name.localeCompare(b.name, "es"),
+    ),
+    months,
+  };
+}

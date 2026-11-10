@@ -8,7 +8,7 @@ import { localePath, LOCALE_COOKIE, splitLocale } from "@/domain/i18n/locale";
  * con `requireUser`. Analizar mazos e importar la colección (al navegador) no exige cuenta.
  */
 const PRIVATE =
-  /^\/(decks|notifications|settings|trades|groups|feed|loans)$|^\/(trades|games|admin)\/|^\/groups\/(?!join\/)[^/]+$/;
+  /^\/(decks|notifications|settings|trades|groups|feed|loans|shopping)$|^\/(trades|games|admin)\/|^\/groups\/(?!join\/)[^/]+$/;
 
 /**
  * Idioma y sesión de cada página:

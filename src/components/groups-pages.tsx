@@ -10,6 +10,7 @@ import { CardImage } from "./card-image";
 import { CardSearch } from "./card-search";
 import { DeckTile } from "./deck-tile";
 import { Avatar, GameCard, MemberLink, playedOn, Standings } from "./games-ui";
+import { MyGameStats } from "./my-game-stats";
 import { IconCopy, IconLink, IconPlus, IconTrash, IconUsers } from "./icons";
 import { LendDialog } from "./loans-page";
 import { RecordGameDialog } from "./record-game-dialog";
@@ -144,6 +145,8 @@ export function GroupsPage() {
           ))}
         </div>
       )}
+
+      <MyGameStats />
 
       <Dialog
         open={creating}
