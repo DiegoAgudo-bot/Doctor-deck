@@ -21,6 +21,7 @@ import {
   OpeningHandPanel,
 } from "~/components/deck-analysis";
 import { AddCardsSheet, CardActionsSheet, OtherDecksSheet } from "~/components/deck-editor";
+import { ChangesFooter, CurvePanel, DeckToCollectionPanel } from "~/components/deck-extras";
 import {
   DeckSettingsSheet,
   ExportSheet,
@@ -84,6 +85,8 @@ export default function DeckScreen() {
   /** En el mazo de otro, el tema se elige solo para verlo (no se guarda). */
   const [themeHere, setThemeHere] = useState<string | null | undefined>(undefined);
   const [sheet, setSheet] = useState<"settings" | "export" | null>(null);
+  /** «Proponerlas igualmente»: no descontar las copias que uso en otros mazos (no se guarda). */
+  const [useOtherDecks, setUseOtherDecks] = useState(true);
   const deck = useQuery({
     queryKey: ["deck", id],
     queryFn: () => api<DeckViewDTO>(`/api/decks/${id}`),
@@ -91,7 +94,7 @@ export default function DeckScreen() {
   const d = deck.data;
   const theme = d ? (d.isMine || themeHere === undefined ? d.theme : themeHere) : null;
   const analysis = useQuery({
-    queryKey: ["analysis", id, d?.updatedAt, chosen, theme],
+    queryKey: ["analysis", id, d?.updatedAt, chosen, theme, useOtherDecks],
     enabled: Boolean(d),
     staleTime: 5 * 60_000,
     // Al aplicar un cambio se vuelve a analizar: mientras, se sigue viendo lo de antes.
@@ -105,6 +108,7 @@ export default function DeckScreen() {
           excluded: d!.excluded,
           ...(theme ? { theme } : {}),
           ...(d!.isMine ? { deckId: d!.id } : {}),
+          ...(useOtherDecks ? {} : { useOtherDecks: false }),
           ...(d!.targetBracket ? { targetBracket: d!.targetBracket } : {}),
         },
       }),
@@ -225,6 +229,11 @@ export default function DeckScreen() {
           })
         }
         saving={manage.save.isPending}
+        useOtherDecks={useOtherDecks}
+        onUseOtherDecks={setUseOtherDecks}
+        onClearMarks={(what) =>
+          manage.save.mutate(what === "locked" ? { locked: [] } : { excluded: [] })
+        }
       />
       <ExportSheet
         name={d.name}
@@ -405,6 +414,9 @@ function DeckBody({
   onTheme,
   onToggleLock,
   saving,
+  useOtherDecks,
+  onUseOtherDecks,
+  onClearMarks,
 }: {
   deck: DeckViewDTO;
   analysis: Analysis | null;
@@ -424,6 +436,9 @@ function DeckBody({
   theme: string | null;
   onTheme: (slug: string | null) => void;
   onToggleLock: (oracleId: string) => void;
+  useOtherDecks: boolean;
+  onUseOtherDecks: (v: boolean) => void;
+  onClearMarks: (what: "excluded" | "locked") => void;
   saving: boolean;
 }) {
   const mine = deck.isMine;
@@ -812,6 +827,18 @@ function DeckBody({
               )}
             </>
           }
+          ListFooterComponent={
+            tab === "changes" && a && mine ? (
+              <ChangesFooter
+                deck={deck}
+                analysis={a}
+                useOtherDecks={useOtherDecks}
+                onUseOtherDecks={onUseOtherDecks}
+                onClear={onClearMarks}
+                busy={waiting}
+              />
+            ) : null
+          }
           renderSectionHeader={() => null}
           renderItem={({ item }) => (
             <SwapRow
@@ -843,6 +870,7 @@ function DeckBody({
         ListFooterComponent={
           tab === "missing" && a ? (
             <View style={{ gap: 12, padding: 16 }}>
+              <DeckToCollectionPanel analysis={a} />
               <AlternativesPanel alternatives={a.ownership.alternatives} />
               <BuyPanel deck={deck} analysis={a} />
             </View>
@@ -1208,29 +1236,9 @@ function SwapRow({
 }
 
 function Stats({ analysis: a, bracket }: { analysis: Analysis; bracket: Analysis["bracket"] }) {
-  const curve = Object.entries(a.curve)
-    .map(([k, v]) => [Number(k), v] as const)
-    .sort((x, y) => x[0] - y[0]);
-  const max = Math.max(1, ...curve.map(([, v]) => v));
   return (
     <View style={{ paddingHorizontal: 16, gap: 16 }}>
-      <T variant="label">{t("Curva de maná", "Mana curve")}</T>
-      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 6, height: 120 }}>
-        {curve.map(([cmc, n]) => (
-          <View key={cmc} style={{ flex: 1, alignItems: "center", gap: 4 }}>
-            <T variant="small">{n}</T>
-            <View
-              style={{
-                width: "100%",
-                height: (n / max) * 80,
-                backgroundColor: colors.accent,
-                borderRadius: 3,
-              }}
-            />
-            <T variant="small">{cmc >= 7 ? "7+" : cmc}</T>
-          </View>
-        ))}
-      </View>
+      <CurvePanel analysis={a} />
       <T variant="label">{t("Roles (mínimos recomendados)", "Roles (recommended minimums)")}</T>
       {a.roles.map((r) => {
         const ok = r.count >= r.min;

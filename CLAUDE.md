@@ -800,6 +800,12 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     aparte, `CombosPanel`; su bracket pasa a la portada y a Datos), mano inicial en Datos
     (`openingHandOdds` + «Robar 7» con mulligan) y, al final de «Falta», alternativas más baratas
     (`ownership.alternatives`) y modo compra (`BuyPanel`, `POST /api/analyze` con `buy`).
+  - Revisión R2 (app 1.11.0, `components/deck-extras.tsx`): en «Falta», «¿Tienes el mazo en
+    físico?» (`DeckToCollectionPanel`); al final de «Cambios» de un mazo mío, las recomendadas que
+    están en otros mazos con «Proponerlas igualmente» (`useOtherDecks: false`, no se guarda) y
+    deshacer descartes y candados (`ChangesFooter`); en Datos, curva apilada por color y resumen
+    con el coste medio (`CurvePanel`; `curveByColor` y `deckSummary` de
+    `domain/deck/color-curve.ts`, los mismos que usa la web).
   - Precios (fase M4, `components/price-chart.tsx`, gráfica de barras sin librerías): pantalla
     `collection-prices` (botón en la cabecera de Colección; `POST /api/collection/prices`, valor
     día a día de 30 días a un año y lo que más sube y baja), histórico de una carta y tabla de
@@ -938,7 +944,7 @@ Purchase price currency, Added`.
     ManaBox; servidor listo para la app (sesión, importar lo compartido, push, versión mínima) ✅
 23. Escáner de cartas en la app (OCR en el móvil, edición + número o nombre, poca luz) ✅
 
-Plan de la revisión de noviembre de 2026 (fases R1–R7, en `ROADMAP.md`): R1 (bugs) ✅.
+Plan de la revisión de noviembre de 2026 (fases R1–R7, en `ROADMAP.md`): R1 (bugs) ✅, R2 (app: mazos) ✅.
 
 Lo siguiente se empieza solo cuando el usuario lo pida.
 

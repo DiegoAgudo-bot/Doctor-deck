@@ -347,7 +347,7 @@ frente a la web y mejoras para la web. Como siempre, parar al terminar cada fase
 | Fase | Contenido                                                                                                   | Estado |
 | ---- | ----------------------------------------------------------------------------------------------------------- | ------ |
 | R1   | Bugs: contador sin conexión en inglés, miniatura y precio que se pisan, app sin tope de tiempo ni 401…      | ✅     |
-| R2   | App, mazos: «¿Tienes el mazo en físico?», recuperar descartados y candados, «no descontar otros mazos»,     |        |
+| R2   | App, mazos: «¿Tienes el mazo en físico?», recuperar descartados y candados, «no descontar otros mazos»,     |        | ✅  |
 |      | coste medio y curva por colores                                                                             |        |
 | R3   | App, resto: analizar una lista sin guardarla, recuperar la contraseña sin salir, tema claro e idioma a mano |        |
 | R4   | Web: lista de compra de todos mis mazos, mis estadísticas de partidas y primeros pasos en el Inicio vacío   |        |
