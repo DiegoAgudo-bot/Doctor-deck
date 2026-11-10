@@ -40,6 +40,7 @@ import {
   Segmented,
   T,
 } from "~/components/ui";
+import { DRAFT_ID, draftDeck, draftName } from "~/lib/draft-deck";
 import { fold } from "~/lib/global-search";
 import { api, artUri } from "~/lib/api";
 import { tapFeedback } from "~/lib/feedback";
@@ -89,9 +90,24 @@ export default function DeckScreen() {
   const [useOtherDecks, setUseOtherDecks] = useState(true);
   const deck = useQuery({
     queryKey: ["deck", id],
-    queryFn: () => api<DeckViewDTO>(`/api/decks/${id}`),
+    // `draft`: una lista para analizar sin guardarla (no está en el servidor ni se guarda en caché).
+    queryFn: async () => {
+      if (id !== DRAFT_ID) return api<DeckViewDTO>(`/api/decks/${id}`);
+      const draft = draftDeck();
+      if (!draft) {
+        throw new Error(
+          t(
+            "Esta lista ya no está: vuelve a pegarla en «Nuevo mazo».",
+            "This list is gone: paste it again in “New deck”.",
+          ),
+        );
+      }
+      return draft;
+    },
+    ...(id === DRAFT_ID ? { gcTime: 0, staleTime: 0, retry: false } : {}),
   });
   const d = deck.data;
+  const isDraft = id === DRAFT_ID;
   const theme = d ? (d.isMine || themeHere === undefined ? d.theme : themeHere) : null;
   const analysis = useQuery({
     queryKey: ["analysis", id, d?.updatedAt, chosen, theme, useOtherDecks],
@@ -151,7 +167,7 @@ export default function DeckScreen() {
           title: "",
           headerRight: () => (
             <View style={{ flexDirection: "row" }}>
-              {!d.isMine && (
+              {!d.isMine && !isDraft && (
                 <IconButton
                   icon={d.liked ? "heart" : "heart-outline"}
                   color={d.liked ? colors.out : colors.text}
@@ -166,17 +182,21 @@ export default function DeckScreen() {
               {!d.isMine && (
                 <IconButton
                   icon="copy-outline"
-                  label={t("Guardar una copia", "Save a copy")}
-                  onPress={() => !actions.copy.isPending && actions.copy.mutate()}
+                  label={
+                    isDraft ? t("Guardar mazo", "Save deck") : t("Guardar una copia", "Save a copy")
+                  }
+                  onPress={() => !actions.copy.isPending && actions.copy.mutate(chosen)}
                 />
               )}
-              <IconButton
-                icon="share-social-outline"
-                label={t("Compartir", "Share")}
-                onPress={() =>
-                  Share.share({ message: `${d.name} · https://doctordeck.app/decks/${d.id}` })
-                }
-              />
+              {!isDraft && (
+                <IconButton
+                  icon="share-social-outline"
+                  label={t("Compartir", "Share")}
+                  onPress={() =>
+                    Share.share({ message: `${d.name} · https://doctordeck.app/decks/${d.id}` })
+                  }
+                />
+              )}
               {d.visibility !== "private" && (
                 <IconButton
                   icon="chatbubble-outline"
@@ -341,18 +361,23 @@ function useDeckActions(d: DeckViewDTO | undefined) {
     onError: (e) => toast(e.message),
   });
   const copy = useMutation({
-    mutationFn: () =>
+    /** `commanders`: los elegidos aquí si la lista no lo decía (al analizar sin guardar). */
+    mutationFn: (commanders: string[] | null) =>
       api<{ id: string }>("/api/decks", {
         body: {
-          name: d!.name,
+          ...(d!.id !== DRAFT_ID ? { name: d!.name } : draftName() ? { name: draftName()! } : {}),
           input: d!.input,
-          commanders: d!.commanders,
+          commanders: commanders ?? d!.commanders,
           visibility: "private",
           ...(d!.theme ? { theme: d!.theme } : {}),
         },
       }),
     onSuccess: (r) => {
-      toast(t("Copia guardada en tus mazos (privada)", "Copy saved to your decks (private)"));
+      toast(
+        d!.id === DRAFT_ID
+          ? t("Guardado en tus mazos (privado)", "Saved to your decks (private)")
+          : t("Copia guardada en tus mazos (privada)", "Copy saved to your decks (private)"),
+      );
       qc.invalidateQueries({ queryKey: ["decks"] });
       router.replace(`/deck/${r.id}`);
     },

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { reloadAppAsync } from "expo";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
@@ -14,7 +15,9 @@ import { Sheet } from "~/components/sheet";
 import { Card, PersonRow, SectionTitle, SwitchRow } from "~/components/social";
 import { toast } from "~/components/toast";
 import { Banner, Button, Chip, ErrorView, Field, Loading, MenuRow, T } from "~/components/ui";
+import { alert } from "~/components/dialog";
 import { api } from "~/lib/api";
+import { langPref, saveBootPrefs, themePref, type LangPref, type ThemePref } from "~/lib/boot";
 import { authClient, useSession } from "~/lib/auth";
 import { API_URL } from "~/lib/config";
 import { downloadAndShare } from "~/lib/download";
@@ -24,6 +27,80 @@ import { colors } from "~/lib/theme";
 import { locale, t } from "~/lib/i18n";
 
 const ALERT_OPTIONS: (number | null)[] = [null, 10, 15, 25, 40];
+
+const THEMES: [ThemePref, string][] = [
+  ["dark", t("Oscuro", "Dark")],
+  ["light", t("Claro", "Light")],
+  ["system", t("El del móvil", "Phone's")],
+];
+const LANGS: [LangPref, string][] = [
+  ["auto", t("El del móvil", "Phone's")],
+  ["es", "Español"],
+  ["en", "English"],
+];
+
+/**
+ * Tema e idioma elegidos a mano. Los colores y los textos se fijan al arrancar, así que al
+ * cambiarlos la app se recarga (se avisa antes).
+ */
+function Appearance() {
+  const change = (prefs: { lang?: LangPref; theme?: ThemePref }) =>
+    alert(
+      t("La app se va a recargar", "The app will reload"),
+      t(
+        "Para aplicar el cambio hay que volver a cargar la app. Tarda un momento.",
+        "The app needs to reload to apply the change. It only takes a moment.",
+      ),
+      [
+        { text: t("Cancelar", "Cancel"), style: "cancel" },
+        {
+          text: t("Cambiar", "Change"),
+          onPress: () => {
+            saveBootPrefs(prefs);
+            reloadAppAsync().catch(() =>
+              toast(
+                t(
+                  "Cierra la app y vuelve a abrirla para ver el cambio.",
+                  "Close the app and open it again to see the change.",
+                ),
+              ),
+            );
+          },
+        },
+      ],
+    );
+  return (
+    <>
+      <SectionTitle>{t("Aspecto e idioma", "Appearance and language")}</SectionTitle>
+      <View style={{ paddingHorizontal: 16, gap: 8 }}>
+        <T variant="label">{t("Tema", "Theme")}</T>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+          {THEMES.map(([key, label]) => (
+            <Chip
+              key={key}
+              label={label}
+              active={themePref === key}
+              onPress={() => themePref !== key && change({ theme: key })}
+            />
+          ))}
+        </View>
+        <T variant="label" style={{ marginTop: 6 }}>
+          {t("Idioma", "Language")}
+        </T>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+          {LANGS.map(([key, label]) => (
+            <Chip
+              key={key}
+              label={label}
+              active={langPref === key}
+              onPress={() => langPref !== key && change({ lang: key })}
+            />
+          ))}
+        </View>
+      </View>
+    </>
+  );
+}
 
 /**
  * Ajustes: cuenta (contraseña y sesiones), perfil público, privacidad, avisos, bloqueados y mis
@@ -193,6 +270,8 @@ export default function Settings() {
           ))}
         </View>
       </View>
+
+      <Appearance />
 
       <BlockedUsers />
 

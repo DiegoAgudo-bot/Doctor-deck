@@ -806,6 +806,15 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     deshacer descartes y candados (`ChangesFooter`); en Datos, curva apilada por color y resumen
     con el coste medio (`CurvePanel`; `curveByColor` y `deckSummary` de
     `domain/deck/color-curve.ts`, los mismos que usa la web).
+  - Revisión R3 (app 1.12.0): **analizar sin guardar** («Solo analizarla, sin guardar» al pegar
+    una lista: `lib/draft-deck.ts` la deja en memoria y la pantalla del mazo la abre con el id
+    `draft` como si fuera de otro; «Guardar mazo» en la cabecera la crea de verdad), **recuperar la
+    contraseña** sin salir (`app/forgot.tsx`, `requestPasswordReset`; el enlace del correo abre la
+    web) y **tema e idioma a mano** en Ajustes («Aspecto e idioma»): `lib/boot.ts` los lee de
+    SecureStore (síncrono) antes de cargar nada (`mobile/index.js` es la entrada) y los deja en
+    `globalThis.__DD_LANG` / `__DD_THEME` para `lang.ts` y `theme.ts` (`colors` oscuro o claro,
+    `isLight`); como textos y estilos se fijan al cargar cada módulo, cambiarlos recarga la app
+    (`reloadAppAsync`). El contador de vidas y el escáner siguen siempre en oscuro.
   - Precios (fase M4, `components/price-chart.tsx`, gráfica de barras sin librerías): pantalla
     `collection-prices` (botón en la cabecera de Colección; `POST /api/collection/prices`, valor
     día a día de 30 días a un año y lo que más sube y baja), histórico de una carta y tabla de
@@ -944,7 +953,7 @@ Purchase price currency, Added`.
     ManaBox; servidor listo para la app (sesión, importar lo compartido, push, versión mínima) ✅
 23. Escáner de cartas en la app (OCR en el móvil, edición + número o nombre, poca luz) ✅
 
-Plan de la revisión de noviembre de 2026 (fases R1–R7, en `ROADMAP.md`): R1 (bugs) ✅, R2 (app: mazos) ✅.
+Plan de la revisión de noviembre de 2026 (fases R1–R7, en `ROADMAP.md`): R1 (bugs) ✅, R2 (app: mazos) ✅, R3 (app: resto) ✅.
 
 Lo siguiente se empieza solo cuando el usuario lo pida.
 

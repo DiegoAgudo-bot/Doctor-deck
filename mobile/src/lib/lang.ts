@@ -1,5 +1,6 @@
 /**
- * Idioma de la app: el del sistema (español si está en español; si no, inglés). Sin importar nada:
+ * Idioma de la app: el elegido en Ajustes o, si no, el del sistema (español si está en español; si
+ * no, inglés). Sin importar nada:
  * lo cargan tal cual los tests de node (`LANG=es_ES.UTF-8` en `npm test`).
  */
 export function deviceLocale(tag?: string): "es" | "en" {
@@ -14,7 +15,10 @@ export function deviceLocale(tag?: string): "es" | "en" {
   return /^es\b/i.test(lang) ? "es" : "en";
 }
 
-export const locale = deviceLocale();
+/** Idioma elegido a mano en Ajustes (lo deja `boot.ts` antes de cargar la app); si no, el del móvil. */
+const forced = (globalThis as { __DD_LANG?: string }).__DD_LANG;
+
+export const locale: "es" | "en" = forced === "es" || forced === "en" ? forced : deviceLocale();
 export const isEn = locale === "en";
 /** "es-ES" | "en-GB", para números y fechas. */
 export const intl = isEn ? "en-GB" : "es-ES";

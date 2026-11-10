@@ -1,7 +1,7 @@
 {
   "name": "doctor-deck-mobile",
   "version": "1.0.0",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "dependencies": {
     "@better-auth/expo": "^1.7.7",
     "@expo/vector-icons": "^15.0.2",

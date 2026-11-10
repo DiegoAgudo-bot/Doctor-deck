@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,7 +8,6 @@ import type { AppInfoDTO } from "@/server/dto";
 import { Banner, Button, Field, T } from "~/components/ui";
 import { api } from "~/lib/api";
 import { authClient } from "~/lib/auth";
-import { API_URL } from "~/lib/config";
 import { clearCache } from "~/lib/query";
 import { colors } from "~/lib/theme";
 import { t } from "~/lib/i18n";
@@ -118,12 +116,11 @@ export default function Login() {
               <T style={{ color: colors.accent }}>{t("Crear cuenta", "Create account")}</T>
             </Link>
             {info.data?.passwordReset && (
-              <T
-                style={{ color: colors.accent }}
-                onPress={() => WebBrowser.openBrowserAsync(`${API_URL}/forgot-password`)}
-              >
-                {t("He olvidado la contraseña", "I forgot my password")}
-              </T>
+              <Link href="/forgot">
+                <T style={{ color: colors.accent }}>
+                  {t("He olvidado la contraseña", "I forgot my password")}
+                </T>
+              </Link>
             )}
           </View>
         </ScrollView>

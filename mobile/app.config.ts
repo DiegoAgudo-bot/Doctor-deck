@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import type { ExpoConfig } from "expo/config";
 
 /** Versión de la app: súbela en cada publicación (el servidor puede exigir una mínima). */
-const VERSION = "1.11.0";
+const VERSION = "1.12.0";
 /** Para Google Play: entero que sube con cada build que se sube a la tienda. */
 const VERSION_CODE = Number(process.env.ANDROID_VERSION_CODE ?? 1);
 
@@ -16,7 +16,7 @@ const config: ExpoConfig = {
   scheme: "doctordeck",
   orientation: "portrait",
   icon: "./assets/icon.png",
-  userInterfaceStyle: "dark",
+  userInterfaceStyle: "automatic",
   backgroundColor: "#111214",
   android: {
     package: "app.doctordeck",
