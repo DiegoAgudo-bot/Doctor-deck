@@ -172,6 +172,7 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
     tradesPublic?: boolean;
     priceAlertPercent?: number | null;
     mutedNotifications?: NotificationGroup[];
+    weeklyDigest?: boolean;
   }) {
     setBusy(true);
     setMessage(null);
@@ -360,10 +361,7 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
           ))}
           <div className="field">
             <label className="label" htmlFor="price-alert">
-              {t(
-                "Avisarme si algo que me falta baja de precio",
-                "Notify me if something I'm missing drops in price",
-              )}
+              {t("Avisarme de los cambios de precio", "Notify me about price changes")}
             </label>
             <select
               id="price-alert"
@@ -380,17 +378,36 @@ export function SettingsPage({ google, mail }: { google: boolean; mail: boolean 
               <option value="off">{t("No avisarme", "Don't notify me")}</option>
               {[10, 15, 20, 25, 30, 40, 50].map((p) => (
                 <option key={p} value={p}>
-                  {t(`Si baja un ${p} % o más`, `If it drops ${p}% or more`)}
+                  {t(`Si cambia un ${p} % o más`, `If it changes ${p}% or more`)}
                 </option>
               ))}
             </select>
             <span className="hint">
               {t(
-                "Cada noche se miran las cartas que te faltan para tus mazos guardados y se comparan con su precio más alto de los 30 días anteriores. Como mucho, un aviso por carta a la semana.",
-                "Every night the cards you're missing for your saved decks are compared with their highest price of the previous 30 days. At most one notification per card a week.",
+                "Cada noche se mira si baja lo que te falta para tus mazos guardados (frente a su precio más alto de los 30 días anteriores) y si sube lo que tienes libre y vale 2 € o más (frente al más bajo). Como mucho, un aviso por carta a la semana.",
+                "Every night we check whether what you're missing for your saved decks drops (against its highest price of the previous 30 days) and whether what you have free and is worth €2 or more rises (against its lowest). At most one notification per card a week.",
               )}
             </span>
           </div>
+          {me.weeklyDigest !== null && (
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={me.weeklyDigest}
+                disabled={busy}
+                onChange={(e) => void save({ weeklyDigest: e.target.checked })}
+              />
+              <span>
+                {t("Resumen semanal por correo", "Weekly summary by email")}
+                <span className="hint block">
+                  {t(
+                    "Una vez a la semana, los avisos de esos días en un correo (solo si ha habido alguno y tu email está verificado).",
+                    "Once a week, that week's notifications in one email (only if there were any and your email is verified).",
+                  )}
+                </span>
+              </span>
+            </label>
+          )}
         </div>
       </section>
 

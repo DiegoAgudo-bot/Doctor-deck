@@ -7,7 +7,7 @@ import type { Db } from "@/adapters/db/prisma";
 import { PrismaSocialRepository } from "@/adapters/db/social-repository";
 import { fixtureCards, fixturePrintings } from "../../tests/helpers/scryfall-fixtures";
 import { createTestDb, createTestUser } from "../../tests/helpers/test-db";
-import { collectionPrices, notifyPriceDrops, type Holding } from "./prices";
+import { collectionPrices, notifyPriceDrops, notifyPriceRises, type Holding } from "./prices";
 
 let db: Db;
 let cleanup: () => Promise<void>;
@@ -159,5 +159,36 @@ describe("collectionPrices", () => {
       [true, 10],
       [false, 1],
     ]);
+  });
+});
+
+describe("notifyPriceRises", () => {
+  const today = new Date("2026-10-10T05:00:00Z");
+
+  it("avisa de lo que tengo libre si sube del umbral y vale la pena", async () => {
+    await db.notification.deleteMany();
+    // Beto tiene libres Dig Through Time (3 → 5 €: +66 %) y Lantern Flare (0,10 → 0,50 €: sube
+    // mucho pero no llega al mínimo). El Sol Ring de Ana está en su mazo: no es libre.
+    await new PrismaCollectionRepository(db, "beto").addCards(
+      ["Dig Through Time", "Lantern Flare"].map((name) => ({
+        oracleId: card(name).oracleId,
+        name,
+        quantity: 1,
+        foil: false,
+      })),
+    );
+    await snapshot("Dig Through Time", ["2026-09-20", 3], ["2026-10-01", 4], ["2026-10-10", 5]);
+    await snapshot("Lantern Flare", ["2026-09-20", 0.1], ["2026-10-10", 0.5]);
+    expect(await notifyPriceRises(deps(), today)).toBe(1);
+    const [n] = await social.list("beto", 5);
+    expect(n).toMatchObject({
+      type: "price_rise",
+      title: "Dig Through Time",
+      price: 5,
+      prevPrice: 3,
+    });
+    expect(await social.list("ana", 5)).toEqual([]);
+    // No se repite en la misma semana.
+    expect(await notifyPriceRises(deps(), today)).toBe(0);
   });
 });

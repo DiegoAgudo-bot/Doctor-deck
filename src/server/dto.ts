@@ -286,6 +286,8 @@ export interface MyProfileDTO extends PublicProfileDTO {
   priceAlertPercent: number | null;
   /** Grupos de avisos silenciados (`NOTIFICATION_GROUPS`). */
   mutedNotifications: NotificationGroup[];
+  /** Resumen semanal por correo; null si el servidor no manda correos. */
+  weeklyDigest: boolean | null;
 }
 
 export interface ComboCardDTO {

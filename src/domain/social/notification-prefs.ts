@@ -3,7 +3,7 @@ import type { NotificationType } from "../ports/social";
 /** Grupos de avisos que se pueden silenciar en Ajustes (lo que ve el usuario). */
 export const NOTIFICATION_GROUPS = {
   follows: ["new_deck", "big_card"],
-  prices: ["price_drop"],
+  prices: ["price_drop", "price_rise"],
   trades: ["trade_match"],
   proposals: [
     "trade_proposal",
@@ -26,7 +26,10 @@ export const NOTIFICATION_GROUP_LABELS: Record<NotificationGroup, { label: strin
       label: "Gente que sigo",
       hint: "Mazos nuevos y cartas caras que añaden a su colección.",
     },
-    prices: { label: "Bajadas de precio", hint: "De cartas que te faltan para tus mazos." },
+    prices: {
+      label: "Cambios de precio",
+      hint: "Bajadas de lo que te falta para tus mazos y subidas de lo que tienes libre.",
+    },
     trades: { label: "Cruces de intercambio", hint: "Alguien tiene algo de tu lista de deseos." },
     proposals: {
       label: "Propuestas de intercambio",
@@ -45,7 +48,10 @@ const NOTIFICATION_GROUP_LABELS_EN: Record<NotificationGroup, { label: string; h
     label: "People I follow",
     hint: "New decks and pricey cards they add to their collection.",
   },
-  prices: { label: "Price drops", hint: "Of cards you're missing for your decks." },
+  prices: {
+    label: "Price changes",
+    hint: "Drops in what you're missing for your decks and rises in what you have free.",
+  },
   trades: { label: "Trade matches", hint: "Someone has something from your wishlist." },
   proposals: { label: "Trade proposals", hint: "You get one, it's countered, accepted…" },
   groups: { label: "Groups and games", hint: "Someone joins your group or adds you to a game." },

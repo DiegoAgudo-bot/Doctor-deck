@@ -237,6 +237,9 @@ model User {
   priceAlertPercent  Int?               @default(15)
   /// Grupos de avisos que no quiere recibir (ni en la web ni push), separados por comas.
   mutedNotifications String             @default("")
+  /// Resumen semanal por correo (hay que activarlo) y cuándo se mandó el último.
+  weeklyDigest       Boolean            @default(false)
+  digestSentAt       DateTime?
   prefs              UserPref[]
   pushDevices        PushDevice[]
   sessions           Session[]

@@ -271,6 +271,19 @@ export default function Settings() {
         </View>
       </View>
 
+      {me.weeklyDigest !== null && (
+        <SwitchRow
+          label={t("Resumen semanal por correo", "Weekly summary by email")}
+          detail={t(
+            "Una vez a la semana, los avisos de esos días en un correo (solo si ha habido alguno y tu email está verificado).",
+            "Once a week, that week's notifications in one email (only if there were any and your email is verified).",
+          )}
+          value={me.weeklyDigest}
+          disabled={save.isPending}
+          onChange={(v) => save.mutate({ weeklyDigest: v })}
+        />
+      )}
+
       <Appearance />
 
       <BlockedUsers />

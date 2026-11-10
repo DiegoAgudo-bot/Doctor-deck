@@ -126,3 +126,34 @@ export function priceDrop(
   const percent = Math.round(((reference - today.eur) / reference) * 1000) / 10;
   return percent >= thresholdPercent ? { oracleId, now: today.eur, reference, percent } : null;
 }
+
+export interface PriceRise {
+  oracleId: string;
+  now: number;
+  /** Mínimo del periodo de referencia (sin contar hoy). */
+  reference: number;
+  /** % que ha subido (positivo). */
+  percent: number;
+}
+
+/** Por debajo de esto, una subida no merece aviso (0,10 € → 0,20 € es un 100 %). */
+export const PRICE_RISE_MIN_EUR = 2;
+
+/**
+ * ¿Ha subido al menos `thresholdPercent` respecto al mínimo de los días anteriores, y vale ya al
+ * menos `minEur`? El histórico es el del periodo de referencia e incluye hoy como último punto.
+ */
+export function priceRise(
+  oracleId: string,
+  history: readonly PricePoint[],
+  thresholdPercent: number,
+  minEur = PRICE_RISE_MIN_EUR,
+): PriceRise | null {
+  const today = history.at(-1);
+  const previous = history.slice(0, -1);
+  if (!today || previous.length === 0 || today.eur < minEur) return null;
+  const reference = Math.min(...previous.map((p) => p.eur));
+  if (reference <= 0) return null;
+  const percent = Math.round(((today.eur - reference) / reference) * 1000) / 10;
+  return percent >= thresholdPercent ? { oracleId, now: today.eur, reference, percent } : null;
+}

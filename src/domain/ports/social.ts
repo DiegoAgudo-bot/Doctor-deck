@@ -39,6 +39,15 @@ export interface ProfileRepository {
   setMutedNotifications(userId: string, groups: readonly NotificationGroup[]): Promise<void>;
   /** Usuarios con avisos de precio activados. */
   priceAlertUsers(): Promise<{ id: string; percent: number }[]>;
+  /** Si quiere el resumen semanal por correo. */
+  weeklyDigest(userId: string): Promise<boolean>;
+  setWeeklyDigest(userId: string, value: boolean): Promise<void>;
+  /**
+   * A quién toca mandarle el resumen: lo tiene activado, su email está verificado y el último se
+   * mandó antes de `before` (o nunca).
+   */
+  digestUsers(before: Date): Promise<{ id: string; email: string; name: string }[]>;
+  markDigestSent(userId: string, at: Date): Promise<void>;
   /** Por nombre o usuario (o, sin texto, los que más mazos públicos tienen). Solo con username. */
   search(query: string, limit: number): Promise<ProfileSummary[]>;
   /** Borra la cuenta y, en cascada, todo lo suyo (colección, mazos, avisos, propuestas…). */
@@ -59,6 +68,7 @@ export type NotificationType =
   | "new_deck"
   | "big_card"
   | "price_drop"
+  | "price_rise"
   | "trade_match"
   /** Propuestas de intercambio (fase 19): me la mandan, contrapropuesta, aceptada… */
   | "trade_proposal"
@@ -101,6 +111,8 @@ export interface Notification extends Required<NewNotification> {
 export interface NotificationRepository {
   create(items: readonly NewNotification[]): Promise<void>;
   list(userId: string, limit: number): Promise<Notification[]>;
+  /** Los avisos desde esa fecha, del más nuevo al más antiguo. */
+  listSince(userId: string, since: Date, limit: number): Promise<Notification[]>;
   unreadCount(userId: string): Promise<number>;
   markAllRead(userId: string): Promise<void>;
   /** Cartas sobre las que ya se avisó a `userId` con ese tipo desde `since`. */

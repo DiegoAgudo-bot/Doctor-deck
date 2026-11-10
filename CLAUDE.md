@@ -425,6 +425,19 @@ newInvite?}`), `DELETE /api/groups/{id}/members/{username}`, `GET /api/groups/{i
   que solo lleva el mazo medio de la comunidad (el del comandante y su tema) o una versión del
   historial, sin tierras básicas. `PATCH /api/decks/{id}` acepta `{description}` y `{cardNote:
 {oracleId, text}}` (`domain/deck/notes.ts`); van también en `GET /api/me/export`.
+- **Revisión R6**: **subidas de precio** (`notifyPriceRises`, aviso `price_rise`, grupo `prices`:
+  cartas que tengo **libres**, sin básicas, que hoy suben el % de `priceAlertPercent` respecto al
+  mínimo de los 30 días anteriores y valen ≥ 2 € —`priceRise`, `PRICE_RISE_MIN_EUR`—; una por
+  carta cada 7 días; lleva a la ficha y a «Para cambiar»), **resumen semanal por correo**
+  (`User.weeklyDigest`, desactivado por defecto, y `digestSentAt`; `sendWeeklyDigests` en
+  `application/digest.ts` tras los avisos de `scryfall:sync`, solo si hay `SMTP_URL`: los avisos
+  de los últimos 7 días a quien lo activó y tiene el email verificado, en los dos idiomas
+  —`digestEmail`, `domain/social/digest.ts`—, nunca vacío; `MyProfileDTO.weeklyDigest` es null
+  sin correo; interruptor en Ajustes de la web y la app) y **atajos de teclado** en la web
+  (`components/shortcuts.tsx`: `g` + `i`/`m`/`c`/`b`/`j`/`l` para ir a Inicio, Mis mazos,
+  Colección, Buscar cartas, Jugar y Lista de compra, `n` mazo nuevo, `?` la lista de atajos, y
+  del 1 al 6 las pestañas de un mazo; `ignoresShortcut` los apaga al escribir, con un diálogo
+  abierto o con Ctrl/Alt/Cmd).
 - **Buscador de cartas y ficha** (`/cards`, `/cards/{oracleId}`; `application/card-catalog.ts`):
   `CatalogQuery` (`domain/cards/catalog-search.ts`, se lee y escribe en la URL: `q` en nombre, tipo
   o texto, `colors` + `mode` within|exact|includes o `C` incoloras, `type`, `commander=1`, `gc=1`,
@@ -970,7 +983,7 @@ Purchase price currency, Added`.
     ManaBox; servidor listo para la app (sesión, importar lo compartido, push, versión mínima) ✅
 23. Escáner de cartas en la app (OCR en el móvil, edición + número o nombre, poca luz) ✅
 
-Plan de la revisión de noviembre de 2026 (fases R1–R7, en `ROADMAP.md`): R1 (bugs) ✅, R2 (app: mazos) ✅, R3 (app: resto) ✅, R4 (web: compra, estadísticas, primeros pasos) ✅, R5 (web: comparar, notas, descripción) ✅.
+Plan de la revisión de noviembre de 2026 (fases R1–R7, en `ROADMAP.md`): R1 (bugs) ✅, R2 (app: mazos) ✅, R3 (app: resto) ✅, R4 (web: compra, estadísticas, primeros pasos) ✅, R5 (web: comparar, notas, descripción) ✅, R6 (precios al alza, resumen semanal, atajos) ✅.
 
 Lo siguiente se empieza solo cuando el usuario lo pida.
 

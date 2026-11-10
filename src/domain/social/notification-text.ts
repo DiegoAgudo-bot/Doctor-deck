@@ -22,6 +22,7 @@ const TITLES_EN: Record<NotificationType, string> = {
   new_deck: "New deck",
   big_card: "New card in a collection",
   price_drop: "Price drop",
+  price_rise: "Price rise",
   trade_match: "Trade match",
   trade_proposal: "Trade proposal",
   trade_counter: "Counter-offer",
@@ -39,6 +40,7 @@ const TITLES: Record<NotificationType, string> = {
   new_deck: "Mazo nuevo",
   big_card: "Carta nueva en una colección",
   price_drop: "Ha bajado de precio",
+  price_rise: "Ha subido de precio",
   trade_match: "Cruce de intercambio",
   trade_proposal: "Propuesta de intercambio",
   trade_counter: "Contrapropuesta",
@@ -146,6 +148,19 @@ export function notificationMessage(
           : n.cardId
             ? `/cards/${n.cardId}`
             : "/notifications",
+      };
+    }
+    case "price_rise": {
+      const price =
+        n.price != null
+          ? ` · ${n.prevPrice != null ? `${eur(n.prevPrice)} → ` : ""}${eur(n.price)}`
+          : "";
+      return {
+        title,
+        body: en
+          ? `${n.title} went up, and you have a free copy: a good time to trade it${price}`
+          : `Ha subido ${n.title}, que tienes libre: buen momento para cambiarla${price}`,
+        path: n.cardId ? `/cards/${n.cardId}` : "/trades?tab=offered",
       };
     }
     default:

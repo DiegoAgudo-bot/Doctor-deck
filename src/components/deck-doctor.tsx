@@ -38,6 +38,7 @@ import { RoleEditDialog, type RoleEditScope } from "./role-edit-dialog";
 import { OtherDecksDialog, OwnershipPanel, collectionInput } from "./deck-ownership";
 import { DeckSettingsDialog, ExportDialog, SaveDialog } from "./deck-dialogs";
 import { CardNoteDialog, DeckCompareDialog, DeckDescription } from "./deck-notes";
+import { ignoresShortcut } from "./shortcuts";
 import { setDeckVisibility } from "./deck-visibility";
 import {
   DeckFacts,
@@ -764,6 +765,20 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     else next.add(oracleId);
     changeMarks({ locked: [...next] });
   }
+
+  // Del 1 al 6: las pestañas del mazo (fuera de campos y diálogos).
+  const hasDeck = ok !== null;
+  useEffect(() => {
+    if (!hasDeck) return;
+    const TAB_KEYS: Tab[] = ["changes", "missing", "list", "combos", "stats", "buy"];
+    const onKey = (e: KeyboardEvent) => {
+      if (ignoresShortcut(e)) return;
+      const next = TAB_KEYS[Number(e.key) - 1];
+      if (next) setTab(next);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [hasDeck]);
 
   /** Solo en un mazo mío guardado hay notas (y comparar). */
   const myNotes = extra && !owner && saved.deckId === extra.id ? extra : null;

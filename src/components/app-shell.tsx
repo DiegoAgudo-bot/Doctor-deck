@@ -1,5 +1,6 @@
 "use client";
 
+import { KeyboardShortcuts } from "./shortcuts";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import type {
   MyProfileDTO,
@@ -104,6 +105,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <WithPath>{(p) => <Sidebar user={user} pending={isPending} pathname={p} />}</WithPath>
         <div className="main">
           <LocalCollectionToAccount loggedIn={Boolean(sessionUser)} />
+          <KeyboardShortcuts loggedIn={Boolean(user)} />
           {children}
           <LegalFooter />
           <WithPath>{(p) => <BottomNav pathname={p} user={user} />}</WithPath>

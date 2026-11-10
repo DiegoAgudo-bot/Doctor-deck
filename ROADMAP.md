@@ -351,7 +351,7 @@ frente a la web y mejoras para la web. Como siempre, parar al terminar cada fase
 | R3   | App, resto: analizar una lista sin guardarla, recuperar la contraseña sin salir, tema claro e idioma a mano   | ✅     |
 | R4   | Web: lista de compra de todos mis mazos, mis estadísticas de partidas y primeros pasos en el Inicio vacío     |        | ✅  |
 | R5   | Web: comparar versiones (o con el mazo medio), notas por carta y descripción pública del mazo                 | ✅     |
-| R6   | Web: avisos de subida de precio de lo que tengo, resumen semanal por correo y atajos de teclado               |        |
+| R6   | Web: avisos de subida de precio de lo que tengo, resumen semanal por correo y atajos de teclado               | ✅     |
 | R7   | Estilo: tipografía, portada, textos y animaciones (que no parezca una plantilla)                              |        |
 
 Bugs de la R1:

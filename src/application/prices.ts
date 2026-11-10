@@ -7,6 +7,7 @@ import {
   collectionValueSeries,
   daysBefore,
   priceDrop,
+  priceRise,
   priceMovers,
   type PricePoint,
 } from "@/domain/prices/history";
@@ -157,6 +158,64 @@ export async function notifyPriceDrops(
       })),
     );
     created += drops.length;
+  }
+  return created;
+}
+
+/**
+ * Avisos de subida de precio: a cada usuario con avisos activados, de las cartas que tiene
+ * **libres** (no usadas en sus mazos ni prestadas; sin básicas) cuyo precio de hoy ha subido su %
+ * respecto al mínimo de los 30 días anteriores y vale ya al menos `PRICE_RISE_MIN_EUR`: buen
+ * momento para cambiarla o venderla. Como mucho un aviso por carta cada 7 días.
+ */
+export async function notifyPriceRises(
+  deps: Parameters<typeof notifyPriceDrops>[0],
+  now = new Date(),
+): Promise<number> {
+  const today = snapshotDate(now);
+  let created = 0;
+  for (const user of await deps.profiles.priceAlertUsers()) {
+    const [owned, usage] = await Promise.all([
+      deps.collectionFor(user.id).ownedQuantities(),
+      deps.decksFor(user.id).usage(),
+    ]);
+    const free = [...owned].filter(([id, q]) => q > (usage.get(id)?.quantity ?? 0));
+    if (free.length === 0) continue;
+    const ids = free.map(([id]) => id);
+    const [basics, histories, alerted] = await Promise.all([
+      deps.cards.findBasicLandIds(ids),
+      deps.prices.historyMany(ids, daysBefore(today, PRICE_DROP_WINDOW_DAYS)),
+      deps.notifications.recentCardIds(
+        user.id,
+        "price_rise",
+        new Date(now.getTime() - PRICE_DROP_COOLDOWN_DAYS * 86_400_000),
+      ),
+    ]);
+    const rises = ids.flatMap((id) => {
+      const history = histories.get(id) ?? [];
+      if (basics.has(id) || alerted.has(id) || history.at(-1)?.date !== today) return [];
+      const rise = priceRise(id, history, user.percent);
+      return rise ? [rise] : [];
+    });
+    if (rises.length === 0) continue;
+    const names = new Map(
+      (await deps.cards.findCardsByOracleIds(rises.map((r) => r.oracleId))).map((c) => [
+        c.oracleId,
+        c.name,
+      ]),
+    );
+    await deps.notifications.create(
+      rises.map((rise) => ({
+        userId: user.id,
+        actorId: user.id,
+        type: "price_rise" as const,
+        cardId: rise.oracleId,
+        title: names.get(rise.oracleId) ?? rise.oracleId,
+        price: rise.now,
+        prevPrice: rise.reference,
+      })),
+    );
+    created += rises.length;
   }
   return created;
 }

@@ -20,6 +20,7 @@ export async function GET(request: Request) {
       email: user.email,
       priceAlertPercent: await social.priceAlertPercent(user.id),
       mutedNotifications: await social.mutedNotifications(user.id),
+      weeklyDigest: getContainer().mailer ? await social.weeklyDigest(user.id) : null,
     };
     return Response.json(body);
   } catch (err) {
@@ -34,26 +35,29 @@ const schema = z.object({
   /** null = sin avisos de precio. */
   priceAlertPercent: z.number().int().min(5).max(90).nullable().optional(),
   mutedNotifications: z.array(z.enum(NOTIFICATION_GROUP_KEYS)).max(20).optional(),
+  /** Resumen semanal por correo. */
+  weeklyDigest: z.boolean().optional(),
 });
 
 export async function PATCH(request: Request) {
   try {
     const user = await requireUser(request);
-    const { priceAlertPercent, tradesPublic, mutedNotifications, ...changes } = schema.parse(
-      await readJson(request),
-    );
+    const { priceAlertPercent, tradesPublic, mutedNotifications, weeklyDigest, ...changes } =
+      schema.parse(await readJson(request));
     const social = getContainer().social;
     if (tradesPublic !== undefined) await social.setTradesPublic(user.id, tradesPublic);
     if (mutedNotifications !== undefined)
       await social.setMutedNotifications(user.id, mutedNotifications);
     if (priceAlertPercent !== undefined)
       await social.setPriceAlertPercent(user.id, priceAlertPercent);
+    if (weeklyDigest !== undefined) await social.setWeeklyDigest(user.id, weeklyDigest);
     const profile = await updateProfile(user.id, changes, { profiles: social });
     const body: MyProfileDTO = {
       ...publicProfileDTO(profile),
       email: user.email,
       priceAlertPercent: await social.priceAlertPercent(user.id),
       mutedNotifications: await social.mutedNotifications(user.id),
+      weeklyDigest: getContainer().mailer ? await social.weeklyDigest(user.id) : null,
     };
     return Response.json(body);
   } catch (err) {

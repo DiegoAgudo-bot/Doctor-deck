@@ -13,6 +13,7 @@ import { t } from "~/lib/i18n";
 
 const ICONS: Partial<Record<NotificationDTO["type"], keyof typeof Ionicons.glyphMap>> = {
   price_drop: "trending-down-outline",
+  price_rise: "trending-up-outline",
   new_deck: "layers-outline",
   big_card: "sparkles-outline",
   trade_match: "swap-horizontal-outline",
