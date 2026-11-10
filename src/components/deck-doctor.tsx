@@ -37,6 +37,7 @@ import { PrintingDialog } from "./printing-dialog";
 import { RoleEditDialog, type RoleEditScope } from "./role-edit-dialog";
 import { OtherDecksDialog, OwnershipPanel, collectionInput } from "./deck-ownership";
 import { DeckSettingsDialog, ExportDialog, SaveDialog } from "./deck-dialogs";
+import { CardNoteDialog, DeckCompareDialog, DeckDescription } from "./deck-notes";
 import { setDeckVisibility } from "./deck-visibility";
 import {
   DeckFacts,
@@ -151,6 +152,14 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
   const [like, setLike] = useState<{ id: string; count: number; liked: boolean } | null>(null);
   /** Si lo que falta de este mazo (guardado y mío) está en mi lista de deseos. */
   const [inWishlist, setInWishlist] = useState(false);
+  /** Del mazo guardado que se está viendo: descripción (pública) y mis notas por carta. */
+  const [extra, setExtra] = useState<{
+    id: string;
+    description: string;
+    cardNotes: Record<string, string>;
+  } | null>(null);
+  const [noteCard, setNoteCard] = useState<CardDTO | null>(null);
+  const [comparing, setComparing] = useState(false);
   // Colección en este navegador (sin cuenta). Se lee tras montar: el servidor no tiene localStorage.
   const [hasLocal, setHasLocal] = useState(false);
   useEffect(() => {
@@ -206,6 +215,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             targetBracket: d.isMine ? d.targetBracket : null,
           };
           setLike({ id: d.id, count: d.likes, liked: d.liked });
+          setExtra({ id: d.id, description: d.description, cardNotes: d.cardNotes });
           setInWishlist(d.isMine && d.inWishlist);
           if (!d.isMine) {
             setOwner(d.owner);
@@ -755,6 +765,9 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
     changeMarks({ locked: [...next] });
   }
 
+  /** Solo en un mazo mío guardado hay notas (y comparar). */
+  const myNotes = extra && !owner && saved.deckId === extra.id ? extra : null;
+
   const decide = (id: string, d: Decision | undefined) =>
     setDecisions((prev) => {
       const next = { ...prev };
@@ -852,6 +865,7 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             onShowMissing={() => setTab("missing")}
             onSave={() => setDialog("save")}
             onSettings={() => setDialog("settings")}
+            onCompare={() => setComparing(true)}
             onExport={() => setDialog("export")}
             onEdit={() => setEditing(true)}
             target={saved.targetBracket}
@@ -860,6 +874,14 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             canLike={Boolean(owner) && loggedIn}
             onLike={() => void toggleLike()}
           />
+          {extra && (owner || saved.deckId === extra.id) && (
+            <DeckDescription
+              deckId={extra.id}
+              text={extra.description}
+              editable={!owner}
+              onSaved={(description) => setExtra({ ...extra, description })}
+            />
+          )}
 
           {(themes.length > 0 || saved.theme !== "") && (
             <div className="field">
@@ -1126,6 +1148,8 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
                   onChangeQuantity={owner ? undefined : (card, delta) => void editCard(card, delta)}
                   onEditRoles={setEditingRoles}
                   onEditPrinting={owner ? undefined : setPrintingCard}
+                  notes={myNotes?.cardNotes}
+                  onEditNote={myNotes ? setNoteCard : undefined}
                   inOtherDecks={inOtherDecks}
                   busy={busy !== null}
                 />
@@ -1256,6 +1280,27 @@ export function DeckDoctor({ deckId }: { deckId?: string } = {}) {
             canScopeToDeck={loggedIn && saved.deckId !== null}
             onSave={(edit, scope) => editingRoles && void saveRoles(editingRoles, edit, scope)}
           />
+          {myNotes && (
+            <>
+              <CardNoteDialog
+                deckId={myNotes.id}
+                card={noteCard}
+                text={noteCard ? (myNotes.cardNotes[noteCard.oracleId] ?? "") : ""}
+                onClose={() => setNoteCard(null)}
+                onSaved={(oracleId, text) => {
+                  const cardNotes = { ...myNotes.cardNotes };
+                  if (text) cardNotes[oracleId] = text;
+                  else delete cardNotes[oracleId];
+                  setExtra({ ...myNotes, cardNotes });
+                }}
+              />
+              <DeckCompareDialog
+                deckId={myNotes.id}
+                open={comparing}
+                onClose={() => setComparing(false)}
+              />
+            </>
+          )}
           {saved.deckId !== null && !owner && (
             <DeckSettingsDialog
               open={dialog === "settings"}
@@ -1690,6 +1735,7 @@ function DeckHeader({
   onShowMissing,
   onSave,
   onSettings,
+  onCompare,
   onExport,
   onEdit,
   target,
@@ -1708,6 +1754,8 @@ function DeckHeader({
   onSave: () => void;
   /** Ajustes del mazo (solo en uno mío guardado). */
   onSettings: () => void;
+  /** Comparar con el mazo medio o con una versión anterior (solo en uno mío guardado). */
+  onCompare: () => void;
   onExport: () => void;
   onEdit: () => void;
   target: Bracket | null;
@@ -1791,6 +1839,9 @@ function DeckHeader({
         {isSaved && !owner ? (
           // Mío y guardado: se guarda solo; lo demás (duplicar, reemplazar, borrar…) en Ajustes.
           <>
+            <button type="button" className="btn" onClick={onCompare}>
+              {t("Comparar", "Compare")}
+            </button>
             <button type="button" className="btn" onClick={onExport}>
               {t("Exportar", "Export")}
             </button>

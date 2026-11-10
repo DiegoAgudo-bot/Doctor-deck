@@ -161,6 +161,10 @@ model Deck {
   bracket        Int?
   /// Lo que me falta para este mazo entra en mi lista de deseos.
   inWishlist     Boolean            @default(false)
+  /// Descripción pública (de qué va el mazo, cómo se juega); "" = sin descripción.
+  description    String             @default("")
+  /// Notas privadas por carta: JSON `{oracleId: texto}` (solo las ve el dueño).
+  cardNotes      String             @default("{}")
   likes          DeckLike[]
   /// Si se puede comentar (públicos y ocultos; el dueño puede cerrarlos).
   commentsOpen   Boolean            @default(true)

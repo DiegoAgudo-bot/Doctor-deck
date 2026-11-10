@@ -380,6 +380,8 @@ export function DeckList({
   onEditRoles,
   onEditPrinting,
   inOtherDecks,
+  notes,
+  onEditNote,
   busy = false,
 }: {
   view: ListView;
@@ -394,6 +396,9 @@ export function DeckList({
   onEditRoles?: ((card: DeckCardDTO) => void) | undefined;
   /** Elegir la impresión de una carta (columna "Edición"). */
   onEditPrinting?: ((card: CardDTO) => void) | undefined;
+  /** Mis notas por carta (oracleId → texto) y cómo editarlas (solo en un mazo mío guardado). */
+  notes?: Readonly<Record<string, string>> | undefined;
+  onEditNote?: ((card: CardDTO) => void) | undefined;
   /** Cartas que tengo pero están en otros mazos (o prestadas): oracleId → dónde. */
   inOtherDecks?: ReadonlyMap<string, readonly string[]> | undefined;
   busy?: boolean;
@@ -463,6 +468,29 @@ export function DeckList({
                           ))}
                         </span>
                       )}
+                      {onEditNote &&
+                        (notes?.[c.card.oracleId] ? (
+                          <button
+                            type="button"
+                            className="cardnote"
+                            title={t("Editar la nota", "Edit the note")}
+                            onClick={() => onEditNote(c.card)}
+                          >
+                            {notes[c.card.oracleId]}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="cardnote-add"
+                            aria-label={t(
+                              `Añadir una nota a ${c.card.name}`,
+                              `Add a note to ${c.card.name}`,
+                            )}
+                            onClick={() => onEditNote(c.card)}
+                          >
+                            {t("+ nota", "+ note")}
+                          </button>
+                        ))}
                     </td>
                     <td>
                       <ManaCost cost={c.card.manaCost} />

@@ -1050,6 +1050,11 @@ function Cover({
           {deck.commanderNames.join(" + ")}
           {!deck.isMine && deck.owner.username ? ` · @${deck.owner.username}` : ""}
         </T>
+        {deck.description ? (
+          <T variant="muted" style={{ lineHeight: 20 }}>
+            {deck.description}
+          </T>
+        ) : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           {a && (
             <ColorPips

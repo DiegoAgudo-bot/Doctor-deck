@@ -1,3 +1,4 @@
+import { cleanDescription, parseCardNotes, withCardNote } from "@/domain/deck/notes";
 import { toBracket, type Bracket } from "@/domain/deck/bracket";
 import { canOpenDeck, toDeckVisibility, type DeckVisibility } from "@/domain/deck/visibility";
 import type {
@@ -54,6 +55,8 @@ function savedDeckFromRow(d: DeckRow): SavedDeck {
     commanders: d.cards.filter((c) => c.isCommander).map((c) => c.oracleId),
     locked: d.cards.filter((c) => c.locked).map((c) => c.oracleId),
     excluded: parseIds(d.excluded),
+    description: d.description,
+    cardNotes: parseCardNotes(d.cardNotes),
   };
 }
 
@@ -316,6 +319,28 @@ export class PrismaDeckRepository implements DeckRepository {
     const { count } = await this.db.deck.updateMany({
       where: { publicId: id, userId: this.userId },
       data: { inWishlist },
+    });
+    return count > 0;
+  }
+
+  async setDescription(id: string, description: string): Promise<boolean> {
+    const { count } = await this.db.deck.updateMany({
+      where: { publicId: id, userId: this.userId },
+      data: { description: cleanDescription(description) },
+    });
+    return count > 0;
+  }
+
+  async setCardNote(id: string, oracleId: string, text: string): Promise<boolean> {
+    const deck = await this.db.deck.findFirst({
+      where: { publicId: id, userId: this.userId },
+      select: { cardNotes: true },
+    });
+    const notes = deck && withCardNote(parseCardNotes(deck.cardNotes), oracleId, text);
+    if (!notes) return false;
+    const { count } = await this.db.deck.updateMany({
+      where: { publicId: id, userId: this.userId },
+      data: { cardNotes: JSON.stringify(notes) },
     });
     return count > 0;
   }

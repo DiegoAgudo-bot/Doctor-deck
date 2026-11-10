@@ -27,6 +27,10 @@ export interface SavedDeck extends SavedDeckSummary {
   theme: string | null;
   locked: string[];
   excluded: string[];
+  /** Descripción pública ("" = ninguna). */
+  description: string;
+  /** Notas privadas por carta (oracleId → texto). */
+  cardNotes: Record<string, string>;
 }
 
 export interface SaveDeckData {
@@ -60,6 +64,9 @@ export interface DeckRepository {
   rename(id: string, name: string): Promise<boolean>;
   setTargetBracket(id: string, bracket: Bracket | null): Promise<boolean>;
   setInWishlist(id: string, inWishlist: boolean): Promise<boolean>;
+  setDescription(id: string, description: string): Promise<boolean>;
+  /** Pone o quita (texto vacío) la nota de una carta; false si el mazo no es mío o ya hay muchas. */
+  setCardNote(id: string, oracleId: string, text: string): Promise<boolean>;
   /** Copias que piden (comandantes incluidos) los mazos que están en la lista de deseos. */
   wishlistDeckCards(): Promise<Map<string, number>>;
   /** Copias de cada carta usadas en los mazos guardados, salvo `excludeDeckId`. */

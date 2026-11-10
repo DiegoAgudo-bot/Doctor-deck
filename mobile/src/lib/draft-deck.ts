@@ -35,6 +35,8 @@ export function draftDeck(): DeckViewDTO | null {
     theme: null,
     locked: [],
     excluded: [],
+    description: "",
+    cardNotes: {},
     isMine: false,
     owner: { username: null, name: "" },
     likes: 0,

@@ -416,6 +416,15 @@ newInvite?}`), `DELETE /api/groups/{id}/members/{username}`, `GET /api/groups/{i
   récord y racha, mis mazos, con quién juego y partidas por mes; van en `GET /api/games` sin
   filtro como `me`) y **primeros pasos** en el Inicio (colección, primer mazo y grupo; se oculta
   al completarlos o al cerrarlo, `deck-doctor:first-steps-hidden` en el navegador).
+- **Revisión R5** (web, mazos míos guardados): **descripción pública** (`Deck.description`, ≤ 2000;
+  `DeckDescription` bajo la cabecera, la lee cualquiera que abra el mazo; la app la enseña en la
+  portada), **notas privadas por carta** (`Deck.cardNotes`, JSON `{oracleId: texto}`, ≤ 300 cada
+  una y 150 por mazo; «+ nota» en la tabla de la Lista, `CardNoteDialog`; a otros llega `{}`) y
+  **«Comparar»** en la cabecera (`DeckCompareDialog`, `GET /api/decks/{id}/compare?with=average|
+<versionId>`, `compareDeck` en `application/deck-compare.ts`): lo que solo lleva mi mazo y lo
+  que solo lleva el mazo medio de la comunidad (el del comandante y su tema) o una versión del
+  historial, sin tierras básicas. `PATCH /api/decks/{id}` acepta `{description}` y `{cardNote:
+{oracleId, text}}` (`domain/deck/notes.ts`); van también en `GET /api/me/export`.
 - **Buscador de cartas y ficha** (`/cards`, `/cards/{oracleId}`; `application/card-catalog.ts`):
   `CatalogQuery` (`domain/cards/catalog-search.ts`, se lee y escribe en la URL: `q` en nombre, tipo
   o texto, `colors` + `mode` within|exact|includes o `C` incoloras, `type`, `commander=1`, `gc=1`,
@@ -961,7 +970,7 @@ Purchase price currency, Added`.
     ManaBox; servidor listo para la app (sesión, importar lo compartido, push, versión mínima) ✅
 23. Escáner de cartas en la app (OCR en el móvil, edición + número o nombre, poca luz) ✅
 
-Plan de la revisión de noviembre de 2026 (fases R1–R7, en `ROADMAP.md`): R1 (bugs) ✅, R2 (app: mazos) ✅, R3 (app: resto) ✅, R4 (web: compra, estadísticas, primeros pasos) ✅.
+Plan de la revisión de noviembre de 2026 (fases R1–R7, en `ROADMAP.md`): R1 (bugs) ✅, R2 (app: mazos) ✅, R3 (app: resto) ✅, R4 (web: compra, estadísticas, primeros pasos) ✅, R5 (web: comparar, notas, descripción) ✅.
 
 Lo siguiente se empieza solo cuando el usuario lo pida.
 

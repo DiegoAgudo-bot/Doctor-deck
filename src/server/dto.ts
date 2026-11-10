@@ -983,6 +983,16 @@ export interface ErrorLogEntryDTO {
 }
 
 /** `GET /api/decks/{id}/versions`: una versión anterior y lo que cambió después de ella. */
+/** `GET /api/decks/{id}/compare`: mi mazo frente al mazo medio o a una versión anterior. */
+export interface DeckComparisonDTO {
+  onlyMine: { card: CardDTO; copies: number }[];
+  onlyOther: { card: CardDTO; copies: number }[];
+  /** Copias que coinciden (sin tierras básicas). */
+  shared: number;
+  versionAt: string | null;
+  warning: string | null;
+}
+
 export interface DeckVersionDTO {
   id: string;
   createdAt: string;
