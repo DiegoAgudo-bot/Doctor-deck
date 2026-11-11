@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deckStandings, playerStandings, recordOf, type GameResult } from "./stats";
+import { deckStandings, personalStats, playerStandings, recordOf, type GameResult } from "./stats";
 
 const game = (day: number, winner: string, players: [string, string | null][]): GameResult => ({
   playedAt: new Date(Date.UTC(2026, 0, day)),
@@ -56,5 +56,42 @@ describe("deckStandings", () => {
       ["atraxa", 1, 2],
       ["edgar", 0, 1],
     ]);
+  });
+});
+
+describe("personalStats", () => {
+  it("mi récord, mis mazos, mis rivales y los meses", () => {
+    const march = {
+      ...game(1, "ana", [
+        ["ana", "atraxa"],
+        ["dani", null],
+      ]),
+    };
+    march.playedAt = new Date(Date.UTC(2026, 2, 5));
+    const s = personalStats([...games, march], "ana");
+    expect(s.record).toMatchObject({ games: 4, wins: 2, streak: 1 });
+    expect(s.decks.map((d) => [d.key, d.wins, d.games])).toEqual([
+      ["atraxa", 2, 3],
+      ["edgar", 0, 1],
+    ]);
+    expect(s.rivals).toEqual([
+      { key: "beto", name: "BETO", games: 3, myWins: 1, theirWins: 2 },
+      { key: "carla", name: "CARLA", games: 2, myWins: 1, theirWins: 0 },
+      { key: "dani", name: "DANI", games: 1, myWins: 1, theirWins: 0 },
+    ]);
+    expect(s.months).toEqual([
+      { month: "2026-01", games: 3, wins: 1 },
+      { month: "2026-02", games: 0, wins: 0 },
+      { month: "2026-03", games: 1, wins: 1 },
+    ]);
+  });
+
+  it("sin partidas mías, vacío", () => {
+    expect(personalStats(games, "nadie")).toEqual({
+      record: null,
+      decks: [],
+      rivals: [],
+      months: [],
+    });
   });
 });

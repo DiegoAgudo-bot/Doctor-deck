@@ -4,6 +4,7 @@ import {
   Stack,
   ThemeProvider,
   DarkTheme,
+  DefaultTheme,
   router,
   usePathname,
   type ErrorBoundaryProps,
@@ -22,13 +23,14 @@ import { isOlder } from "~/lib/format";
 import { openWebPath, registerForPush, useNotificationTaps } from "~/lib/push";
 import { persister, queryClient } from "~/lib/query";
 import { pollNativeShare, useShareInbox } from "~/lib/share-intake";
-import { colors } from "~/lib/theme";
+import { colors, isLight } from "~/lib/theme";
 import { t } from "~/lib/i18n";
 
+const baseTheme = isLight ? DefaultTheme : DarkTheme;
 const navTheme = {
-  ...DarkTheme,
+  ...baseTheme,
   colors: {
-    ...DarkTheme.colors,
+    ...baseTheme.colors,
     background: colors.bg,
     card: colors.panel,
     border: colors.line,
@@ -44,7 +46,7 @@ export default function RootLayout() {
       persistOptions={{ persister, maxAge: 24 * 60 * 60_000, buster: APP_VERSION }}
     >
       <ThemeProvider value={navTheme}>
-        <StatusBar style="light" />
+        <StatusBar style={isLight ? "dark" : "light"} />
         <Root />
         <ToastHost />
         <DialogHost />
@@ -178,7 +180,11 @@ function Root() {
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="signup" options={{ title: "Crear cuenta" }} />
+        <Stack.Screen name="signup" options={{ title: t("Crear cuenta", "Create account") }} />
+        <Stack.Screen
+          name="forgot"
+          options={{ title: t("Recuperar la contraseña", "Reset your password") }}
+        />
       </Stack.Protected>
     </Stack>
   );

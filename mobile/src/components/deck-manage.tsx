@@ -66,7 +66,9 @@ export function useDeckManage(deck: DeckViewDTO | undefined) {
   });
   /** Guarda el mazo con estos cambios (tema, candados, lista, comandantes). */
   const save = useMutation({
-    mutationFn: (over: Partial<Pick<DeckViewDTO, "input" | "theme" | "locked" | "commanders">>) => {
+    mutationFn: (
+      over: Partial<Pick<DeckViewDTO, "input" | "theme" | "locked" | "excluded" | "commanders">>,
+    ) => {
       const d = { ...deck!, ...over };
       return api("/api/decks", {
         body: {

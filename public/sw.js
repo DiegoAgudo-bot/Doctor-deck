@@ -1,12 +1,17 @@
 // Service worker de Doctor Deck: solo hace que el contador de vidas (/play) funcione sin
 // conexión. No toca nada más: el resto de páginas y la API van siempre a la red.
 const CACHE = "dd-play-v1";
-const PLAY = "/play";
+// Una copia por idioma: español en /play e inglés en /en/play.
+const PLAYS = ["/play", "/en/play"];
 
-/** Guarda /play y los archivos de /_next/static que usa; borra los que ya no usa. */
-async function savePlay(response) {
-  const html = await response.clone().text();
-  const assets = [...new Set(html.match(/\/_next\/static\/[^"'\s\\)]+/g) ?? [])];
+const assetsOf = (html) => [...new Set(html.match(/\/_next\/static\/[^"'\s\\)]+/g) ?? [])];
+
+/**
+ * Guarda esa página del contador y los archivos de /_next/static que usa; borra los que ya no usa
+ * ninguna de las dos.
+ */
+async function savePlay(path, response) {
+  const assets = assetsOf(await response.clone().text());
   const cache = await caches.open(CACHE);
   await Promise.all(
     assets.map(async (url) => {
@@ -19,8 +24,13 @@ async function savePlay(response) {
       }
     }),
   );
-  await cache.put(PLAY, response);
-  const keep = new Set([PLAY, ...assets].map((u) => new URL(u, self.location.origin).href));
+  await cache.put(path, response);
+  const used = [...PLAYS, ...assets];
+  for (const other of PLAYS) {
+    const saved = other === path ? null : await cache.match(other);
+    if (saved) used.push(...assetsOf(await saved.text()));
+  }
+  const keep = new Set(used.map((u) => new URL(u, self.location.origin).href));
   for (const req of await cache.keys()) {
     if (!keep.has(req.url) && !new URL(req.url).pathname.startsWith("/symbols/")) {
       await cache.delete(req);
@@ -29,12 +39,19 @@ async function savePlay(response) {
 }
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    fetch(PLAY)
-      .then((r) => (r.ok ? savePlay(r) : undefined))
-      .catch(() => undefined)
-      .then(() => self.skipWaiting()),
-  );
+  // Con el inglés elegido, /play redirige a /en/play: esa respuesta no vale como copia de /play.
+  // De una en una: cada guardado borra lo que no usa ninguna copia, y a la vez se pisarían.
+  const saveAll = async () => {
+    for (const path of PLAYS) {
+      try {
+        const r = await fetch(path);
+        if (r.ok && !r.redirected) await savePlay(path, r);
+      } catch {
+        // Sin red: se guardará al visitarla.
+      }
+    }
+  };
+  event.waitUntil(saveAll().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {
@@ -53,14 +70,23 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   // /play: primero la red (y se guarda); sin red, la copia guardada.
-  if (req.mode === "navigate" && url.pathname === PLAY) {
+  if (req.mode === "navigate" && PLAYS.includes(url.pathname)) {
+    const path = url.pathname;
+    // Sin red: la copia de ese idioma y, si aún no la hay, la del otro (mejor que nada).
+    const offline = async () => {
+      for (const p of [path, ...PLAYS]) {
+        const hit = await caches.match(p);
+        if (hit) return hit;
+      }
+      return Response.error();
+    };
     event.respondWith(
       fetch(req)
         .then((r) => {
-          if (r.ok && !r.redirected) event.waitUntil(savePlay(r.clone()));
+          if (r.ok && !r.redirected) event.waitUntil(savePlay(path, r.clone()));
           return r;
         })
-        .catch(async () => (await caches.match(PLAY)) ?? Response.error()),
+        .catch(offline),
     );
     return;
   }

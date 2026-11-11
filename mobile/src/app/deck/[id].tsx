@@ -21,6 +21,7 @@ import {
   OpeningHandPanel,
 } from "~/components/deck-analysis";
 import { AddCardsSheet, CardActionsSheet, OtherDecksSheet } from "~/components/deck-editor";
+import { ChangesFooter, CurvePanel, DeckToCollectionPanel } from "~/components/deck-extras";
 import {
   DeckSettingsSheet,
   ExportSheet,
@@ -39,6 +40,7 @@ import {
   Segmented,
   T,
 } from "~/components/ui";
+import { DRAFT_ID, draftDeck, draftName } from "~/lib/draft-deck";
 import { fold } from "~/lib/global-search";
 import { api, artUri } from "~/lib/api";
 import { tapFeedback } from "~/lib/feedback";
@@ -84,14 +86,31 @@ export default function DeckScreen() {
   /** En el mazo de otro, el tema se elige solo para verlo (no se guarda). */
   const [themeHere, setThemeHere] = useState<string | null | undefined>(undefined);
   const [sheet, setSheet] = useState<"settings" | "export" | null>(null);
+  /** «Proponerlas igualmente»: no descontar las copias que uso en otros mazos (no se guarda). */
+  const [useOtherDecks, setUseOtherDecks] = useState(true);
   const deck = useQuery({
     queryKey: ["deck", id],
-    queryFn: () => api<DeckViewDTO>(`/api/decks/${id}`),
+    // `draft`: una lista para analizar sin guardarla (no está en el servidor ni se guarda en caché).
+    queryFn: async () => {
+      if (id !== DRAFT_ID) return api<DeckViewDTO>(`/api/decks/${id}`);
+      const draft = draftDeck();
+      if (!draft) {
+        throw new Error(
+          t(
+            "Esta lista ya no está: vuelve a pegarla en «Nuevo mazo».",
+            "This list is gone: paste it again in “New deck”.",
+          ),
+        );
+      }
+      return draft;
+    },
+    ...(id === DRAFT_ID ? { gcTime: 0, staleTime: 0, retry: false } : {}),
   });
   const d = deck.data;
+  const isDraft = id === DRAFT_ID;
   const theme = d ? (d.isMine || themeHere === undefined ? d.theme : themeHere) : null;
   const analysis = useQuery({
-    queryKey: ["analysis", id, d?.updatedAt, chosen, theme],
+    queryKey: ["analysis", id, d?.updatedAt, chosen, theme, useOtherDecks],
     enabled: Boolean(d),
     staleTime: 5 * 60_000,
     // Al aplicar un cambio se vuelve a analizar: mientras, se sigue viendo lo de antes.
@@ -105,6 +124,7 @@ export default function DeckScreen() {
           excluded: d!.excluded,
           ...(theme ? { theme } : {}),
           ...(d!.isMine ? { deckId: d!.id } : {}),
+          ...(useOtherDecks ? {} : { useOtherDecks: false }),
           ...(d!.targetBracket ? { targetBracket: d!.targetBracket } : {}),
         },
       }),
@@ -147,7 +167,7 @@ export default function DeckScreen() {
           title: "",
           headerRight: () => (
             <View style={{ flexDirection: "row" }}>
-              {!d.isMine && (
+              {!d.isMine && !isDraft && (
                 <IconButton
                   icon={d.liked ? "heart" : "heart-outline"}
                   color={d.liked ? colors.out : colors.text}
@@ -162,17 +182,21 @@ export default function DeckScreen() {
               {!d.isMine && (
                 <IconButton
                   icon="copy-outline"
-                  label={t("Guardar una copia", "Save a copy")}
-                  onPress={() => !actions.copy.isPending && actions.copy.mutate()}
+                  label={
+                    isDraft ? t("Guardar mazo", "Save deck") : t("Guardar una copia", "Save a copy")
+                  }
+                  onPress={() => !actions.copy.isPending && actions.copy.mutate(chosen)}
                 />
               )}
-              <IconButton
-                icon="share-social-outline"
-                label={t("Compartir", "Share")}
-                onPress={() =>
-                  Share.share({ message: `${d.name} · https://doctordeck.app/decks/${d.id}` })
-                }
-              />
+              {!isDraft && (
+                <IconButton
+                  icon="share-social-outline"
+                  label={t("Compartir", "Share")}
+                  onPress={() =>
+                    Share.share({ message: `${d.name} · https://doctordeck.app/decks/${d.id}` })
+                  }
+                />
+              )}
               {d.visibility !== "private" && (
                 <IconButton
                   icon="chatbubble-outline"
@@ -225,6 +249,11 @@ export default function DeckScreen() {
           })
         }
         saving={manage.save.isPending}
+        useOtherDecks={useOtherDecks}
+        onUseOtherDecks={setUseOtherDecks}
+        onClearMarks={(what) =>
+          manage.save.mutate(what === "locked" ? { locked: [] } : { excluded: [] })
+        }
       />
       <ExportSheet
         name={d.name}
@@ -332,18 +361,23 @@ function useDeckActions(d: DeckViewDTO | undefined) {
     onError: (e) => toast(e.message),
   });
   const copy = useMutation({
-    mutationFn: () =>
+    /** `commanders`: los elegidos aquí si la lista no lo decía (al analizar sin guardar). */
+    mutationFn: (commanders: string[] | null) =>
       api<{ id: string }>("/api/decks", {
         body: {
-          name: d!.name,
+          ...(d!.id !== DRAFT_ID ? { name: d!.name } : draftName() ? { name: draftName()! } : {}),
           input: d!.input,
-          commanders: d!.commanders,
+          commanders: commanders ?? d!.commanders,
           visibility: "private",
           ...(d!.theme ? { theme: d!.theme } : {}),
         },
       }),
     onSuccess: (r) => {
-      toast(t("Copia guardada en tus mazos (privada)", "Copy saved to your decks (private)"));
+      toast(
+        d!.id === DRAFT_ID
+          ? t("Guardado en tus mazos (privado)", "Saved to your decks (private)")
+          : t("Copia guardada en tus mazos (privada)", "Copy saved to your decks (private)"),
+      );
       qc.invalidateQueries({ queryKey: ["decks"] });
       router.replace(`/deck/${r.id}`);
     },
@@ -405,6 +439,9 @@ function DeckBody({
   onTheme,
   onToggleLock,
   saving,
+  useOtherDecks,
+  onUseOtherDecks,
+  onClearMarks,
 }: {
   deck: DeckViewDTO;
   analysis: Analysis | null;
@@ -424,6 +461,9 @@ function DeckBody({
   theme: string | null;
   onTheme: (slug: string | null) => void;
   onToggleLock: (oracleId: string) => void;
+  useOtherDecks: boolean;
+  onUseOtherDecks: (v: boolean) => void;
+  onClearMarks: (what: "excluded" | "locked") => void;
   saving: boolean;
 }) {
   const mine = deck.isMine;
@@ -812,6 +852,18 @@ function DeckBody({
               )}
             </>
           }
+          ListFooterComponent={
+            tab === "changes" && a && mine ? (
+              <ChangesFooter
+                deck={deck}
+                analysis={a}
+                useOtherDecks={useOtherDecks}
+                onUseOtherDecks={onUseOtherDecks}
+                onClear={onClearMarks}
+                busy={waiting}
+              />
+            ) : null
+          }
           renderSectionHeader={() => null}
           renderItem={({ item }) => (
             <SwapRow
@@ -843,6 +895,7 @@ function DeckBody({
         ListFooterComponent={
           tab === "missing" && a ? (
             <View style={{ gap: 12, padding: 16 }}>
+              <DeckToCollectionPanel analysis={a} />
               <AlternativesPanel alternatives={a.ownership.alternatives} />
               <BuyPanel deck={deck} analysis={a} />
             </View>
@@ -997,6 +1050,11 @@ function Cover({
           {deck.commanderNames.join(" + ")}
           {!deck.isMine && deck.owner.username ? ` · @${deck.owner.username}` : ""}
         </T>
+        {deck.description ? (
+          <T variant="muted" style={{ lineHeight: 20 }}>
+            {deck.description}
+          </T>
+        ) : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           {a && (
             <ColorPips
@@ -1208,29 +1266,9 @@ function SwapRow({
 }
 
 function Stats({ analysis: a, bracket }: { analysis: Analysis; bracket: Analysis["bracket"] }) {
-  const curve = Object.entries(a.curve)
-    .map(([k, v]) => [Number(k), v] as const)
-    .sort((x, y) => x[0] - y[0]);
-  const max = Math.max(1, ...curve.map(([, v]) => v));
   return (
     <View style={{ paddingHorizontal: 16, gap: 16 }}>
-      <T variant="label">{t("Curva de maná", "Mana curve")}</T>
-      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 6, height: 120 }}>
-        {curve.map(([cmc, n]) => (
-          <View key={cmc} style={{ flex: 1, alignItems: "center", gap: 4 }}>
-            <T variant="small">{n}</T>
-            <View
-              style={{
-                width: "100%",
-                height: (n / max) * 80,
-                backgroundColor: colors.accent,
-                borderRadius: 3,
-              }}
-            />
-            <T variant="small">{cmc >= 7 ? "7+" : cmc}</T>
-          </View>
-        ))}
-      </View>
+      <CurvePanel analysis={a} />
       <T variant="label">{t("Roles (mínimos recomendados)", "Roles (recommended minimums)")}</T>
       {a.roles.map((r) => {
         const ok = r.count >= r.min;

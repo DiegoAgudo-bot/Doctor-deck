@@ -16,7 +16,8 @@ import { safeMappers, toLocalizedRecord } from "@/adapters/scryfall/mapping";
 import { syncLocalizations } from "@/application/sync-localizations";
 import { HttpClient } from "@/adapters/http/http-client";
 import { refreshDeckFacts } from "@/application/community";
-import { notifyPriceDrops, recordPriceSnapshot } from "@/application/prices";
+import { notifyPriceDrops, notifyPriceRises, recordPriceSnapshot } from "@/application/prices";
+import { sendWeeklyDigests } from "@/application/digest";
 import { notifyTradeMatches } from "@/application/trades";
 import { syncScryfallCatalog } from "@/application/sync-scryfall";
 import { syncOracleTags } from "@/application/sync-otags";
@@ -114,15 +115,17 @@ async function main() {
   console.log(
     `Precios del ${snapshot.date}: ${snapshot.cards} cartas de colecciones y mazos, ${snapshot.printings} impresiones de colecciones.`,
   );
-  const alerts = await notifyPriceDrops({
+  const priceDeps = {
     prices: c.prices,
     profiles: c.social,
     notifications: c.social,
     cards: c.cards,
-    collectionFor: (id) => c.collectionFor(id),
-    decksFor: (id) => c.decksFor(id),
-  });
-  console.log(`Avisos de bajada de precio: ${alerts}.`);
+    collectionFor: (id: string) => c.collectionFor(id),
+    decksFor: (id: string) => c.decksFor(id),
+  };
+  const alerts = await notifyPriceDrops(priceDeps);
+  const rises = await notifyPriceRises(priceDeps);
+  console.log(`Avisos de precio: ${alerts} bajadas y ${rises} subidas.`);
   const trades = await notifyTradeMatches({
     cards: c.cards,
     collectionFor: (id) => c.collectionFor(id),
@@ -133,6 +136,16 @@ async function main() {
     notifications: c.social,
   });
   console.log(`Avisos de cruces de intercambio: ${trades}.`);
+  if (c.mailer) {
+    // Después de los avisos de hoy, para que entren en el resumen.
+    const digests = await sendWeeklyDigests({
+      profiles: c.social,
+      notifications: c.social,
+      mailer: c.mailer,
+      siteUrl: c.env.BETTER_AUTH_URL.replace(/\/$/, ""),
+    });
+    console.log(`Resúmenes semanales enviados: ${digests}.`);
+  }
   // La lista de game changers puede cambiar: se recalcula el bracket de todos los mazos.
   const facts = await refreshDeckFacts(
     { publicDecks: c.publicDecks, cards: c.cards },

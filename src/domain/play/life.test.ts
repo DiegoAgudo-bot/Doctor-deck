@@ -48,6 +48,10 @@ describe("contador de vidas", () => {
     g = changeCommander(g, 1, 0, 6, 1);
     expect(isOut(g.players[1]!)).toBe(true);
     expect(rematch(g).players[0]!.partner).toBe(true);
+    // Al dejar de jugar con dos comandantes, el daño del segundo se quita y la vida vuelve.
+    g = setPartner(g, 0, false);
+    expect(g.players[1]).toMatchObject({ life: 25, commander: [15, 0], commander2: [0, 0] });
+    expect(isOut(g.players[1]!)).toBe(false);
   });
 
   it("veneno, vida a 0 y concesión eliminan; queda el último en pie", () => {

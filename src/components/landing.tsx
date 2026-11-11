@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- símbolos de maná e imágenes servidos desde nuestro servidor */
 
 import type { ReactNode } from "react";
-import { IconArrowRight, IconCollection, IconDecks, IconSwap, IconUsers } from "./icons";
+import { IconArrowRight } from "./icons";
 import { SITE_NAME } from "@/config/site";
 import { localePath, pick, type Locale } from "@/domain/i18n/locale";
 import type { LandingDeck } from "@/server/landing";
@@ -47,26 +47,6 @@ function MockCard({
         <i style={{ width: "85%" }} />
       </div>
     </div>
-  );
-}
-
-function Feature({
-  icon,
-  title,
-  accent,
-  children,
-}: {
-  icon: ReactNode;
-  title: string;
-  accent: string;
-  children: ReactNode;
-}) {
-  return (
-    <article className="feature" style={{ ["--accent" as string]: accent }}>
-      <span className="feature-icon">{icon}</span>
-      <h3>{title}</h3>
-      <p>{children}</p>
-    </article>
   );
 }
 
@@ -184,15 +164,11 @@ export function Landing({
       {siteUrl && <JsonLd data={landingJsonLd(siteUrl, locale, t)} />}
       <section className="hero">
         <div className="hero-copy">
-          <span className="eyebrow">
-            {t("Para jugadores de Magic: The Gathering", "For Magic: The Gathering players")}
-          </span>
           <h1>
             {t(
-              "Mejora tus mazos de Commander con las cartas ",
-              "Upgrade your Commander decks with the cards ",
+              "Mejora tus mazos de Commander con las cartas que ya tienes",
+              "Upgrade your Commander decks with the cards you already own",
             )}
-            <em>{t("que ya tienes", "you already own")}</em>
           </h1>
           <p>
             {t(
@@ -203,19 +179,16 @@ export function Landing({
           <div className="hero-cta">
             <Link className="btn btn-primary btn-lg" href="/analyze">
               {t("Analizar un mazo", "Analyze a deck")}
-              <IconArrowRight size={15} />
             </Link>
             <Link className="btn btn-lg" href="/analyze?sample=1">
               {t("Ver un ejemplo", "See an example")}
             </Link>
           </div>
           <span className="hero-trust">
-            <b>
-              {t(
-                "Gratis, sin anuncios y sin cuenta para probar.",
-                "Free, no ads, and no account needed to try it.",
-              )}
-            </b>
+            {t(
+              "Gratis y sin anuncios. Para probarlo no hace falta cuenta.",
+              "Free and ad-free. You don't need an account to try it.",
+            )}
           </span>
         </div>
 
@@ -235,8 +208,8 @@ export function Landing({
                 className="tilt-left"
               />
             </div>
-            <span className="swap-arrow">
-              <IconSwap size={22} />
+            <span className="swap-arrow" aria-hidden>
+              <IconArrowRight size={20} />
             </span>
             <div className="swap-side">
               <span className="swap-label swap-in">{t("Entra", "In")}</span>
@@ -254,8 +227,8 @@ export function Landing({
             <span className="pill pill-in">{t("La tienes libre", "You own a spare copy")}</span>
             <span>
               {t(
-                "Mismo rol (ramp) · en el 89 % de los mazos de tu comandante",
-                "Same role (ramp) · in 89% of decks with your commander",
+                "Hace lo mismo (ramp) y la juega el 89 % de los mazos de tu comandante.",
+                "Does the same job (ramp), and 89% of decks with your commander play it.",
               )}
             </span>
             <b className="mono">{t("+4,2", "+4.2")}</b>
@@ -263,43 +236,46 @@ export function Landing({
         </div>
       </section>
 
-      <section className="features">
-        <Feature
-          icon={<IconDecks size={20} />}
-          title={t("Mazos mejores", "Better decks")}
-          accent="var(--color-accent)"
-        >
-          {t(
-            "Cambios 1×1 explicados, roles y mínimos (tierras, ramp, robo…), bracket, combos y la probabilidad de tu mano inicial.",
-            "Explained 1-for-1 swaps, roles and minimums (lands, ramp, draw…), bracket, combos and your opening hand odds.",
-          )}
-        </Feature>
-        <Feature
-          icon={<IconCollection size={20} />}
-          title={t("Tu colección", "Your collection")}
-          accent="#4fc16a"
-        >
-          {t(
-            "Importa tu CSV o añade cartas a mano, con edición, foil, idioma y estado. Su valor real y el histórico de precios.",
-            "Import your CSV or add cards by hand, with set, foil, language and condition. Its real value and price history.",
-          )}
-        </Feature>
-        <Feature icon={<IconSwap size={20} />} title={t("Intercambios", "Trades")} accent="#e0ae3f">
-          {t(
-            "Quién tiene lo que buscas y busca lo que te sobra. Propuestas cuadradas por valor y, al aceptar, las cartas cambian de colección solas.",
-            "Who has what you want and wants what you have spare. Value-balanced offers and, once accepted, the cards move between collections on their own.",
-          )}
-        </Feature>
-        <Feature
-          icon={<IconUsers size={20} />}
-          title={t("Comunidad", "Community")}
-          accent="#b78cf0"
-        >
-          {t(
-            "Mazos públicos con el % que ya tienes y lo que te costaría el resto. Sigue a otros jugadores y comparte tus listas.",
-            "Public decks showing the % you already own and what the rest would cost. Follow other players and share your lists.",
-          )}
-        </Feature>
+      <section aria-labelledby="does-title" className="does">
+        <h2 id="does-title">{t("Qué hace por ti", "What it does for you")}</h2>
+        <dl>
+          <div>
+            <dt>{t("Te dice qué cambiar", "It tells you what to change")}</dt>
+            <dd>
+              {t(
+                "Cambios de una carta por otra, cada uno con su porqué. Vigila que no te quedes corto de tierras, ramp o robo, y te da el bracket, los combos y las cuentas de tu mano inicial.",
+                "One-for-one swaps, each with its reason. It makes sure you don't run short on lands, ramp or draw, and gives you the bracket, the combos and your opening hand odds.",
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("Lleva tu colección", "It keeps your collection")}</dt>
+            <dd>
+              {t(
+                "Súbela desde un CSV o carta a carta, con edición, foil, idioma y estado. Sabrás cuánto vale hoy y cómo ha ido cambiando.",
+                "Upload it from a CSV or card by card, with set, foil, language and condition. You'll know what it's worth today and how that has changed.",
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("Cuadra tus intercambios", "It balances your trades")}</dt>
+            <dd>
+              {t(
+                "Te cruza con quien tiene lo que buscas y busca lo que te sobra, propone un cambio igualado por valor y, al aceptarlo, mueve las cartas de una colección a otra.",
+                "It matches you with whoever has what you want and wants what you have spare, proposes a value-balanced trade and, once accepted, moves the cards between collections.",
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("Te sienta a la mesa", "It gets you to the table")}</dt>
+            <dd>
+              {t(
+                "Mazos de otros jugadores con lo que ya tienes de cada uno y lo que costaría el resto. Grupos con tus amigos, contador de vidas y la clasificación de vuestras partidas.",
+                "Other players' decks with how much of each you already own and what the rest would cost. Groups with your friends, a life counter and the standings of your games.",
+              )}
+            </dd>
+          </div>
+        </dl>
       </section>
 
       {decks.length > 0 ? (

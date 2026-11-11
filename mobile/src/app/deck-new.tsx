@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
+import { DRAFT_ID, setDraftDeck } from "~/lib/draft-deck";
 import { useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { decklistWithCommanders } from "@/domain/deck/set-commander";
@@ -337,14 +338,14 @@ function FromList({ fromShare, ...common }: Common & { fromShare: boolean }) {
       api<CatalogPageDTO>(`/api/cards?commander=1&q=${encodeURIComponent(query)}&limit=8`),
   });
   const open = useOpenNewDeck();
+  /** La lista tal como se manda: con el comandante elegido aparte, si lo hay. */
+  const listInput = () =>
+    commander && !isLink ? decklistWithCommanders(input.trim(), [commander.name]) : input.trim();
   const save = useMutation({
     mutationFn: () =>
       api<{ id: string }>("/api/decks", {
         body: {
-          input:
-            commander && !isLink
-              ? decklistWithCommanders(input.trim(), [commander.name])
-              : input.trim(),
+          input: listInput(),
           visibility: common.visibility,
           ...(common.name.trim() ? { name: common.name.trim() } : {}),
         },
@@ -430,6 +431,22 @@ function FromList({ fromShare, ...common }: Common & { fromShare: boolean }) {
         busy={save.isPending}
         disabled={!input.trim()}
       />
+      <Button
+        label={t("Solo analizarla, sin guardar", "Just analyze it, without saving")}
+        kind="secondary"
+        icon="analytics-outline"
+        disabled={!input.trim() || save.isPending}
+        onPress={() => {
+          setDraftDeck(listInput(), common.name);
+          router.push(`/deck/${DRAFT_ID}`);
+        }}
+      />
+      <T variant="small">
+        {t(
+          "Verás los cambios sugeridos, lo que te falta y las estadísticas; si te convence, guárdala desde la cabecera.",
+          "You'll see the suggested changes, what you're missing and the stats; if you like it, save it from the header.",
+        )}
+      </T>
     </View>
   );
 }

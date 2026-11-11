@@ -1,5 +1,6 @@
 "use client";
 
+import { KeyboardShortcuts } from "./shortcuts";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import type {
   MyProfileDTO,
@@ -14,6 +15,7 @@ import { authClient } from "./auth-client";
 import {
   IconActivity,
   IconBell,
+  IconCart,
   IconCrown,
   IconLoan,
   IconSettings,
@@ -103,6 +105,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <WithPath>{(p) => <Sidebar user={user} pending={isPending} pathname={p} />}</WithPath>
         <div className="main">
           <LocalCollectionToAccount loggedIn={Boolean(sessionUser)} />
+          <KeyboardShortcuts loggedIn={Boolean(user)} />
           {children}
           <LegalFooter />
           <WithPath>{(p) => <BottomNav pathname={p} user={user} />}</WithPath>
@@ -395,6 +398,10 @@ function Sidebar({
               <IconSwap />
               {t("Intercambios", "Trades")}
             </Link>
+            <Link className={`nav ${pathname === "/shopping" ? "is-active" : ""}`} href="/shopping">
+              <IconCart />
+              {t("Lista de compra", "Shopping list")}
+            </Link>
             <Link className={`nav ${pathname === "/loans" ? "is-active" : ""}`} href="/loans">
               <IconLoan />
               {t("Préstamos", "Loans")}
@@ -440,6 +447,7 @@ const moreLinks = (t: T) => [
     icon: <IconCrown size={18} />,
   },
   { href: "/trades", label: t("Intercambios", "Trades"), icon: <IconSwap size={18} /> },
+  { href: "/shopping", label: t("Lista de compra", "Shopping list"), icon: <IconCart size={18} /> },
   { href: "/loans", label: t("Préstamos", "Loans"), icon: <IconLoan size={18} /> },
   { href: "/settings", label: t("Ajustes", "Settings"), icon: <IconSettings size={18} /> },
 ];

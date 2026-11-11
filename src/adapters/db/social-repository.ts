@@ -19,6 +19,7 @@ const NOTIFICATION_TYPES: readonly NotificationType[] = [
   "new_deck",
   "big_card",
   "price_drop",
+  "price_rise",
   "trade_match",
   "trade_proposal",
   "trade_counter",
@@ -130,6 +131,33 @@ export class PrismaSocialRepository
     });
   }
 
+  async weeklyDigest(userId: string) {
+    const row = await this.db.user.findUnique({
+      where: { id: userId },
+      select: { weeklyDigest: true },
+    });
+    return row?.weeklyDigest ?? false;
+  }
+
+  async setWeeklyDigest(userId: string, value: boolean) {
+    await this.db.user.update({ where: { id: userId }, data: { weeklyDigest: value } });
+  }
+
+  async digestUsers(before: Date) {
+    return this.db.user.findMany({
+      where: {
+        weeklyDigest: true,
+        emailVerified: true,
+        OR: [{ digestSentAt: null }, { digestSentAt: { lt: before } }],
+      },
+      select: { id: true, email: true, name: true },
+    });
+  }
+
+  async markDigestSent(userId: string, at: Date) {
+    await this.db.user.update({ where: { id: userId }, data: { digestSentAt: at } });
+  }
+
   async priceAlertUsers() {
     const rows = await this.db.user.findMany({
       where: { priceAlertPercent: { not: null } },
@@ -236,8 +264,16 @@ export class PrismaSocialRepository
   }
 
   async list(userId: string, limit: number) {
+    return this.listWhere({ userId }, limit);
+  }
+
+  async listSince(userId: string, since: Date, limit: number) {
+    return this.listWhere({ userId, createdAt: { gte: since } }, limit);
+  }
+
+  private async listWhere(where: Prisma.NotificationWhereInput, limit: number) {
     const rows = await this.db.notification.findMany({
-      where: { userId },
+      where,
       orderBy: { createdAt: "desc" },
       take: limit,
       include: { actor: { select: { username: true, name: true } } },

@@ -68,7 +68,10 @@ export function DeckTile({
             <span className="truncate">{d.commanderNames.join(" + ")}</span>
             <ColorPips colors={d.colorIdentity} />
           </span>
-          <span className="mono subtle flex flex-wrap gap-3 text-xs">
+          <span
+            className="subtle num flex flex-wrap gap-3 text-xs"
+            style={{ fontFamily: "inherit" }}
+          >
             {owner && <span>@{owner.username ?? owner.name}</span>}
             <span>{SOURCE_LABEL[d.source] ?? d.source}</span>
             <span>{t(`${d.cardCount} cartas`, `${d.cardCount} cards`)}</span>

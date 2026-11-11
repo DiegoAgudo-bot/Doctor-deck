@@ -17,12 +17,27 @@ export class RateLimiter {
     const t = this.now();
     const h = this.hits.get(key);
     if (!h || t - h.start >= this.windowMs) {
-      if (this.hits.size > 10_000) this.hits.clear();
+      if (this.hits.size > 10_000) this.prune(t);
       this.hits.set(key, { start: t, n: 1 });
       return true;
     }
     h.n += 1;
     return h.n <= this.max;
+  }
+
+  /**
+   * Con demasiadas claves, fuera las de ventanas ya cerradas (las abiertas conservan su cuenta:
+   * vaciarlo todo le devolvería el cupo a quien ya lo ha gastado). Si aun así no baja, las más
+   * antiguas.
+   */
+  private prune(t: number) {
+    for (const [key, h] of this.hits) {
+      if (t - h.start >= this.windowMs) this.hits.delete(key);
+    }
+    for (const key of this.hits.keys()) {
+      if (this.hits.size <= 5_000) break;
+      this.hits.delete(key);
+    }
   }
 }
 

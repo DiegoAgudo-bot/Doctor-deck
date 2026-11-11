@@ -286,6 +286,8 @@ export interface MyProfileDTO extends PublicProfileDTO {
   priceAlertPercent: number | null;
   /** Grupos de avisos silenciados (`NOTIFICATION_GROUPS`). */
   mutedNotifications: NotificationGroup[];
+  /** Resumen semanal por correo; null si el servidor no manda correos. */
+  weeklyDigest: boolean | null;
 }
 
 export interface ComboCardDTO {
@@ -332,6 +334,23 @@ export interface TradeCardDTO {
   card: CardDTO;
   quantity: number;
   price: number | null;
+}
+
+/** Una carta que falta para montar todos mis mazos, con los mazos que la piden. */
+export interface ShoppingItemDTO extends TradeCardDTO {
+  decks: { id: string; name: string }[];
+}
+
+/** `GET /api/me/shopping`: lo que falta entre todos mis mazos. */
+export interface ShoppingListDTO {
+  items: ShoppingItemDTO[];
+  /** Todos mis mazos (para filtrar por uno). */
+  decks: { id: string; name: string }[];
+  copies: number;
+  /** Suma del precio de referencia de lo que tiene precio. */
+  cost: number;
+  /** Cartas sin precio conocido (no suman en `cost`). */
+  unpriced: number;
 }
 
 export interface WishlistCardDTO extends TradeCardDTO {
@@ -966,6 +985,16 @@ export interface ErrorLogEntryDTO {
 }
 
 /** `GET /api/decks/{id}/versions`: una versión anterior y lo que cambió después de ella. */
+/** `GET /api/decks/{id}/compare`: mi mazo frente al mazo medio o a una versión anterior. */
+export interface DeckComparisonDTO {
+  onlyMine: { card: CardDTO; copies: number }[];
+  onlyOther: { card: CardDTO; copies: number }[];
+  /** Copias que coinciden (sin tierras básicas). */
+  shared: number;
+  versionAt: string | null;
+  warning: string | null;
+}
+
 export interface DeckVersionDTO {
   id: string;
   createdAt: string;

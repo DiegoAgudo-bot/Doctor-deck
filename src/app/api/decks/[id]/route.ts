@@ -1,6 +1,7 @@
 import { connection, type NextRequest } from "next/server";
 import { z } from "zod";
 import { BRACKETS } from "@/domain/deck/bracket";
+import { CARD_NOTE_MAX, DECK_DESCRIPTION_MAX } from "@/domain/deck/notes";
 import { DECK_VISIBILITIES } from "@/domain/deck/visibility";
 import { getContainer } from "@/server/container";
 import { savedDeckDTO, type DeckViewDTO } from "@/server/dto";
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">
     const body: DeckViewDTO = {
       ...deck,
       // Lo que solo usa su dueño (descartes, candados, lista de deseos) no sale a otros.
-      ...(isMine ? {} : { excluded: [], locked: [], inWishlist: false }),
+      ...(isMine ? {} : { excluded: [], locked: [], inWishlist: false, cardNotes: {} }),
       isMine,
       owner: { username: owner?.username ?? null, name: owner?.name ?? "" },
       likes,
@@ -60,12 +61,22 @@ const patchSchema = z
     inWishlist: z.boolean().optional(),
     /** Descartar un cambio sugerido: esa carta no se vuelve a proponer. */
     exclude: z.string().min(1).max(64).optional(),
+    /** Descripción pública del mazo ("" la quita). */
+    description: z
+      .string()
+      .max(DECK_DESCRIPTION_MAX * 2)
+      .optional(),
+    /** Nota privada de una carta del mazo (texto vacío la quita). */
+    cardNote: z
+      .object({ oracleId: z.string().min(1).max(64), text: z.string().max(CARD_NOTE_MAX * 2) })
+      .optional(),
   })
   .refine((p) => Object.values(p).some((v) => v !== undefined), "Nada que cambiar");
 
 /**
  * Cambia la visibilidad (público / oculto / privado), el nombre, el bracket objetivo, si entra en
- * la lista de deseos o descarta una carta (`exclude`) de uno de tus mazos.
+ * la lista de deseos, la descripción, la nota de una carta (`cardNote`) o descarta una carta
+ * (`exclude`) de uno de tus mazos.
  */
 export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/decks/[id]">) {
   try {
@@ -81,6 +92,10 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/decks/[id]
       ok = await decks.setTargetBracket(id, changes.targetBracket);
     if (ok && id && changes.inWishlist !== undefined)
       ok = await decks.setInWishlist(id, changes.inWishlist);
+    if (ok && id && changes.description !== undefined)
+      ok = await decks.setDescription(id, changes.description);
+    if (ok && id && changes.cardNote !== undefined)
+      ok = await decks.setCardNote(id, changes.cardNote.oracleId, changes.cardNote.text);
     if (ok && id && changes.exclude !== undefined) {
       const c = getContainer();
       await excludeFromDeck(id, changes.exclude, {

@@ -29,7 +29,6 @@ export function AdminErrors() {
     <main className="page">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div className="flex flex-col gap-1">
-          <span className="eyebrow">Administración</span>
           <h1 className="h1">Errores</h1>
           <p className="muted text-[13px]">
             Lo que ha fallado en el servidor y en los navegadores, agrupado. También:{" "}

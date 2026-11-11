@@ -122,6 +122,8 @@ export async function exportMyData(userId: string, deps: ExportDeps, now = new D
               theme: d.theme,
               targetBracket: d.targetBracket,
               list: d.input,
+              description: d.description,
+              cardNotes: d.cardNotes,
               locked: d.locked,
               excluded: d.excluded,
               updatedAt: d.updatedAt.toISOString(),

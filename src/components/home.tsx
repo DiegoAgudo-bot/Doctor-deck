@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import type { SavedDeckSummaryDTO, StatusResponse, TradeProposalSummaryDTO } from "@/server/dto";
 import { api, ApiError } from "./api-client";
 import { authClient } from "./auth-client";
-import { CardImage } from "./card-image";
+import { DeckTile } from "./deck-tile";
 import { ActivityFeed } from "./feed-page";
-import { IconPlus } from "./icons";
+import { IconCheck, IconPlus, IconX } from "./icons";
 import { Landing } from "./landing";
 import {
   LOCAL_COLLECTION_EVENT,
@@ -15,9 +15,11 @@ import {
   ownedPairs,
   type LocalCollection,
 } from "./local-collection";
-import { ColorPips } from "./mana";
-import { Banner, Loading, ago, fmt } from "./ui";
+import { Banner, Loading, fmt } from "./ui";
 import { Link, useLocale, useT } from "@/components/i18n";
+
+/** «Primeros pasos» cerrados a mano en este navegador. */
+const STEPS_HIDDEN_KEY = "deck-doctor:first-steps-hidden";
 
 export function Home() {
   const locale = useLocale();
@@ -28,6 +30,9 @@ export function Home() {
   const [decks, setDecks] = useState<SavedDeckSummaryDTO[] | null>(null);
   /** Propuestas de intercambio que me toca responder. */
   const [myTurn, setMyTurn] = useState<number | null>(null);
+  /** Para «Primeros pasos»: si estoy en algún grupo (null = aún no se sabe). */
+  const [inGroup, setInGroup] = useState<boolean | null>(null);
+  const [stepsHidden, setStepsHidden] = useState(true);
   const [local, setLocal] = useState<LocalCollection | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +54,18 @@ export function Home() {
       api<TradeProposalSummaryDTO[]>("/api/trades/proposals", undefined, { silent: true })
         .then((p) => setMyTurn(p.filter((x) => x.myTurn).length))
         .catch(() => setMyTurn(0));
+      api<unknown[]>("/api/groups", undefined, { silent: true })
+        .then((g) => setInGroup(g.length > 0))
+        .catch(() => setInGroup(null));
     }
+    let hidden = false;
+    try {
+      hidden = localStorage.getItem(STEPS_HIDDEN_KEY) === "1";
+    } catch {
+      /* sin almacenamiento: se enseñan */
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- se lee del navegador al montar
+    setStepsHidden(hidden);
     const readLocal = () => setLocal(localCollection.get());
     readLocal();
     window.addEventListener(LOCAL_COLLECTION_EVENT, readLocal);
@@ -86,6 +102,46 @@ export function Home() {
   const copies = user ? (collection?.totalCards ?? 0) : localCopies(local);
   const unique = user ? (collection?.uniqueCards ?? 0) : ownedPairs(local).length;
 
+  const steps = [
+    {
+      done: copies > 0,
+      title: t("Trae tu colección", "Bring your collection"),
+      text: t(
+        "Importa el CSV de la app donde la tengas o añade cartas a mano: así te proponemos primero las que ya tienes.",
+        "Import the CSV from the app you keep it in or add cards by hand: that way we suggest the ones you already own first.",
+      ),
+      action: t("Importar", "Import"),
+      href: "/collection",
+    },
+    {
+      done: (decks?.length ?? 0) > 0,
+      title: t("Guarda tu primer mazo", "Save your first deck"),
+      text: t(
+        "Créalo desde un comandante o pega tu lista, y verás qué cambiar y qué te falta.",
+        "Create it from a commander or paste your list, and you'll see what to change and what you're missing.",
+      ),
+      action: t("Nuevo mazo", "New deck"),
+      href: "/decks/new",
+    },
+    {
+      done: inGroup === true,
+      title: t("Junta a tu mesa", "Gather your table"),
+      text: t(
+        "Crea un grupo con tus amigos: veréis los mazos de todos, quién puede dejar cada carta y la clasificación.",
+        "Create a group with your friends: you'll see everyone's decks, who can lend each card and the standings.",
+      ),
+      action: t("Crear un grupo", "Create a group"),
+      href: "/groups",
+    },
+  ];
+  // Hasta saber cómo está todo no se enseña (no debe aparecer y desaparecer al cargar).
+  const showSteps =
+    Boolean(user) &&
+    !stepsHidden &&
+    decks !== null &&
+    inGroup !== null &&
+    steps.some((s) => !s.done);
+
   return (
     <main className="page" style={{ gap: 20 }}>
       <div className="stack-sm flex items-center justify-between gap-3">
@@ -112,7 +168,53 @@ export function Home() {
           </span>
         </Banner>
       )}
-      {copies === 0 && (
+      {showSteps && (
+        <section className="panel" aria-labelledby="first-steps">
+          <div className="panel-h">
+            <span className="h2" id="first-steps">
+              {t("Primeros pasos", "Getting started")}{" "}
+              <span className="mono subtle" style={{ fontWeight: 400 }}>
+                {steps.filter((s) => s.done).length}/{steps.length}
+              </span>
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon"
+              aria-label={t("Ocultar los primeros pasos", "Hide getting started")}
+              onClick={() => {
+                setStepsHidden(true);
+                try {
+                  localStorage.setItem(STEPS_HIDDEN_KEY, "1");
+                } catch {
+                  /* sin almacenamiento: se oculta hasta recargar */
+                }
+              }}
+            >
+              <IconX size={14} />
+            </button>
+          </div>
+          <ol className="firststeps">
+            {steps.map((s, i) => (
+              <li key={s.href} className={s.done ? "is-done" : ""}>
+                <span className="step-n" aria-hidden="true">
+                  {s.done ? <IconCheck size={13} /> : i + 1}
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <b className="step-t">{s.title}</b>
+                  {!s.done && <span className="muted text-[13px]">{s.text}</span>}
+                </span>
+                {!s.done && (
+                  <Link className="btn btn-sm" href={s.href}>
+                    {s.action}
+                  </Link>
+                )}
+                {s.done && <span className="sr-only">{t("Hecho", "Done")}</span>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      {copies === 0 && !showSteps && (
         <Banner
           tone="warn"
           action={
@@ -147,7 +249,6 @@ export function Home() {
                 )
               : t(`${n(unique)} cartas distintas`, `${n(unique)} unique cards`)
           }
-          first
         />
         <Stat
           href="/decks"
@@ -183,49 +284,13 @@ export function Home() {
             {t("desde un comandante o importa una lista.", "from a commander or import a list.")}
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t("Mazo", "Deck")}</th>
-                  <th className="hide-sm">{t("Colores", "Colors")}</th>
-                  <th className="r hide-sm">{t("Cartas", "Cards")}</th>
-                  <th className="hide-sm">{t("Origen", "Source")}</th>
-                  <th className="r">{t("Actualizado", "Updated")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(decks ?? []).slice(0, 6).map((d, i) => (
-                  <tr key={d.id} className="fade" style={{ ["--d" as string]: `${i * 40}ms` }}>
-                    <td>
-                      <Link
-                        href={`/decks/${d.id}`}
-                        className="flex items-center gap-2.5"
-                        style={{ color: "var(--color-text)", textDecoration: "none" }}
-                      >
-                        {d.commanderCard ? (
-                          <CardImage card={d.commanderCard} style={{ width: 26 }} sizes="26px" />
-                        ) : (
-                          <span className="w-[26px]" />
-                        )}
-                        <span className="flex flex-col leading-tight">
-                          <span style={{ fontWeight: 500 }}>{d.name}</span>
-                          <span className="subtle text-xs">{d.commanderNames.join(" + ")}</span>
-                        </span>
-                      </Link>
-                    </td>
-                    <td className="hide-sm">
-                      <ColorPips colors={d.colorIdentity} />
-                    </td>
-                    <td className="r mono hide-sm">{d.cardCount}</td>
-                    <td className="muted hide-sm">
-                      {d.source === "text" ? t("texto", "text") : t("enlace", "link")}
-                    </td>
-                    <td className="r mono subtle">{ago(d.updatedAt, locale)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div
+            className="grid-1-sm grid gap-2.5 p-3"
+            style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}
+          >
+            {(decks ?? []).slice(0, 6).map((d, i) => (
+              <DeckTile key={d.id} deck={d} delay={i * 40} />
+            ))}
           </div>
         )}
       </section>
@@ -248,18 +313,19 @@ function Stat({
   value,
   meta,
   href,
-  first = false,
 }: {
   label: string;
   value: string;
   meta: string;
   href?: string;
-  first?: boolean;
 }) {
   const body = (
     <>
       <span className="cap">{label}</span>
-      <span className="mono" style={{ fontSize: 22, fontWeight: 500 }}>
+      <span
+        className="num"
+        style={{ fontSize: 24, fontWeight: 600, fontFamily: "var(--font-sans)" }}
+      >
         {value}
       </span>
       <span className="subtle text-xs">{meta}</span>
@@ -270,15 +336,16 @@ function Stat({
     flexDirection: "column" as const,
     gap: 4,
     padding: "14px 16px",
-    borderLeft: first ? 0 : "1px solid var(--color-line)",
     color: "inherit",
     textDecoration: "none",
   };
   return href ? (
-    <Link href={href} style={style}>
+    <Link href={href} className="home-stat" style={style}>
       {body}
     </Link>
   ) : (
-    <div style={style}>{body}</div>
+    <div className="home-stat" style={style}>
+      {body}
+    </div>
   );
 }

@@ -46,7 +46,7 @@ export function CardImage({
         role="img"
         aria-label={card.name}
       >
-        {card.name}
+        <span>{card.name}</span>
       </div>
     );
   }

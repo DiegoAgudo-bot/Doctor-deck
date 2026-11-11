@@ -14,6 +14,18 @@ describe("RateLimiter", () => {
     now = 1000;
     expect(rl.allow("a")).toBe(true);
   });
+
+  it("con muchas claves, quien ya gastó su cupo en esta ventana no lo recupera", () => {
+    let now = 0;
+    const rl = new RateLimiter(1, 1000, () => now);
+    for (let i = 0; i < 10_001; i++) rl.allow(`viejo${i}`);
+    now = 1500;
+    expect(rl.allow("abusón")).toBe(true);
+    expect(rl.allow("abusón")).toBe(false);
+    // Otra clave nueva dispara la limpieza: se van las ventanas cerradas, no la de «abusón».
+    expect(rl.allow("otro")).toBe(true);
+    expect(rl.allow("abusón")).toBe(false);
+  });
 });
 
 describe("clientIp", () => {

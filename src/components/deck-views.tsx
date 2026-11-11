@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { curveByColor, deckSummary, type CurveSeg } from "@/domain/deck/color-curve";
 import { ROLES, type Role } from "@/domain/roles/types";
 import { roleLabel as localizedRole } from "@/domain/i18n/labels";
 import type { Locale } from "@/domain/i18n/locale";
@@ -38,7 +39,6 @@ export const roleLabel = (role: Role, locale: Locale = "es") => {
   const l = localizedRole(role, locale);
   return l.charAt(0).toUpperCase() + l.slice(1);
 };
-const isLand = (c: Pick<CardDTO, "typeLine">) => /\bLand\b/.test(c.typeLine.split("//")[0] ?? "");
 
 // ---------- Cambios (diff) ----------
 
@@ -218,7 +218,7 @@ export function DiffSkeleton() {
 
 // ---------- Estadísticas ----------
 
-type Seg = "w" | "u" | "b" | "r" | "g" | "m" | "c";
+type Seg = CurveSeg;
 const segLabel = (s: Seg, t: T) =>
   ({
     w: t("Blanco", "White"),
@@ -229,31 +229,11 @@ const segLabel = (s: Seg, t: T) =>
     m: t("Multicolor", "Multicolor"),
     c: t("Incoloro", "Colorless"),
   })[s];
-const SEG_ORDER: Seg[] = ["w", "u", "b", "r", "g", "m", "c"];
-
-function segOf(card: CardDTO): Seg {
-  if (card.colorIdentity.length === 0) return "c";
-  if (card.colorIdentity.length > 1) return "m";
-  return (card.colorIdentity[0] ?? "C").toLowerCase() as Seg;
-}
-
 /** Curva de maná de las cartas que no son tierra, apilada por color (identidad de cada carta). */
 export function ManaCurve({ cards }: { cards: { card: CardDTO; quantity: number }[] }) {
   const t = useT();
-  const cols = Array.from({ length: 8 }, () => new Map<Seg, number>());
-  let spells = 0;
-  for (const { card, quantity } of cards) {
-    if (isLand(card)) continue;
-    const bucket = Math.min(7, Math.max(0, Math.floor(card.cmc)));
-    const col = cols[bucket];
-    if (!col) continue;
-    const seg = segOf(card);
-    col.set(seg, (col.get(seg) ?? 0) + quantity);
-    spells += quantity;
-  }
-  const totals = cols.map((c) => [...c.values()].reduce((a, b) => a + b, 0));
-  const max = Math.max(1, ...totals);
-  const used = SEG_ORDER.filter((s) => cols.some((c) => c.has(s)));
+  const { columns, max, used, spells } = curveByColor(cards);
+  const totals = columns.map((c) => c.total);
   return (
     <div className="panel">
       <div className="panel-h">
@@ -268,7 +248,7 @@ export function ManaCurve({ cards }: { cards: { card: CardDTO; quantity: number 
           role="img"
           aria-label={`${t("Curva de maná", "Mana curve")}: ${totals.map((n, i) => `${i === 7 ? "7+" : i}: ${n}`).join(", ")}`}
         >
-          {cols.map((col, i) => (
+          {columns.map((col, i) => (
             <div key={i} className="curve-col">
               <span className="curve-n">{totals[i] || ""}</span>
               <div
@@ -278,11 +258,11 @@ export function ManaCurve({ cards }: { cards: { card: CardDTO; quantity: number 
                   ["--d" as string]: `${i * 30}ms`,
                 }}
               >
-                {SEG_ORDER.filter((s) => col.has(s)).map((s) => (
+                {col.segs.map((s) => (
                   <div
-                    key={s}
-                    className={`seg-${s}`}
-                    style={{ height: `${((col.get(s) ?? 0) / (totals[i] || 1)) * 100}%` }}
+                    key={s.seg}
+                    className={`seg-${s.seg}`}
+                    style={{ height: `${(s.count / (col.total || 1)) * 100}%` }}
                   />
                 ))}
               </div>
@@ -344,10 +324,7 @@ export function RoleMeters({ roles }: { roles: RoleStatDTO[] }) {
 export function DeckFacts({ cards }: { cards: DeckCardDTO[] }) {
   const t = useT();
   const intl = useIntlLocale();
-  const nonLand = cards.filter((c) => !isLand(c.card));
-  const spells = nonLand.reduce((n, c) => n + c.quantity, 0);
-  const lands = cards.filter((c) => isLand(c.card)).reduce((n, c) => n + c.quantity, 0);
-  const avg = spells ? nonLand.reduce((n, c) => n + c.card.cmc * c.quantity, 0) / spells : 0;
+  const { lands, spells, averageCmc: avg } = deckSummary(cards);
   return (
     <div className="panel">
       <div className="panel-h">
@@ -373,11 +350,7 @@ export function DeckFacts({ cards }: { cards: DeckCardDTO[] }) {
   );
 }
 
-export const averageCmc = (cards: DeckCardDTO[]) => {
-  const nonLand = cards.filter((c) => !isLand(c.card));
-  const n = nonLand.reduce((a, c) => a + c.quantity, 0);
-  return n ? nonLand.reduce((a, c) => a + c.card.cmc * c.quantity, 0) / n : 0;
-};
+export const averageCmc = (cards: DeckCardDTO[]) => deckSummary(cards).averageCmc;
 
 // ---------- Lista del mazo ----------
 
@@ -407,6 +380,8 @@ export function DeckList({
   onEditRoles,
   onEditPrinting,
   inOtherDecks,
+  notes,
+  onEditNote,
   busy = false,
 }: {
   view: ListView;
@@ -421,6 +396,9 @@ export function DeckList({
   onEditRoles?: ((card: DeckCardDTO) => void) | undefined;
   /** Elegir la impresión de una carta (columna "Edición"). */
   onEditPrinting?: ((card: CardDTO) => void) | undefined;
+  /** Mis notas por carta (oracleId → texto) y cómo editarlas (solo en un mazo mío guardado). */
+  notes?: Readonly<Record<string, string>> | undefined;
+  onEditNote?: ((card: CardDTO) => void) | undefined;
   /** Cartas que tengo pero están en otros mazos (o prestadas): oracleId → dónde. */
   inOtherDecks?: ReadonlyMap<string, readonly string[]> | undefined;
   busy?: boolean;
@@ -490,6 +468,29 @@ export function DeckList({
                           ))}
                         </span>
                       )}
+                      {onEditNote &&
+                        (notes?.[c.card.oracleId] ? (
+                          <button
+                            type="button"
+                            className="cardnote"
+                            title={t("Editar la nota", "Edit the note")}
+                            onClick={() => onEditNote(c.card)}
+                          >
+                            {notes[c.card.oracleId]}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="cardnote-add"
+                            aria-label={t(
+                              `Añadir una nota a ${c.card.name}`,
+                              `Add a note to ${c.card.name}`,
+                            )}
+                            onClick={() => onEditNote(c.card)}
+                          >
+                            {t("+ nota", "+ note")}
+                          </button>
+                        ))}
                     </td>
                     <td>
                       <ManaCost cost={c.card.manaCost} />

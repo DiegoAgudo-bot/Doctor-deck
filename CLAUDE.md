@@ -231,10 +231,21 @@ locale)`) y los avisos de datos guardados (`localizeWarning`, `domain/i18n/warni
 - **Tema** «Pentacromo» (`globals.css`): base neutra, acento azul y la gema del logo (`--gem`,
   `--gem-v`) en la franja bajo la barra superior, el subrayado de pestañas y la fila activa del
   lateral. Propuestas descartadas y capturas en `branding/themes/`.
+  **Revisión R7** (estilo): los titulares (`.h1`, la portada, las secciones de la portada) van en
+  Spectral (`--font-card`, la letra de los nombres de carta); la monoespaciada queda para cifras
+  en columnas. Sin etiquetas en mayúsculas encima de los títulos (`.eyebrow` ya no existe), sin
+  degradados ni resplandores en la portada ni flechas en los botones. La portada (`landing.tsx`)
+  abre con el gesto del producto una sola vez al cargar (`dd-card-out` / `dd-card-in`: una carta
+  se aparta, la otra cae en su sitio) y «Qué hace por ti» es una lista con rayas (`.does`), sin
+  tarjetas ni iconos. En el Inicio, «Tus mazos» son portadas (`DeckTile`). **Movimiento solo como
+  respuesta** a lo que hace el usuario: aceptar un cambio (`dd-row-out` / `dd-row-in`), repartir
+  la mano inicial (`.dealt`), la cifra de vidas (`.tick-up` / `.tick-down`), la carta de su ficha
+  inclinándose hacia el puntero (`Tilt`, `components/tilt.tsx`) y la franja de la gema corriendo
+  mientras se analiza un mazo (`data-busy` en `<html>`). Todo respeta «reducir movimiento».
 - **PWA** (Fase 20): `app/manifest.ts`, iconos en `public/icons/` y `mobile/assets/` (logo: gema de cinco colores, `LOGO_FACETS` en `components/icons.tsx`; `npx tsx scripts/make-icons.tsx`
   los regenera), `themeColor` y márgenes `safe-area` en las barras.
   Sin conexión: `public/sw.js` (lo registra `ServiceWorker` en el layout, solo en producción)
-  guarda `/play` y sus archivos de `/_next/static` al instalarse y en cada visita (red primero), y
+  guarda `/play` y `/en/play` (una copia por idioma) y sus archivos de `/_next/static` al instalarse y en cada visita (red primero), y
   los símbolos de maná; no toca nada más. Se borra al entrar o salir (`clearCached`).
 - **Copias de seguridad** (Fase 20): `backupDatabase` (`adapters/db/backup.ts`, API `backup` de
   SQLite + `integrity_check` + gzip, rotación `BACKUP_KEEP`); cron diario que añade `deploy.sh`.
@@ -408,6 +419,36 @@ newInvite?}`), `DELETE /api/groups/{id}/members/{username}`, `GET /api/groups/{i
     proponer intercambios (`trade_blocked`), prestar y salir en sus cruces y feed; sus comentarios
     no se ven. No se avisa al bloqueado.
   - `GET /api/me/export` incluye grupos, partidas, préstamos, comentarios y bloqueados.
+- **Revisión R4** (web): **lista de compra** de todos mis mazos (`/shopping`, `GET
+/api/me/shopping`; `shoppingList` en `domain/deck/shopping.ts`: lo que piden entre todos, y lo
+  prestado, menos lo que tengo, sin básicas; con qué mazos piden cada carta, filtro por mazo,
+  coste y lista en texto; enlace en el lateral, en «Más» y en «Mis mazos»), **mis estadísticas de
+  partidas** (`MyGameStats` en «Grupos y partidas»; `personalStats` en `domain/play/stats.ts`:
+  récord y racha, mis mazos, con quién juego y partidas por mes; van en `GET /api/games` sin
+  filtro como `me`) y **primeros pasos** en el Inicio (colección, primer mazo y grupo; se oculta
+  al completarlos o al cerrarlo, `deck-doctor:first-steps-hidden` en el navegador).
+- **Revisión R5** (web, mazos míos guardados): **descripción pública** (`Deck.description`, ≤ 2000;
+  `DeckDescription` bajo la cabecera, la lee cualquiera que abra el mazo; la app la enseña en la
+  portada), **notas privadas por carta** (`Deck.cardNotes`, JSON `{oracleId: texto}`, ≤ 300 cada
+  una y 150 por mazo; «+ nota» en la tabla de la Lista, `CardNoteDialog`; a otros llega `{}`) y
+  **«Comparar»** en la cabecera (`DeckCompareDialog`, `GET /api/decks/{id}/compare?with=average|
+<versionId>`, `compareDeck` en `application/deck-compare.ts`): lo que solo lleva mi mazo y lo
+  que solo lleva el mazo medio de la comunidad (el del comandante y su tema) o una versión del
+  historial, sin tierras básicas. `PATCH /api/decks/{id}` acepta `{description}` y `{cardNote:
+{oracleId, text}}` (`domain/deck/notes.ts`); van también en `GET /api/me/export`.
+- **Revisión R6**: **subidas de precio** (`notifyPriceRises`, aviso `price_rise`, grupo `prices`:
+  cartas que tengo **libres**, sin básicas, que hoy suben el % de `priceAlertPercent` respecto al
+  mínimo de los 30 días anteriores y valen ≥ 2 € —`priceRise`, `PRICE_RISE_MIN_EUR`—; una por
+  carta cada 7 días; lleva a la ficha y a «Para cambiar»), **resumen semanal por correo**
+  (`User.weeklyDigest`, desactivado por defecto, y `digestSentAt`; `sendWeeklyDigests` en
+  `application/digest.ts` tras los avisos de `scryfall:sync`, solo si hay `SMTP_URL`: los avisos
+  de los últimos 7 días a quien lo activó y tiene el email verificado, en los dos idiomas
+  —`digestEmail`, `domain/social/digest.ts`—, nunca vacío; `MyProfileDTO.weeklyDigest` es null
+  sin correo; interruptor en Ajustes de la web y la app) y **atajos de teclado** en la web
+  (`components/shortcuts.tsx`: `g` + `i`/`m`/`c`/`b`/`j`/`l` para ir a Inicio, Mis mazos,
+  Colección, Buscar cartas, Jugar y Lista de compra, `n` mazo nuevo, `?` la lista de atajos, y
+  del 1 al 6 las pestañas de un mazo; `ignoresShortcut` los apaga al escribir, con un diálogo
+  abierto o con Ctrl/Alt/Cmd).
 - **Buscador de cartas y ficha** (`/cards`, `/cards/{oracleId}`; `application/card-catalog.ts`):
   `CatalogQuery` (`domain/cards/catalog-search.ts`, se lee y escribe en la URL: `q` en nombre, tipo
   o texto, `colors` + `mode` within|exact|includes o `C` incoloras, `type`, `commander=1`, `gc=1`,
@@ -728,6 +769,9 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
   - Sesión: plugin `expo` de Better Auth (`trustedOrigins: doctordeck://`, cookie en cabecera;
     Google vuelve a `doctordeck://` con la sesión). La app manda sus peticiones con
     `credentials: "omit"` (si no, el almacén de cookies de Android pisa la cabecera → 401).
+    Cada petición (`api`, `mobile/src/lib/api.ts`) se corta a los 45 s (180 s al subir un texto
+    o CSV; error `timeout`) y, con un 401, pide a Better Auth que compruebe la sesión
+    (`recheckSession`): si ha caducado, el layout lleva a «Entrar».
     **Heredado** (solo para la app 1.0.0, que abría partes en un WebView; la 1.1.0 ya no lo usa):
     `POST /api/app/web` (con sesión) da un código de un solo uso (60 s, en memoria,
     `server/app-handoff.ts`) y `GET /api/app/web?code=…&next=/ruta` le pone la cookie de sesión al
@@ -797,6 +841,21 @@ account_not_linked` con la explicación y se vincula desde Ajustes ya con sesió
     aparte, `CombosPanel`; su bracket pasa a la portada y a Datos), mano inicial en Datos
     (`openingHandOdds` + «Robar 7» con mulligan) y, al final de «Falta», alternativas más baratas
     (`ownership.alternatives`) y modo compra (`BuyPanel`, `POST /api/analyze` con `buy`).
+  - Revisión R2 (app 1.11.0, `components/deck-extras.tsx`): en «Falta», «¿Tienes el mazo en
+    físico?» (`DeckToCollectionPanel`); al final de «Cambios» de un mazo mío, las recomendadas que
+    están en otros mazos con «Proponerlas igualmente» (`useOtherDecks: false`, no se guarda) y
+    deshacer descartes y candados (`ChangesFooter`); en Datos, curva apilada por color y resumen
+    con el coste medio (`CurvePanel`; `curveByColor` y `deckSummary` de
+    `domain/deck/color-curve.ts`, los mismos que usa la web).
+  - Revisión R3 (app 1.12.0): **analizar sin guardar** («Solo analizarla, sin guardar» al pegar
+    una lista: `lib/draft-deck.ts` la deja en memoria y la pantalla del mazo la abre con el id
+    `draft` como si fuera de otro; «Guardar mazo» en la cabecera la crea de verdad), **recuperar la
+    contraseña** sin salir (`app/forgot.tsx`, `requestPasswordReset`; el enlace del correo abre la
+    web) y **tema e idioma a mano** en Ajustes («Aspecto e idioma»): `lib/boot.ts` los lee de
+    SecureStore (síncrono) antes de cargar nada (`mobile/index.js` es la entrada) y los deja en
+    `globalThis.__DD_LANG` / `__DD_THEME` para `lang.ts` y `theme.ts` (`colors` oscuro o claro,
+    `isLight`); como textos y estilos se fijan al cargar cada módulo, cambiarlos recarga la app
+    (`reloadAppAsync`). El contador de vidas y el escáner siguen siempre en oscuro.
   - Precios (fase M4, `components/price-chart.tsx`, gráfica de barras sin librerías): pantalla
     `collection-prices` (botón en la cabecera de Colección; `POST /api/collection/prices`, valor
     día a día de 30 días a un año y lo que más sube y baja), histórico de una carta y tabla de
@@ -934,6 +993,8 @@ Purchase price currency, Added`.
 22. App móvil Android (Expo): colección, mazos, buscador, avisos con push y compartir desde
     ManaBox; servidor listo para la app (sesión, importar lo compartido, push, versión mínima) ✅
 23. Escáner de cartas en la app (OCR en el móvil, edición + número o nombre, poca luz) ✅
+
+Plan de la revisión de noviembre de 2026 (fases R1–R7, en `ROADMAP.md`): R1 (bugs) ✅, R2 (app: mazos) ✅, R3 (app: resto) ✅, R4 (web: compra, estadísticas, primeros pasos) ✅, R5 (web: comparar, notas, descripción) ✅, R6 (precios al alza, resumen semanal, atajos) ✅, R7 (estilo y animaciones) ✅.
 
 Lo siguiente se empieza solo cuando el usuario lo pida.
 

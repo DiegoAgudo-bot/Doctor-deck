@@ -140,6 +140,26 @@ export function NotificationsPage() {
                       {t(", que está en tu lista de deseos", ", which is on your wishlist")} ·{" "}
                       <Link href="/trades">{t("Ver cruces", "See matches")}</Link>
                     </>
+                  ) : n.type === "price_rise" ? (
+                    <>
+                      {t("Ha subido", "Price rise:")}{" "}
+                      {n.cardId ? (
+                        <Link href={`/cards/${n.cardId}`}>
+                          <b>{n.title}</b>
+                        </Link>
+                      ) : (
+                        <b>{n.title}</b>
+                      )}
+                      {t(", que tienes libre", ", which you have free")}
+                      {n.price !== null && (
+                        <span className="mono subtle">
+                          {" "}
+                          · {n.prevPrice !== null && <>{eur(n.prevPrice)} → </>}
+                          {eur(n.price)}
+                        </span>
+                      )}{" "}
+                      · <Link href="/trades?tab=offered">{t("Para cambiar", "For trade")}</Link>
+                    </>
                   ) : n.type === "price_drop" ? (
                     <>
                       {t("Ha bajado", "Price drop:")} <b>{n.title}</b>
