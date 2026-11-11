@@ -1,25 +1,30 @@
 /**
- * Colores de la web (`globals.css`, tema «Pentacromo»: base neutra y la gema del logo como
- * firma), en oscuro y en claro, para que app y web se vean iguales.
+ * Colores de la web (`globals.css`): el tema «Tapete» por defecto y el claro, para que app y web
+ * se vean iguales.
+ */
+/**
+ * Tema «Tapete», como la web: el fondo es fieltro y el acento, latón. En la app los paneles no son
+ * hojas de cartulina sino zonas más oscuras del mismo fieltro: aquí cada pantalla fija sus colores
+ * al cargar, y así el texto sigue siendo claro sobre oscuro en todas partes.
  */
 const dark = {
-  bg: "#111214",
-  panel: "#17181b",
-  raised: "#1e2024",
-  hover: "#26282d",
-  line: "#2a2c31",
-  lineStrong: "#383b41",
-  text: "#e8e6e3",
-  text2: "#aba7a1",
-  text3: "#8a8680",
-  accent: "#6cb0ff",
-  onAccent: "#06182e",
-  in: "#4fc16a",
-  out: "#f06a5f",
-  warn: "#e0ae3f",
-  owned: "#4fc16a",
-  inuse: "#b78cf0",
-  missing: "#8a8680",
+  bg: "#153a36",
+  panel: "#0f2b28",
+  raised: "#1d4a45",
+  hover: "#27584f",
+  line: "#2b5952",
+  lineStrong: "#4b7a71",
+  text: "#f3ecd9",
+  text2: "#c5d1c8",
+  text3: "#a3b4aa",
+  accent: "#c9a24b",
+  onAccent: "#1d1708",
+  in: "#86d99f",
+  out: "#f5a091",
+  warn: "#ecc968",
+  owned: "#86d99f",
+  inuse: "#cdb2f5",
+  missing: "#a3b4aa",
   foil: "#e5c76b",
 };
 
@@ -67,3 +72,6 @@ export const manaColors: Record<string, string> = {
 };
 
 export const radius = { sm: 6, md: 10, lg: 14 } as const;
+
+/** Titulares estrechos, como en la web (Roboto Condensed, que ya trae Android). */
+export const displayFont = "sans-serif-condensed";

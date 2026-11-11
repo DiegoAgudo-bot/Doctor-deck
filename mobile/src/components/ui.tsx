@@ -12,7 +12,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import { colors, radius } from "~/lib/theme";
+import { colors, radius, displayFont } from "~/lib/theme";
 import { t } from "~/lib/i18n";
 
 export type IconName = ComponentProps<typeof Ionicons>["name"];
@@ -71,7 +71,7 @@ export function Button({
         : kind === "ghost"
           ? "transparent"
           : colors.raised;
-  const fg = kind === "primary" ? colors.onAccent : kind === "danger" ? "#fff" : colors.text;
+  const fg = kind === "primary" ? colors.onAccent : kind === "danger" ? colors.bg : colors.text;
   return (
     <Pressable
       accessibilityRole="button"
@@ -356,8 +356,8 @@ export function MenuRow({
 
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  title: { color: colors.text, fontSize: 22, fontWeight: "700" },
-  h2: { color: colors.text, fontSize: 17, fontWeight: "600" },
+  title: { color: colors.text, fontSize: 26, fontWeight: "700", fontFamily: displayFont },
+  h2: { color: colors.text, fontSize: 19, fontWeight: "700", fontFamily: displayFont },
   body: { color: colors.text, fontSize: 15 },
   small: { color: colors.text2, fontSize: 13 },
   muted: { color: colors.text3, fontSize: 14 },

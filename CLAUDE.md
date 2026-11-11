@@ -248,8 +248,11 @@ locale)`) y los avisos de datos guardados (`localizeWarning`, `domain/i18n/warni
   ti» es una lista con rayas (`.does`). **Movimiento solo como respuesta** a lo que hace el
   usuario: aceptar un cambio, repartir la mano inicial (`.dealt`), la cifra de vidas (`.tick-up` /
   `.tick-down`), la carta de su ficha inclinándose (`Tilt`) y la franja de la gema corriendo
-  mientras se analiza (`data-busy` en `<html>`). Todo respeta «reducir movimiento». La app móvil
-  sigue con los colores anteriores. Propuestas descartadas en `branding/themes/`.
+  mientras se analiza (`data-busy` en `<html>`). Todo respeta «reducir movimiento». Propuestas
+  descartadas en `branding/themes/`. **En la app** (1.13.0, `mobile/src/lib/theme.ts`): el mismo
+  fieltro y latón, pero los paneles son zonas más oscuras del fieltro en vez de hojas de cartulina
+  (allí cada pantalla fija sus colores al cargar y el texto sigue siendo claro sobre oscuro);
+  titulares en la condensada del sistema (`displayFont`). El tema claro de la app no cambia.
 - **PWA** (Fase 20): `app/manifest.ts`, iconos en `public/icons/` y `mobile/assets/` (logo: gema de cinco colores, `LOGO_FACETS` en `components/icons.tsx`; `npx tsx scripts/make-icons.tsx`
   los regenera), `themeColor` y márgenes `safe-area` en las barras.
   Sin conexión: `public/sw.js` (lo registra `ServiceWorker` en el layout, solo en producción)
