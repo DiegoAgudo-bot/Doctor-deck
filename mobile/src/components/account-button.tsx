@@ -30,7 +30,7 @@ export function AccountButton() {
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>{initial}</Text>
+      <Text style={{ color: colors.onAccent, fontSize: 15, fontWeight: "700" }}>{initial}</Text>
     </Pressable>
   );
 }

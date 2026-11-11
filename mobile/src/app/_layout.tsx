@@ -23,7 +23,7 @@ import { isOlder } from "~/lib/format";
 import { openWebPath, registerForPush, useNotificationTaps } from "~/lib/push";
 import { persister, queryClient } from "~/lib/query";
 import { pollNativeShare, useShareInbox } from "~/lib/share-intake";
-import { colors, isLight } from "~/lib/theme";
+import { colors, displayFont, isLight } from "~/lib/theme";
 import { t } from "~/lib/i18n";
 
 const baseTheme = isLight ? DefaultTheme : DarkTheme;
@@ -141,7 +141,7 @@ function Root() {
       screenOptions={{
         headerStyle: { backgroundColor: colors.panel },
         headerTintColor: colors.text,
-        headerTitleStyle: { fontWeight: "600" },
+        headerTitleStyle: { fontWeight: "700", fontFamily: displayFont, fontSize: 21 },
         contentStyle: { backgroundColor: colors.bg },
         headerShadowVisible: false,
       }}

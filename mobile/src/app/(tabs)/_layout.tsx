@@ -7,7 +7,7 @@ import { AccountButton } from "~/components/account-button";
 import { Bell } from "~/components/bell";
 import { GemHeaderBackground } from "~/components/gem-stripe";
 import type { IconName } from "~/components/ui";
-import { colors } from "~/lib/theme";
+import { colors, displayFont } from "~/lib/theme";
 import { t } from "~/lib/i18n";
 
 const icon =
@@ -28,6 +28,7 @@ export default function TabsLayout() {
         headerStyle: { backgroundColor: colors.panel },
         headerBackground: () => <GemHeaderBackground />,
         headerTintColor: colors.text,
+        headerTitleStyle: { fontWeight: "700", fontFamily: displayFont, fontSize: 21 },
         headerShadowVisible: false,
         headerRight: () => (
           <View style={{ marginRight: 12, flexDirection: "row", alignItems: "center", gap: 10 }}>

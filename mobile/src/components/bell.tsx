@@ -54,7 +54,7 @@ export function Bell() {
             borderColor: colors.panel,
           }}
         >
-          <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>
+          <Text style={{ color: colors.bg, fontSize: 10, fontWeight: "700" }}>
             {unread > 99 ? "99+" : unread}
           </Text>
         </View>
