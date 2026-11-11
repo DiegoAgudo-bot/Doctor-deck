@@ -163,21 +163,31 @@ export function SwapDiff({
           </span>
         )}
       </div>
-      <SwapRow sign="−" scored={swap.out} />
-      <SwapRow sign="+" scored={swap.in} />
-      <div className="diff-meta">
-        {swap.in.synergy !== null && (
-          <span>
-            {t("Sinergia", "Synergy")} <b className="mono">{signedPct(swap.in.synergy, intl)}</b>
-          </span>
-        )}
-        {swap.in.inclusion !== null && (
-          <span>
-            {t("En el", "In")} <b className="mono">{pct(swap.in.inclusion, intl)}</b>{" "}
-            {t(`de los mazos de ${commanderName}`, `of ${commanderName} decks`)}
-          </span>
-        )}
-        <span>{swap.reason}</span>
+      <div className="diff-body">
+        {/* Las dos cartas sobre la mesa: al aceptar, la que entra ocupa el sitio de la que sale. */}
+        <div className="diff-cards" aria-hidden="true">
+          <CardImage card={swap.out.card} className="dc-out" sizes="54px" />
+          <CardImage card={swap.in.card} className="dc-in" sizes="54px" />
+        </div>
+        <div className="min-w-0">
+          <SwapRow sign="−" scored={swap.out} />
+          <SwapRow sign="+" scored={swap.in} />
+          <div className="diff-meta">
+            {swap.in.synergy !== null && (
+              <span>
+                {t("Sinergia", "Synergy")}{" "}
+                <b className="mono">{signedPct(swap.in.synergy, intl)}</b>
+              </span>
+            )}
+            {swap.in.inclusion !== null && (
+              <span>
+                {t("En el", "In")} <b className="mono">{pct(swap.in.inclusion, intl)}</b>{" "}
+                {t(`de los mazos de ${commanderName}`, `of ${commanderName} decks`)}
+              </span>
+            )}
+            <span>{swap.reason}</span>
+          </div>
+        </div>
       </div>
       {open && (
         <div className="fade flex flex-wrap items-center gap-3.5 border-b border-line py-3.5 pr-3 pl-[42px]">

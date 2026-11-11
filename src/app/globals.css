@@ -8,8 +8,9 @@
  */
 
 @theme {
-  --font-sans:
-    var(--font-plex-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Titulares: estrecha y con peso, como los rótulos de un tapete de juego. */
+  --font-display: var(--font-display-face), "Arial Narrow", var(--font-sans);
   --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
   --font-card: var(--font-spectral), "Iowan Old Style", Georgia, serif;
 
@@ -19,27 +20,29 @@
   --radius-lg: 8px;
   --radius-mtg: 4.75% / 3.4%;
 
-  --color-bg: #111214;
-  --color-panel: #17181b;
-  --color-raised: #1e2024;
-  --color-hover: #26282d;
-  --color-line: #2a2c31;
-  --color-line-strong: #383b41;
-  --color-text: #e8e6e3;
-  --color-text-2: #aba7a1;
-  --color-text-3: #8a8680;
-  --color-link: #6cb0ff;
-  --color-accent: #6cb0ff;
-  --color-on-accent: #06182e;
-  --color-in: #4fc16a;
-  --color-in-bg: rgba(79, 193, 106, 0.1);
-  --color-out: #f06a5f;
-  --color-out-bg: rgba(240, 106, 95, 0.1);
-  --color-warn: #e0ae3f;
-  --color-warn-bg: rgba(224, 174, 63, 0.12);
-  --color-owned: #4fc16a;
-  --color-inuse: #b78cf0;
-  --color-missing: #8a8680;
+  /* Tema «Tapete»: esto es el fieltro (lo que va directamente sobre la mesa). Lo que va sobre una
+     hoja de cartulina (paneles, diálogos, campos…) redefine estos mismos tokens más abajo. */
+  --color-bg: #153a36;
+  --color-panel: #f7f3e8;
+  --color-raised: rgba(255, 255, 255, 0.07);
+  --color-hover: rgba(255, 255, 255, 0.13);
+  --color-line: rgba(233, 223, 198, 0.24);
+  --color-line-strong: rgba(233, 223, 198, 0.45);
+  --color-text: #f3ecd9;
+  --color-text-2: #c5d1c8;
+  --color-text-3: #a3b4aa;
+  --color-link: #e6c878;
+  --color-accent: #c9a24b;
+  --color-on-accent: #1d1708;
+  --color-in: #86d99f;
+  --color-in-bg: rgba(134, 217, 159, 0.14);
+  --color-out: #f5a091;
+  --color-out-bg: rgba(245, 160, 145, 0.13);
+  --color-warn: #ecc968;
+  --color-warn-bg: rgba(236, 201, 104, 0.14);
+  --color-owned: #86d99f;
+  --color-inuse: #cdb2f5;
+  --color-missing: #a3b4aa;
 }
 
 :root {
@@ -142,16 +145,18 @@
   }
   /* Títulos de página, en la letra de los nombres de las cartas. */
   .h1 {
-    font-family: var(--font-card);
-    font-size: 30px;
-    line-height: 1.12;
-    font-weight: 600;
-    letter-spacing: -0.012em;
+    font-family: var(--font-display);
+    font-size: 36px;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: 0.002em;
   }
   .h2 {
-    font-size: 15px;
-    line-height: 1.3;
+    font-family: var(--font-display);
+    font-size: 20px;
+    line-height: 1.15;
     font-weight: 600;
+    letter-spacing: 0.004em;
   }
   .cap {
     font: 600 12px/1.2 var(--font-sans);
@@ -1991,8 +1996,8 @@
   }
   /* El titular va en la letra de los nombres de las cartas. */
   .hero h1 {
-    font: 600 clamp(34px, 5.2vw, 58px) / 1.02 var(--font-card);
-    letter-spacing: -0.02em;
+    font: 700 clamp(38px, 5.6vw, 64px) / 0.96 var(--font-display);
+    letter-spacing: 0.002em;
     text-wrap: balance;
   }
   .hero-copy > p {
@@ -2184,8 +2189,7 @@
     padding: 0 8px;
   }
   .does h2 {
-    font: 600 28px/1.1 var(--font-card);
-    letter-spacing: -0.01em;
+    font: 700 36px/1 var(--font-display);
   }
   .does dl {
     margin: 0;
@@ -2248,13 +2252,10 @@
     background: var(--color-panel);
   }
   .cta-band h2 {
-    font: 600 28px/1.15 var(--font-card);
-    letter-spacing: -0.01em;
+    font: 700 32px/1.05 var(--font-display);
   }
-  /* Los títulos de sección de la portada, como el resto de titulares. */
   .landing .h2 {
-    font-family: var(--font-card);
-    letter-spacing: -0.01em;
+    font-size: 28px;
   }
   .cta-band p {
     margin-top: 6px;
@@ -3848,5 +3849,194 @@
     .bottomnav button {
       font-size: 11.5px;
     }
+  }
+}
+
+/* =====================================================================================
+ * Tema «Tapete» (el de por defecto): la web es la mesa de juego.
+ * - El fondo es fieltro con pespunte; lo que va directamente encima usa los tokens de arriba.
+ * - Lo que se lee con calma (paneles, diálogos, campos, tarjetas) va en hojas de cartulina:
+ *   esas superficies redefinen los mismos tokens, así todo lo que llevan dentro (texto, rayas,
+ *   botones, enlaces) sale en tinta oscura sin tocar cada componente.
+ * Va sin capa para ganar a los componentes; el tema claro no lo usa.
+ * ===================================================================================== */
+:root:not([data-theme="light"]) body {
+  background-color: var(--color-bg);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1.4px);
+  background-size: 5px 5px;
+}
+
+/* --- Hojas de cartulina --- */
+:root:not([data-theme="light"])
+  :is(
+    .panel,
+    .dialog,
+    .banner,
+    .issues,
+    .deckcard,
+    .ctile,
+    .catalogtile,
+    .groupcard,
+    .gamecard,
+    .quicklink,
+    .landing-deck,
+    .faq details,
+    .cta-band,
+    .swap-reason,
+    .gsearch-pop,
+    .lifemenu,
+    .lifewin,
+    .actionbar,
+    .oracle,
+    .copyrow,
+    .feeddeck,
+    .input,
+    .textarea,
+    .select,
+    .qty,
+    .cardimg-missing
+  ) {
+  --color-bg: #efe9d8;
+  --color-panel: #f7f3e8;
+  --color-raised: #efe9d8;
+  --color-hover: #e6dfcb;
+  --color-line: #ddd4bd;
+  --color-line-strong: #c4b997;
+  --color-text: #23201a;
+  --color-text-2: #5a5446;
+  --color-text-3: #6f6756;
+  --color-link: #17544c;
+  --color-accent: #17544c;
+  --color-on-accent: #f7f3e8;
+  --color-in: #2a7540;
+  --color-in-bg: rgba(42, 117, 64, 0.11);
+  --color-out: #ab3a29;
+  --color-out-bg: rgba(171, 58, 41, 0.09);
+  --color-warn: #875c00;
+  --color-warn-bg: rgba(201, 162, 75, 0.2);
+  --color-owned: #2a7540;
+  --color-inuse: #7445bd;
+  --color-missing: #6f6756;
+  --shadow-pop: 0 18px 40px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(35, 32, 26, 0.12);
+  background-color: var(--color-panel);
+  color: var(--color-text);
+  color-scheme: light;
+}
+/* Las hojas no llevan borde: se levantan del fieltro con sombra. */
+:root:not([data-theme="light"])
+  :is(
+    .panel,
+    .issues,
+    .deckcard,
+    .ctile,
+    .catalogtile,
+    .groupcard,
+    .gamecard,
+    .quicklink,
+    .landing-deck,
+    .cta-band,
+    .swap-reason,
+    .faq details
+  ) {
+  border-color: transparent;
+  box-shadow: 0 8px 18px -6px rgba(0, 0, 0, 0.5);
+}
+:root:not([data-theme="light"]) :is(.deckcard, .groupcard, .quicklink, .landing-deck):hover {
+  background-color: #fffdf6;
+}
+
+/* --- Sobre el fieltro: barras y navegación --- */
+:root:not([data-theme="light"]) :is(.topbar, .side, .bottomnav) {
+  background-color: #0f2b28;
+}
+:root:not([data-theme="light"]) .topbar {
+  border-bottom: 0;
+}
+:root:not([data-theme="light"]) .side {
+  border-right: 1.5px dashed var(--color-line);
+}
+:root:not([data-theme="light"]) .brand {
+  font: 700 21px/1 var(--font-display);
+  letter-spacing: 0.01em;
+}
+/* Rayas sobre el fieltro: pespunte. */
+:root:not([data-theme="light"]) .tabs {
+  border-bottom: 1.5px dashed var(--color-line-strong);
+}
+:root:not([data-theme="light"]) .tabs > * {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+:root:not([data-theme="light"]) :is(.does dl > div, .side-foot) {
+  border-top-style: dashed;
+}
+:root:not([data-theme="light"]) .deckhero::after {
+  background: linear-gradient(180deg, transparent 40%, var(--color-bg) 100%);
+}
+
+/* --- Cambios sugeridos: una zona de la mesa, con las dos cartas a la vista --- */
+:root:not([data-theme="light"]) .diff {
+  background: rgba(0, 0, 0, 0.16);
+  border: 1.5px dashed var(--color-line-strong);
+  border-radius: 12px;
+}
+:root:not([data-theme="light"]) .diff-hunk {
+  background: rgba(0, 0, 0, 0.18);
+  border-bottom: 1.5px dashed var(--color-line);
+}
+:root:not([data-theme="light"]) .diff-meta {
+  border-bottom: 1.5px dashed var(--color-line);
+}
+:root:not([data-theme="light"]) .diff-row .nm {
+  font: 600 18px/1.2 var(--font-display);
+}
+:root:not([data-theme="light"]) .diff-row {
+  min-height: 38px;
+}
+
+/* Las dos cartas de un cambio (en los dos temas): la que sale, girada; la que entra, lista. */
+.diff-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: stretch;
+}
+.diff-cards {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px 8px 12px;
+}
+.diff-cards .cardimg {
+  width: 54px;
+  transition:
+    transform 520ms var(--ease-out),
+    filter 520ms var(--ease-out),
+    opacity 520ms var(--ease-out);
+}
+.diff-cards .dc-out {
+  transform: rotate(-5deg);
+}
+.diff-cards .dc-in {
+  transform: rotate(3deg) translateY(-2px);
+}
+/* Al aceptar, la que entra ocupa el sitio de la que sale. */
+.diff-item.is-accepted .dc-out {
+  transform: translate(-8px, 8px) rotate(-17deg);
+  filter: saturate(0.3) brightness(0.75);
+  opacity: 0.6;
+}
+.diff-item.is-accepted .dc-in {
+  transform: translateX(-34px) rotate(0);
+}
+.diff-item.is-discarded .diff-cards .cardimg {
+  filter: saturate(0.3);
+}
+@media (max-width: 520px) {
+  .diff-cards .cardimg {
+    width: 36px;
+  }
+  .diff-item.is-accepted .dc-in {
+    transform: translateX(-24px) rotate(0);
   }
 }

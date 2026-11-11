@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
-import { IBM_Plex_Mono, IBM_Plex_Sans, Spectral } from "next/font/google";
+import { Barlow, Barlow_Condensed, IBM_Plex_Mono, Spectral } from "next/font/google";
 import Script from "next/script";
 import { ErrorReporter } from "@/components/error-reporter";
 import { LocaleProvider } from "@/components/i18n";
@@ -9,10 +9,16 @@ import { publicSiteUrl, SITE_NAME } from "@/config/site";
 import { isLocale, LOCALES, pick } from "@/domain/i18n/locale";
 import "../globals.css";
 
-const plexSans = IBM_Plex_Sans({
+// Tema «Tapete»: Barlow para leer y Barlow Condensed en titulares.
+const barlow = Barlow({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-plex-sans",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-body",
+});
+const barlowCondensed = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-display-face",
 });
 const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
@@ -96,13 +102,13 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#111214" },
-    { media: "(prefers-color-scheme: light)", color: "#f4f4f5" },
+    // El Tapete es el tema por defecto, también con el sistema en claro.
+    { color: "#0f2b28" },
   ],
 };
 
-// Tema antes de pintar (sin parpadeo): el elegido, o el del sistema.
-const THEME_SCRIPT = `try{var t=JSON.parse(localStorage.getItem("dd-theme")||"null");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t}catch(e){}`;
+// Tema antes de pintar (sin parpadeo): el Tapete, salvo que se haya elegido el claro.
+const THEME_SCRIPT = `try{var t=JSON.parse(localStorage.getItem("dd-theme")||"null");if(t!=="light")t="dark";document.documentElement.dataset.theme=t}catch(e){}`;
 
 export default async function RootLayout({ children, params }: LayoutProps<"/[lang]">) {
   const { lang } = await params;
@@ -110,7 +116,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
   return (
     <html
       lang={lang}
-      className={`${plexSans.variable} ${plexMono.variable} ${spectral.variable}`}
+      className={`${barlow.variable} ${barlowCondensed.variable} ${plexMono.variable} ${spectral.variable}`}
       suppressHydrationWarning
     >
       <body>

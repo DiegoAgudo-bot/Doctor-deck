@@ -163,7 +163,7 @@ function ThemeToggle() {
       aria-label={
         next === "light"
           ? t("Cambiar a tema claro", "Switch to light theme")
-          : t("Cambiar a tema oscuro", "Switch to dark theme")
+          : t("Cambiar al tapete", "Switch to the playmat theme")
       }
       onClick={() => {
         document.documentElement.dataset.theme = next;

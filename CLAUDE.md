@@ -228,20 +228,28 @@ locale)`) y los avisos de datos guardados (`localizeWarning`, `domain/i18n/warni
   con `apiErrorMessage`. Las push van en el idioma de cada móvil (`PushDevice.locale`, que manda
   `POST /api/me/devices`; `notificationMessage(…, locale)`) y `GET /api/notifications` en el de
   la petición. Ficha de Play en inglés en `mobile/store/README.md`.
-- **Tema** «Pentacromo» (`globals.css`): base neutra, acento azul y la gema del logo (`--gem`,
-  `--gem-v`) en la franja bajo la barra superior, el subrayado de pestañas y la fila activa del
-  lateral. Propuestas descartadas y capturas en `branding/themes/`.
-  **Revisión R7** (estilo): los titulares (`.h1`, la portada, las secciones de la portada) van en
-  Spectral (`--font-card`, la letra de los nombres de carta); la monoespaciada queda para cifras
-  en columnas. Sin etiquetas en mayúsculas encima de los títulos (`.eyebrow` ya no existe), sin
-  degradados ni resplandores en la portada ni flechas en los botones. La portada (`landing.tsx`)
-  abre con el gesto del producto una sola vez al cargar (`dd-card-out` / `dd-card-in`: una carta
-  se aparta, la otra cae en su sitio) y «Qué hace por ti» es una lista con rayas (`.does`), sin
-  tarjetas ni iconos. En el Inicio, «Tus mazos» son portadas (`DeckTile`). **Movimiento solo como
-  respuesta** a lo que hace el usuario: aceptar un cambio (`dd-row-out` / `dd-row-in`), repartir
-  la mano inicial (`.dealt`), la cifra de vidas (`.tick-up` / `.tick-down`), la carta de su ficha
-  inclinándose hacia el puntero (`Tilt`, `components/tilt.tsx`) y la franja de la gema corriendo
-  mientras se analiza un mazo (`data-busy` en `<html>`). Todo respeta «reducir movimiento».
+- **Tema** «Tapete» (`globals.css`; el de por defecto desde noviembre de 2026, elegido entre cinco
+  propuestas): la web es la mesa de juego. Fondo de **fieltro** (`--color-bg` #153a36 con trama de
+  puntos) y rayas de **pespunte** (bordes discontinuos) en lo que va directamente sobre la mesa; lo
+  que se lee con calma va en **hojas de cartulina**. Cómo está hecho: los tokens de `@theme` son los
+  del fieltro (texto claro, `--color-raised`/`--color-hover` translúcidos, acento latón) y las
+  superficies (`.panel`, `.dialog`, `.banner`, `.deckcard`, `.ctile`, campos… la lista está en el
+  bloque «Tema Tapete» al final de `globals.css`) **redefinen esos mismos tokens** en tinta oscura
+  (acento verde fieltro), así lo de dentro cambia solo. **Una superficie nueva con fondo
+  `--color-panel` hay que añadirla a esa lista**, o saldrá con texto claro sobre cartulina.
+  Titulares en Barlow Condensed (`--font-display`), texto en Barlow (`--font-sans`), cifras en
+  columnas en Plex Mono y Spectral solo en el hueco de una carta sin imagen. La gema del logo
+  (`--gem`) sigue en la franja bajo la barra superior. El tema claro («Pentacromo» claro) sigue
+  en el botón de la cabecera, pero ya no se elige solo por el sistema (`THEME_SCRIPT`).
+  Los **cambios sugeridos** son una zona de la mesa (`.diff`) con las dos cartas a la vista
+  (`.diff-cards`): al aceptar, la que entra ocupa el sitio de la que sale. Sin etiquetas en
+  mayúsculas sobre los títulos, sin degradados ni flechas en los botones. La portada
+  (`landing.tsx`) abre con ese gesto una sola vez (`dd-card-out` / `dd-card-in`) y «Qué hace por
+  ti» es una lista con rayas (`.does`). **Movimiento solo como respuesta** a lo que hace el
+  usuario: aceptar un cambio, repartir la mano inicial (`.dealt`), la cifra de vidas (`.tick-up` /
+  `.tick-down`), la carta de su ficha inclinándose (`Tilt`) y la franja de la gema corriendo
+  mientras se analiza (`data-busy` en `<html>`). Todo respeta «reducir movimiento». La app móvil
+  sigue con los colores anteriores. Propuestas descartadas en `branding/themes/`.
 - **PWA** (Fase 20): `app/manifest.ts`, iconos en `public/icons/` y `mobile/assets/` (logo: gema de cinco colores, `LOGO_FACETS` en `components/icons.tsx`; `npx tsx scripts/make-icons.tsx`
   los regenera), `themeColor` y márgenes `safe-area` en las barras.
   Sin conexión: `public/sw.js` (lo registra `ServiceWorker` en el layout, solo en producción)
